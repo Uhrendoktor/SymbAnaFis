@@ -74,6 +74,10 @@ pub enum Operator {
     Sinc,
     ExpPolar,
 
+    // Utility Functions
+    Abs,
+    Sign,
+
     // Error & Probability (Tier 3)
     Erf,
     Erfc,
@@ -139,6 +143,8 @@ impl Operator {
                 | Operator::Sqrt
                 | Operator::Cbrt
                 | Operator::Sinc
+                | Operator::Abs
+                | Operator::Sign
                 | Operator::Erf
                 | Operator::Erfc
                 | Operator::Gamma
@@ -201,6 +207,8 @@ impl Operator {
             "log2" => Some(Operator::Log2),
             "sinc" => Some(Operator::Sinc),
             "exp_polar" => Some(Operator::ExpPolar),
+            "abs" => Some(Operator::Abs),
+            "sign" => Some(Operator::Sign),
             "erf" => Some(Operator::Erf),
             "erfc" => Some(Operator::Erfc),
             "gamma" => Some(Operator::Gamma),
@@ -260,6 +268,8 @@ impl Operator {
             | Operator::Sqrt
             | Operator::Cbrt
             | Operator::Sinc
+            | Operator::Abs
+            | Operator::Sign
             | Operator::Erf
             | Operator::Erfc
             | Operator::Gamma

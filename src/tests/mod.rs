@@ -2,6 +2,7 @@ mod actual_division_bug;
 mod advanced_simplification_tests;
 mod advanced_tests;
 mod debug_div_hang;
+mod test_abs_function;
 mod debug_division_structure;
 mod debug_rc;
 mod debug_root;

@@ -30,7 +30,7 @@ fn diff(
 ) -> PyResult<String> {
     let fixed = fixed_vars.map(|v| v.iter().map(|s| s.to_string()).collect());
     let custom = custom_functions.map(|v| v.iter().map(|s| s.to_string()).collect());
-    
+
     crate::diff(
         formula.to_string(),
         var.to_string(),
@@ -65,7 +65,7 @@ fn simplify(
 ) -> PyResult<String> {
     let fixed = fixed_vars.map(|v| v.iter().map(|s| s.to_string()).collect());
     let custom = custom_functions.map(|v| v.iter().map(|s| s.to_string()).collect());
-    
+
     crate::simplify(
         formula.to_string(),
         fixed.as_ref().map(|v: &Vec<String>| v.as_slice()),
@@ -96,7 +96,7 @@ fn parse(
     let custom: HashSet<String> = custom_functions
         .map(|v| v.into_iter().collect())
         .unwrap_or_default();
-    
+
     crate::parse(formula, &fixed, &custom)
         .map(|expr| expr.to_string())
         .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("{:?}", e)))
