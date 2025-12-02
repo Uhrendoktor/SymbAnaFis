@@ -1,4 +1,5 @@
 #[cfg(test)]
+use std::rc::Rc;
 mod debug_applications {
     use crate::simplify;
     use crate::Expr;
@@ -26,7 +27,7 @@ mod debug_applications {
                 println!("From Sub: a2={:?}, b2={:?}", a2, b2);
                 
                 // This is what the rule creates:
-                let neg_b2 = Expr::Mul(Box::new(Expr::Number(-1.0)), b2.clone());
+                let neg_b2 = Expr::Mul(Rc::new(Expr::Number(-1.0)), b2.clone());
                 println!("neg_b2 = {:?}", neg_b2);
                 
                 // Now check is_neg logic

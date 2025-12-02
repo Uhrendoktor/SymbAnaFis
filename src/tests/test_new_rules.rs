@@ -1,27 +1,28 @@
 #[cfg(test)]
 mod tests {
     use crate::{Expr, simplification::simplify};
+    use std::rc::Rc;
 
     #[test]
     fn test_trig_sum_identity() {
         // sin(x)cos(y) + cos(x)sin(y) -> sin(x+y)
         let expr = Expr::Add(
-            Box::new(Expr::Mul(
-                Box::new(Expr::FunctionCall {
+            Rc::new(Expr::Mul(
+                Rc::new(Expr::FunctionCall {
                     name: "sin".to_string(),
                     args: vec![Expr::Symbol("x".to_string())],
                 }),
-                Box::new(Expr::FunctionCall {
+                Rc::new(Expr::FunctionCall {
                     name: "cos".to_string(),
                     args: vec![Expr::Symbol("y".to_string())],
                 }),
             )),
-            Box::new(Expr::Mul(
-                Box::new(Expr::FunctionCall {
+            Rc::new(Expr::Mul(
+                Rc::new(Expr::FunctionCall {
                     name: "cos".to_string(),
                     args: vec![Expr::Symbol("x".to_string())],
                 }),
-                Box::new(Expr::FunctionCall {
+                Rc::new(Expr::FunctionCall {
                     name: "sin".to_string(),
                     args: vec![Expr::Symbol("y".to_string())],
                 }),
@@ -31,8 +32,8 @@ mod tests {
         let expected = Expr::FunctionCall {
             name: "sin".to_string(),
             args: vec![Expr::Add(
-                Box::new(Expr::Symbol("x".to_string())),
-                Box::new(Expr::Symbol("y".to_string())),
+                Rc::new(Expr::Symbol("x".to_string())),
+                Rc::new(Expr::Symbol("y".to_string())),
             )],
         };
         assert_eq!(simplified, expected);
@@ -43,8 +44,8 @@ mod tests {
         let simplified = simplify(Expr::FunctionCall {
             name: "sin".to_string(),
             args: vec![Expr::Add(
-                Box::new(Expr::Symbol("x".to_string())),
-                Box::new(Expr::Symbol("y".to_string())),
+                Rc::new(Expr::Symbol("x".to_string())),
+                Rc::new(Expr::Symbol("y".to_string())),
             )],
         });
         if let Expr::FunctionCall { name, args } = simplified {
@@ -120,8 +121,8 @@ mod tests {
         let expected = Expr::FunctionCall {
             name: "sin".to_string(),
             args: vec![Expr::Mul(
-                Box::new(Expr::Number(3.0)),
-                Box::new(Expr::Symbol("x".to_string())),
+                Rc::new(Expr::Number(3.0)),
+                Rc::new(Expr::Symbol("x".to_string())),
             )],
         };
         assert_eq!(simplified, expected);
@@ -137,8 +138,8 @@ mod tests {
         let expected = Expr::FunctionCall {
             name: "sinh".to_string(),
             args: vec![Expr::Mul(
-                Box::new(Expr::Number(3.0)),
-                Box::new(Expr::Symbol("x".to_string())),
+                Rc::new(Expr::Number(3.0)),
+                Rc::new(Expr::Symbol("x".to_string())),
             )],
         };
         assert_eq!(simplified, expected);
@@ -156,8 +157,8 @@ mod tests {
         let expected = Expr::FunctionCall {
             name: "sin".to_string(),
             args: vec![Expr::Mul(
-                Box::new(Expr::Number(3.0)),
-                Box::new(Expr::Symbol("x".to_string())),
+                Rc::new(Expr::Number(3.0)),
+                Rc::new(Expr::Symbol("x".to_string())),
             )],
         };
         assert_eq!(simplified, expected);
@@ -191,8 +192,8 @@ mod tests {
         let expected = Expr::FunctionCall {
             name: "sin".to_string(),
             args: vec![Expr::Mul(
-                Box::new(Expr::Number(3.0)),
-                Box::new(Expr::Symbol("x".to_string())),
+                Rc::new(Expr::Number(3.0)),
+                Rc::new(Expr::Symbol("x".to_string())),
             )],
         };
         assert_eq!(simplified, expected);
@@ -203,8 +204,8 @@ mod tests {
         let expected2 = Expr::FunctionCall {
             name: "cos".to_string(),
             args: vec![Expr::Mul(
-                Box::new(Expr::Number(3.0)),
-                Box::new(Expr::Symbol("x".to_string())),
+                Rc::new(Expr::Number(3.0)),
+                Rc::new(Expr::Symbol("x".to_string())),
             )],
         };
         assert_eq!(simplified2, expected2);
@@ -220,8 +221,8 @@ mod tests {
         let expected = Expr::FunctionCall {
             name: "sin".to_string(),
             args: vec![Expr::Mul(
-                Box::new(Expr::Number(3.0)),
-                Box::new(Expr::Symbol("x".to_string())),
+                Rc::new(Expr::Number(3.0)),
+                Rc::new(Expr::Symbol("x".to_string())),
             )],
         };
         assert_eq!(simplified, expected);
@@ -239,8 +240,8 @@ mod tests {
         let expected = Expr::FunctionCall {
             name: "sinh".to_string(),
             args: vec![Expr::Mul(
-                Box::new(Expr::Number(3.0)),
-                Box::new(Expr::Symbol("x".to_string())),
+                Rc::new(Expr::Number(3.0)),
+                Rc::new(Expr::Symbol("x".to_string())),
             )],
         };
         assert_eq!(simplified, expected);

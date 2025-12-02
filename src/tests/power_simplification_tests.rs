@@ -2,22 +2,22 @@
 mod tests {
     use crate::Expr;
     use crate::simplification::simplify;
-
+    use std::rc::Rc;
     #[test]
     fn test_power_of_power() {
         // (x^2)^2 -> x^4
         let expr = Expr::Pow(
-            Box::new(Expr::Pow(
-                Box::new(Expr::Symbol("x".to_string())),
-                Box::new(Expr::Number(2.0)),
+            Rc::new(Expr::Pow(
+                Rc::new(Expr::Symbol("x".to_string())),
+                Rc::new(Expr::Number(2.0)),
             )),
-            Box::new(Expr::Number(2.0)),
+            Rc::new(Expr::Number(2.0)),
         );
         let simplified = simplify(expr);
 
         // Expected: x^4
         if let Expr::Pow(base, exp) = simplified {
-            if let Expr::Symbol(s) = *base {
+            if let Expr::Symbol(s) = base.as_ref() {
                 assert_eq!(s, "x");
             } else {
                 panic!("Expected base x");
@@ -36,23 +36,23 @@ mod tests {
     fn test_power_of_power_symbolic() {
         // (x^a)^b -> x^(a*b)
         let expr = Expr::Pow(
-            Box::new(Expr::Pow(
-                Box::new(Expr::Symbol("x".to_string())),
-                Box::new(Expr::Symbol("a".to_string())),
+            Rc::new(Expr::Pow(
+                Rc::new(Expr::Symbol("x".to_string())),
+                Rc::new(Expr::Symbol("a".to_string())),
             )),
-            Box::new(Expr::Symbol("b".to_string())),
+            Rc::new(Expr::Symbol("b".to_string())),
         );
         let simplified = simplify(expr);
 
         // Expected: x^(a*b)
         if let Expr::Pow(base, exp) = simplified {
-            if let Expr::Symbol(s) = *base {
+            if let Expr::Symbol(s) = base.as_ref() {
                 assert_eq!(s, "x");
             } else {
                 panic!("Expected base x");
             }
             // Exponent should be a * b (or b * a depending on sorting)
-            if let Expr::Mul(lhs, rhs) = *exp {
+            if let Expr::Mul(lhs, rhs) = exp.as_ref() {
                 // Check for a*b or b*a
                 let s1 = format!("{}", lhs);
                 let s2 = format!("{}", rhs);
@@ -69,17 +69,17 @@ mod tests {
     fn test_sigma_power_of_power() {
         // (sigma^2)^2 -> sigma^4
         let expr = Expr::Pow(
-            Box::new(Expr::Pow(
-                Box::new(Expr::Symbol("sigma".to_string())),
-                Box::new(Expr::Number(2.0)),
+            Rc::new(Expr::Pow(
+                Rc::new(Expr::Symbol("sigma".to_string())),
+                Rc::new(Expr::Number(2.0)),
             )),
-            Box::new(Expr::Number(2.0)),
+            Rc::new(Expr::Number(2.0)),
         );
         let simplified = simplify(expr);
 
         // Expected: sigma^4
         if let Expr::Pow(base, exp) = simplified {
-            if let Expr::Symbol(s) = *base {
+            if let Expr::Symbol(s) = base.as_ref() {
                 assert_eq!(s, "sigma");
             } else {
                 panic!("Expected base sigma");

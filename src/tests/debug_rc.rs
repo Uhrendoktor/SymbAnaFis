@@ -2,20 +2,20 @@
 fn debug_rc_derivative() {
     use crate::{Expr, simplification::simplify};
     use std::collections::HashSet;
-
+    use std::rc::Rc;
     // Simplified RC test
     let rc = Expr::Mul(
-        Box::new(Expr::Symbol("V0".to_string())),
-        Box::new(Expr::FunctionCall {
+        Rc::new(Expr::Symbol("V0".to_string())),
+        Rc::new(Expr::FunctionCall {
             name: "exp".to_string(),
             args: vec![Expr::Div(
-                Box::new(Expr::Mul(
-                    Box::new(Expr::Number(-1.0)),
-                    Box::new(Expr::Symbol("t".to_string())),
+                Rc::new(Expr::Mul(
+                    Rc::new(Expr::Number(-1.0)),
+                    Rc::new(Expr::Symbol("t".to_string())),
                 )),
-                Box::new(Expr::Mul(
-                    Box::new(Expr::Symbol("R".to_string())),
-                    Box::new(Expr::Symbol("C".to_string())),
+                Rc::new(Expr::Mul(
+                    Rc::new(Expr::Symbol("R".to_string())),
+                    Rc::new(Expr::Symbol("C".to_string())),
                 )),
             )],
         }),

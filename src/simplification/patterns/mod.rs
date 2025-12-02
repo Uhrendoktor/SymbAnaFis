@@ -11,7 +11,7 @@ pub mod common {
             Expr::Number(n) => (*n, Expr::Number(1.0)),
             Expr::Mul(coeff, base) => {
                 if let Expr::Number(n) = **coeff {
-                    (n, *base.clone())
+                    (n, base.as_ref().clone())
                 } else {
                     (1.0, expr.clone())
                 }

@@ -1,13 +1,13 @@
 #[test]
 fn test_power_of_product() {
     use crate::{Expr, simplification::simplify};
-
+    use std::rc::Rc;
     // Test: (R * C)^2
     let product = Expr::Mul(
-        Box::new(Expr::Symbol("R".to_string())),
-        Box::new(Expr::Symbol("C".to_string())),
+        Rc::new(Expr::Symbol("R".to_string())),
+        Rc::new(Expr::Symbol("C".to_string())),
     );
-    let squared = Expr::Pow(Box::new(product), Box::new(Expr::Number(2.0)));
+    let squared = Expr::Pow(Rc::new(product), Rc::new(Expr::Number(2.0)));
 
     eprintln!("(R * C)^2 displays as: {}", squared);
     eprintln!("Simplified: {}", simplify(squared));
@@ -15,13 +15,13 @@ fn test_power_of_product() {
 
     // Test: Something / (R * C)^2
     let div = Expr::Div(
-        Box::new(Expr::Symbol("X".to_string())),
-        Box::new(Expr::Pow(
-            Box::new(Expr::Mul(
-                Box::new(Expr::Symbol("R".to_string())),
-                Box::new(Expr::Symbol("C".to_string())),
+        Rc::new(Expr::Symbol("X".to_string())),
+        Rc::new(Expr::Pow(
+            Rc::new(Expr::Mul(
+                Rc::new(Expr::Symbol("R".to_string())),
+                Rc::new(Expr::Symbol("C".to_string())),
             )),
-            Box::new(Expr::Number(2.0)),
+            Rc::new(Expr::Number(2.0)),
         )),
     );
 

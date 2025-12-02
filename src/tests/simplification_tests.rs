@@ -3,6 +3,7 @@ mod tests {
     use crate::Expr;
     use crate::simplification::simplify;
 
+    use std::rc::Rc;
     #[test]
     fn test_fraction_difference_issue() {
         use crate::parser;
@@ -72,8 +73,8 @@ mod tests {
     #[test]
     fn test_add_zero() {
         let expr = Expr::Add(
-            Box::new(Expr::Symbol("x".to_string())),
-            Box::new(Expr::Number(0.0)),
+            Rc::new(Expr::Symbol("x".to_string())),
+            Rc::new(Expr::Number(0.0)),
         );
         let result = simplify(expr);
         assert_eq!(result, Expr::Symbol("x".to_string()));
@@ -82,8 +83,8 @@ mod tests {
     #[test]
     fn test_mul_zero() {
         let expr = Expr::Mul(
-            Box::new(Expr::Symbol("x".to_string())),
-            Box::new(Expr::Number(0.0)),
+            Rc::new(Expr::Symbol("x".to_string())),
+            Rc::new(Expr::Number(0.0)),
         );
         let result = simplify(expr);
         assert_eq!(result, Expr::Number(0.0));
@@ -92,8 +93,8 @@ mod tests {
     #[test]
     fn test_mul_one() {
         let expr = Expr::Mul(
-            Box::new(Expr::Symbol("x".to_string())),
-            Box::new(Expr::Number(1.0)),
+            Rc::new(Expr::Symbol("x".to_string())),
+            Rc::new(Expr::Number(1.0)),
         );
         let result = simplify(expr);
         assert_eq!(result, Expr::Symbol("x".to_string()));
@@ -102,8 +103,8 @@ mod tests {
     #[test]
     fn test_pow_zero() {
         let expr = Expr::Pow(
-            Box::new(Expr::Symbol("x".to_string())),
-            Box::new(Expr::Number(0.0)),
+            Rc::new(Expr::Symbol("x".to_string())),
+            Rc::new(Expr::Number(0.0)),
         );
         let result = simplify(expr);
         assert_eq!(result, Expr::Number(1.0));
@@ -112,8 +113,8 @@ mod tests {
     #[test]
     fn test_pow_one() {
         let expr = Expr::Pow(
-            Box::new(Expr::Symbol("x".to_string())),
-            Box::new(Expr::Number(1.0)),
+            Rc::new(Expr::Symbol("x".to_string())),
+            Rc::new(Expr::Number(1.0)),
         );
         let result = simplify(expr);
         assert_eq!(result, Expr::Symbol("x".to_string()));
@@ -121,7 +122,7 @@ mod tests {
 
     #[test]
     fn test_constant_folding() {
-        let expr = Expr::Add(Box::new(Expr::Number(2.0)), Box::new(Expr::Number(3.0)));
+        let expr = Expr::Add(Rc::new(Expr::Number(2.0)), Rc::new(Expr::Number(3.0)));
         let result = simplify(expr);
         assert_eq!(result, Expr::Number(5.0));
     }
@@ -130,11 +131,11 @@ mod tests {
     fn test_nested_simplification() {
         // (x + 0) * 1 should simplify to x
         let expr = Expr::Mul(
-            Box::new(Expr::Add(
-                Box::new(Expr::Symbol("x".to_string())),
-                Box::new(Expr::Number(0.0)),
+            Rc::new(Expr::Add(
+                Rc::new(Expr::Symbol("x".to_string())),
+                Rc::new(Expr::Number(0.0)),
             )),
-            Box::new(Expr::Number(1.0)),
+            Rc::new(Expr::Number(1.0)),
         );
         let result = simplify(expr);
         assert_eq!(result, Expr::Symbol("x".to_string()));
@@ -160,15 +161,15 @@ mod tests {
         let expr = Expr::FunctionCall {
             name: "sin".to_string(),
             args: vec![Expr::Mul(
-                Box::new(Expr::Number(-1.0)),
-                Box::new(Expr::Symbol("x".to_string())),
+                Rc::new(Expr::Number(-1.0)),
+                Rc::new(Expr::Symbol("x".to_string())),
             )],
         };
         let simplified = simplify(expr);
         // Should be -1 * sin(x)
         if let Expr::Mul(a, b) = simplified {
             assert_eq!(*a, Expr::Number(-1.0));
-            if let Expr::FunctionCall { name, args } = *b {
+            if let Expr::FunctionCall { name, args } = b.as_ref() {
                 assert_eq!(name, "sin");
                 assert_eq!(args[0], Expr::Symbol("x".to_string()));
             } else {
@@ -226,17 +227,17 @@ mod tests {
     #[test]
     fn test_fraction_preservation() {
         // 1/3 should stay 1/3
-        let expr = Expr::Div(Box::new(Expr::Number(1.0)), Box::new(Expr::Number(3.0)));
+        let expr = Expr::Div(Rc::new(Expr::Number(1.0)), Rc::new(Expr::Number(3.0)));
         let simplified = simplify(expr.clone());
         assert_eq!(simplified, expr);
 
         // 4/2 should become 2
-        let expr = Expr::Div(Box::new(Expr::Number(4.0)), Box::new(Expr::Number(2.0)));
+        let expr = Expr::Div(Rc::new(Expr::Number(4.0)), Rc::new(Expr::Number(2.0)));
         let simplified = simplify(expr);
         assert_eq!(simplified, Expr::Number(2.0));
 
         // 2/3 should stay 2/3
-        let expr = Expr::Div(Box::new(Expr::Number(2.0)), Box::new(Expr::Number(3.0)));
+        let expr = Expr::Div(Rc::new(Expr::Number(2.0)), Rc::new(Expr::Number(3.0)));
         let simplified = simplify(expr.clone());
         assert_eq!(simplified, expr);
     }
@@ -245,13 +246,13 @@ mod tests {
     fn test_distributive_property() {
         // x*y + x*z should become x*(y + z)
         let expr = Expr::Add(
-            Box::new(Expr::Mul(
-                Box::new(Expr::Symbol("x".to_string())),
-                Box::new(Expr::Symbol("y".to_string())),
+            Rc::new(Expr::Mul(
+                Rc::new(Expr::Symbol("x".to_string())),
+                Rc::new(Expr::Symbol("y".to_string())),
             )),
-            Box::new(Expr::Mul(
-                Box::new(Expr::Symbol("x".to_string())),
-                Box::new(Expr::Symbol("z".to_string())),
+            Rc::new(Expr::Mul(
+                Rc::new(Expr::Symbol("x".to_string())),
+                Rc::new(Expr::Symbol("z".to_string())),
             )),
         );
         let simplified = simplify(expr);
@@ -267,9 +268,9 @@ mod tests {
             };
 
             assert_eq!(x_part, &Expr::Symbol("x".to_string()));
-            if let Expr::Add(y, z) = sum_part {
-                assert_eq!(**y, Expr::Symbol("y".to_string()));
-                assert_eq!(**z, Expr::Symbol("z".to_string()));
+            if let Expr::Add(x, y) = sum_part {
+                assert_eq!(&**x, &Expr::Symbol("y".to_string()));
+                assert_eq!(&**y, &Expr::Symbol("z".to_string()));
             } else {
                 panic!("Expected y + z, got {:?}", sum_part);
             }
@@ -282,31 +283,31 @@ mod tests {
     fn test_binomial_expansion() {
         // x^2 + 2*x*y + y^2 should become (x + y)^2
         let expr = Expr::Add(
-            Box::new(Expr::Add(
-                Box::new(Expr::Pow(
-                    Box::new(Expr::Symbol("x".to_string())),
-                    Box::new(Expr::Number(2.0)),
+            Rc::new(Expr::Add(
+                Rc::new(Expr::Pow(
+                    Rc::new(Expr::Symbol("x".to_string())),
+                    Rc::new(Expr::Number(2.0)),
                 )),
-                Box::new(Expr::Mul(
-                    Box::new(Expr::Number(2.0)),
-                    Box::new(Expr::Mul(
-                        Box::new(Expr::Symbol("x".to_string())),
-                        Box::new(Expr::Symbol("y".to_string())),
+                Rc::new(Expr::Mul(
+                    Rc::new(Expr::Number(2.0)),
+                    Rc::new(Expr::Mul(
+                        Rc::new(Expr::Symbol("x".to_string())),
+                        Rc::new(Expr::Symbol("y".to_string())),
                     )),
                 )),
             )),
-            Box::new(Expr::Pow(
-                Box::new(Expr::Symbol("y".to_string())),
-                Box::new(Expr::Number(2.0)),
+            Rc::new(Expr::Pow(
+                Rc::new(Expr::Symbol("y".to_string())),
+                Rc::new(Expr::Number(2.0)),
             )),
         );
         let simplified = simplify(expr);
         // Should be (x + y)^2
         if let Expr::Pow(sum, exp) = simplified {
             assert_eq!(*exp, Expr::Number(2.0));
-            if let Expr::Add(x, y) = *sum {
-                assert_eq!(*x, Expr::Symbol("x".to_string()));
-                assert_eq!(*y, Expr::Symbol("y".to_string()));
+            if let Expr::Add(x, y) = sum.as_ref() {
+                assert_eq!(&**x, &Expr::Symbol("x".to_string()));
+                assert_eq!(&**y, &Expr::Symbol("y".to_string()));
             } else {
                 panic!("Expected x + y");
             }
@@ -335,13 +336,13 @@ mod tests {
     fn test_flatten_mul_div_structure() {
         // (A / B) * R^2 -> (A * R^2) / B
         let expr = Expr::Mul(
-            Box::new(Expr::Div(
-                Box::new(Expr::Symbol("A".to_string())),
-                Box::new(Expr::Symbol("B".to_string())),
+            Rc::new(Expr::Div(
+                Rc::new(Expr::Symbol("A".to_string())),
+                Rc::new(Expr::Symbol("B".to_string())),
             )),
-            Box::new(Expr::Pow(
-                Box::new(Expr::Symbol("R".to_string())),
-                Box::new(Expr::Number(2.0)),
+            Rc::new(Expr::Pow(
+                Rc::new(Expr::Symbol("R".to_string())),
+                Rc::new(Expr::Number(2.0)),
             )),
         );
         let simplified = simplify(expr);
@@ -349,14 +350,14 @@ mod tests {
 
         if let Expr::Div(num, den) = simplified {
             // Check denominator is B
-            if let Expr::Symbol(s) = *den {
+            if let Expr::Symbol(s) = den.as_ref() {
                 assert_eq!(s, "B");
             } else {
                 panic!("Expected denominator B");
             }
 
             // Check numerator is A * R^2 (or R^2 * A)
-            if let Expr::Mul(n1, n2) = *num {
+            if let Expr::Mul(n1, n2) = num.as_ref() {
                 // One should be A, other should be R^2
                 let s1 = format!("{}", n1);
                 let s2 = format!("{}", n2);

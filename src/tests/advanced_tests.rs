@@ -1,21 +1,20 @@
 // Advanced simplification and expression tests
-
 mod simplification_advanced {
-
     use crate::Expr;
     use crate::simplification::simplify;
+    use std::rc::Rc;
 
     #[test]
     fn test_nested_add_zero() {
         // (x + 0) + (0 + y) should simplify to (x + y)
         let expr = Expr::Add(
-            Box::new(Expr::Add(
-                Box::new(Expr::Symbol("x".to_string())),
-                Box::new(Expr::Number(0.0)),
+            Rc::new(Expr::Add(
+                Rc::new(Expr::Symbol("x".to_string())),
+                Rc::new(Expr::Number(0.0)),
             )),
-            Box::new(Expr::Add(
-                Box::new(Expr::Number(0.0)),
-                Box::new(Expr::Symbol("y".to_string())),
+            Rc::new(Expr::Add(
+                Rc::new(Expr::Number(0.0)),
+                Rc::new(Expr::Symbol("y".to_string())),
             )),
         );
         let result = simplify(expr);
@@ -27,11 +26,11 @@ mod simplification_advanced {
     fn test_mul_by_zero_nested() {
         // (x + 1) * 0 should become 0
         let expr = Expr::Mul(
-            Box::new(Expr::Add(
-                Box::new(Expr::Symbol("x".to_string())),
-                Box::new(Expr::Number(1.0)),
+            Rc::new(Expr::Add(
+                Rc::new(Expr::Symbol("x".to_string())),
+                Rc::new(Expr::Number(1.0)),
             )),
-            Box::new(Expr::Number(0.0)),
+            Rc::new(Expr::Number(0.0)),
         );
         let result = simplify(expr);
         assert_eq!(result, Expr::Number(0.0));
@@ -41,13 +40,13 @@ mod simplification_advanced {
     fn test_constant_folding_chain() {
         // (2 + 3) * (4 + 1) should become 25
         let expr = Expr::Mul(
-            Box::new(Expr::Add(
-                Box::new(Expr::Number(2.0)),
-                Box::new(Expr::Number(3.0)),
+            Rc::new(Expr::Add(
+                Rc::new(Expr::Number(2.0)),
+                Rc::new(Expr::Number(3.0)),
             )),
-            Box::new(Expr::Add(
-                Box::new(Expr::Number(4.0)),
-                Box::new(Expr::Number(1.0)),
+            Rc::new(Expr::Add(
+                Rc::new(Expr::Number(4.0)),
+                Rc::new(Expr::Number(1.0)),
             )),
         );
         let result = simplify(expr);
@@ -58,19 +57,19 @@ mod simplification_advanced {
     fn test_power_simplification() {
         // x^0 * y^1 * z^2 should simplify to z^2
         let expr = Expr::Mul(
-            Box::new(Expr::Mul(
-                Box::new(Expr::Pow(
-                    Box::new(Expr::Symbol("x".to_string())),
-                    Box::new(Expr::Number(0.0)),
+            Rc::new(Expr::Mul(
+                Rc::new(Expr::Pow(
+                    Rc::new(Expr::Symbol("x".to_string())),
+                    Rc::new(Expr::Number(0.0)),
                 )),
-                Box::new(Expr::Pow(
-                    Box::new(Expr::Symbol("y".to_string())),
-                    Box::new(Expr::Number(1.0)),
+                Rc::new(Expr::Pow(
+                    Rc::new(Expr::Symbol("y".to_string())),
+                    Rc::new(Expr::Number(1.0)),
                 )),
             )),
-            Box::new(Expr::Pow(
-                Box::new(Expr::Symbol("z".to_string())),
-                Box::new(Expr::Number(2.0)),
+            Rc::new(Expr::Pow(
+                Rc::new(Expr::Symbol("z".to_string())),
+                Rc::new(Expr::Number(2.0)),
             )),
         );
         let result = simplify(expr);
@@ -82,13 +81,13 @@ mod simplification_advanced {
     fn test_power_division_simplification() {
         // x^2 / x^2 should simplify to 1
         let expr = Expr::Div(
-            Box::new(Expr::Pow(
-                Box::new(Expr::Symbol("x".to_string())),
-                Box::new(Expr::Number(2.0)),
+            Rc::new(Expr::Pow(
+                Rc::new(Expr::Symbol("x".to_string())),
+                Rc::new(Expr::Number(2.0)),
             )),
-            Box::new(Expr::Pow(
-                Box::new(Expr::Symbol("x".to_string())),
-                Box::new(Expr::Number(2.0)),
+            Rc::new(Expr::Pow(
+                Rc::new(Expr::Symbol("x".to_string())),
+                Rc::new(Expr::Number(2.0)),
             )),
         );
         let result = simplify(expr);
@@ -99,22 +98,19 @@ mod simplification_advanced {
     fn test_complex_power_division() {
         // (x+1)^3 / (x+1)^2 should simplify to (x+1)
         let base = Expr::Add(
-            Box::new(Expr::Symbol("x".to_string())),
-            Box::new(Expr::Number(1.0)),
+            Rc::new(Expr::Symbol("x".to_string())),
+            Rc::new(Expr::Number(1.0)),
         );
         let expr = Expr::Div(
-            Box::new(Expr::Pow(
-                Box::new(base.clone()),
-                Box::new(Expr::Number(3.0)),
-            )),
-            Box::new(Expr::Pow(Box::new(base), Box::new(Expr::Number(2.0)))),
+            Rc::new(Expr::Pow(Rc::new(base.clone()), Rc::new(Expr::Number(3.0)))),
+            Rc::new(Expr::Pow(Rc::new(base), Rc::new(Expr::Number(2.0)))),
         );
         let result = simplify(expr);
         // Should simplify to (x+1)^1, which should further simplify to (x+1)
         // Due to canonical ordering by degree, it becomes x + 1
         let expected = Expr::Add(
-            Box::new(Expr::Symbol("x".to_string())),
-            Box::new(Expr::Number(1.0)),
+            Rc::new(Expr::Symbol("x".to_string())),
+            Rc::new(Expr::Number(1.0)),
         );
         assert_eq!(result, expected);
     }
@@ -124,30 +120,27 @@ mod simplification_advanced {
         // Test with different expressions inside parentheses
         // (x^2 + y)^4 / (x^2 + y)^2 should simplify to (x^2 + y)^2
         let base = Expr::Add(
-            Box::new(Expr::Pow(
-                Box::new(Expr::Symbol("x".to_string())),
-                Box::new(Expr::Number(2.0)),
+            Rc::new(Expr::Pow(
+                Rc::new(Expr::Symbol("x".to_string())),
+                Rc::new(Expr::Number(2.0)),
             )),
-            Box::new(Expr::Symbol("y".to_string())),
+            Rc::new(Expr::Symbol("y".to_string())),
         );
         let expr = Expr::Div(
-            Box::new(Expr::Pow(
-                Box::new(base.clone()),
-                Box::new(Expr::Number(4.0)),
-            )),
-            Box::new(Expr::Pow(Box::new(base), Box::new(Expr::Number(2.0)))),
+            Rc::new(Expr::Pow(Rc::new(base.clone()), Rc::new(Expr::Number(4.0)))),
+            Rc::new(Expr::Pow(Rc::new(base), Rc::new(Expr::Number(2.0)))),
         );
         let result = simplify(expr);
         // Should simplify to (x^2 + y)^2
         // Due to canonical ordering by degree, it becomes x^2 + y
         let expected_base = Expr::Add(
-            Box::new(Expr::Pow(
-                Box::new(Expr::Symbol("x".to_string())),
-                Box::new(Expr::Number(2.0)),
+            Rc::new(Expr::Pow(
+                Rc::new(Expr::Symbol("x".to_string())),
+                Rc::new(Expr::Number(2.0)),
             )),
-            Box::new(Expr::Symbol("y".to_string())),
+            Rc::new(Expr::Symbol("y".to_string())),
         );
-        let expected = Expr::Pow(Box::new(expected_base), Box::new(Expr::Number(2.0)));
+        let expected = Expr::Pow(Rc::new(expected_base), Rc::new(Expr::Number(2.0)));
         assert_eq!(result, expected);
     }
 
@@ -159,11 +152,8 @@ mod simplification_advanced {
             args: vec![Expr::Symbol("x".to_string())],
         };
         let expr = Expr::Div(
-            Box::new(Expr::Pow(
-                Box::new(base.clone()),
-                Box::new(Expr::Number(3.0)),
-            )),
-            Box::new(Expr::Pow(Box::new(base), Box::new(Expr::Number(2.0)))),
+            Rc::new(Expr::Pow(Rc::new(base.clone()), Rc::new(Expr::Number(3.0)))),
+            Rc::new(Expr::Pow(Rc::new(base), Rc::new(Expr::Number(2.0)))),
         );
         let result = simplify(expr);
         // Should simplify to sin(x)^1, which should further simplify to sin(x)
@@ -178,11 +168,11 @@ mod simplification_advanced {
     fn test_div_by_one() {
         // (x + y) / 1 should become (x + y)
         let expr = Expr::Div(
-            Box::new(Expr::Add(
-                Box::new(Expr::Symbol("x".to_string())),
-                Box::new(Expr::Symbol("y".to_string())),
+            Rc::new(Expr::Add(
+                Rc::new(Expr::Symbol("x".to_string())),
+                Rc::new(Expr::Symbol("y".to_string())),
             )),
-            Box::new(Expr::Number(1.0)),
+            Rc::new(Expr::Number(1.0)),
         );
         let result = simplify(expr);
         // Should not contain Div anymore
@@ -193,8 +183,8 @@ mod simplification_advanced {
     fn test_div_zero() {
         // 0 / x should become 0
         let expr = Expr::Div(
-            Box::new(Expr::Number(0.0)),
-            Box::new(Expr::Symbol("x".to_string())),
+            Rc::new(Expr::Number(0.0)),
+            Rc::new(Expr::Symbol("x".to_string())),
         );
         let result = simplify(expr);
         assert_eq!(result, Expr::Number(0.0));
@@ -204,8 +194,8 @@ mod simplification_advanced {
     fn test_sub_zero() {
         // x - 0 should become x
         let expr = Expr::Sub(
-            Box::new(Expr::Symbol("x".to_string())),
-            Box::new(Expr::Number(0.0)),
+            Rc::new(Expr::Symbol("x".to_string())),
+            Rc::new(Expr::Number(0.0)),
         );
         let result = simplify(expr);
         assert_eq!(result, Expr::Symbol("x".to_string()));
@@ -214,7 +204,7 @@ mod simplification_advanced {
     #[test]
     fn test_constant_div() {
         // 10 / 2 should become 5
-        let expr = Expr::Div(Box::new(Expr::Number(10.0)), Box::new(Expr::Number(2.0)));
+        let expr = Expr::Div(Rc::new(Expr::Number(10.0)), Rc::new(Expr::Number(2.0)));
         let result = simplify(expr);
         assert_eq!(result, Expr::Number(5.0));
     }
@@ -222,7 +212,7 @@ mod simplification_advanced {
     #[test]
     fn test_constant_sub() {
         // 10 - 3 should become 7
-        let expr = Expr::Sub(Box::new(Expr::Number(10.0)), Box::new(Expr::Number(3.0)));
+        let expr = Expr::Sub(Rc::new(Expr::Number(10.0)), Rc::new(Expr::Number(3.0)));
         let result = simplify(expr);
         assert_eq!(result, Expr::Number(7.0));
     }

@@ -17,7 +17,7 @@ mod tests {
         // We can also check the exponent specifically
         if let Expr::Pow(_, exp) = &expr {
             println!("Exponent AST: {:?}", exp);
-            let simplified_exp = simplify(*exp.clone());
+            let simplified_exp = simplify(exp.as_ref().clone());
             println!("Simplified Exponent: {:?}", simplified_exp);
             println!("Simplified Exponent Display: {}", simplified_exp);
         }

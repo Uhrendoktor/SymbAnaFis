@@ -2,6 +2,7 @@
 mod tests {
     use crate::{Expr, simplification::simplify};
     use std::f64::consts::PI;
+    use std::rc::Rc;
 
     #[test]
     fn test_trig_reflection_shifts() {
@@ -9,8 +10,8 @@ mod tests {
         let expr = Expr::FunctionCall {
             name: "sin".to_string(),
             args: vec![Expr::Sub(
-                Box::new(Expr::Number(PI)),
-                Box::new(Expr::Symbol("x".to_string())),
+                Rc::new(Expr::Number(PI)),
+                Rc::new(Expr::Symbol("x".to_string())),
             )],
         };
         let simplified = simplify(expr);
@@ -26,8 +27,8 @@ mod tests {
         let expr = Expr::FunctionCall {
             name: "cos".to_string(),
             args: vec![Expr::Add(
-                Box::new(Expr::Number(PI)),
-                Box::new(Expr::Symbol("x".to_string())),
+                Rc::new(Expr::Number(PI)),
+                Rc::new(Expr::Symbol("x".to_string())),
             )],
         };
         let simplified = simplify(expr);
@@ -48,8 +49,8 @@ mod tests {
         let expr = Expr::FunctionCall {
             name: "sin".to_string(),
             args: vec![Expr::Sub(
-                Box::new(Expr::Number(3.0 * PI / 2.0)),
-                Box::new(Expr::Symbol("x".to_string())),
+                Rc::new(Expr::Number(3.0 * PI / 2.0)),
+                Rc::new(Expr::Symbol("x".to_string())),
             )],
         };
         let simplified = simplify(expr);

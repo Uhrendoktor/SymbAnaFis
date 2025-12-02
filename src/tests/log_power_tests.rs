@@ -2,15 +2,15 @@
 mod tests {
     use crate::Expr;
     use crate::simplification::simplify;
-
+    use std::rc::Rc;
     #[test]
     fn test_ln_power() {
         // ln(x^2) -> 2 * ln(abs(x)) (mathematically correct for all x ≠ 0)
         let expr = Expr::FunctionCall {
             name: "ln".to_string(),
             args: vec![Expr::Pow(
-                Box::new(Expr::Symbol("x".to_string())),
-                Box::new(Expr::Number(2.0)),
+                Rc::new(Expr::Symbol("x".to_string())),
+                Rc::new(Expr::Number(2.0)),
             )],
         };
         let simplified = simplify(expr);
@@ -18,13 +18,13 @@ mod tests {
         // Expected: 2 * ln(abs(x))
         if let Expr::Mul(coeff, func) = simplified {
             assert_eq!(*coeff, Expr::Number(2.0));
-            if let Expr::FunctionCall { name, args } = *func {
+            if let Expr::FunctionCall { name, args } = func.as_ref() {
                 assert_eq!(name, "ln");
                 // The argument should be abs(x)
                 if let Expr::FunctionCall {
-                    name: abs_name,
-                    args: abs_args,
-                } = &args[0]
+                    name: ref abs_name,
+                    args: ref abs_args,
+                } = args[0]
                 {
                     assert_eq!(abs_name, "abs");
                     assert_eq!(abs_args[0], Expr::Symbol("x".to_string()));
@@ -45,8 +45,8 @@ mod tests {
         let expr = Expr::FunctionCall {
             name: "log10".to_string(),
             args: vec![Expr::Pow(
-                Box::new(Expr::Symbol("x".to_string())),
-                Box::new(Expr::Number(3.0)),
+                Rc::new(Expr::Symbol("x".to_string())),
+                Rc::new(Expr::Number(3.0)),
             )],
         };
         let simplified = simplify(expr);
@@ -54,7 +54,7 @@ mod tests {
         // Expected: 3 * log10(x)
         if let Expr::Mul(coeff, func) = simplified {
             assert_eq!(*coeff, Expr::Number(3.0));
-            if let Expr::FunctionCall { name, args } = *func {
+            if let Expr::FunctionCall { name, args } = func.as_ref() {
                 assert_eq!(name, "log10");
                 assert_eq!(args[0], Expr::Symbol("x".to_string()));
             } else {
@@ -71,8 +71,8 @@ mod tests {
         let expr = Expr::FunctionCall {
             name: "log10".to_string(),
             args: vec![Expr::Pow(
-                Box::new(Expr::Symbol("x".to_string())),
-                Box::new(Expr::Number(4.0)),
+                Rc::new(Expr::Symbol("x".to_string())),
+                Rc::new(Expr::Number(4.0)),
             )],
         };
         let simplified = simplify(expr);
@@ -80,12 +80,12 @@ mod tests {
         // Expected: 4 * log10(abs(x))
         if let Expr::Mul(coeff, func) = simplified {
             assert_eq!(*coeff, Expr::Number(4.0));
-            if let Expr::FunctionCall { name, args } = *func {
+            if let Expr::FunctionCall { name, args } = func.as_ref() {
                 assert_eq!(name, "log10");
                 if let Expr::FunctionCall {
-                    name: abs_name,
-                    args: abs_args,
-                } = &args[0]
+                    name: ref abs_name,
+                    args: ref abs_args,
+                } = args[0]
                 {
                     assert_eq!(abs_name, "abs");
                     assert_eq!(abs_args[0], Expr::Symbol("x".to_string()));
@@ -106,15 +106,15 @@ mod tests {
         let expr = Expr::FunctionCall {
             name: "log2".to_string(),
             args: vec![Expr::Pow(
-                Box::new(Expr::Symbol("x".to_string())),
-                Box::new(Expr::Number(0.5)),
+                Rc::new(Expr::Symbol("x".to_string())),
+                Rc::new(Expr::Number(0.5)),
             )],
         };
         let simplified = simplify(expr);
 
         // Expected: log2(x) / 2
         if let Expr::Div(num, den) = simplified {
-            if let Expr::FunctionCall { name, args } = *num {
+            if let Expr::FunctionCall { name, args } = num.as_ref() {
                 assert_eq!(name, "log2");
                 assert_eq!(args[0], Expr::Symbol("x".to_string()));
             } else {

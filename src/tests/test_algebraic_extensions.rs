@@ -1,19 +1,20 @@
 #[cfg(test)]
 mod tests {
     use crate::{Expr, simplification::simplify};
+    use std::rc::Rc;
 
     // Rule 1: Pull Out Common Factors
     #[test]
     fn test_factor_common_terms() {
         // x*y + x*z -> x*(y+z)
         let expr = Expr::Add(
-            Box::new(Expr::Mul(
-                Box::new(Expr::Symbol("x".to_string())),
-                Box::new(Expr::Symbol("y".to_string())),
+            Rc::new(Expr::Mul(
+                Rc::new(Expr::Symbol("x".to_string())),
+                Rc::new(Expr::Symbol("y".to_string())),
             )),
-            Box::new(Expr::Mul(
-                Box::new(Expr::Symbol("x".to_string())),
-                Box::new(Expr::Symbol("z".to_string())),
+            Rc::new(Expr::Mul(
+                Rc::new(Expr::Symbol("x".to_string())),
+                Rc::new(Expr::Symbol("z".to_string())),
             )),
         );
         let simplified = simplify(expr);
@@ -53,8 +54,8 @@ mod tests {
         // e^x * sin(x) + e^x * cos(x) -> e^x * (sin(x) + cos(x))
         // Note: exp(x) gets converted to e^x during simplification
         let ex = Expr::Pow(
-            Box::new(Expr::Symbol("e".to_string())),
-            Box::new(Expr::Symbol("x".to_string())),
+            Rc::new(Expr::Symbol("e".to_string())),
+            Rc::new(Expr::Symbol("x".to_string())),
         );
         let sinx = Expr::FunctionCall {
             name: "sin".to_string(),
@@ -66,8 +67,8 @@ mod tests {
         };
 
         let expr = Expr::Add(
-            Box::new(Expr::Mul(Box::new(ex.clone()), Box::new(sinx.clone()))),
-            Box::new(Expr::Mul(Box::new(ex.clone()), Box::new(cosx.clone()))),
+            Rc::new(Expr::Mul(Rc::new(ex.clone()), Rc::new(sinx.clone()))),
+            Rc::new(Expr::Mul(Rc::new(ex.clone()), Rc::new(cosx.clone()))),
         );
 
         let simplified = simplify(expr);
@@ -82,10 +83,10 @@ mod tests {
             };
 
             assert_eq!(*exp_part, ex);
-            if let Expr::Add(c, d) = *sum_part {
+            if let Expr::Add(c, d) = sum_part.as_ref() {
                 // Check for sin(x) + cos(x)
-                let has_sin = *c == sinx || *d == sinx;
-                let has_cos = *c == cosx || *d == cosx;
+                let has_sin = c.as_ref() == &sinx || d.as_ref() == &sinx;
+                let has_cos = c.as_ref() == &cosx || d.as_ref() == &cosx;
                 assert!(has_sin && has_cos, "Expected sin(x) + cos(x)");
             } else {
                 panic!("Expected Add inside Mul");
@@ -100,24 +101,24 @@ mod tests {
     fn test_combine_common_denominator() {
         // A/C + B/C -> (A+B)/C
         let expr = Expr::Add(
-            Box::new(Expr::Div(
-                Box::new(Expr::Symbol("A".to_string())),
-                Box::new(Expr::Symbol("C".to_string())),
+            Rc::new(Expr::Div(
+                Rc::new(Expr::Symbol("A".to_string())),
+                Rc::new(Expr::Symbol("C".to_string())),
             )),
-            Box::new(Expr::Div(
-                Box::new(Expr::Symbol("B".to_string())),
-                Box::new(Expr::Symbol("C".to_string())),
+            Rc::new(Expr::Div(
+                Rc::new(Expr::Symbol("B".to_string())),
+                Rc::new(Expr::Symbol("C".to_string())),
             )),
         );
         let simplified = simplify(expr);
         // Expected: (A+B)/C
         if let Expr::Div(num, den) = simplified {
             assert_eq!(*den, Expr::Symbol("C".to_string()));
-            if let Expr::Add(a, b) = *num {
-                let is_ab =
-                    *a == Expr::Symbol("A".to_string()) && *b == Expr::Symbol("B".to_string());
-                let is_ba =
-                    *a == Expr::Symbol("B".to_string()) && *b == Expr::Symbol("A".to_string());
+            if let Expr::Add(a, b) = num.as_ref() {
+                let is_ab = a.as_ref() == &Expr::Symbol("A".to_string())
+                    && b.as_ref() == &Expr::Symbol("B".to_string());
+                let is_ba = a.as_ref() == &Expr::Symbol("B".to_string())
+                    && b.as_ref() == &Expr::Symbol("A".to_string());
                 assert!(is_ab || is_ba, "Expected A+B");
             } else {
                 panic!("Expected Add in numerator");
@@ -133,10 +134,10 @@ mod tests {
         // -(A - B) -> B - A
         // Represented as -1 * (A - B)
         let expr = Expr::Mul(
-            Box::new(Expr::Number(-1.0)),
-            Box::new(Expr::Sub(
-                Box::new(Expr::Symbol("A".to_string())),
-                Box::new(Expr::Symbol("B".to_string())),
+            Rc::new(Expr::Number(-1.0)),
+            Rc::new(Expr::Sub(
+                Rc::new(Expr::Symbol("A".to_string())),
+                Rc::new(Expr::Symbol("B".to_string())),
             )),
         );
         let simplified = simplify(expr);
@@ -153,12 +154,12 @@ mod tests {
     fn test_distribute_negation_add() {
         // -1 * (A + (-1)*B) -> B - A
         let expr = Expr::Mul(
-            Box::new(Expr::Number(-1.0)),
-            Box::new(Expr::Add(
-                Box::new(Expr::Symbol("A".to_string())),
-                Box::new(Expr::Mul(
-                    Box::new(Expr::Number(-1.0)),
-                    Box::new(Expr::Symbol("B".to_string())),
+            Rc::new(Expr::Number(-1.0)),
+            Rc::new(Expr::Add(
+                Rc::new(Expr::Symbol("A".to_string())),
+                Rc::new(Expr::Mul(
+                    Rc::new(Expr::Number(-1.0)),
+                    Rc::new(Expr::Symbol("B".to_string())),
                 )),
             )),
         );
@@ -175,13 +176,13 @@ mod tests {
     fn test_neg_div_neg() {
         // -A / -B -> A / B
         let expr = Expr::Div(
-            Box::new(Expr::Mul(
-                Box::new(Expr::Number(-1.0)),
-                Box::new(Expr::Symbol("A".to_string())),
+            Rc::new(Expr::Mul(
+                Rc::new(Expr::Number(-1.0)),
+                Rc::new(Expr::Symbol("A".to_string())),
             )),
-            Box::new(Expr::Mul(
-                Box::new(Expr::Number(-1.0)),
-                Box::new(Expr::Symbol("B".to_string())),
+            Rc::new(Expr::Mul(
+                Rc::new(Expr::Number(-1.0)),
+                Rc::new(Expr::Symbol("B".to_string())),
             )),
         );
         let simplified = simplify(expr);
@@ -198,20 +199,20 @@ mod tests {
     fn test_absorb_constant_pow() {
         // 2 * 2^x -> 2^(x+1)
         let expr = Expr::Mul(
-            Box::new(Expr::Number(2.0)),
-            Box::new(Expr::Pow(
-                Box::new(Expr::Number(2.0)),
-                Box::new(Expr::Symbol("x".to_string())),
+            Rc::new(Expr::Number(2.0)),
+            Rc::new(Expr::Pow(
+                Rc::new(Expr::Number(2.0)),
+                Rc::new(Expr::Symbol("x".to_string())),
             )),
         );
         let simplified = simplify(expr);
         if let Expr::Pow(base, exp) = simplified {
             assert_eq!(*base, Expr::Number(2.0));
-            if let Expr::Add(a, b) = *exp {
+            if let Expr::Add(a, b) = exp.as_ref() {
                 // x + 1
-                let has_x =
-                    *a == Expr::Symbol("x".to_string()) || *b == Expr::Symbol("x".to_string());
-                let has_1 = *a == Expr::Number(1.0) || *b == Expr::Number(1.0);
+                let has_x = a.as_ref() == &Expr::Symbol("x".to_string())
+                    || b.as_ref() == &Expr::Symbol("x".to_string());
+                let has_1 = a.as_ref() == &Expr::Number(1.0) || b.as_ref() == &Expr::Number(1.0);
                 assert!(has_x && has_1, "Expected x+1");
             } else {
                 panic!("Expected Add in exponent");
@@ -225,8 +226,8 @@ mod tests {
         // e^x + sin(x)*e^x -> e^x * (1 + sin(x))
         // Note: exp(x) gets converted to e^x during simplification
         let ex = Expr::Pow(
-            Box::new(Expr::Symbol("e".to_string())),
-            Box::new(Expr::Symbol("x".to_string())),
+            Rc::new(Expr::Symbol("e".to_string())),
+            Rc::new(Expr::Symbol("x".to_string())),
         );
         let sinx = Expr::FunctionCall {
             name: "sin".to_string(),
@@ -235,8 +236,8 @@ mod tests {
 
         // e^x + sin(x) * e^x
         let expr = Expr::Add(
-            Box::new(ex.clone()),
-            Box::new(Expr::Mul(Box::new(sinx.clone()), Box::new(ex.clone()))),
+            Rc::new(ex.clone()),
+            Rc::new(Expr::Mul(Rc::new(sinx.clone()), Rc::new(ex.clone()))),
         );
 
         let simplified = simplify(expr);
@@ -255,9 +256,9 @@ mod tests {
             assert_eq!(*factor, ex);
 
             // The other part should be 1 + sin(x)
-            if let Expr::Add(u, v) = *other {
-                let has_1 = *u == Expr::Number(1.0) || *v == Expr::Number(1.0);
-                let has_sin = *u == sinx || *v == sinx;
+            if let Expr::Add(u, v) = other.as_ref() {
+                let has_1 = u.as_ref() == &Expr::Number(1.0) || v.as_ref() == &Expr::Number(1.0);
+                let has_sin = u.as_ref() == &sinx || v.as_ref() == &sinx;
                 assert!(has_1 && has_sin, "Expected 1 + sin(x)");
             } else {
                 panic!("Expected Add(1, sin(x)) in other factor");

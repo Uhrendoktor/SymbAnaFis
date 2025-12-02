@@ -1,6 +1,7 @@
 // Differentiation engine - applies calculus rules (PHASE 2 ENHANCED)
 use crate::Expr;
 use std::collections::HashSet;
+use std::rc::Rc;
 
 impl Expr {
     /// Check if this expression contains any variables (symbols that are not constants)
@@ -18,6 +19,14 @@ impl Expr {
             Expr::FunctionCall { args, .. } => {
                 args.iter().any(|arg| arg.contains_variables(fixed_vars))
             }
+        }
+    }
+
+    /// Check if expression is a constant number and return its value
+    fn as_number(&self) -> Option<f64> {
+        match self {
+            Expr::Number(n) => Some(*n),
+            _ => None,
         }
     }
 
@@ -73,70 +82,94 @@ impl Expr {
 
             // Function call
             Expr::FunctionCall { name, args } => {
+                if args.is_empty() {
+                    return Expr::Number(0.0);
+                }
                 // Helper to get the first argument and its derivative for single-arg functions
-                let get_single_arg = || {
-                    if args.len() != 1 {
-                        // For now, panic or handle gracefully.
-                        // Since we are in a library, maybe we should return an error expression or 0?
-                        // But existing logic assumes validity.
-                        if args.is_empty() {
-                            panic!("Function {} expects at least 1 argument", name);
-                        }
-                    }
-                    (&args[0], args[0].derive(var, fixed_vars))
-                };
+                let get_single_arg = || (args[0].clone(), args[0].derive(var, fixed_vars));
 
                 // Check if this is a built-in function
                 match name.as_str() {
                     "sin" => {
                         let (content, u_prime) = get_single_arg();
                         // d/dx[sin(u)] = cos(u) * u'
-                        Expr::Mul(
-                            Box::new(Expr::FunctionCall {
+                        if u_prime.as_number() == Some(0.0) {
+                            Expr::Number(0.0)
+                        } else if u_prime.as_number() == Some(1.0) {
+                            Expr::FunctionCall {
                                 name: "cos".to_string(),
                                 args: vec![content.clone()],
-                            }),
-                            Box::new(u_prime),
-                        )
+                            }
+                        } else {
+                            Expr::Mul(
+                                Rc::new(Expr::FunctionCall {
+                                    name: "cos".to_string(),
+                                    args: vec![content.clone()],
+                                }),
+                                Rc::new(u_prime),
+                            )
+                        }
                     }
 
                     "cos" => {
                         let (content, u_prime) = get_single_arg();
                         // d/dx[cos(u)] = -sin(u) * u'
-                        Expr::Mul(
-                            Box::new(Expr::Mul(
-                                Box::new(Expr::Number(-1.0)),
-                                Box::new(Expr::FunctionCall {
-                                    name: "sin".to_string(),
-                                    args: vec![content.clone()],
-                                }),
-                            )),
-                            Box::new(u_prime),
-                        )
+                        if u_prime.as_number() == Some(0.0) {
+                            Expr::Number(0.0)
+                        } else {
+                            let sin_u = Expr::FunctionCall {
+                                name: "sin".to_string(),
+                                args: vec![content.clone()],
+                            };
+                            let neg_sin_u = Expr::Mul(
+                                Rc::new(Expr::Number(-1.0)),
+                                Rc::new(sin_u),
+                            );
+                            if u_prime.as_number() == Some(1.0) {
+                                neg_sin_u
+                            } else {
+                                Expr::Mul(Rc::new(neg_sin_u), Rc::new(u_prime))
+                            }
+                        }
                     }
 
                     "ln" => {
                         let (content, u_prime) = get_single_arg();
                         // d/dx[ln(u)] = (1/u) * u' = u^(-1) * u'
-                        Expr::Mul(
-                            Box::new(Expr::Pow(
-                                Box::new(content.clone()),
-                                Box::new(Expr::Number(-1.0)),
-                            )),
-                            Box::new(u_prime),
-                        )
+                        if u_prime.as_number() == Some(0.0) {
+                            Expr::Number(0.0)
+                        } else {
+                            let inv_u = Expr::Pow(
+                                Rc::new(content.clone()),
+                                Rc::new(Expr::Number(-1.0)),
+                            );
+                            if u_prime.as_number() == Some(1.0) {
+                                inv_u
+                            } else {
+                                Expr::Mul(Rc::new(inv_u), Rc::new(u_prime))
+                            }
+                        }
                     }
 
                     "exp" => {
                         let (content, u_prime) = get_single_arg();
                         // d/dx[exp(u)] = exp(u) * u'
-                        Expr::Mul(
-                            Box::new(Expr::FunctionCall {
+                        if u_prime.as_number() == Some(0.0) {
+                            Expr::Number(0.0)
+                        } else if u_prime.as_number() == Some(1.0) {
+                            Expr::FunctionCall {
                                 name: "exp".to_string(),
                                 args: vec![content.clone()],
-                            }),
-                            Box::new(u_prime),
-                        )
+                            }
+                        } else {
+                            Expr::Mul(
+                                Rc::new(Expr::FunctionCall {
+                                    name: "exp".to_string(),
+                                    args: vec![content.clone()],
+                                }),
+                                Rc::new(u_prime),
+                            )
+                        }
                     }
 
                     // NEW: Hyperbolic functions
@@ -144,11 +177,11 @@ impl Expr {
                         let (content, u_prime) = get_single_arg();
                         // d/dx[sinh(u)] = cosh(u) * u'
                         Expr::Mul(
-                            Box::new(Expr::FunctionCall {
+                            Rc::new(Expr::FunctionCall {
                                 name: "cosh".to_string(),
                                 args: vec![content.clone()],
                             }),
-                            Box::new(u_prime),
+                            Rc::new(u_prime),
                         )
                     }
 
@@ -156,11 +189,11 @@ impl Expr {
                         let (content, u_prime) = get_single_arg();
                         // d/dx[cosh(u)] = sinh(u) * u'
                         Expr::Mul(
-                            Box::new(Expr::FunctionCall {
+                            Rc::new(Expr::FunctionCall {
                                 name: "sinh".to_string(),
                                 args: vec![content.clone()],
                             }),
-                            Box::new(u_prime),
+                            Rc::new(u_prime),
                         )
                     }
 
@@ -168,17 +201,17 @@ impl Expr {
                         let (content, u_prime) = get_single_arg();
                         // d/dx[tanh(u)] = (1 - tanh^2(u)) * u'
                         Expr::Mul(
-                            Box::new(Expr::Sub(
-                                Box::new(Expr::Number(1.0)),
-                                Box::new(Expr::Pow(
-                                    Box::new(Expr::FunctionCall {
+                            Rc::new(Expr::Sub(
+                                Rc::new(Expr::Number(1.0)),
+                                Rc::new(Expr::Pow(
+                                    Rc::new(Expr::FunctionCall {
                                         name: "tanh".to_string(),
                                         args: vec![content.clone()],
                                     }),
-                                    Box::new(Expr::Number(2.0)),
+                                    Rc::new(Expr::Number(2.0)),
                                 )),
                             )),
-                            Box::new(u_prime),
+                            Rc::new(u_prime),
                         )
                     }
 
@@ -187,14 +220,14 @@ impl Expr {
                         let (content, u_prime) = get_single_arg();
                         // d/dx[tan(u)] = sec²(u) · u'
                         Expr::Mul(
-                            Box::new(Expr::Pow(
-                                Box::new(Expr::FunctionCall {
+                            Rc::new(Expr::Pow(
+                                Rc::new(Expr::FunctionCall {
                                     name: "sec".to_string(),
                                     args: vec![content.clone()],
                                 }),
-                                Box::new(Expr::Number(2.0)),
+                                Rc::new(Expr::Number(2.0)),
                             )),
-                            Box::new(u_prime),
+                            Rc::new(u_prime),
                         )
                     }
 
@@ -202,17 +235,17 @@ impl Expr {
                         let (content, u_prime) = get_single_arg();
                         // d/dx[cot(u)] = -csc²(u) · u'
                         Expr::Mul(
-                            Box::new(Expr::Mul(
-                                Box::new(Expr::Number(-1.0)),
-                                Box::new(Expr::Pow(
-                                    Box::new(Expr::FunctionCall {
+                            Rc::new(Expr::Mul(
+                                Rc::new(Expr::Number(-1.0)),
+                                Rc::new(Expr::Pow(
+                                    Rc::new(Expr::FunctionCall {
                                         name: "csc".to_string(),
                                         args: vec![content.clone()],
                                     }),
-                                    Box::new(Expr::Number(2.0)),
+                                    Rc::new(Expr::Number(2.0)),
                                 )),
                             )),
-                            Box::new(u_prime),
+                            Rc::new(u_prime),
                         )
                     }
 
@@ -220,17 +253,17 @@ impl Expr {
                         let (content, u_prime) = get_single_arg();
                         // d/dx[sec(u)] = sec(u) · tan(u) · u'
                         Expr::Mul(
-                            Box::new(Expr::Mul(
-                                Box::new(Expr::FunctionCall {
+                            Rc::new(Expr::Mul(
+                                Rc::new(Expr::FunctionCall {
                                     name: "sec".to_string(),
                                     args: vec![content.clone()],
                                 }),
-                                Box::new(Expr::FunctionCall {
+                                Rc::new(Expr::FunctionCall {
                                     name: "tan".to_string(),
                                     args: vec![content.clone()],
                                 }),
                             )),
-                            Box::new(u_prime),
+                            Rc::new(u_prime),
                         )
                     }
 
@@ -238,20 +271,20 @@ impl Expr {
                         let (content, u_prime) = get_single_arg();
                         // d/dx[csc(u)] = -csc(u) · cot(u) · u'
                         Expr::Mul(
-                            Box::new(Expr::Mul(
-                                Box::new(Expr::Number(-1.0)),
-                                Box::new(Expr::Mul(
-                                    Box::new(Expr::FunctionCall {
+                            Rc::new(Expr::Mul(
+                                Rc::new(Expr::Number(-1.0)),
+                                Rc::new(Expr::Mul(
+                                    Rc::new(Expr::FunctionCall {
                                         name: "csc".to_string(),
                                         args: vec![content.clone()],
                                     }),
-                                    Box::new(Expr::FunctionCall {
+                                    Rc::new(Expr::FunctionCall {
                                         name: "cot".to_string(),
                                         args: vec![content.clone()],
                                     }),
                                 )),
                             )),
-                            Box::new(u_prime),
+                            Rc::new(u_prime),
                         )
                     }
 
@@ -260,14 +293,14 @@ impl Expr {
                         let (content, u_prime) = get_single_arg();
                         // d/dx[asin(u)] = u' / √(1-u²)
                         Expr::Div(
-                            Box::new(u_prime),
-                            Box::new(Expr::FunctionCall {
+                            Rc::new(u_prime),
+                            Rc::new(Expr::FunctionCall {
                                 name: "sqrt".to_string(),
                                 args: vec![Expr::Sub(
-                                    Box::new(Expr::Number(1.0)),
-                                    Box::new(Expr::Pow(
-                                        Box::new(content.clone()),
-                                        Box::new(Expr::Number(2.0)),
+                                    Rc::new(Expr::Number(1.0)),
+                                    Rc::new(Expr::Pow(
+                                        Rc::new(content.clone()),
+                                        Rc::new(Expr::Number(2.0)),
                                     )),
                                 )],
                             }),
@@ -278,14 +311,14 @@ impl Expr {
                         let (content, u_prime) = get_single_arg();
                         // d/dx[acos(u)] = -u' / √(1-u²)
                         Expr::Div(
-                            Box::new(Expr::Mul(Box::new(Expr::Number(-1.0)), Box::new(u_prime))),
-                            Box::new(Expr::FunctionCall {
+                            Rc::new(Expr::Mul(Rc::new(Expr::Number(-1.0)), Rc::new(u_prime))),
+                            Rc::new(Expr::FunctionCall {
                                 name: "sqrt".to_string(),
                                 args: vec![Expr::Sub(
-                                    Box::new(Expr::Number(1.0)),
-                                    Box::new(Expr::Pow(
-                                        Box::new(content.clone()),
-                                        Box::new(Expr::Number(2.0)),
+                                    Rc::new(Expr::Number(1.0)),
+                                    Rc::new(Expr::Pow(
+                                        Rc::new(content.clone()),
+                                        Rc::new(Expr::Number(2.0)),
                                     )),
                                 )],
                             }),
@@ -296,12 +329,12 @@ impl Expr {
                         let (content, u_prime) = get_single_arg();
                         // d/dx[atan(u)] = u' / (1 + u²)
                         Expr::Div(
-                            Box::new(u_prime),
-                            Box::new(Expr::Add(
-                                Box::new(Expr::Number(1.0)),
-                                Box::new(Expr::Pow(
-                                    Box::new(content.clone()),
-                                    Box::new(Expr::Number(2.0)),
+                            Rc::new(u_prime),
+                            Rc::new(Expr::Add(
+                                Rc::new(Expr::Number(1.0)),
+                                Rc::new(Expr::Pow(
+                                    Rc::new(content.clone()),
+                                    Rc::new(Expr::Number(2.0)),
                                 )),
                             )),
                         )
@@ -311,12 +344,12 @@ impl Expr {
                         let (content, u_prime) = get_single_arg();
                         // d/dx[acot(u)] = -u' / (1 + u²)
                         Expr::Div(
-                            Box::new(Expr::Mul(Box::new(Expr::Number(-1.0)), Box::new(u_prime))),
-                            Box::new(Expr::Add(
-                                Box::new(Expr::Number(1.0)),
-                                Box::new(Expr::Pow(
-                                    Box::new(content.clone()),
-                                    Box::new(Expr::Number(2.0)),
+                            Rc::new(Expr::Mul(Rc::new(Expr::Number(-1.0)), Rc::new(u_prime))),
+                            Rc::new(Expr::Add(
+                                Rc::new(Expr::Number(1.0)),
+                                Rc::new(Expr::Pow(
+                                    Rc::new(content.clone()),
+                                    Rc::new(Expr::Number(2.0)),
                                 )),
                             )),
                         )
@@ -327,17 +360,17 @@ impl Expr {
                         // d/dx[asec(u)] = u' / (|u| · √(u²-1))
                         // Simplified: u' / (u · √(u²-1))
                         Expr::Div(
-                            Box::new(u_prime),
-                            Box::new(Expr::Mul(
-                                Box::new(content.clone()),
-                                Box::new(Expr::FunctionCall {
+                            Rc::new(u_prime),
+                            Rc::new(Expr::Mul(
+                                Rc::new(content.clone()),
+                                Rc::new(Expr::FunctionCall {
                                     name: "sqrt".to_string(),
                                     args: vec![Expr::Sub(
-                                        Box::new(Expr::Pow(
-                                            Box::new(content.clone()),
-                                            Box::new(Expr::Number(2.0)),
+                                        Rc::new(Expr::Pow(
+                                            Rc::new(content.clone()),
+                                            Rc::new(Expr::Number(2.0)),
                                         )),
-                                        Box::new(Expr::Number(1.0)),
+                                        Rc::new(Expr::Number(1.0)),
                                     )],
                                 }),
                             )),
@@ -349,17 +382,17 @@ impl Expr {
                         // d/dx[acsc(u)] = -u' / (|u| · √(u²-1))
                         // Simplified: -u' / (u · √(u²-1))
                         Expr::Div(
-                            Box::new(Expr::Mul(Box::new(Expr::Number(-1.0)), Box::new(u_prime))),
-                            Box::new(Expr::Mul(
-                                Box::new(content.clone()),
-                                Box::new(Expr::FunctionCall {
+                            Rc::new(Expr::Mul(Rc::new(Expr::Number(-1.0)), Rc::new(u_prime))),
+                            Rc::new(Expr::Mul(
+                                Rc::new(content.clone()),
+                                Rc::new(Expr::FunctionCall {
                                     name: "sqrt".to_string(),
                                     args: vec![Expr::Sub(
-                                        Box::new(Expr::Pow(
-                                            Box::new(content.clone()),
-                                            Box::new(Expr::Number(2.0)),
+                                        Rc::new(Expr::Pow(
+                                            Rc::new(content.clone()),
+                                            Rc::new(Expr::Number(2.0)),
                                         )),
-                                        Box::new(Expr::Number(1.0)),
+                                        Rc::new(Expr::Number(1.0)),
                                     )],
                                 }),
                             )),
@@ -371,10 +404,10 @@ impl Expr {
                         let (content, u_prime) = get_single_arg();
                         // d/dx[√u] = u' / (2√u)
                         Expr::Div(
-                            Box::new(u_prime),
-                            Box::new(Expr::Mul(
-                                Box::new(Expr::Number(2.0)),
-                                Box::new(Expr::FunctionCall {
+                            Rc::new(u_prime),
+                            Rc::new(Expr::Mul(
+                                Rc::new(Expr::Number(2.0)),
+                                Rc::new(Expr::FunctionCall {
                                     name: "sqrt".to_string(),
                                     args: vec![content.clone()],
                                 }),
@@ -387,14 +420,14 @@ impl Expr {
                         // d/dx[∛u] = u' / (3 · ∛(u²))
                         // = u' / (3 · u^(2/3))
                         Expr::Div(
-                            Box::new(u_prime),
-                            Box::new(Expr::Mul(
-                                Box::new(Expr::Number(3.0)),
-                                Box::new(Expr::Pow(
-                                    Box::new(content.clone()),
-                                    Box::new(Expr::Div(
-                                        Box::new(Expr::Number(2.0)),
-                                        Box::new(Expr::Number(3.0)),
+                            Rc::new(u_prime),
+                            Rc::new(Expr::Mul(
+                                Rc::new(Expr::Number(3.0)),
+                                Rc::new(Expr::Pow(
+                                    Rc::new(content.clone()),
+                                    Rc::new(Expr::Div(
+                                        Rc::new(Expr::Number(2.0)),
+                                        Rc::new(Expr::Number(3.0)),
                                     )),
                                 )),
                             )),
@@ -406,17 +439,17 @@ impl Expr {
                         let (content, u_prime) = get_single_arg();
                         // d/dx[coth(u)] = -csch²(u) · u'
                         Expr::Mul(
-                            Box::new(Expr::Mul(
-                                Box::new(Expr::Number(-1.0)),
-                                Box::new(Expr::Pow(
-                                    Box::new(Expr::FunctionCall {
+                            Rc::new(Expr::Mul(
+                                Rc::new(Expr::Number(-1.0)),
+                                Rc::new(Expr::Pow(
+                                    Rc::new(Expr::FunctionCall {
                                         name: "csch".to_string(),
                                         args: vec![content.clone()],
                                     }),
-                                    Box::new(Expr::Number(2.0)),
+                                    Rc::new(Expr::Number(2.0)),
                                 )),
                             )),
-                            Box::new(u_prime),
+                            Rc::new(u_prime),
                         )
                     }
 
@@ -424,20 +457,20 @@ impl Expr {
                         let (content, u_prime) = get_single_arg();
                         // d/dx[sech(u)] = -sech(u) · tanh(u) · u'
                         Expr::Mul(
-                            Box::new(Expr::Mul(
-                                Box::new(Expr::Number(-1.0)),
-                                Box::new(Expr::Mul(
-                                    Box::new(Expr::FunctionCall {
+                            Rc::new(Expr::Mul(
+                                Rc::new(Expr::Number(-1.0)),
+                                Rc::new(Expr::Mul(
+                                    Rc::new(Expr::FunctionCall {
                                         name: "sech".to_string(),
                                         args: vec![content.clone()],
                                     }),
-                                    Box::new(Expr::FunctionCall {
+                                    Rc::new(Expr::FunctionCall {
                                         name: "tanh".to_string(),
                                         args: vec![content.clone()],
                                     }),
                                 )),
                             )),
-                            Box::new(u_prime),
+                            Rc::new(u_prime),
                         )
                     }
 
@@ -445,20 +478,20 @@ impl Expr {
                         let (content, u_prime) = get_single_arg();
                         // d/dx[csch(u)] = -csch(u) · coth(u) · u'
                         Expr::Mul(
-                            Box::new(Expr::Mul(
-                                Box::new(Expr::Number(-1.0)),
-                                Box::new(Expr::Mul(
-                                    Box::new(Expr::FunctionCall {
+                            Rc::new(Expr::Mul(
+                                Rc::new(Expr::Number(-1.0)),
+                                Rc::new(Expr::Mul(
+                                    Rc::new(Expr::FunctionCall {
                                         name: "csch".to_string(),
                                         args: vec![content.clone()],
                                     }),
-                                    Box::new(Expr::FunctionCall {
+                                    Rc::new(Expr::FunctionCall {
                                         name: "coth".to_string(),
                                         args: vec![content.clone()],
                                     }),
                                 )),
                             )),
-                            Box::new(u_prime),
+                            Rc::new(u_prime),
                         )
                     }
 
@@ -467,15 +500,15 @@ impl Expr {
                         let (content, u_prime) = get_single_arg();
                         // d/dx[asinh(u)] = u' / √(u² + 1)
                         Expr::Div(
-                            Box::new(u_prime),
-                            Box::new(Expr::FunctionCall {
+                            Rc::new(u_prime),
+                            Rc::new(Expr::FunctionCall {
                                 name: "sqrt".to_string(),
                                 args: vec![Expr::Add(
-                                    Box::new(Expr::Pow(
-                                        Box::new(content.clone()),
-                                        Box::new(Expr::Number(2.0)),
+                                    Rc::new(Expr::Pow(
+                                        Rc::new(content.clone()),
+                                        Rc::new(Expr::Number(2.0)),
                                     )),
-                                    Box::new(Expr::Number(1.0)),
+                                    Rc::new(Expr::Number(1.0)),
                                 )],
                             }),
                         )
@@ -485,15 +518,15 @@ impl Expr {
                         let (content, u_prime) = get_single_arg();
                         // d/dx[acosh(u)] = u' / √(u² - 1)
                         Expr::Div(
-                            Box::new(u_prime),
-                            Box::new(Expr::FunctionCall {
+                            Rc::new(u_prime),
+                            Rc::new(Expr::FunctionCall {
                                 name: "sqrt".to_string(),
                                 args: vec![Expr::Sub(
-                                    Box::new(Expr::Pow(
-                                        Box::new(content.clone()),
-                                        Box::new(Expr::Number(2.0)),
+                                    Rc::new(Expr::Pow(
+                                        Rc::new(content.clone()),
+                                        Rc::new(Expr::Number(2.0)),
                                     )),
-                                    Box::new(Expr::Number(1.0)),
+                                    Rc::new(Expr::Number(1.0)),
                                 )],
                             }),
                         )
@@ -503,12 +536,12 @@ impl Expr {
                         let (content, u_prime) = get_single_arg();
                         // d/dx[atanh(u)] = u' / (1 - u²)
                         Expr::Div(
-                            Box::new(u_prime),
-                            Box::new(Expr::Sub(
-                                Box::new(Expr::Number(1.0)),
-                                Box::new(Expr::Pow(
-                                    Box::new(content.clone()),
-                                    Box::new(Expr::Number(2.0)),
+                            Rc::new(u_prime),
+                            Rc::new(Expr::Sub(
+                                Rc::new(Expr::Number(1.0)),
+                                Rc::new(Expr::Pow(
+                                    Rc::new(content.clone()),
+                                    Rc::new(Expr::Number(2.0)),
                                 )),
                             )),
                         )
@@ -518,12 +551,12 @@ impl Expr {
                         let (content, u_prime) = get_single_arg();
                         // d/dx[acoth(u)] = u' / (1 - u²)
                         Expr::Div(
-                            Box::new(u_prime),
-                            Box::new(Expr::Sub(
-                                Box::new(Expr::Number(1.0)),
-                                Box::new(Expr::Pow(
-                                    Box::new(content.clone()),
-                                    Box::new(Expr::Number(2.0)),
+                            Rc::new(u_prime),
+                            Rc::new(Expr::Sub(
+                                Rc::new(Expr::Number(1.0)),
+                                Rc::new(Expr::Pow(
+                                    Rc::new(content.clone()),
+                                    Rc::new(Expr::Number(2.0)),
                                 )),
                             )),
                         )
@@ -533,16 +566,16 @@ impl Expr {
                         let (content, u_prime) = get_single_arg();
                         // d/dx[asech(u)] = -u' / (u · √(1 - u²))
                         Expr::Div(
-                            Box::new(Expr::Mul(Box::new(Expr::Number(-1.0)), Box::new(u_prime))),
-                            Box::new(Expr::Mul(
-                                Box::new(content.clone()),
-                                Box::new(Expr::FunctionCall {
+                            Rc::new(Expr::Mul(Rc::new(Expr::Number(-1.0)), Rc::new(u_prime))),
+                            Rc::new(Expr::Mul(
+                                Rc::new(content.clone()),
+                                Rc::new(Expr::FunctionCall {
                                     name: "sqrt".to_string(),
                                     args: vec![Expr::Sub(
-                                        Box::new(Expr::Number(1.0)),
-                                        Box::new(Expr::Pow(
-                                            Box::new(content.clone()),
-                                            Box::new(Expr::Number(2.0)),
+                                        Rc::new(Expr::Number(1.0)),
+                                        Rc::new(Expr::Pow(
+                                            Rc::new(content.clone()),
+                                            Rc::new(Expr::Number(2.0)),
                                         )),
                                     )],
                                 }),
@@ -555,16 +588,16 @@ impl Expr {
                         // d/dx[acsch(u)] = -u' / (|u| · √(1 + u²))
                         // Simplified: -u' / (u · √(1 + u²))
                         Expr::Div(
-                            Box::new(Expr::Mul(Box::new(Expr::Number(-1.0)), Box::new(u_prime))),
-                            Box::new(Expr::Mul(
-                                Box::new(content.clone()),
-                                Box::new(Expr::FunctionCall {
+                            Rc::new(Expr::Mul(Rc::new(Expr::Number(-1.0)), Rc::new(u_prime))),
+                            Rc::new(Expr::Mul(
+                                Rc::new(content.clone()),
+                                Rc::new(Expr::FunctionCall {
                                     name: "sqrt".to_string(),
                                     args: vec![Expr::Add(
-                                        Box::new(Expr::Number(1.0)),
-                                        Box::new(Expr::Pow(
-                                            Box::new(content.clone()),
-                                            Box::new(Expr::Number(2.0)),
+                                        Rc::new(Expr::Number(1.0)),
+                                        Rc::new(Expr::Pow(
+                                            Rc::new(content.clone()),
+                                            Rc::new(Expr::Number(2.0)),
                                         )),
                                     )],
                                 }),
@@ -577,10 +610,10 @@ impl Expr {
                         let (content, u_prime) = get_single_arg();
                         // d/dx[log10(u)] = u' / (u · ln(10))
                         Expr::Div(
-                            Box::new(u_prime),
-                            Box::new(Expr::Mul(
-                                Box::new(content.clone()),
-                                Box::new(Expr::FunctionCall {
+                            Rc::new(u_prime),
+                            Rc::new(Expr::Mul(
+                                Rc::new(content.clone()),
+                                Rc::new(Expr::FunctionCall {
                                     name: "ln".to_string(),
                                     args: vec![Expr::Number(10.0)],
                                 }),
@@ -592,10 +625,10 @@ impl Expr {
                         let (content, u_prime) = get_single_arg();
                         // d/dx[log2(u)] = u' / (u · ln(2))
                         Expr::Div(
-                            Box::new(u_prime),
-                            Box::new(Expr::Mul(
-                                Box::new(content.clone()),
-                                Box::new(Expr::FunctionCall {
+                            Rc::new(u_prime),
+                            Rc::new(Expr::Mul(
+                                Rc::new(content.clone()),
+                                Rc::new(Expr::FunctionCall {
                                     name: "ln".to_string(),
                                     args: vec![Expr::Number(2.0)],
                                 }),
@@ -608,7 +641,7 @@ impl Expr {
                         // d/dx[log(u)] = u' / u
                         // TODO: Support log(base, val)
                         let (content, u_prime) = get_single_arg();
-                        Expr::Div(Box::new(u_prime), Box::new(content.clone()))
+                        Expr::Div(Rc::new(u_prime), Rc::new(content.clone()))
                     }
 
                     // NEW TIER 2/3: Special Functions
@@ -617,26 +650,26 @@ impl Expr {
                         // d/dx[sinc(u)] = ((cos(u)·u - sin(u)) / u²) · u'
                         // sinc(u) = sin(u)/u
                         Expr::Mul(
-                            Box::new(Expr::Div(
-                                Box::new(Expr::Sub(
-                                    Box::new(Expr::Mul(
-                                        Box::new(Expr::FunctionCall {
+                            Rc::new(Expr::Div(
+                                Rc::new(Expr::Sub(
+                                    Rc::new(Expr::Mul(
+                                        Rc::new(Expr::FunctionCall {
                                             name: "cos".to_string(),
                                             args: vec![content.clone()],
                                         }),
-                                        Box::new(content.clone()),
+                                        Rc::new(content.clone()),
                                     )),
-                                    Box::new(Expr::FunctionCall {
+                                    Rc::new(Expr::FunctionCall {
                                         name: "sin".to_string(),
                                         args: vec![content.clone()],
                                     }),
                                 )),
-                                Box::new(Expr::Pow(
-                                    Box::new(content.clone()),
-                                    Box::new(Expr::Number(2.0)),
+                                Rc::new(Expr::Pow(
+                                    Rc::new(content.clone()),
+                                    Rc::new(Expr::Number(2.0)),
                                 )),
                             )),
-                            Box::new(u_prime),
+                            Rc::new(u_prime),
                         )
                     }
 
@@ -644,26 +677,26 @@ impl Expr {
                         let (content, u_prime) = get_single_arg();
                         // d/dx[erf(u)] = (2/√π) · e^(-u²) · u'
                         Expr::Mul(
-                            Box::new(Expr::Mul(
-                                Box::new(Expr::Div(
-                                    Box::new(Expr::Number(2.0)),
-                                    Box::new(Expr::FunctionCall {
+                            Rc::new(Expr::Mul(
+                                Rc::new(Expr::Div(
+                                    Rc::new(Expr::Number(2.0)),
+                                    Rc::new(Expr::FunctionCall {
                                         name: "sqrt".to_string(),
                                         args: vec![Expr::Symbol("pi".to_string())], // Symbolic pi
                                     }),
                                 )),
-                                Box::new(Expr::FunctionCall {
+                                Rc::new(Expr::FunctionCall {
                                     name: "exp".to_string(),
                                     args: vec![Expr::Mul(
-                                        Box::new(Expr::Number(-1.0)),
-                                        Box::new(Expr::Pow(
-                                            Box::new(content.clone()),
-                                            Box::new(Expr::Number(2.0)),
+                                        Rc::new(Expr::Number(-1.0)),
+                                        Rc::new(Expr::Pow(
+                                            Rc::new(content.clone()),
+                                            Rc::new(Expr::Number(2.0)),
                                         )),
                                     )],
                                 }),
                             )),
-                            Box::new(u_prime),
+                            Rc::new(u_prime),
                         )
                     }
 
@@ -671,26 +704,26 @@ impl Expr {
                         let (content, u_prime) = get_single_arg();
                         // d/dx[erfc(u)] = -(2/√π) · e^(-u²) · u'
                         Expr::Mul(
-                            Box::new(Expr::Mul(
-                                Box::new(Expr::Div(
-                                    Box::new(Expr::Number(-2.0)),
-                                    Box::new(Expr::FunctionCall {
+                            Rc::new(Expr::Mul(
+                                Rc::new(Expr::Div(
+                                    Rc::new(Expr::Number(-2.0)),
+                                    Rc::new(Expr::FunctionCall {
                                         name: "sqrt".to_string(),
                                         args: vec![Expr::Symbol("pi".to_string())], // Symbolic pi
                                     }),
                                 )),
-                                Box::new(Expr::FunctionCall {
+                                Rc::new(Expr::FunctionCall {
                                     name: "exp".to_string(),
                                     args: vec![Expr::Mul(
-                                        Box::new(Expr::Number(-1.0)),
-                                        Box::new(Expr::Pow(
-                                            Box::new(content.clone()),
-                                            Box::new(Expr::Number(2.0)),
+                                        Rc::new(Expr::Number(-1.0)),
+                                        Rc::new(Expr::Pow(
+                                            Rc::new(content.clone()),
+                                            Rc::new(Expr::Number(2.0)),
                                         )),
                                     )],
                                 }),
                             )),
-                            Box::new(u_prime),
+                            Rc::new(u_prime),
                         )
                     }
 
@@ -698,17 +731,17 @@ impl Expr {
                         let (content, u_prime) = get_single_arg();
                         // d/dx[gamma(u)] = gamma(u) · digamma(u) · u'
                         Expr::Mul(
-                            Box::new(Expr::Mul(
-                                Box::new(Expr::FunctionCall {
+                            Rc::new(Expr::Mul(
+                                Rc::new(Expr::FunctionCall {
                                     name: "gamma".to_string(),
                                     args: vec![content.clone()],
                                 }),
-                                Box::new(Expr::FunctionCall {
+                                Rc::new(Expr::FunctionCall {
                                     name: "digamma".to_string(),
                                     args: vec![content.clone()],
                                 }),
                             )),
-                            Box::new(u_prime),
+                            Rc::new(u_prime),
                         )
                     }
 
@@ -716,11 +749,11 @@ impl Expr {
                         let (content, u_prime) = get_single_arg();
                         // d/dx[digamma(u)] = trigamma(u) · u'
                         Expr::Mul(
-                            Box::new(Expr::FunctionCall {
+                            Rc::new(Expr::FunctionCall {
                                 name: "trigamma".to_string(),
                                 args: vec![content.clone()],
                             }),
-                            Box::new(u_prime),
+                            Rc::new(u_prime),
                         )
                     }
 
@@ -728,11 +761,11 @@ impl Expr {
                         let (content, u_prime) = get_single_arg();
                         // d/dx[trigamma(u)] = tetragamma(u) · u'
                         Expr::Mul(
-                            Box::new(Expr::FunctionCall {
+                            Rc::new(Expr::FunctionCall {
                                 name: "tetragamma".to_string(),
                                 args: vec![content.clone()],
                             }),
-                            Box::new(u_prime),
+                            Rc::new(u_prime),
                         )
                     }
 
@@ -740,11 +773,11 @@ impl Expr {
                         let (content, u_prime) = get_single_arg();
                         // d/dx[tetragamma(u)] = polygamma(3, u) · u'
                         Expr::Mul(
-                            Box::new(Expr::FunctionCall {
+                            Rc::new(Expr::FunctionCall {
                                 name: "polygamma".to_string(),
                                 args: vec![Expr::Number(3.0), content.clone()],
                             }),
-                            Box::new(u_prime),
+                            Rc::new(u_prime),
                         )
                     }
 
@@ -764,13 +797,13 @@ impl Expr {
                         let x_prime = x.derive(var, fixed_vars);
 
                         // d/dx polygamma(n, x) = polygamma(n+1, x)
-                        let n_plus_1 = Expr::Add(Box::new(n.clone()), Box::new(Expr::Number(1.0)));
+                        let n_plus_1 = Expr::Add(Rc::new(n.clone()), Rc::new(Expr::Number(1.0)));
                         let derivative = Expr::FunctionCall {
                             name: "polygamma".to_string(),
                             args: vec![n_plus_1, x.clone()],
                         };
 
-                        Expr::Mul(Box::new(derivative), Box::new(x_prime))
+                        Expr::Mul(Rc::new(derivative), Rc::new(x_prime))
                     }
 
                     "LambertW" => {
@@ -781,14 +814,14 @@ impl Expr {
                             args: vec![content.clone()],
                         };
                         Expr::Mul(
-                            Box::new(Expr::Div(
-                                Box::new(w.clone()),
-                                Box::new(Expr::Mul(
-                                    Box::new(content.clone()),
-                                    Box::new(Expr::Add(Box::new(Expr::Number(1.0)), Box::new(w))),
+                            Rc::new(Expr::Div(
+                                Rc::new(w.clone()),
+                                Rc::new(Expr::Mul(
+                                    Rc::new(content.clone()),
+                                    Rc::new(Expr::Add(Rc::new(Expr::Number(1.0)), Rc::new(w))),
                                 )),
                             )),
-                            Box::new(u_prime),
+                            Rc::new(u_prime),
                         )
                     }
 
@@ -819,43 +852,43 @@ impl Expr {
                         // ∂beta/∂a term
                         if !matches!(a_prime, Expr::Number(0.0)) {
                             let partial_a = Expr::Mul(
-                                Box::new(beta_ab.clone()),
-                                Box::new(Expr::Sub(
-                                    Box::new(Expr::FunctionCall {
+                                Rc::new(beta_ab.clone()),
+                                Rc::new(Expr::Sub(
+                                    Rc::new(Expr::FunctionCall {
                                         name: "digamma".to_string(),
                                         args: vec![a.clone()],
                                     }),
-                                    Box::new(Expr::FunctionCall {
+                                    Rc::new(Expr::FunctionCall {
                                         name: "digamma".to_string(),
                                         args: vec![Expr::Add(
-                                            Box::new(a.clone()),
-                                            Box::new(b.clone()),
+                                            Rc::new(a.clone()),
+                                            Rc::new(b.clone()),
                                         )],
                                     }),
                                 )),
                             );
-                            terms.push(Expr::Mul(Box::new(partial_a), Box::new(a_prime)));
+                            terms.push(Expr::Mul(Rc::new(partial_a), Rc::new(a_prime)));
                         }
 
                         // ∂beta/∂b term
                         if !matches!(b_prime, Expr::Number(0.0)) {
                             let partial_b = Expr::Mul(
-                                Box::new(beta_ab.clone()),
-                                Box::new(Expr::Sub(
-                                    Box::new(Expr::FunctionCall {
+                                Rc::new(beta_ab.clone()),
+                                Rc::new(Expr::Sub(
+                                    Rc::new(Expr::FunctionCall {
                                         name: "digamma".to_string(),
                                         args: vec![b.clone()],
                                     }),
-                                    Box::new(Expr::FunctionCall {
+                                    Rc::new(Expr::FunctionCall {
                                         name: "digamma".to_string(),
                                         args: vec![Expr::Add(
-                                            Box::new(a.clone()),
-                                            Box::new(b.clone()),
+                                            Rc::new(a.clone()),
+                                            Rc::new(b.clone()),
                                         )],
                                     }),
                                 )),
                             );
-                            terms.push(Expr::Mul(Box::new(partial_b), Box::new(b_prime)));
+                            terms.push(Expr::Mul(Rc::new(partial_b), Rc::new(b_prime)));
                         }
 
                         if terms.is_empty() {
@@ -865,7 +898,7 @@ impl Expr {
                         } else {
                             let mut result = terms.remove(0);
                             for term in terms {
-                                result = Expr::Add(Box::new(result), Box::new(term));
+                                result = Expr::Add(Rc::new(result), Rc::new(term));
                             }
                             result
                         }
@@ -888,9 +921,9 @@ impl Expr {
 
                         // d/dx J_n(x) = (1/2) * (J_{n-1}(x) - J_{n+1}(x))
                         let half =
-                            Expr::Div(Box::new(Expr::Number(1.0)), Box::new(Expr::Number(2.0)));
-                        let n_minus_1 = Expr::Sub(Box::new(n.clone()), Box::new(Expr::Number(1.0)));
-                        let n_plus_1 = Expr::Add(Box::new(n.clone()), Box::new(Expr::Number(1.0)));
+                            Expr::Div(Rc::new(Expr::Number(1.0)), Rc::new(Expr::Number(2.0)));
+                        let n_minus_1 = Expr::Sub(Rc::new(n.clone()), Rc::new(Expr::Number(1.0)));
+                        let n_plus_1 = Expr::Add(Rc::new(n.clone()), Rc::new(Expr::Number(1.0)));
 
                         let j_n_minus_1 = Expr::FunctionCall {
                             name: "besselj".to_string(),
@@ -902,11 +935,11 @@ impl Expr {
                         };
 
                         let derivative = Expr::Mul(
-                            Box::new(half),
-                            Box::new(Expr::Sub(Box::new(j_n_minus_1), Box::new(j_n_plus_1))),
+                            Rc::new(half),
+                            Rc::new(Expr::Sub(Rc::new(j_n_minus_1), Rc::new(j_n_plus_1))),
                         );
 
-                        Expr::Mul(Box::new(derivative), Box::new(x_prime))
+                        Expr::Mul(Rc::new(derivative), Rc::new(x_prime))
                     }
 
                     "bessely" => {
@@ -926,9 +959,9 @@ impl Expr {
 
                         // d/dx Y_n(x) = (1/2) * (Y_{n-1}(x) - Y_{n+1}(x))
                         let half =
-                            Expr::Div(Box::new(Expr::Number(1.0)), Box::new(Expr::Number(2.0)));
-                        let n_minus_1 = Expr::Sub(Box::new(n.clone()), Box::new(Expr::Number(1.0)));
-                        let n_plus_1 = Expr::Add(Box::new(n.clone()), Box::new(Expr::Number(1.0)));
+                            Expr::Div(Rc::new(Expr::Number(1.0)), Rc::new(Expr::Number(2.0)));
+                        let n_minus_1 = Expr::Sub(Rc::new(n.clone()), Rc::new(Expr::Number(1.0)));
+                        let n_plus_1 = Expr::Add(Rc::new(n.clone()), Rc::new(Expr::Number(1.0)));
 
                         let y_n_minus_1 = Expr::FunctionCall {
                             name: "bessely".to_string(),
@@ -940,11 +973,11 @@ impl Expr {
                         };
 
                         let derivative = Expr::Mul(
-                            Box::new(half),
-                            Box::new(Expr::Sub(Box::new(y_n_minus_1), Box::new(y_n_plus_1))),
+                            Rc::new(half),
+                            Rc::new(Expr::Sub(Rc::new(y_n_minus_1), Rc::new(y_n_plus_1))),
                         );
 
-                        Expr::Mul(Box::new(derivative), Box::new(x_prime))
+                        Expr::Mul(Rc::new(derivative), Rc::new(x_prime))
                     }
 
                     "besseli" => {
@@ -964,9 +997,9 @@ impl Expr {
 
                         // d/dx I_n(x) = (1/2) * (I_{n-1}(x) + I_{n+1}(x))
                         let half =
-                            Expr::Div(Box::new(Expr::Number(1.0)), Box::new(Expr::Number(2.0)));
-                        let n_minus_1 = Expr::Sub(Box::new(n.clone()), Box::new(Expr::Number(1.0)));
-                        let n_plus_1 = Expr::Add(Box::new(n.clone()), Box::new(Expr::Number(1.0)));
+                            Expr::Div(Rc::new(Expr::Number(1.0)), Rc::new(Expr::Number(2.0)));
+                        let n_minus_1 = Expr::Sub(Rc::new(n.clone()), Rc::new(Expr::Number(1.0)));
+                        let n_plus_1 = Expr::Add(Rc::new(n.clone()), Rc::new(Expr::Number(1.0)));
 
                         let i_n_minus_1 = Expr::FunctionCall {
                             name: "besseli".to_string(),
@@ -978,11 +1011,11 @@ impl Expr {
                         };
 
                         let derivative = Expr::Mul(
-                            Box::new(half),
-                            Box::new(Expr::Add(Box::new(i_n_minus_1), Box::new(i_n_plus_1))),
+                            Rc::new(half),
+                            Rc::new(Expr::Add(Rc::new(i_n_minus_1), Rc::new(i_n_plus_1))),
                         );
 
-                        Expr::Mul(Box::new(derivative), Box::new(x_prime))
+                        Expr::Mul(Rc::new(derivative), Rc::new(x_prime))
                     }
 
                     "besselk" => {
@@ -1002,9 +1035,9 @@ impl Expr {
 
                         // d/dx K_n(x) = (-1/2) * (K_{n-1}(x) + K_{n+1}(x))
                         let neg_half =
-                            Expr::Div(Box::new(Expr::Number(-1.0)), Box::new(Expr::Number(2.0)));
-                        let n_minus_1 = Expr::Sub(Box::new(n.clone()), Box::new(Expr::Number(1.0)));
-                        let n_plus_1 = Expr::Add(Box::new(n.clone()), Box::new(Expr::Number(1.0)));
+                            Expr::Div(Rc::new(Expr::Number(-1.0)), Rc::new(Expr::Number(2.0)));
+                        let n_minus_1 = Expr::Sub(Rc::new(n.clone()), Rc::new(Expr::Number(1.0)));
+                        let n_plus_1 = Expr::Add(Rc::new(n.clone()), Rc::new(Expr::Number(1.0)));
 
                         let k_n_minus_1 = Expr::FunctionCall {
                             name: "besselk".to_string(),
@@ -1016,11 +1049,11 @@ impl Expr {
                         };
 
                         let derivative = Expr::Mul(
-                            Box::new(neg_half),
-                            Box::new(Expr::Add(Box::new(k_n_minus_1), Box::new(k_n_plus_1))),
+                            Rc::new(neg_half),
+                            Rc::new(Expr::Add(Rc::new(k_n_minus_1), Rc::new(k_n_plus_1))),
                         );
 
-                        Expr::Mul(Box::new(derivative), Box::new(x_prime))
+                        Expr::Mul(Rc::new(derivative), Rc::new(x_prime))
                     }
 
                     // Absolute value and sign functions
@@ -1029,11 +1062,11 @@ impl Expr {
                         // d/dx[|u|] = sign(u) * u'
                         // Note: derivative is undefined at u = 0, but we use sign(u) for simplicity
                         Expr::Mul(
-                            Box::new(Expr::FunctionCall {
+                            Rc::new(Expr::FunctionCall {
                                 name: "sign".to_string(),
                                 args: vec![content.clone()],
                             }),
-                            Box::new(u_prime),
+                            Rc::new(u_prime),
                         )
                     }
 
@@ -1075,8 +1108,7 @@ impl Expr {
                                 Expr::Symbol(format!("∂^1_{}({})/∂_{}^1", name, args_str, var))
                             };
 
-                            terms
-                                .push(Expr::Mul(Box::new(partial_derivative), Box::new(arg_prime)));
+                            terms.push(Expr::Mul(Rc::new(partial_derivative), Rc::new(arg_prime)));
                         }
 
                         if terms.is_empty() {
@@ -1087,7 +1119,7 @@ impl Expr {
                             // Sum up all terms
                             let mut result = terms.remove(0);
                             for term in terms {
-                                result = Expr::Add(Box::new(result), Box::new(term));
+                                result = Expr::Add(Rc::new(result), Rc::new(term));
                             }
                             result
                         }
@@ -1096,26 +1128,68 @@ impl Expr {
             }
 
             // Sum rule: (u + v)' = u' + v'
-            Expr::Add(u, v) => Expr::Add(
-                Box::new(u.derive(var, fixed_vars)),
-                Box::new(v.derive(var, fixed_vars)),
-            ),
+            Expr::Add(u, v) => {
+                let u_prime = u.derive(var, fixed_vars);
+                let v_prime = v.derive(var, fixed_vars);
+                if u_prime.as_number() == Some(0.0) {
+                    v_prime
+                } else if v_prime.as_number() == Some(0.0) {
+                    u_prime
+                } else {
+                    Expr::Add(Rc::new(u_prime), Rc::new(v_prime))
+                }
+            }
 
             // Subtraction rule: (u - v)' = u' - v'
-            Expr::Sub(u, v) => Expr::Sub(
-                Box::new(u.derive(var, fixed_vars)),
-                Box::new(v.derive(var, fixed_vars)),
-            ),
+            Expr::Sub(u, v) => {
+                let u_prime = u.derive(var, fixed_vars);
+                let v_prime = v.derive(var, fixed_vars);
+                if v_prime.as_number() == Some(0.0) {
+                    u_prime
+                } else {
+                    Expr::Sub(Rc::new(u_prime), Rc::new(v_prime))
+                }
+            }
 
             // Product rule: (u * v)' = u' * v + u * v'
             Expr::Mul(u, v) => {
                 let u_prime = u.derive(var, fixed_vars);
                 let v_prime = v.derive(var, fixed_vars);
 
-                Expr::Add(
-                    Box::new(Expr::Mul(Box::new(u_prime), v.clone())),
-                    Box::new(Expr::Mul(u.clone(), Box::new(v_prime))),
-                )
+                // Term 1: u' * v
+                let term1 = if u_prime.as_number() == Some(0.0) {
+                    Expr::Number(0.0)
+                } else if u_prime.as_number() == Some(1.0) {
+                    (**v).clone()
+                } else if v.as_number() == Some(1.0) {
+                    u_prime.clone()
+                } else if v.as_number() == Some(0.0) {
+                    Expr::Number(0.0)
+                } else {
+                    Expr::Mul(Rc::new(u_prime.clone()), v.clone())
+                };
+
+                // Term 2: u * v'
+                let term2 = if v_prime.as_number() == Some(0.0) {
+                    Expr::Number(0.0)
+                } else if v_prime.as_number() == Some(1.0) {
+                    (**u).clone()
+                } else if u.as_number() == Some(1.0) {
+                    v_prime.clone()
+                } else if u.as_number() == Some(0.0) {
+                    Expr::Number(0.0)
+                } else {
+                    Expr::Mul(u.clone(), Rc::new(v_prime.clone()))
+                };
+
+                // Combine terms
+                if term1.as_number() == Some(0.0) {
+                    term2
+                } else if term2.as_number() == Some(0.0) {
+                    term1
+                } else {
+                    Expr::Add(Rc::new(term1), Rc::new(term2))
+                }
             }
 
             // Quotient rule: (u / v)' = (u' * v - u * v') / v^2
@@ -1123,13 +1197,75 @@ impl Expr {
                 let u_prime = u.derive(var, fixed_vars);
                 let v_prime = v.derive(var, fixed_vars);
 
-                Expr::Div(
-                    Box::new(Expr::Sub(
-                        Box::new(Expr::Mul(Box::new(u_prime), v.clone())),
-                        Box::new(Expr::Mul(u.clone(), Box::new(v_prime))),
-                    )),
-                    Box::new(Expr::Pow(v.clone(), Box::new(Expr::Number(2.0)))),
-                )
+                // If both derivatives are 0, result is 0
+                if u_prime.as_number() == Some(0.0) && v_prime.as_number() == Some(0.0) {
+                    Expr::Number(0.0)
+                } else {
+                    let numerator = if u_prime.as_number() == Some(0.0) {
+                        // -u * v'
+                        if v_prime.as_number() == Some(0.0) {
+                            Expr::Number(0.0)
+                        } else if v_prime.as_number() == Some(1.0) {
+                            Expr::Mul(Rc::new(Expr::Number(-1.0)), u.clone())
+                        } else {
+                            Expr::Mul(
+                                Rc::new(Expr::Number(-1.0)),
+                                Rc::new(Expr::Mul(u.clone(), Rc::new(v_prime.clone()))),
+                            )
+                        }
+                    } else if v_prime.as_number() == Some(0.0) {
+                        // u' * v
+                        if u_prime.as_number() == Some(1.0) {
+                            (**v).clone()
+                        } else if v.as_number() == Some(1.0) {
+                            u_prime.clone()
+                        } else if v.as_number() == Some(0.0) {
+                            Expr::Number(0.0)
+                        } else {
+                            Expr::Mul(Rc::new(u_prime.clone()), v.clone())
+                        }
+                    } else {
+                        // u' * v - u * v'
+                        let term1 = if u_prime.as_number() == Some(1.0) {
+                            (**v).clone()
+                        } else if v.as_number() == Some(1.0) {
+                            u_prime.clone()
+                        } else if v.as_number() == Some(0.0) {
+                            Expr::Number(0.0)
+                        } else {
+                            Expr::Mul(Rc::new(u_prime.clone()), v.clone())
+                        };
+
+                        let term2 = if v_prime.as_number() == Some(1.0) {
+                            (**u).clone()
+                        } else if u.as_number() == Some(1.0) {
+                            v_prime.clone()
+                        } else if u.as_number() == Some(0.0) {
+                            Expr::Number(0.0)
+                        } else {
+                            Expr::Mul(u.clone(), Rc::new(v_prime.clone()))
+                        };
+
+                        if term1.as_number() == Some(0.0) {
+                            Expr::Mul(Rc::new(Expr::Number(-1.0)), Rc::new(term2))
+                        } else if term2.as_number() == Some(0.0) {
+                            term1
+                        } else {
+                            Expr::Sub(Rc::new(term1), Rc::new(term2))
+                        }
+                    };
+
+                    if numerator.as_number() == Some(0.0) {
+                        Expr::Number(0.0)
+                    } else {
+                        let denominator = Expr::Pow(v.clone(), Rc::new(Expr::Number(2.0)));
+                        if v.as_number() == Some(1.0) {
+                            numerator
+                        } else {
+                            Expr::Div(Rc::new(numerator), Rc::new(denominator))
+                        }
+                    }
+                }
             }
 
             // Power rule with LOGARITHMIC DIFFERENTIATION for variable exponents
@@ -1139,45 +1275,136 @@ impl Expr {
                     // Constant exponent - use standard power rule
                     // (u^n)' = n * u^(n-1) * u'
                     let u_prime = u.derive(var, fixed_vars);
-                    let n_minus_1 = Expr::Add(v.clone(), Box::new(Expr::Number(-1.0)));
+                    
+                    // If u' is 0, result is 0
+                    if u_prime.as_number() == Some(0.0) {
+                        Expr::Number(0.0)
+                    } else {
+                        let n = (**v).clone();
+                        if let Some(n_val) = n.as_number() {
+                            if n_val == 0.0 {
+                                // (u^0)' = 0
+                                Expr::Number(0.0)
+                            } else if n_val == 1.0 {
+                                // (u^1)' = u'
+                                u_prime
+                            } else {
+                                let n_minus_1 = Expr::Number(n_val - 1.0);
+                                let u_pow_n_minus_1 = if u.as_number() == Some(1.0) {
+                                    // 1^(n-1) = 1
+                                    Expr::Number(1.0)
+                                } else if u.as_number() == Some(0.0) {
+                                    // 0^(n-1) = 0 for n-1 > 0
+                                    Expr::Number(0.0)
+                                } else {
+                                    Expr::Pow(u.clone(), Rc::new(n_minus_1))
+                                };
 
-                    Expr::Mul(
-                        v.clone(),
-                        Box::new(Expr::Mul(
-                            Box::new(Expr::Pow(u.clone(), Box::new(n_minus_1))),
-                            Box::new(u_prime),
-                        )),
-                    )
+                                if u_prime.as_number() == Some(1.0) {
+                                    Expr::Mul(Rc::new(n), Rc::new(u_pow_n_minus_1))
+                                } else {
+                                    Expr::Mul(
+                                        Rc::new(n),
+                                        Rc::new(Expr::Mul(
+                                            Rc::new(u_pow_n_minus_1),
+                                            Rc::new(u_prime),
+                                        )),
+                                    )
+                                }
+                            }
+                        } else {
+                            // Non-numeric constant exponent
+                            let n_minus_1 = Expr::Sub(v.clone(), Rc::new(Expr::Number(1.0)));
+                            let u_pow_n_minus_1 = Expr::Pow(u.clone(), Rc::new(n_minus_1));
+                            
+                            if u_prime.as_number() == Some(1.0) {
+                                Expr::Mul(v.clone(), Rc::new(u_pow_n_minus_1))
+                            } else {
+                                Expr::Mul(
+                                    v.clone(),
+                                    Rc::new(Expr::Mul(
+                                        Rc::new(u_pow_n_minus_1),
+                                        Rc::new(u_prime),
+                                    )),
+                                )
+                            }
+                        }
+                    }
                 } else {
                     // Variable exponent - use LOGARITHMIC DIFFERENTIATION!
                     // d/dx[u^v] = u^v * (v' * ln(u) + v * u'/u)
                     let u_prime = u.derive(var, fixed_vars);
                     let v_prime = v.derive(var, fixed_vars);
 
-                    // Term 1: v' * ln(u)
-                    // Check if u is 'e' (Euler's number) - if so, ln(e) = 1
-                    let ln_u = if matches!(&**u, Expr::Symbol(name) if name == "e")
-                        && !fixed_vars.contains("e")
-                    {
-                        // ln(e) = 1
-                        Expr::Number(1.0)
+                    // If both u' and v' are 0, result is 0
+                    if u_prime.as_number() == Some(0.0) && v_prime.as_number() == Some(0.0) {
+                        Expr::Number(0.0)
                     } else {
-                        Expr::FunctionCall {
-                            name: "ln".to_string(),
-                            args: vec![*u.clone()],
+                        // Term 1: v' * ln(u)
+                        let ln_u = if matches!(&**u, Expr::Symbol(name) if name == "e")
+                            && !fixed_vars.contains("e")
+                        {
+                            // ln(e) = 1
+                            Expr::Number(1.0)
+                        } else if u.as_number() == Some(1.0) {
+                            // ln(1) = 0
+                            Expr::Number(0.0)
+                        } else {
+                            Expr::FunctionCall {
+                                name: "ln".to_string(),
+                                args: vec![u.as_ref().clone()],
+                            }
+                        };
+                        let term1 = if v_prime.as_number() == Some(0.0) || ln_u.as_number() == Some(0.0) {
+                            Expr::Number(0.0)
+                        } else if v_prime.as_number() == Some(1.0) {
+                            ln_u
+                        } else if ln_u.as_number() == Some(1.0) {
+                            v_prime.clone()
+                        } else {
+                            Expr::Mul(Rc::new(v_prime.clone()), Rc::new(ln_u))
+                        };
+
+                        // Term 2: v * (u'/u)
+                        let u_over_u_prime = if u_prime.as_number() == Some(0.0) {
+                            Expr::Number(0.0)
+                        } else if u.as_number() == Some(1.0) {
+                            // u'/1 = u'
+                            u_prime.clone()
+                        } else if u_prime.as_number() == Some(1.0) {
+                            // 1/u
+                            Expr::Pow(u.clone(), Rc::new(Expr::Number(-1.0)))
+                        } else {
+                            Expr::Div(Rc::new(u_prime.clone()), u.clone())
+                        };
+                        let term2 = if u_over_u_prime.as_number() == Some(0.0) {
+                            Expr::Number(0.0)
+                        } else if v.as_number() == Some(1.0) {
+                            u_over_u_prime
+                        } else if u_over_u_prime.as_number() == Some(1.0) {
+                            (**v).clone()
+                        } else {
+                            Expr::Mul(v.clone(), Rc::new(u_over_u_prime))
+                        };
+
+                        // Sum of terms
+                        let sum = if term1.as_number() == Some(0.0) {
+                            term2
+                        } else if term2.as_number() == Some(0.0) {
+                            term1
+                        } else {
+                            Expr::Add(Rc::new(term1), Rc::new(term2))
+                        };
+
+                        // Multiply by u^v
+                        if sum.as_number() == Some(0.0) {
+                            Expr::Number(0.0)
+                        } else if sum.as_number() == Some(1.0) {
+                            Expr::Pow(u.clone(), v.clone())
+                        } else {
+                            Expr::Mul(Rc::new(Expr::Pow(u.clone(), v.clone())), Rc::new(sum))
                         }
-                    };
-                    let term1 = Expr::Mul(Box::new(v_prime), Box::new(ln_u));
-
-                    // Term 2: v * (u'/u)
-                    let u_over_u_prime = Expr::Div(Box::new(u_prime), u.clone());
-                    let term2 = Expr::Mul(v.clone(), Box::new(u_over_u_prime));
-
-                    // Sum of terms
-                    let sum = Expr::Add(Box::new(term1), Box::new(term2));
-
-                    // Multiply by u^v
-                    Expr::Mul(Box::new(Expr::Pow(u.clone(), v.clone())), Box::new(sum))
+                    }
                 }
             }
         }
@@ -1200,21 +1427,24 @@ mod tests {
 
     #[test]
     fn test_derive_subtraction() {
-        // (x - 1)' = 1 - 0
+        // (x - 1)' = 1 - 0 = 1
         let expr = Expr::Sub(
-            Box::new(Expr::Symbol("x".to_string())),
-            Box::new(Expr::Number(1.0)),
+            Rc::new(Expr::Symbol("x".to_string())),
+            Rc::new(Expr::Number(1.0)),
         );
         let result = expr.derive("x", &HashSet::new());
-        assert!(matches!(result, Expr::Sub(_, _)));
+        match result {
+            Expr::Number(n) => assert_eq!(n, 1.0),
+            _ => panic!("Expected Number(1.0), got {:?}", result),
+        }
     }
 
     #[test]
     fn test_derive_division() {
         // (x / 2)' = (1*2 - x*0) / 2^2
         let expr = Expr::Div(
-            Box::new(Expr::Symbol("x".to_string())),
-            Box::new(Expr::Number(2.0)),
+            Rc::new(Expr::Symbol("x".to_string())),
+            Rc::new(Expr::Number(2.0)),
         );
         let result = expr.derive("x", &HashSet::new());
         assert!(matches!(result, Expr::Div(_, _)));
@@ -1224,8 +1454,8 @@ mod tests {
     fn test_logarithmic_differentiation() {
         // x^x should use logarithmic differentiation
         let expr = Expr::Pow(
-            Box::new(Expr::Symbol("x".to_string())),
-            Box::new(Expr::Symbol("x".to_string())),
+            Rc::new(Expr::Symbol("x".to_string())),
+            Rc::new(Expr::Symbol("x".to_string())),
         );
         let result = expr.derive("x", &HashSet::new());
         // Result should be multiplication (complex expression)

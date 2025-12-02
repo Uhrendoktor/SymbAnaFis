@@ -46,7 +46,7 @@ impl Rule for SqrtPowerRule {
             }
 
             // Create new exponent: exp / 2
-            let new_exp = Expr::Div(exp.clone(), Box::new(Expr::Number(2.0)));
+            let new_exp = Expr::Div(exp.clone(), Rc::new(Expr::Number(2.0)));
 
             // Simplify the division immediately
             let simplified_exp = match &new_exp {
@@ -74,7 +74,7 @@ impl Rule for SqrtPowerRule {
                 return Some((**base).clone());
             }
 
-            let result = Expr::Pow(base.clone(), Box::new(simplified_exp.clone()));
+            let result = Expr::Pow(base.clone(), Rc::new(simplified_exp.clone()));
 
             return Some(result);
         }
@@ -109,7 +109,7 @@ impl Rule for CbrtPowerRule {
             && let Expr::Pow(base, exp) = &args[0]
         {
             // Create new exponent: exp / 3
-            let new_exp = Expr::Div(exp.clone(), Box::new(Expr::Number(3.0)));
+            let new_exp = Expr::Div(exp.clone(), Rc::new(Expr::Number(3.0)));
 
             // Simplify the division immediately
             let simplified_exp = match &new_exp {
@@ -137,7 +137,7 @@ impl Rule for CbrtPowerRule {
                 return Some((**base).clone());
             }
 
-            return Some(Expr::Pow(base.clone(), Box::new(simplified_exp)));
+            return Some(Expr::Pow(base.clone(), Rc::new(simplified_exp)));
         }
         None
     }
@@ -200,8 +200,8 @@ impl Rule for SqrtMulRule {
                 return Some(Expr::FunctionCall {
                     name: "sqrt".to_string(),
                     args: vec![Expr::Mul(
-                        Box::new(u_args[0].clone()),
-                        Box::new(v_args[0].clone()),
+                        Rc::new(u_args[0].clone()),
+                        Rc::new(v_args[0].clone()),
                     )],
                 });
             }
@@ -267,51 +267,9 @@ impl Rule for SqrtDivRule {
                 return Some(Expr::FunctionCall {
                     name: "sqrt".to_string(),
                     args: vec![Expr::Div(
-                        Box::new(u_args[0].clone()),
-                        Box::new(v_args[0].clone()),
+                        Rc::new(u_args[0].clone()),
+                        Rc::new(v_args[0].clone()),
                     )],
-                });
-            }
-        }
-        None
-    }
-}
-
-/// Rule for x^(1/n) = nth root of x
-pub struct PowerToRootRule;
-
-impl Rule for PowerToRootRule {
-    fn name(&self) -> &'static str {
-        "power_to_root"
-    }
-
-    fn priority(&self) -> i32 {
-        75
-    }
-
-    fn category(&self) -> RuleCategory {
-        RuleCategory::Root
-    }
-
-    fn applies_to(&self) -> &'static [ExprKind] {
-        &[ExprKind::Pow]
-    }
-
-    fn apply(&self, expr: &Expr, _context: &RuleContext) -> Option<Expr> {
-        if let Expr::Pow(base, exp) = expr
-            && let Expr::Div(num, den) = &**exp
-            && matches!(**num, Expr::Number(n) if n == 1.0)
-            && let Expr::Number(n) = &**den
-        {
-            if *n == 2.0 {
-                return Some(Expr::FunctionCall {
-                    name: "sqrt".to_string(),
-                    args: vec![(**base).clone()],
-                });
-            } else if *n == 3.0 {
-                return Some(Expr::FunctionCall {
-                    name: "cbrt".to_string(),
-                    args: vec![(**base).clone()],
                 });
             }
         }
@@ -346,19 +304,19 @@ impl Rule for NormalizeRootsRule {
             match name.as_str() {
                 "sqrt" => {
                     return Some(Expr::Pow(
-                        Box::new(args[0].clone()),
-                        Box::new(Expr::Div(
-                            Box::new(Expr::Number(1.0)),
-                            Box::new(Expr::Number(2.0)),
+                        Rc::new(args[0].clone()),
+                        Rc::new(Expr::Div(
+                            Rc::new(Expr::Number(1.0)),
+                            Rc::new(Expr::Number(2.0)),
                         )),
                     ));
                 }
                 "cbrt" => {
                     return Some(Expr::Pow(
-                        Box::new(args[0].clone()),
-                        Box::new(Expr::Div(
-                            Box::new(Expr::Number(1.0)),
-                            Box::new(Expr::Number(3.0)),
+                        Rc::new(args[0].clone()),
+                        Rc::new(Expr::Div(
+                            Rc::new(Expr::Number(1.0)),
+                            Rc::new(Expr::Number(3.0)),
                         )),
                     ));
                 }
@@ -376,7 +334,8 @@ pub fn get_root_rules() -> Vec<Rc<dyn Rule>> {
         Rc::new(CbrtPowerRule),
         Rc::new(SqrtMulRule),
         Rc::new(SqrtDivRule),
-        Rc::new(PowerToRootRule),
+        // NOTE: PowerToRootRule removed - it conflicts with NormalizeRootsRule
+        // Beautification (x^0.5 -> sqrt) is handled by prettify_roots() after convergence
         Rc::new(NormalizeRootsRule),
     ]
 }

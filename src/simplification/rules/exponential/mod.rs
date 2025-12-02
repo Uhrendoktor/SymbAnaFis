@@ -190,7 +190,7 @@ impl Rule for LnExpIdentityRule {
                 && let Expr::Symbol(b) = &**base
                 && b == "e"
             {
-                return Some(*exp.clone());
+                return Some(exp.as_ref().clone());
             }
         }
         None
@@ -241,7 +241,7 @@ impl Rule for LogPowerRule {
                         // ln(x^2) = 2*ln(|x|) - always correct for x ≠ 0
                         return Some(Expr::Mul(
                             exp.clone(),
-                            Box::new(Expr::FunctionCall {
+                            Rc::new(Expr::FunctionCall {
                                 name: name.clone(),
                                 args: vec![Expr::FunctionCall {
                                     name: "abs".to_string(),
@@ -264,7 +264,7 @@ impl Rule for LogPowerRule {
                         }
                         return Some(Expr::Mul(
                             exp.clone(),
-                            Box::new(Expr::FunctionCall {
+                            Rc::new(Expr::FunctionCall {
                                 name: name.clone(),
                                 args: vec![(**base).clone()],
                             }),
@@ -281,7 +281,7 @@ impl Rule for LogPowerRule {
 
                 return Some(Expr::Mul(
                     exp.clone(),
-                    Box::new(Expr::FunctionCall {
+                    Rc::new(Expr::FunctionCall {
                         name: name.clone(),
                         args: vec![(**base).clone()],
                     }),
@@ -299,8 +299,8 @@ impl Rule for LogPowerRule {
                         return None;
                     }
                     return Some(Expr::Mul(
-                        Box::new(Expr::Number(0.5)),
-                        Box::new(Expr::FunctionCall {
+                        Rc::new(Expr::Number(0.5)),
+                        Rc::new(Expr::FunctionCall {
                             name: name.clone(),
                             args: vec![inner_args[0].clone()],
                         }),
@@ -313,11 +313,11 @@ impl Rule for LogPowerRule {
                         return None;
                     }
                     return Some(Expr::Mul(
-                        Box::new(Expr::Div(
-                            Box::new(Expr::Number(1.0)),
-                            Box::new(Expr::Number(3.0)),
+                        Rc::new(Expr::Div(
+                            Rc::new(Expr::Number(1.0)),
+                            Rc::new(Expr::Number(3.0)),
                         )),
-                        Box::new(Expr::FunctionCall {
+                        Rc::new(Expr::FunctionCall {
                             name: name.clone(),
                             args: vec![inner_args[0].clone()],
                         }),
@@ -399,8 +399,8 @@ impl Rule for ExpToEPowRule {
             && args.len() == 1
         {
             return Some(Expr::Pow(
-                Box::new(Expr::Symbol("e".to_string())),
-                Box::new(args[0].clone()),
+                Rc::new(Expr::Symbol("e".to_string())),
+                Rc::new(args[0].clone()),
             ));
         }
         None
@@ -434,7 +434,7 @@ impl Rule for LogCombinationRule {
                 if let (Some(arg1), Some(arg2)) = (Self::get_ln_arg(u), Self::get_ln_arg(v)) {
                     return Some(Expr::FunctionCall {
                         name: "ln".to_string(),
-                        args: vec![Expr::Mul(Box::new(arg1), Box::new(arg2))],
+                        args: vec![Expr::Mul(Rc::new(arg1), Rc::new(arg2))],
                     });
                 }
             }
@@ -443,7 +443,7 @@ impl Rule for LogCombinationRule {
                 if let (Some(arg1), Some(arg2)) = (Self::get_ln_arg(u), Self::get_ln_arg(v)) {
                     return Some(Expr::FunctionCall {
                         name: "ln".to_string(),
-                        args: vec![Expr::Div(Box::new(arg1), Box::new(arg2))],
+                        args: vec![Expr::Div(Rc::new(arg1), Rc::new(arg2))],
                     });
                 }
             }

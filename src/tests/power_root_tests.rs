@@ -2,18 +2,19 @@
 mod tests {
     use crate::Expr;
     use crate::simplification::simplify;
+    use std::rc::Rc;
 
     #[test]
     fn test_power_collection_mul() {
         // x^2 * y^2 -> (x*y)^2
         let expr = Expr::Mul(
-            Box::new(Expr::Pow(
-                Box::new(Expr::Symbol("x".to_string())),
-                Box::new(Expr::Number(2.0)),
+            Rc::new(Expr::Pow(
+                Rc::new(Expr::Symbol("x".to_string())),
+                Rc::new(Expr::Number(2.0)),
             )),
-            Box::new(Expr::Pow(
-                Box::new(Expr::Symbol("y".to_string())),
-                Box::new(Expr::Number(2.0)),
+            Rc::new(Expr::Pow(
+                Rc::new(Expr::Symbol("y".to_string())),
+                Rc::new(Expr::Number(2.0)),
             )),
         );
         let simplified = simplify(expr);
@@ -26,7 +27,7 @@ mod tests {
                 panic!("Expected exponent 2.0");
             }
 
-            if let Expr::Mul(a, b) = *base {
+            if let Expr::Mul(a, b) = base.as_ref() {
                 let s1 = format!("{}", a);
                 let s2 = format!("{}", b);
                 assert!((s1 == "x" && s2 == "y") || (s1 == "y" && s2 == "x"));
@@ -42,13 +43,13 @@ mod tests {
     fn test_power_collection_div() {
         // x^2 / y^2 -> (x/y)^2
         let expr = Expr::Div(
-            Box::new(Expr::Pow(
-                Box::new(Expr::Symbol("x".to_string())),
-                Box::new(Expr::Number(2.0)),
+            Rc::new(Expr::Pow(
+                Rc::new(Expr::Symbol("x".to_string())),
+                Rc::new(Expr::Number(2.0)),
             )),
-            Box::new(Expr::Pow(
-                Box::new(Expr::Symbol("y".to_string())),
-                Box::new(Expr::Number(2.0)),
+            Rc::new(Expr::Pow(
+                Rc::new(Expr::Symbol("y".to_string())),
+                Rc::new(Expr::Number(2.0)),
             )),
         );
         let simplified = simplify(expr);
@@ -61,13 +62,13 @@ mod tests {
                 panic!("Expected exponent 2.0");
             }
 
-            if let Expr::Div(num, den) = *base {
-                if let Expr::Symbol(s) = *num {
+            if let Expr::Div(num, den) = base.as_ref() {
+                if let Expr::Symbol(s) = num.as_ref() {
                     assert_eq!(s, "x");
                 } else {
                     panic!("Expected numerator x");
                 }
-                if let Expr::Symbol(s) = *den {
+                if let Expr::Symbol(s) = den.as_ref() {
                     assert_eq!(s, "y");
                 } else {
                     panic!("Expected denominator y");
@@ -84,10 +85,10 @@ mod tests {
     fn test_root_conversion_sqrt() {
         // x^(1/2) -> sqrt(x)
         let expr = Expr::Pow(
-            Box::new(Expr::Symbol("x".to_string())),
-            Box::new(Expr::Div(
-                Box::new(Expr::Number(1.0)),
-                Box::new(Expr::Number(2.0)),
+            Rc::new(Expr::Symbol("x".to_string())),
+            Rc::new(Expr::Div(
+                Rc::new(Expr::Number(1.0)),
+                Rc::new(Expr::Number(2.0)),
             )),
         );
         let simplified = simplify(expr);
@@ -109,8 +110,8 @@ mod tests {
     fn test_root_conversion_sqrt_decimal() {
         // x^0.5 -> sqrt(x)
         let expr = Expr::Pow(
-            Box::new(Expr::Symbol("x".to_string())),
-            Box::new(Expr::Number(0.5)),
+            Rc::new(Expr::Symbol("x".to_string())),
+            Rc::new(Expr::Number(0.5)),
         );
         let simplified = simplify(expr);
 
@@ -131,10 +132,10 @@ mod tests {
     fn test_root_conversion_cbrt() {
         // x^(1/3) -> cbrt(x)
         let expr = Expr::Pow(
-            Box::new(Expr::Symbol("x".to_string())),
-            Box::new(Expr::Div(
-                Box::new(Expr::Number(1.0)),
-                Box::new(Expr::Number(3.0)),
+            Rc::new(Expr::Symbol("x".to_string())),
+            Rc::new(Expr::Div(
+                Rc::new(Expr::Number(1.0)),
+                Rc::new(Expr::Number(3.0)),
             )),
         );
         let simplified = simplify(expr);

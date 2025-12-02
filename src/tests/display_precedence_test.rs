@@ -1,16 +1,16 @@
 #[cfg(test)]
 mod tests {
     use crate::Expr;
-
+    use std::rc::Rc;
     #[test]
     fn test_division_precedence_mul() {
         // a / (b * c) should be displayed as "a / (b * c)"
         // If displayed as "a / b * c", it means (a / b) * c which is wrong.
         let expr = Expr::Div(
-            Box::new(Expr::Symbol("a".to_string())),
-            Box::new(Expr::Mul(
-                Box::new(Expr::Symbol("b".to_string())),
-                Box::new(Expr::Symbol("c".to_string())),
+            Rc::new(Expr::Symbol("a".to_string())),
+            Rc::new(Expr::Mul(
+                Rc::new(Expr::Symbol("b".to_string())),
+                Rc::new(Expr::Symbol("c".to_string())),
             )),
         );
         let display = format!("{}", expr);
@@ -22,10 +22,10 @@ mod tests {
     fn test_division_precedence_div() {
         // a / (b / c) should be displayed as "a / (b / c)"
         let expr = Expr::Div(
-            Box::new(Expr::Symbol("a".to_string())),
-            Box::new(Expr::Div(
-                Box::new(Expr::Symbol("b".to_string())),
-                Box::new(Expr::Symbol("c".to_string())),
+            Rc::new(Expr::Symbol("a".to_string())),
+            Rc::new(Expr::Div(
+                Rc::new(Expr::Symbol("b".to_string())),
+                Rc::new(Expr::Symbol("c".to_string())),
             )),
         );
         let display = format!("{}", expr);
@@ -43,21 +43,21 @@ mod tests {
         // Let's construct the expression that might be causing issues
         // Div(Mul(-C*R*V0, exp), Mul(C, R^2))
         let expr = Expr::Div(
-            Box::new(Expr::Mul(
-                Box::new(Expr::Mul(
-                    Box::new(Expr::Mul(
-                        Box::new(Expr::Number(-1.0)),
-                        Box::new(Expr::Symbol("C".to_string())),
+            Rc::new(Expr::Mul(
+                Rc::new(Expr::Mul(
+                    Rc::new(Expr::Mul(
+                        Rc::new(Expr::Number(-1.0)),
+                        Rc::new(Expr::Symbol("C".to_string())),
                     )),
-                    Box::new(Expr::Symbol("R".to_string())),
+                    Rc::new(Expr::Symbol("R".to_string())),
                 )),
-                Box::new(Expr::Symbol("V0".to_string())),
+                Rc::new(Expr::Symbol("V0".to_string())),
             )),
-            Box::new(Expr::Mul(
-                Box::new(Expr::Symbol("C".to_string())),
-                Box::new(Expr::Pow(
-                    Box::new(Expr::Symbol("R".to_string())),
-                    Box::new(Expr::Number(2.0)),
+            Rc::new(Expr::Mul(
+                Rc::new(Expr::Symbol("C".to_string())),
+                Rc::new(Expr::Pow(
+                    Rc::new(Expr::Symbol("R".to_string())),
+                    Rc::new(Expr::Number(2.0)),
                 )),
             )),
         );
@@ -76,24 +76,24 @@ mod tests {
         };
 
         let expr_full = Expr::Div(
-            Box::new(Expr::Mul(
-                Box::new(Expr::Mul(
-                    Box::new(Expr::Mul(
-                        Box::new(Expr::Mul(
-                            Box::new(Expr::Number(-1.0)),
-                            Box::new(Expr::Symbol("C".to_string())),
+            Rc::new(Expr::Mul(
+                Rc::new(Expr::Mul(
+                    Rc::new(Expr::Mul(
+                        Rc::new(Expr::Mul(
+                            Rc::new(Expr::Number(-1.0)),
+                            Rc::new(Expr::Symbol("C".to_string())),
                         )),
-                        Box::new(Expr::Symbol("R".to_string())),
+                        Rc::new(Expr::Symbol("R".to_string())),
                     )),
-                    Box::new(Expr::Symbol("V0".to_string())),
+                    Rc::new(Expr::Symbol("V0".to_string())),
                 )),
-                Box::new(exp_term.clone()),
+                Rc::new(exp_term.clone()),
             )),
-            Box::new(Expr::Mul(
-                Box::new(Expr::Symbol("C".to_string())),
-                Box::new(Expr::Pow(
-                    Box::new(Expr::Symbol("R".to_string())),
-                    Box::new(Expr::Number(2.0)),
+            Rc::new(Expr::Mul(
+                Rc::new(Expr::Symbol("C".to_string())),
+                Rc::new(Expr::Pow(
+                    Rc::new(Expr::Symbol("R".to_string())),
+                    Rc::new(Expr::Number(2.0)),
                 )),
             )),
         );
@@ -116,12 +116,12 @@ mod tests {
     fn test_display_rc_denominator() {
         // A / (C * R^2)
         let expr = Expr::Div(
-            Box::new(Expr::Symbol("A".to_string())),
-            Box::new(Expr::Mul(
-                Box::new(Expr::Symbol("C".to_string())),
-                Box::new(Expr::Pow(
-                    Box::new(Expr::Symbol("R".to_string())),
-                    Box::new(Expr::Number(2.0)),
+            Rc::new(Expr::Symbol("A".to_string())),
+            Rc::new(Expr::Mul(
+                Rc::new(Expr::Symbol("C".to_string())),
+                Rc::new(Expr::Pow(
+                    Rc::new(Expr::Symbol("R".to_string())),
+                    Rc::new(Expr::Number(2.0)),
                 )),
             )),
         );

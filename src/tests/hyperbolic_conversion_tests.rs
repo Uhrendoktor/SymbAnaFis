@@ -1,24 +1,25 @@
 use crate::Expr;
 use crate::simplification::simplify;
+use std::rc::Rc;
 
 #[test]
 fn test_simplify_to_sinh() {
     // (exp(x) - exp(-x)) / 2 -> sinh(x)
     let expr = Expr::Div(
-        Box::new(Expr::Sub(
-            Box::new(Expr::FunctionCall {
+        Rc::new(Expr::Sub(
+            Rc::new(Expr::FunctionCall {
                 name: "exp".to_string(),
                 args: vec![Expr::Symbol("x".to_string())],
             }),
-            Box::new(Expr::FunctionCall {
+            Rc::new(Expr::FunctionCall {
                 name: "exp".to_string(),
                 args: vec![Expr::Mul(
-                    Box::new(Expr::Number(-1.0)),
-                    Box::new(Expr::Symbol("x".to_string())),
+                    Rc::new(Expr::Number(-1.0)),
+                    Rc::new(Expr::Symbol("x".to_string())),
                 )],
             }),
         )),
-        Box::new(Expr::Number(2.0)),
+        Rc::new(Expr::Number(2.0)),
     );
 
     let simplified = simplify(expr);
@@ -34,20 +35,20 @@ fn test_simplify_to_sinh() {
 fn test_simplify_to_cosh() {
     // (exp(x) + exp(-x)) / 2 -> cosh(x)
     let expr = Expr::Div(
-        Box::new(Expr::Add(
-            Box::new(Expr::FunctionCall {
+        Rc::new(Expr::Add(
+            Rc::new(Expr::FunctionCall {
                 name: "exp".to_string(),
                 args: vec![Expr::Symbol("x".to_string())],
             }),
-            Box::new(Expr::FunctionCall {
+            Rc::new(Expr::FunctionCall {
                 name: "exp".to_string(),
                 args: vec![Expr::Mul(
-                    Box::new(Expr::Number(-1.0)),
-                    Box::new(Expr::Symbol("x".to_string())),
+                    Rc::new(Expr::Number(-1.0)),
+                    Rc::new(Expr::Symbol("x".to_string())),
                 )],
             }),
         )),
-        Box::new(Expr::Number(2.0)),
+        Rc::new(Expr::Number(2.0)),
     );
 
     let simplified = simplify(expr);
@@ -63,29 +64,29 @@ fn test_simplify_to_cosh() {
 fn test_simplify_to_tanh() {
     // (exp(x) - exp(-x)) / (exp(x) + exp(-x)) -> tanh(x)
     let expr = Expr::Div(
-        Box::new(Expr::Sub(
-            Box::new(Expr::FunctionCall {
+        Rc::new(Expr::Sub(
+            Rc::new(Expr::FunctionCall {
                 name: "exp".to_string(),
                 args: vec![Expr::Symbol("x".to_string())],
             }),
-            Box::new(Expr::FunctionCall {
+            Rc::new(Expr::FunctionCall {
                 name: "exp".to_string(),
                 args: vec![Expr::Mul(
-                    Box::new(Expr::Number(-1.0)),
-                    Box::new(Expr::Symbol("x".to_string())),
+                    Rc::new(Expr::Number(-1.0)),
+                    Rc::new(Expr::Symbol("x".to_string())),
                 )],
             }),
         )),
-        Box::new(Expr::Add(
-            Box::new(Expr::FunctionCall {
+        Rc::new(Expr::Add(
+            Rc::new(Expr::FunctionCall {
                 name: "exp".to_string(),
                 args: vec![Expr::Symbol("x".to_string())],
             }),
-            Box::new(Expr::FunctionCall {
+            Rc::new(Expr::FunctionCall {
                 name: "exp".to_string(),
                 args: vec![Expr::Mul(
-                    Box::new(Expr::Number(-1.0)),
-                    Box::new(Expr::Symbol("x".to_string())),
+                    Rc::new(Expr::Number(-1.0)),
+                    Rc::new(Expr::Symbol("x".to_string())),
                 )],
             }),
         )),
@@ -104,29 +105,29 @@ fn test_simplify_to_tanh() {
 fn test_simplify_to_coth() {
     // (exp(x) + exp(-x)) / (exp(x) - exp(-x)) -> coth(x)
     let expr = Expr::Div(
-        Box::new(Expr::Add(
-            Box::new(Expr::FunctionCall {
+        Rc::new(Expr::Add(
+            Rc::new(Expr::FunctionCall {
                 name: "exp".to_string(),
                 args: vec![Expr::Symbol("x".to_string())],
             }),
-            Box::new(Expr::FunctionCall {
+            Rc::new(Expr::FunctionCall {
                 name: "exp".to_string(),
                 args: vec![Expr::Mul(
-                    Box::new(Expr::Number(-1.0)),
-                    Box::new(Expr::Symbol("x".to_string())),
+                    Rc::new(Expr::Number(-1.0)),
+                    Rc::new(Expr::Symbol("x".to_string())),
                 )],
             }),
         )),
-        Box::new(Expr::Sub(
-            Box::new(Expr::FunctionCall {
+        Rc::new(Expr::Sub(
+            Rc::new(Expr::FunctionCall {
                 name: "exp".to_string(),
                 args: vec![Expr::Symbol("x".to_string())],
             }),
-            Box::new(Expr::FunctionCall {
+            Rc::new(Expr::FunctionCall {
                 name: "exp".to_string(),
                 args: vec![Expr::Mul(
-                    Box::new(Expr::Number(-1.0)),
-                    Box::new(Expr::Symbol("x".to_string())),
+                    Rc::new(Expr::Number(-1.0)),
+                    Rc::new(Expr::Symbol("x".to_string())),
                 )],
             }),
         )),
@@ -145,17 +146,17 @@ fn test_simplify_to_coth() {
 fn test_simplify_to_sech() {
     // 2 / (exp(x) + exp(-x)) -> sech(x)
     let expr = Expr::Div(
-        Box::new(Expr::Number(2.0)),
-        Box::new(Expr::Add(
-            Box::new(Expr::FunctionCall {
+        Rc::new(Expr::Number(2.0)),
+        Rc::new(Expr::Add(
+            Rc::new(Expr::FunctionCall {
                 name: "exp".to_string(),
                 args: vec![Expr::Symbol("x".to_string())],
             }),
-            Box::new(Expr::FunctionCall {
+            Rc::new(Expr::FunctionCall {
                 name: "exp".to_string(),
                 args: vec![Expr::Mul(
-                    Box::new(Expr::Number(-1.0)),
-                    Box::new(Expr::Symbol("x".to_string())),
+                    Rc::new(Expr::Number(-1.0)),
+                    Rc::new(Expr::Symbol("x".to_string())),
                 )],
             }),
         )),
@@ -174,17 +175,17 @@ fn test_simplify_to_sech() {
 fn test_simplify_to_csch() {
     // 2 / (exp(x) - exp(-x)) -> csch(x)
     let expr = Expr::Div(
-        Box::new(Expr::Number(2.0)),
-        Box::new(Expr::Sub(
-            Box::new(Expr::FunctionCall {
+        Rc::new(Expr::Number(2.0)),
+        Rc::new(Expr::Sub(
+            Rc::new(Expr::FunctionCall {
                 name: "exp".to_string(),
                 args: vec![Expr::Symbol("x".to_string())],
             }),
-            Box::new(Expr::FunctionCall {
+            Rc::new(Expr::FunctionCall {
                 name: "exp".to_string(),
                 args: vec![Expr::Mul(
-                    Box::new(Expr::Number(-1.0)),
-                    Box::new(Expr::Symbol("x".to_string())),
+                    Rc::new(Expr::Number(-1.0)),
+                    Rc::new(Expr::Symbol("x".to_string())),
                 )],
             }),
         )),
@@ -205,14 +206,14 @@ fn test_hyperbolic_identities() {
     let expr = Expr::FunctionCall {
         name: "sinh".to_string(),
         args: vec![Expr::Mul(
-            Box::new(Expr::Number(-1.0)),
-            Box::new(Expr::Symbol("x".to_string())),
+            Rc::new(Expr::Number(-1.0)),
+            Rc::new(Expr::Symbol("x".to_string())),
         )],
     };
     let simplified = simplify(expr);
     if let Expr::Mul(a, b) = simplified {
         assert_eq!(*a, Expr::Number(-1.0));
-        if let Expr::FunctionCall { name, args } = *b {
+        if let Expr::FunctionCall { name, args } = b.as_ref() {
             assert_eq!(name, "sinh");
             assert_eq!(args[0], Expr::Symbol("x".to_string()));
         } else {
@@ -226,8 +227,8 @@ fn test_hyperbolic_identities() {
     let expr = Expr::FunctionCall {
         name: "cosh".to_string(),
         args: vec![Expr::Mul(
-            Box::new(Expr::Number(-1.0)),
-            Box::new(Expr::Symbol("x".to_string())),
+            Rc::new(Expr::Number(-1.0)),
+            Rc::new(Expr::Symbol("x".to_string())),
         )],
     };
     let simplified = simplify(expr);
@@ -240,38 +241,38 @@ fn test_hyperbolic_identities() {
 
     // cosh^2(x) - sinh^2(x) = 1
     let expr = Expr::Sub(
-        Box::new(Expr::Pow(
-            Box::new(Expr::FunctionCall {
+        Rc::new(Expr::Pow(
+            Rc::new(Expr::FunctionCall {
                 name: "cosh".to_string(),
                 args: vec![Expr::Symbol("x".to_string())],
             }),
-            Box::new(Expr::Number(2.0)),
+            Rc::new(Expr::Number(2.0)),
         )),
-        Box::new(Expr::Pow(
-            Box::new(Expr::FunctionCall {
+        Rc::new(Expr::Pow(
+            Rc::new(Expr::FunctionCall {
                 name: "sinh".to_string(),
                 args: vec![Expr::Symbol("x".to_string())],
             }),
-            Box::new(Expr::Number(2.0)),
+            Rc::new(Expr::Number(2.0)),
         )),
     );
     assert_eq!(simplify(expr), Expr::Number(1.0));
 
     // 1 - tanh^2(x) = sech^2(x)
     let expr = Expr::Sub(
-        Box::new(Expr::Number(1.0)),
-        Box::new(Expr::Pow(
-            Box::new(Expr::FunctionCall {
+        Rc::new(Expr::Number(1.0)),
+        Rc::new(Expr::Pow(
+            Rc::new(Expr::FunctionCall {
                 name: "tanh".to_string(),
                 args: vec![Expr::Symbol("x".to_string())],
             }),
-            Box::new(Expr::Number(2.0)),
+            Rc::new(Expr::Number(2.0)),
         )),
     );
     let simplified = simplify(expr);
     if let Expr::Pow(base, exp) = simplified {
         assert_eq!(*exp, Expr::Number(2.0));
-        if let Expr::FunctionCall { name, args } = *base {
+        if let Expr::FunctionCall { name, args } = base.as_ref() {
             assert_eq!(name, "sech");
             assert_eq!(args[0], Expr::Symbol("x".to_string()));
         } else {
@@ -283,19 +284,19 @@ fn test_hyperbolic_identities() {
 
     // coth^2(x) - 1 = csch^2(x)
     let expr = Expr::Sub(
-        Box::new(Expr::Pow(
-            Box::new(Expr::FunctionCall {
+        Rc::new(Expr::Pow(
+            Rc::new(Expr::FunctionCall {
                 name: "coth".to_string(),
                 args: vec![Expr::Symbol("x".to_string())],
             }),
-            Box::new(Expr::Number(2.0)),
+            Rc::new(Expr::Number(2.0)),
         )),
-        Box::new(Expr::Number(1.0)),
+        Rc::new(Expr::Number(1.0)),
     );
     let simplified = simplify(expr);
     if let Expr::Pow(base, exp) = simplified {
         assert_eq!(*exp, Expr::Number(2.0));
-        if let Expr::FunctionCall { name, args } = *base {
+        if let Expr::FunctionCall { name, args } = base.as_ref() {
             assert_eq!(name, "csch");
             assert_eq!(args[0], Expr::Symbol("x".to_string()));
         } else {

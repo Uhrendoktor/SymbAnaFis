@@ -7,6 +7,7 @@ mod rules;
 use crate::Expr;
 
 use std::collections::HashSet;
+use std::rc::Rc;
 
 /// Simplify an expression using the new rule-based engine
 pub fn simplify(expr: Expr) -> Expr {
@@ -37,30 +38,13 @@ pub fn simplify_with_fixed_vars(expr: Expr, fixed_vars: HashSet<String>) -> Expr
 pub fn simplify_domain_safe_with_fixed_vars(expr: Expr, fixed_vars: HashSet<String>) -> Expr {
     let mut current = expr;
 
-    // Use the new rule-based simplification engine with domain safety and fixed vars
-    let variables = current.variables();
-    current = engine::simplify_expr_with_verification_and_fixed_vars(
-        current.clone(),
-        variables,
-        fixed_vars.clone(),
-        true,
-    )
-    .unwrap_or_else(|_| {
-        // Fallback if verification fails
-        let mut simplifier = engine::Simplifier::new()
-            .with_domain_safe(true)
-            .with_fixed_vars(fixed_vars);
-        simplifier.simplify(current)
-    });
+    let mut simplifier = engine::Simplifier::new()
+        .with_domain_safe(true)
+        .with_fixed_vars(fixed_vars);
+    current = simplifier.simplify(current);
 
-    // Prettify roots (x^0.5 -> sqrt(x)) for display
-    // This must be done AFTER simplification to avoid fighting with normalize_roots
     current = helpers::prettify_roots(current);
-
-    // Final step: Evaluate numeric functions like sqrt(4) -> 2
-    // This happens at the very end so algebraic simplification works on powers
     current = evaluate_numeric_functions(current);
-
     current
 }
 
@@ -70,35 +54,35 @@ fn evaluate_numeric_functions(expr: Expr) -> Expr {
     match expr {
         // Recursively process subexpressions first
         Expr::Add(u, v) => Expr::Add(
-            Box::new(evaluate_numeric_functions(*u)),
-            Box::new(evaluate_numeric_functions(*v)),
+            Rc::new(evaluate_numeric_functions(u.as_ref().clone())),
+            Rc::new(evaluate_numeric_functions(v.as_ref().clone())),
         ),
         Expr::Sub(u, v) => Expr::Sub(
-            Box::new(evaluate_numeric_functions(*u)),
-            Box::new(evaluate_numeric_functions(*v)),
+            Rc::new(evaluate_numeric_functions(u.as_ref().clone())),
+            Rc::new(evaluate_numeric_functions(v.as_ref().clone())),
         ),
         Expr::Mul(u, v) => {
-            let u = evaluate_numeric_functions(*u);
-            let v = evaluate_numeric_functions(*v);
+            let u = evaluate_numeric_functions(u.as_ref().clone());
+            let v = evaluate_numeric_functions(v.as_ref().clone());
 
             // Canonical form: 0.5 * expr -> expr / 2 (for fractional coefficients)
             // This makes log2(x^0.5) -> log2(x)/2 instead of 0.5*log2(x)
             if let Expr::Number(n) = &u
                 && *n == 0.5
             {
-                return Expr::Div(Box::new(v), Box::new(Expr::Number(2.0)));
+                return Expr::Div(Rc::new(v), Rc::new(Expr::Number(2.0)));
             }
             if let Expr::Number(n) = &v
                 && *n == 0.5
             {
-                return Expr::Div(Box::new(u), Box::new(Expr::Number(2.0)));
+                return Expr::Div(Rc::new(u), Rc::new(Expr::Number(2.0)));
             }
 
-            Expr::Mul(Box::new(u), Box::new(v))
+            Expr::Mul(Rc::new(u), Rc::new(v))
         }
         Expr::Div(u, v) => {
-            let u = evaluate_numeric_functions(*u);
-            let v = evaluate_numeric_functions(*v);
+            let u = evaluate_numeric_functions(u.as_ref().clone());
+            let v = evaluate_numeric_functions(v.as_ref().clone());
 
             if let (Expr::Number(n1), Expr::Number(n2)) = (&u, &v)
                 && *n2 != 0.0
@@ -109,11 +93,11 @@ fn evaluate_numeric_functions(expr: Expr) -> Expr {
                 }
             }
 
-            Expr::Div(Box::new(u), Box::new(v))
+            Expr::Div(Rc::new(u), Rc::new(v))
         }
         Expr::Pow(u, v) => {
-            let u = evaluate_numeric_functions(*u);
-            let v = evaluate_numeric_functions(*v);
+            let u = evaluate_numeric_functions(u.as_ref().clone());
+            let v = evaluate_numeric_functions(v.as_ref().clone());
 
             // Evaluate Number^Number if result is clean
             if let (Expr::Number(base), Expr::Number(exp)) = (&u, &v) {
@@ -123,7 +107,7 @@ fn evaluate_numeric_functions(expr: Expr) -> Expr {
                 }
             }
 
-            Expr::Pow(Box::new(u), Box::new(v))
+            Expr::Pow(Rc::new(u), Rc::new(v))
         }
         Expr::FunctionCall { name, args } => {
             let args: Vec<Expr> = args.into_iter().map(evaluate_numeric_functions).collect();

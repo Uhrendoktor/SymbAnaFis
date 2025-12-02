@@ -38,9 +38,7 @@ pub trait Rule {
     fn name(&self) -> &'static str;
     fn priority(&self) -> i32;
     fn category(&self) -> RuleCategory;
-    fn dependencies(&self) -> Vec<&'static str> {
-        Vec::new()
-    }
+
     fn alters_domain(&self) -> bool {
         false
     }
@@ -153,7 +151,7 @@ impl RuleRegistry {
     pub fn load_all_rules(&mut self) {
         // Load rules from each category
         self.rules.extend(numeric::get_numeric_rules());
-        self.rules.extend(algebraic::get_algebraic_rules());
+        self.rules.extend(algebraic::get_algebraic_rules()); // Keep original algebraic rules for now
         self.rules.extend(trigonometric::get_trigonometric_rules());
         self.rules.extend(exponential::get_exponential_rules());
         self.rules.extend(root::get_root_rules());
@@ -175,73 +173,12 @@ impl RuleRegistry {
         });
     }
 
-    /// Order rules using topological sort based on dependencies
+    /// Build the kind index after ordering rules
     pub fn order_by_dependencies(&mut self) {
-        // Build graph: rule name -> (rule, dependencies)
-        let mut graph: HashMap<String, (usize, Vec<String>)> = HashMap::new();
-        for (i, rule) in self.rules.iter().enumerate() {
-            graph.insert(
-                rule.name().to_string(),
-                (
-                    i,
-                    rule.dependencies().iter().map(|s| s.to_string()).collect(),
-                ),
-            );
-        }
+        // Sort by priority descending (higher priority runs first)
+        // Rules are processed by ExprKind separately, so category order doesn't matter
+        self.rules.sort_by_key(|r| std::cmp::Reverse(r.priority()));
 
-        // Topological sort
-        let mut visited = HashSet::new();
-        let mut visiting = HashSet::new();
-        let mut order = Vec::new();
-
-        fn dfs(
-            node: &String,
-            graph: &HashMap<String, (usize, Vec<String>)>,
-            visited: &mut HashSet<String>,
-            visiting: &mut HashSet<String>,
-            order: &mut Vec<usize>,
-        ) -> Result<(), String> {
-            if visiting.contains(node) {
-                return Err(format!("Cycle detected involving rule: {}", node));
-            }
-            if visited.contains(node) {
-                return Ok(());
-            }
-            visiting.insert(node.clone());
-            if let Some((_, deps)) = graph.get(node) {
-                for dep in deps {
-                    dfs(dep, graph, visited, visiting, order)?;
-                }
-            }
-            visiting.remove(node);
-            visited.insert(node.clone());
-            order.push(graph[node].0);
-            Ok(())
-        }
-
-        for name in graph.keys() {
-            if !visited.contains(name)
-                && let Err(e) = dfs(name, &graph, &mut visited, &mut visiting, &mut order)
-            {
-                eprintln!("Warning: {}", e);
-                // Fallback to priority sort
-                self.rules.sort_by_key(|b| std::cmp::Reverse(b.priority()));
-                self.build_kind_index();
-                return;
-            }
-        }
-
-        // Reorder rules
-        let mut ordered = Vec::new();
-        for &idx in order.iter().rev() {
-            ordered.push(self.rules[idx].clone());
-        }
-        self.rules = ordered;
-
-        // Finally, sort by priority descending to ensure high-priority rules run first
-        self.rules.sort_by_key(|b| std::cmp::Reverse(b.priority()));
-
-        // Build the kind index after final ordering
         self.build_kind_index();
     }
 

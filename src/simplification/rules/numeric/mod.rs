@@ -224,8 +224,8 @@ pub mod rules {
                 {
                     // x / -y -> -x / y
                     return Some(Expr::Div(
-                        Box::new(Expr::Mul(Box::new(Expr::Number(-1.0)), num.clone())),
-                        Box::new(Expr::Number(-d)),
+                        Rc::new(Expr::Mul(Rc::new(Expr::Number(-1.0)), num.clone())),
+                        Rc::new(Expr::Number(-d)),
                     ));
                 }
 
@@ -235,7 +235,7 @@ pub mod rules {
                 {
                     // x / (-1 * y) -> -x / y
                     return Some(Expr::Div(
-                        Box::new(Expr::Mul(Box::new(Expr::Number(-1.0)), num.clone())),
+                        Rc::new(Expr::Mul(Rc::new(Expr::Number(-1.0)), num.clone())),
                         rest.clone(),
                     ));
                 }
@@ -246,7 +246,7 @@ pub mod rules {
                 {
                     // x / (y * -1) -> -x / y
                     return Some(Expr::Div(
-                        Box::new(Expr::Mul(Box::new(Expr::Number(-1.0)), num.clone())),
+                        Rc::new(Expr::Mul(Rc::new(Expr::Number(-1.0)), num.clone())),
                         rest.clone(),
                     ));
                 }
@@ -424,8 +424,8 @@ pub mod rules {
                         }
                         // Otherwise return as simplified fraction
                         return Some(Expr::Div(
-                            Box::new(Expr::Number(new_num)),
-                            Box::new(Expr::Number(*den_val)),
+                            Rc::new(Expr::Number(new_num)),
+                            Rc::new(Expr::Number(*den_val)),
                         ));
                     }
                     // Handle Number + Div(Number, Number) => simplified fraction or number
@@ -442,8 +442,8 @@ pub mod rules {
                         }
                         // Otherwise return as simplified fraction
                         return Some(Expr::Div(
-                            Box::new(Expr::Number(new_num)),
-                            Box::new(Expr::Number(*den_val)),
+                            Rc::new(Expr::Number(new_num)),
+                            Rc::new(Expr::Number(*den_val)),
                         ));
                     }
                 }
@@ -468,8 +468,8 @@ pub mod rules {
                         }
                         // Otherwise return as simplified fraction
                         return Some(Expr::Div(
-                            Box::new(Expr::Number(new_num)),
-                            Box::new(Expr::Number(*den_val)),
+                            Rc::new(Expr::Number(new_num)),
+                            Rc::new(Expr::Number(*den_val)),
                         ));
                     }
                     // Handle Number - Div(Number, Number) => simplified fraction or number
@@ -486,8 +486,8 @@ pub mod rules {
                         }
                         // Otherwise return as simplified fraction
                         return Some(Expr::Div(
-                            Box::new(Expr::Number(new_num)),
-                            Box::new(Expr::Number(*den_val)),
+                            Rc::new(Expr::Number(new_num)),
+                            Rc::new(Expr::Number(*den_val)),
                         ));
                     }
                 }
@@ -538,8 +538,8 @@ pub mod rules {
                         } else {
                             // Return as fraction
                             return Some(Expr::Div(
-                                Box::new(Expr::Number(a * b_val)),
-                                Box::new(Expr::Number(*c_val)),
+                                Rc::new(Expr::Number(a * b_val)),
+                                Rc::new(Expr::Number(*c_val)),
                             ));
                         }
                     }
@@ -555,8 +555,8 @@ pub mod rules {
                         } else {
                             // Return as fraction
                             return Some(Expr::Div(
-                                Box::new(Expr::Number(a * b_val)),
-                                Box::new(Expr::Number(*c_val)),
+                                Rc::new(Expr::Number(a * b_val)),
+                                Rc::new(Expr::Number(*c_val)),
                             ));
                         }
                     }
@@ -627,8 +627,8 @@ pub mod rules {
 
                         if common > 1 {
                             return Some(Expr::Div(
-                                Box::new(Expr::Number((a_int / common) as f64)),
-                                Box::new(Expr::Number((b_int / common) as f64)),
+                                Rc::new(Expr::Number((a_int / common) as f64)),
+                                Rc::new(Expr::Number((b_int / common) as f64)),
                             ));
                         }
                     }

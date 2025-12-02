@@ -116,7 +116,7 @@ impl ExpTerm {
                 return (**lhs).clone();
             }
         }
-        Expr::Mul(Box::new(Expr::Number(-1.0)), Box::new(expr.clone()))
+        Expr::Mul(Rc::new(Expr::Number(-1.0)), Rc::new(expr.clone()))
     }
 }
 
@@ -946,11 +946,11 @@ impl Rule for HyperbolicIdentityRule {
             && name == "tanh"
         {
             return Some(Expr::Pow(
-                Box::new(Expr::FunctionCall {
+                Rc::new(Expr::FunctionCall {
                     name: "sech".to_string(),
                     args: vec![arg],
                 }),
-                Box::new(Expr::Number(2.0)),
+                Rc::new(Expr::Number(2.0)),
             ));
         }
 
@@ -965,11 +965,11 @@ impl Rule for HyperbolicIdentityRule {
             && name == "tanh"
         {
             return Some(Expr::Pow(
-                Box::new(Expr::FunctionCall {
+                Rc::new(Expr::FunctionCall {
                     name: "sech".to_string(),
                     args: vec![arg],
                 }),
-                Box::new(Expr::Number(2.0)),
+                Rc::new(Expr::Number(2.0)),
             ));
         }
 
@@ -983,13 +983,13 @@ impl Rule for HyperbolicIdentityRule {
             && **rhs == Expr::Number(1.0)
         {
             return Some(Expr::Mul(
-                Box::new(Expr::Number(-1.0)),
-                Box::new(Expr::Pow(
-                    Box::new(Expr::FunctionCall {
+                Rc::new(Expr::Number(-1.0)),
+                Rc::new(Expr::Pow(
+                    Rc::new(Expr::FunctionCall {
                         name: "sech".to_string(),
                         args: vec![arg],
                     }),
-                    Box::new(Expr::Number(2.0)),
+                    Rc::new(Expr::Number(2.0)),
                 )),
             ));
         }
@@ -1002,11 +1002,11 @@ impl Rule for HyperbolicIdentityRule {
             && name == "coth"
         {
             return Some(Expr::Pow(
-                Box::new(Expr::FunctionCall {
+                Rc::new(Expr::FunctionCall {
                     name: "csch".to_string(),
                     args: vec![arg],
                 }),
-                Box::new(Expr::Number(2.0)),
+                Rc::new(Expr::Number(2.0)),
             ));
         }
 
@@ -1018,11 +1018,11 @@ impl Rule for HyperbolicIdentityRule {
             && n == -1.0
         {
             return Some(Expr::Pow(
-                Box::new(Expr::FunctionCall {
+                Rc::new(Expr::FunctionCall {
                     name: "csch".to_string(),
                     args: vec![arg],
                 }),
-                Box::new(Expr::Number(2.0)),
+                Rc::new(Expr::Number(2.0)),
             ));
         }
 
@@ -1134,8 +1134,8 @@ impl Rule for SinhNegationRule {
         {
             let inner = Self::negate_arg(&args[0]);
             return Some(Expr::Mul(
-                Box::new(Expr::Number(-1.0)),
-                Box::new(Expr::FunctionCall {
+                Rc::new(Expr::Number(-1.0)),
+                Rc::new(Expr::FunctionCall {
                     name: "sinh".to_string(),
                     args: vec![inner],
                 }),
@@ -1167,12 +1167,12 @@ impl SinhNegationRule {
             if let Expr::Number(n) = **lhs
                 && n == -1.0
             {
-                return *rhs.clone();
+                return rhs.as_ref().clone();
             }
             if let Expr::Number(n) = **rhs
                 && n == -1.0
             {
-                return *lhs.clone();
+                return lhs.as_ref().clone();
             }
         }
         expr.clone() // fallback, shouldn't happen
@@ -1205,7 +1205,7 @@ impl Rule for CoshNegationRule {
         {
             return Some(Expr::FunctionCall {
                 name: "cosh".to_string(),
-                args: vec![*rhs.clone()],
+                args: vec![rhs.as_ref().clone()],
             });
         }
         None
@@ -1236,8 +1236,8 @@ impl Rule for TanhNegationRule {
         {
             let inner = Self::negate_arg(&args[0]);
             return Some(Expr::Mul(
-                Box::new(Expr::Number(-1.0)),
-                Box::new(Expr::FunctionCall {
+                Rc::new(Expr::Number(-1.0)),
+                Rc::new(Expr::FunctionCall {
                     name: "tanh".to_string(),
                     args: vec![inner],
                 }),
@@ -1269,12 +1269,12 @@ impl TanhNegationRule {
             if let Expr::Number(n) = **lhs
                 && n == -1.0
             {
-                return *rhs.clone();
+                return rhs.as_ref().clone();
             }
             if let Expr::Number(n) = **rhs
                 && n == -1.0
             {
-                return *lhs.clone();
+                return lhs.as_ref().clone();
             }
         }
         expr.clone() // fallback
@@ -1403,7 +1403,7 @@ impl Rule for HyperbolicTripleAngleRule {
                 if let Some(arg) = Self::match_triple_sinh(u, v) {
                     return Some(Expr::FunctionCall {
                         name: "sinh".to_string(),
-                        args: vec![Expr::Mul(Box::new(Expr::Number(3.0)), Box::new(arg))],
+                        args: vec![Expr::Mul(Rc::new(Expr::Number(3.0)), Rc::new(arg))],
                     });
                 }
             }
@@ -1412,7 +1412,7 @@ impl Rule for HyperbolicTripleAngleRule {
                 if let Some(arg) = Self::match_triple_cosh(u, v) {
                     return Some(Expr::FunctionCall {
                         name: "cosh".to_string(),
-                        args: vec![Expr::Mul(Box::new(Expr::Number(3.0)), Box::new(arg))],
+                        args: vec![Expr::Mul(Rc::new(Expr::Number(3.0)), Rc::new(arg))],
                     });
                 }
             }

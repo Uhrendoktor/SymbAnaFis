@@ -19,7 +19,7 @@ impl Rule for CbrtPowerRule {
             if name == "cbrt" && args.len() == 1 {
                 if let Expr::Pow(base, exp) = &args[0] {
                     // Create new exponent: exp / 3
-                    let new_exp = Expr::Div(exp.clone(), Box::new(Expr::Number(3.0)));
+                    let new_exp = Expr::Div(exp.clone(), Rc::new(Expr::Number(3.0)));
 
                     // Simplify the division immediately
                     // This handles cases like 3/3 → 1, 6/3 → 2
@@ -30,7 +30,7 @@ impl Rule for CbrtPowerRule {
                         return Some((**base).clone());
                     }
 
-                    return Some(Expr::Pow(base.clone(), Box::new(simplified_exp)));
+                    return Some(Expr::Pow(base.clone(), Rc::new(simplified_exp)));
                 }
             }
         }

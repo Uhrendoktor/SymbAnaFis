@@ -2,7 +2,7 @@
 mod tests {
     use crate::Expr;
     use crate::simplify;
-
+    use std::rc::Rc;
     #[test]
     fn test_fraction_cancellation_product_base() {
         // (C * R) / (C * R)^2 -> 1 / (C * R)
@@ -35,11 +35,11 @@ mod tests {
         let a = Expr::Symbol("a".to_string());
         let b = Expr::Symbol("b".to_string());
         let expr = Expr::Div(
-            Box::new(Expr::FunctionCall {
+            Rc::new(Expr::FunctionCall {
                 name: "sqrt".to_string(),
-                args: vec![Expr::Mul(Box::new(a.clone()), Box::new(b.clone()))],
+                args: vec![Expr::Mul(Rc::new(a.clone()), Rc::new(b.clone()))],
             }),
-            Box::new(Expr::Mul(Box::new(a.clone()), Box::new(b.clone()))),
+            Rc::new(Expr::Mul(Rc::new(a.clone()), Rc::new(b.clone()))),
         );
 
         let simplified = crate::simplification::simplify(expr);
@@ -61,26 +61,26 @@ mod tests {
         let pi = Expr::Symbol("pi".to_string());
 
         let num = Expr::Mul(
-            Box::new(Expr::FunctionCall {
+            Rc::new(Expr::FunctionCall {
                 name: "sqrt".to_string(),
                 args: vec![alpha.clone()],
             }),
-            Box::new(Expr::FunctionCall {
+            Rc::new(Expr::FunctionCall {
                 name: "sqrt".to_string(),
                 args: vec![t.clone()],
             }),
         );
         let den = Expr::Mul(
-            Box::new(alpha.clone()),
-            Box::new(Expr::Mul(
-                Box::new(t.clone()),
-                Box::new(Expr::FunctionCall {
+            Rc::new(alpha.clone()),
+            Rc::new(Expr::Mul(
+                Rc::new(t.clone()),
+                Rc::new(Expr::FunctionCall {
                     name: "sqrt".to_string(),
                     args: vec![pi.clone()],
                 }),
             )),
         );
-        let expr = Expr::Div(Box::new(num), Box::new(den));
+        let expr = Expr::Div(Rc::new(num), Rc::new(den));
 
         let simplified = crate::simplification::simplify(expr);
         let result = format!("{}", simplified);

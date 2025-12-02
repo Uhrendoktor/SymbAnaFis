@@ -50,10 +50,14 @@ fn test_orbital_denominator_squared() {
     if let Expr::Div(_, denom) = result_ast {
         if let Expr::Pow(base, exp) = &*denom {
             // base must be (1 + e*cos(theta)), exponent must be 2
-            assert_eq!(*exp.clone(), Expr::Number(2.0));
+            assert_eq!(exp.as_ref().clone(), Expr::Number(2.0));
             let expected_base =
                 parse("e * cos(theta) + 1", &fixed_vars, &custom_functions).unwrap();
-            assert_eq!(*base.clone(), expected_base, "Denominator base mismatch");
+            assert_eq!(
+                base.as_ref().clone(),
+                expected_base,
+                "Denominator base mismatch"
+            );
         } else {
             panic!("Denominator is not a power as expected: {:?}", denom);
         }

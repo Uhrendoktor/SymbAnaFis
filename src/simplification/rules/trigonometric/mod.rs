@@ -207,37 +207,37 @@ impl Rule for CofunctionIdentityRule {
                         "sin" => {
                             return Some(Expr::FunctionCall {
                                 name: "cos".to_string(),
-                                args: vec![*rhs.clone()],
+                                args: vec![rhs.as_ref().clone()],
                             });
                         }
                         "cos" => {
                             return Some(Expr::FunctionCall {
                                 name: "sin".to_string(),
-                                args: vec![*rhs.clone()],
+                                args: vec![rhs.as_ref().clone()],
                             });
                         }
                         "tan" => {
                             return Some(Expr::FunctionCall {
                                 name: "cot".to_string(),
-                                args: vec![*rhs.clone()],
+                                args: vec![rhs.as_ref().clone()],
                             });
                         }
                         "cot" => {
                             return Some(Expr::FunctionCall {
                                 name: "tan".to_string(),
-                                args: vec![*rhs.clone()],
+                                args: vec![rhs.as_ref().clone()],
                             });
                         }
                         "sec" => {
                             return Some(Expr::FunctionCall {
                                 name: "csc".to_string(),
-                                args: vec![*rhs.clone()],
+                                args: vec![rhs.as_ref().clone()],
                             });
                         }
                         "csc" => {
                             return Some(Expr::FunctionCall {
                                 name: "sec".to_string(),
-                                args: vec![*rhs.clone()],
+                                args: vec![rhs.as_ref().clone()],
                             });
                         }
                         _ => {}
@@ -284,37 +284,37 @@ impl Rule for CofunctionIdentityRule {
                         "sin" => {
                             return Some(Expr::FunctionCall {
                                 name: "cos".to_string(),
-                                args: vec![*x.clone()],
+                                args: vec![x.as_ref().clone()],
                             });
                         }
                         "cos" => {
                             return Some(Expr::FunctionCall {
                                 name: "sin".to_string(),
-                                args: vec![*x.clone()],
+                                args: vec![x.as_ref().clone()],
                             });
                         }
                         "tan" => {
                             return Some(Expr::FunctionCall {
                                 name: "cot".to_string(),
-                                args: vec![*x.clone()],
+                                args: vec![x.as_ref().clone()],
                             });
                         }
                         "cot" => {
                             return Some(Expr::FunctionCall {
                                 name: "tan".to_string(),
-                                args: vec![*x.clone()],
+                                args: vec![x.as_ref().clone()],
                             });
                         }
                         "sec" => {
                             return Some(Expr::FunctionCall {
                                 name: "csc".to_string(),
-                                args: vec![*x.clone()],
+                                args: vec![x.as_ref().clone()],
                             });
                         }
                         "csc" => {
                             return Some(Expr::FunctionCall {
                                 name: "sec".to_string(),
-                                args: vec![*x.clone()],
+                                args: vec![x.as_ref().clone()],
                             });
                         }
                         _ => {}
@@ -550,14 +550,14 @@ impl Rule for TrigPeriodicityRule {
                 if helpers::is_multiple_of_two_pi(rhs) {
                     return Some(Expr::FunctionCall {
                         name: name.clone(),
-                        args: vec![*lhs.clone()],
+                        args: vec![lhs.as_ref().clone()],
                     });
                 }
                 // Check 2kπ + x
                 if helpers::is_multiple_of_two_pi(lhs) {
                     return Some(Expr::FunctionCall {
                         name: name.clone(),
-                        args: vec![*rhs.clone()],
+                        args: vec![rhs.as_ref().clone()],
                     });
                 }
             }
@@ -566,7 +566,7 @@ impl Rule for TrigPeriodicityRule {
                 if helpers::is_multiple_of_two_pi(rhs) {
                     return Some(Expr::FunctionCall {
                         name: name.clone(),
-                        args: vec![*lhs.clone()],
+                        args: vec![lhs.as_ref().clone()],
                     });
                 }
                 // Check 2kπ - x
@@ -576,17 +576,17 @@ impl Rule for TrigPeriodicityRule {
                     match name.as_str() {
                         "sin" => {
                             return Some(Expr::Mul(
-                                Box::new(Expr::Number(-1.0)),
-                                Box::new(Expr::FunctionCall {
+                                Rc::new(Expr::Number(-1.0)),
+                                Rc::new(Expr::FunctionCall {
                                     name: "sin".to_string(),
-                                    args: vec![*rhs.clone()],
+                                    args: vec![rhs.as_ref().clone()],
                                 }),
                             ));
                         }
                         "cos" => {
                             return Some(Expr::FunctionCall {
                                 name: "cos".to_string(),
-                                args: vec![*rhs.clone()],
+                                args: vec![rhs.as_ref().clone()],
                             });
                         }
                         _ => {}
@@ -627,15 +627,15 @@ impl Rule for TrigReflectionRule {
                     "sin" => {
                         return Some(Expr::FunctionCall {
                             name: "sin".to_string(),
-                            args: vec![*rhs.clone()],
+                            args: vec![rhs.as_ref().clone()],
                         });
                     }
                     "cos" => {
                         return Some(Expr::Mul(
-                            Box::new(Expr::Number(-1.0)),
-                            Box::new(Expr::FunctionCall {
+                            Rc::new(Expr::Number(-1.0)),
+                            Rc::new(Expr::FunctionCall {
                                 name: "cos".to_string(),
-                                args: vec![*rhs.clone()],
+                                args: vec![rhs.as_ref().clone()],
                             }),
                         ));
                     }
@@ -662,15 +662,15 @@ impl Rule for TrigReflectionRule {
                         "sin" => {
                             return Some(Expr::FunctionCall {
                                 name: "sin".to_string(),
-                                args: vec![*x.clone()],
+                                args: vec![x.as_ref().clone()],
                             });
                         }
                         "cos" => {
                             return Some(Expr::Mul(
-                                Box::new(Expr::Number(-1.0)),
-                                Box::new(Expr::FunctionCall {
+                                Rc::new(Expr::Number(-1.0)),
+                                Rc::new(Expr::FunctionCall {
                                     name: "cos".to_string(),
-                                    args: vec![*x.clone()],
+                                    args: vec![x.as_ref().clone()],
                                 }),
                             ));
                         }
@@ -685,10 +685,10 @@ impl Rule for TrigReflectionRule {
                     match name.as_str() {
                         "sin" | "cos" => {
                             return Some(Expr::Mul(
-                                Box::new(Expr::Number(-1.0)),
-                                Box::new(Expr::FunctionCall {
+                                Rc::new(Expr::Number(-1.0)),
+                                Rc::new(Expr::FunctionCall {
                                     name: name.clone(),
-                                    args: vec![*other_term.clone()],
+                                    args: vec![other_term.as_ref().clone()],
                                 }),
                             ));
                         }
@@ -728,19 +728,19 @@ impl Rule for TrigThreePiOverTwoRule {
                 match name.as_str() {
                     "sin" => {
                         return Some(Expr::Mul(
-                            Box::new(Expr::Number(-1.0)),
-                            Box::new(Expr::FunctionCall {
+                            Rc::new(Expr::Number(-1.0)),
+                            Rc::new(Expr::FunctionCall {
                                 name: "cos".to_string(),
-                                args: vec![*rhs.clone()],
+                                args: vec![rhs.as_ref().clone()],
                             }),
                         ));
                     }
                     "cos" => {
                         return Some(Expr::Mul(
-                            Box::new(Expr::Number(-1.0)),
-                            Box::new(Expr::FunctionCall {
+                            Rc::new(Expr::Number(-1.0)),
+                            Rc::new(Expr::FunctionCall {
                                 name: "sin".to_string(),
-                                args: vec![*rhs.clone()],
+                                args: vec![rhs.as_ref().clone()],
                             }),
                         ));
                     }
@@ -767,19 +767,19 @@ impl Rule for TrigThreePiOverTwoRule {
                     match name.as_str() {
                         "sin" => {
                             return Some(Expr::Mul(
-                                Box::new(Expr::Number(-1.0)),
-                                Box::new(Expr::FunctionCall {
+                                Rc::new(Expr::Number(-1.0)),
+                                Rc::new(Expr::FunctionCall {
                                     name: "cos".to_string(),
-                                    args: vec![*x.clone()],
+                                    args: vec![x.as_ref().clone()],
                                 }),
                             ));
                         }
                         "cos" => {
                             return Some(Expr::Mul(
-                                Box::new(Expr::Number(-1.0)),
-                                Box::new(Expr::FunctionCall {
+                                Rc::new(Expr::Number(-1.0)),
+                                Rc::new(Expr::FunctionCall {
                                     name: "sin".to_string(),
-                                    args: vec![*x.clone()],
+                                    args: vec![x.as_ref().clone()],
                                 }),
                             ));
                         }
@@ -817,21 +817,21 @@ impl Rule for PythagoreanComplementsRule {
             // 1 - cos²(x) = sin²(x)
             if let Some(("cos", arg)) = helpers::get_fn_pow_named(rhs, 2.0) {
                 return Some(Expr::Pow(
-                    Box::new(Expr::FunctionCall {
+                    Rc::new(Expr::FunctionCall {
                         name: "sin".to_string(),
                         args: vec![arg],
                     }),
-                    Box::new(Expr::Number(2.0)),
+                    Rc::new(Expr::Number(2.0)),
                 ));
             }
             // 1 - sin²(x) = cos²(x)
             if let Some(("sin", arg)) = helpers::get_fn_pow_named(rhs, 2.0) {
                 return Some(Expr::Pow(
-                    Box::new(Expr::FunctionCall {
+                    Rc::new(Expr::FunctionCall {
                         name: "cos".to_string(),
                         args: vec![arg],
                     }),
-                    Box::new(Expr::Number(2.0)),
+                    Rc::new(Expr::Number(2.0)),
                 ));
             }
         }
@@ -846,20 +846,20 @@ impl Rule for PythagoreanComplementsRule {
             {
                 if let Some(("cos", arg)) = helpers::get_fn_pow_named(rest, 2.0) {
                     return Some(Expr::Pow(
-                        Box::new(Expr::FunctionCall {
+                        Rc::new(Expr::FunctionCall {
                             name: "sin".to_string(),
                             args: vec![arg],
                         }),
-                        Box::new(Expr::Number(2.0)),
+                        Rc::new(Expr::Number(2.0)),
                     ));
                 }
                 if let Some(("sin", arg)) = helpers::get_fn_pow_named(rest, 2.0) {
                     return Some(Expr::Pow(
-                        Box::new(Expr::FunctionCall {
+                        Rc::new(Expr::FunctionCall {
                             name: "cos".to_string(),
                             args: vec![arg],
                         }),
-                        Box::new(Expr::Number(2.0)),
+                        Rc::new(Expr::Number(2.0)),
                     ));
                 }
             }
@@ -870,20 +870,20 @@ impl Rule for PythagoreanComplementsRule {
             {
                 if let Some(("cos", arg)) = helpers::get_fn_pow_named(rest, 2.0) {
                     return Some(Expr::Pow(
-                        Box::new(Expr::FunctionCall {
+                        Rc::new(Expr::FunctionCall {
                             name: "sin".to_string(),
                             args: vec![arg],
                         }),
-                        Box::new(Expr::Number(2.0)),
+                        Rc::new(Expr::Number(2.0)),
                     ));
                 }
                 if let Some(("sin", arg)) = helpers::get_fn_pow_named(rest, 2.0) {
                     return Some(Expr::Pow(
-                        Box::new(Expr::FunctionCall {
+                        Rc::new(Expr::FunctionCall {
                             name: "cos".to_string(),
                             args: vec![arg],
                         }),
-                        Box::new(Expr::Number(2.0)),
+                        Rc::new(Expr::Number(2.0)),
                     ));
                 }
             }
@@ -916,11 +916,11 @@ impl Rule for PythagoreanTangentRule {
                 && matches!(**rhs, Expr::Number(n) if n == 1.0)
             {
                 return Some(Expr::Pow(
-                    Box::new(Expr::FunctionCall {
+                    Rc::new(Expr::FunctionCall {
                         name: "sec".to_string(),
                         args: vec![arg],
                     }),
-                    Box::new(Expr::Number(2.0)),
+                    Rc::new(Expr::Number(2.0)),
                 ));
             }
             // Check for 1 + tan^2(x) = sec^2(x)
@@ -928,11 +928,11 @@ impl Rule for PythagoreanTangentRule {
                 && let Some(("tan", arg)) = helpers::get_fn_pow_named(rhs, 2.0)
             {
                 return Some(Expr::Pow(
-                    Box::new(Expr::FunctionCall {
+                    Rc::new(Expr::FunctionCall {
                         name: "sec".to_string(),
                         args: vec![arg],
                     }),
-                    Box::new(Expr::Number(2.0)),
+                    Rc::new(Expr::Number(2.0)),
                 ));
             }
             // Check for cot^2(x) + 1 = csc^2(x)
@@ -940,11 +940,11 @@ impl Rule for PythagoreanTangentRule {
                 && matches!(**rhs, Expr::Number(n) if n == 1.0)
             {
                 return Some(Expr::Pow(
-                    Box::new(Expr::FunctionCall {
+                    Rc::new(Expr::FunctionCall {
                         name: "csc".to_string(),
                         args: vec![arg],
                     }),
-                    Box::new(Expr::Number(2.0)),
+                    Rc::new(Expr::Number(2.0)),
                 ));
             }
             // Check for 1 + cot^2(x) = csc^2(x)
@@ -952,11 +952,11 @@ impl Rule for PythagoreanTangentRule {
                 && let Some(("cot", arg)) = helpers::get_fn_pow_named(rhs, 2.0)
             {
                 return Some(Expr::Pow(
-                    Box::new(Expr::FunctionCall {
+                    Rc::new(Expr::FunctionCall {
                         name: "csc".to_string(),
                         args: vec![arg],
                     }),
-                    Box::new(Expr::Number(2.0)),
+                    Rc::new(Expr::Number(2.0)),
                 ));
             }
         }
@@ -999,8 +999,8 @@ impl Rule for TrigExactValuesRule {
                             Some(Expr::Number(0.5))
                         } else {
                             Some(Expr::Div(
-                                Box::new(Expr::Number(1.0)),
-                                Box::new(Expr::Number(2.0)),
+                                Rc::new(Expr::Number(1.0)),
+                                Rc::new(Expr::Number(2.0)),
                             ))
                         };
                     }
@@ -1012,11 +1012,11 @@ impl Rule for TrigExactValuesRule {
                             Some(Expr::Number((2.0f64).sqrt() / 2.0))
                         } else {
                             Some(Expr::Div(
-                                Box::new(Expr::FunctionCall {
+                                Rc::new(Expr::FunctionCall {
                                     name: "sqrt".to_string(),
                                     args: vec![Expr::Number(2.0)],
                                 }),
-                                Box::new(Expr::Number(2.0)),
+                                Rc::new(Expr::Number(2.0)),
                             ))
                         };
                     }
@@ -1030,8 +1030,8 @@ impl Rule for TrigExactValuesRule {
                             Some(Expr::Number(0.5))
                         } else {
                             Some(Expr::Div(
-                                Box::new(Expr::Number(1.0)),
-                                Box::new(Expr::Number(2.0)),
+                                Rc::new(Expr::Number(1.0)),
+                                Rc::new(Expr::Number(2.0)),
                             ))
                         };
                     }
@@ -1043,11 +1043,11 @@ impl Rule for TrigExactValuesRule {
                             Some(Expr::Number((2.0f64).sqrt() / 2.0))
                         } else {
                             Some(Expr::Div(
-                                Box::new(Expr::FunctionCall {
+                                Rc::new(Expr::FunctionCall {
                                     name: "sqrt".to_string(),
                                     args: vec![Expr::Number(2.0)],
                                 }),
-                                Box::new(Expr::Number(2.0)),
+                                Rc::new(Expr::Number(2.0)),
                             ))
                         };
                     }
@@ -1080,11 +1080,11 @@ impl Rule for TrigExactValuesRule {
                             Some(Expr::Number(1.0 / (3.0f64).sqrt()))
                         } else {
                             Some(Expr::Div(
-                                Box::new(Expr::FunctionCall {
+                                Rc::new(Expr::FunctionCall {
                                     name: "sqrt".to_string(),
                                     args: vec![Expr::Number(3.0)],
                                 }),
-                                Box::new(Expr::Number(3.0)),
+                                Rc::new(Expr::Number(3.0)),
                             ))
                         };
                     }
@@ -1121,17 +1121,17 @@ impl Rule for TrigNegArgRule {
             match name {
                 "sin" | "tan" => {
                     return Some(Expr::Mul(
-                        Box::new(Expr::Number(-1.0)),
-                        Box::new(Expr::FunctionCall {
+                        Rc::new(Expr::Number(-1.0)),
+                        Rc::new(Expr::FunctionCall {
                             name: name.to_string(),
-                            args: vec![*inner.clone()],
+                            args: vec![inner.as_ref().clone()],
                         }),
                     ));
                 }
                 "cos" | "sec" => {
                     return Some(Expr::FunctionCall {
                         name: name.to_string(),
-                        args: vec![*inner.clone()],
+                        args: vec![inner.as_ref().clone()],
                     });
                 }
                 _ => {}
@@ -1162,13 +1162,13 @@ impl Rule for TrigDoubleAngleRule {
             let (coeff, rest) = extract_coefficient(&arg);
             if coeff == 2.0 {
                 return Some(Expr::Mul(
-                    Box::new(Expr::Number(2.0)),
-                    Box::new(Expr::Mul(
-                        Box::new(Expr::FunctionCall {
+                    Rc::new(Expr::Number(2.0)),
+                    Rc::new(Expr::Mul(
+                        Rc::new(Expr::FunctionCall {
                             name: "sin".to_string(),
                             args: vec![rest.clone()],
                         }),
-                        Box::new(Expr::FunctionCall {
+                        Rc::new(Expr::FunctionCall {
                             name: "cos".to_string(),
                             args: vec![rest],
                         }),
@@ -1215,7 +1215,7 @@ impl Rule for TrigSumDifferenceRule {
                 {
                     return Some(Expr::FunctionCall {
                         name: "sin".to_string(),
-                        args: vec![Expr::Add(Box::new(x), Box::new(y))],
+                        args: vec![Expr::Add(Rc::new(x), Rc::new(y))],
                     });
                 }
                 // cos(x)cos(y) - sin(x)sin(y) = cos(x + y) (handled in Sub)
@@ -1240,7 +1240,7 @@ impl Rule for TrigSumDifferenceRule {
                 {
                     return Some(Expr::FunctionCall {
                         name: "sin".to_string(),
-                        args: vec![Expr::Sub(Box::new(x), Box::new(y))],
+                        args: vec![Expr::Sub(Rc::new(x), Rc::new(y))],
                     });
                 }
                 // cos(x)cos(y) - sin(x)sin(y) = cos(x + y)
@@ -1250,7 +1250,7 @@ impl Rule for TrigSumDifferenceRule {
                 {
                     return Some(Expr::FunctionCall {
                         name: "cos".to_string(),
-                        args: vec![Expr::Add(Box::new(cx), Box::new(cy))],
+                        args: vec![Expr::Add(Rc::new(cx), Rc::new(cy))],
                     });
                 }
 
@@ -1321,7 +1321,7 @@ impl Rule for CosDoubleAngleDifferenceRule {
         {
             return Some(Expr::FunctionCall {
                 name: "cos".to_string(),
-                args: vec![Expr::Mul(Box::new(Expr::Number(2.0)), Box::new(arg1))],
+                args: vec![Expr::Mul(Rc::new(Expr::Number(2.0)), Rc::new(arg1))],
             });
         }
 
@@ -1332,10 +1332,10 @@ impl Rule for CosDoubleAngleDifferenceRule {
             && arg1 == arg2
         {
             return Some(Expr::Mul(
-                Box::new(Expr::Number(-1.0)),
-                Box::new(Expr::FunctionCall {
+                Rc::new(Expr::Number(-1.0)),
+                Rc::new(Expr::FunctionCall {
                     name: "cos".to_string(),
-                    args: vec![Expr::Mul(Box::new(Expr::Number(2.0)), Box::new(arg1))],
+                    args: vec![Expr::Mul(Rc::new(Expr::Number(2.0)), Rc::new(arg1))],
                 }),
             ));
         }
@@ -1379,7 +1379,7 @@ impl Rule for TrigProductToDoubleAngleRule {
             {
                 return Some(Expr::FunctionCall {
                     name: "cos".to_string(),
-                    args: vec![Expr::Mul(Box::new(Expr::Number(2.0)), Box::new(arg))],
+                    args: vec![Expr::Mul(Rc::new(Expr::Number(2.0)), Rc::new(arg))],
                 });
             }
         }
@@ -1524,7 +1524,7 @@ impl TrigTripleAngleRule {
             {
                 return Some(Expr::FunctionCall {
                     name: "sin".to_string(),
-                    args: vec![Expr::Mul(Box::new(Expr::Number(3.0)), Box::new(x.clone()))],
+                    args: vec![Expr::Mul(Rc::new(Expr::Number(3.0)), Rc::new(x.clone()))],
                 });
             }
         }
@@ -1548,7 +1548,7 @@ impl TrigTripleAngleRule {
             {
                 return Some(Expr::FunctionCall {
                     name: "sin".to_string(),
-                    args: vec![Expr::Mul(Box::new(Expr::Number(3.0)), Box::new(x.clone()))],
+                    args: vec![Expr::Mul(Rc::new(Expr::Number(3.0)), Rc::new(x.clone()))],
                 });
             }
         }
@@ -1567,7 +1567,7 @@ impl TrigTripleAngleRule {
             {
                 return Some(Expr::FunctionCall {
                     name: "sin".to_string(),
-                    args: vec![Expr::Mul(Box::new(Expr::Number(3.0)), Box::new(x.clone()))],
+                    args: vec![Expr::Mul(Rc::new(Expr::Number(3.0)), Rc::new(x.clone()))],
                 });
             }
         }
@@ -1591,7 +1591,7 @@ impl TrigTripleAngleRule {
             {
                 return Some(Expr::FunctionCall {
                     name: "cos".to_string(),
-                    args: vec![Expr::Mul(Box::new(Expr::Number(3.0)), Box::new(x.clone()))],
+                    args: vec![Expr::Mul(Rc::new(Expr::Number(3.0)), Rc::new(x.clone()))],
                 });
             }
         }
@@ -1617,7 +1617,7 @@ impl TrigTripleAngleRule {
             {
                 return Some(Expr::FunctionCall {
                     name: "cos".to_string(),
-                    args: vec![Expr::Mul(Box::new(Expr::Number(3.0)), Box::new(x.clone()))],
+                    args: vec![Expr::Mul(Rc::new(Expr::Number(3.0)), Rc::new(x.clone()))],
                 });
             }
         }
@@ -1638,7 +1638,7 @@ impl TrigTripleAngleRule {
             {
                 return Some(Expr::FunctionCall {
                     name: "cos".to_string(),
-                    args: vec![Expr::Mul(Box::new(Expr::Number(3.0)), Box::new(x.clone()))],
+                    args: vec![Expr::Mul(Rc::new(Expr::Number(3.0)), Rc::new(x.clone()))],
                 });
             }
         }

@@ -136,6 +136,7 @@ fn format_mul_operand(expr: &Expr) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::rc::Rc;
 
     #[test]
     fn test_display_number() {
@@ -156,8 +157,8 @@ mod tests {
     #[test]
     fn test_display_addition() {
         let expr = Expr::Add(
-            Box::new(Expr::Symbol("x".to_string())),
-            Box::new(Expr::Number(1.0)),
+            Rc::new(Expr::Symbol("x".to_string())),
+            Rc::new(Expr::Number(1.0)),
         );
         assert_eq!(format!("{}", expr), "x + 1");
     }
@@ -165,8 +166,8 @@ mod tests {
     #[test]
     fn test_display_multiplication() {
         let expr = Expr::Mul(
-            Box::new(Expr::Symbol("x".to_string())),
-            Box::new(Expr::Number(2.0)),
+            Rc::new(Expr::Symbol("x".to_string())),
+            Rc::new(Expr::Number(2.0)),
         );
         assert_eq!(format!("{}", expr), "x * 2");
     }
@@ -183,14 +184,14 @@ mod tests {
     #[test]
     fn test_display_negative_term() {
         let expr = Expr::Mul(
-            Box::new(Expr::Number(-1.0)),
-            Box::new(Expr::Symbol("x".to_string())),
+            Rc::new(Expr::Number(-1.0)),
+            Rc::new(Expr::Symbol("x".to_string())),
         );
         assert_eq!(format!("{}", expr), "-x");
 
         let expr2 = Expr::Mul(
-            Box::new(Expr::Number(-1.0)),
-            Box::new(Expr::FunctionCall {
+            Rc::new(Expr::Number(-1.0)),
+            Rc::new(Expr::FunctionCall {
                 name: "sin".to_string(),
                 args: vec![Expr::Symbol("x".to_string())],
             }),
@@ -202,25 +203,25 @@ mod tests {
     fn test_display_fraction_parens() {
         // 1 / x -> 1 / x
         let expr = Expr::Div(
-            Box::new(Expr::Number(1.0)),
-            Box::new(Expr::Symbol("x".to_string())),
+            Rc::new(Expr::Number(1.0)),
+            Rc::new(Expr::Symbol("x".to_string())),
         );
         assert_eq!(format!("{}", expr), "1 / x");
 
         // 1 / x^2 -> 1 / x^2
         let expr = Expr::Div(
-            Box::new(Expr::Number(1.0)),
-            Box::new(Expr::Pow(
-                Box::new(Expr::Symbol("x".to_string())),
-                Box::new(Expr::Number(2.0)),
+            Rc::new(Expr::Number(1.0)),
+            Rc::new(Expr::Pow(
+                Rc::new(Expr::Symbol("x".to_string())),
+                Rc::new(Expr::Number(2.0)),
             )),
         );
         assert_eq!(format!("{}", expr), "1 / x^2");
 
         // 1 / sin(x) -> 1 / sin(x)
         let expr = Expr::Div(
-            Box::new(Expr::Number(1.0)),
-            Box::new(Expr::FunctionCall {
+            Rc::new(Expr::Number(1.0)),
+            Rc::new(Expr::FunctionCall {
                 name: "sin".to_string(),
                 args: vec![Expr::Symbol("x".to_string())],
             }),
@@ -229,20 +230,20 @@ mod tests {
 
         // 1 / (2 * x) -> 1 / (2 * x)
         let expr = Expr::Div(
-            Box::new(Expr::Number(1.0)),
-            Box::new(Expr::Mul(
-                Box::new(Expr::Number(2.0)),
-                Box::new(Expr::Symbol("x".to_string())),
+            Rc::new(Expr::Number(1.0)),
+            Rc::new(Expr::Mul(
+                Rc::new(Expr::Number(2.0)),
+                Rc::new(Expr::Symbol("x".to_string())),
             )),
         );
         assert_eq!(format!("{}", expr), "1 / (2 * x)");
 
         // 1 / (x + 1) -> 1 / (x + 1)
         let expr = Expr::Div(
-            Box::new(Expr::Number(1.0)),
-            Box::new(Expr::Add(
-                Box::new(Expr::Symbol("x".to_string())),
-                Box::new(Expr::Number(1.0)),
+            Rc::new(Expr::Number(1.0)),
+            Rc::new(Expr::Add(
+                Rc::new(Expr::Symbol("x".to_string())),
+                Rc::new(Expr::Number(1.0)),
             )),
         );
         assert_eq!(format!("{}", expr), "1 / (x + 1)");

@@ -1,17 +1,17 @@
 #[cfg(test)]
 mod division_bug_tests {
     use crate::{Expr, simplification::simplify};
-
+    use std::rc::Rc;
     #[test]
     fn verify_display_parens() {
         // Test 1: A / (C * R^2) - should have parentheses
         let expr = Expr::Div(
-            Box::new(Expr::Symbol("A".to_string())),
-            Box::new(Expr::Mul(
-                Box::new(Expr::Symbol("C".to_string())),
-                Box::new(Expr::Pow(
-                    Box::new(Expr::Symbol("R".to_string())),
-                    Box::new(Expr::Number(2.0)),
+            Rc::new(Expr::Symbol("A".to_string())),
+            Rc::new(Expr::Mul(
+                Rc::new(Expr::Symbol("C".to_string())),
+                Rc::new(Expr::Pow(
+                    Rc::new(Expr::Symbol("R".to_string())),
+                    Rc::new(Expr::Number(2.0)),
                 )),
             )),
         );
@@ -28,21 +28,21 @@ mod division_bug_tests {
     fn verify_simplification_cancellation() {
         // Test 2: (-C * R * V0) / (C * R^2) should simplify to -V0 / R
         let expr = Expr::Div(
-            Box::new(Expr::Mul(
-                Box::new(Expr::Mul(
-                    Box::new(Expr::Mul(
-                        Box::new(Expr::Number(-1.0)),
-                        Box::new(Expr::Symbol("C".to_string())),
+            Rc::new(Expr::Mul(
+                Rc::new(Expr::Mul(
+                    Rc::new(Expr::Mul(
+                        Rc::new(Expr::Number(-1.0)),
+                        Rc::new(Expr::Symbol("C".to_string())),
                     )),
-                    Box::new(Expr::Symbol("R".to_string())),
+                    Rc::new(Expr::Symbol("R".to_string())),
                 )),
-                Box::new(Expr::Symbol("V0".to_string())),
+                Rc::new(Expr::Symbol("V0".to_string())),
             )),
-            Box::new(Expr::Mul(
-                Box::new(Expr::Symbol("C".to_string())),
-                Box::new(Expr::Pow(
-                    Box::new(Expr::Symbol("R".to_string())),
-                    Box::new(Expr::Number(2.0)),
+            Rc::new(Expr::Mul(
+                Rc::new(Expr::Symbol("C".to_string())),
+                Rc::new(Expr::Pow(
+                    Rc::new(Expr::Symbol("R".to_string())),
+                    Rc::new(Expr::Number(2.0)),
                 )),
             )),
         );

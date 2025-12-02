@@ -1,6 +1,8 @@
 #[cfg(test)]
+
 mod actual_bug_test {
     use crate::{Expr, simplification::simplify};
+    use std::rc::Rc;
 
     #[test]
     fn test_rc_derivative_actual_bug() {
@@ -11,13 +13,13 @@ mod actual_bug_test {
         let exp_term = Expr::FunctionCall {
             name: "exp".to_string(),
             args: vec![Expr::Div(
-                Box::new(Expr::Mul(
-                    Box::new(Expr::Number(-1.0)),
-                    Box::new(Expr::Symbol("t".to_string())),
+                Rc::new(Expr::Mul(
+                    Rc::new(Expr::Number(-1.0)),
+                    Rc::new(Expr::Symbol("t".to_string())),
                 )),
-                Box::new(Expr::Mul(
-                    Box::new(Expr::Symbol("C".to_string())),
-                    Box::new(Expr::Symbol("R".to_string())),
+                Rc::new(Expr::Mul(
+                    Rc::new(Expr::Symbol("C".to_string())),
+                    Rc::new(Expr::Symbol("R".to_string())),
                 )),
             )],
         };
@@ -25,29 +27,29 @@ mod actual_bug_test {
         // Numerator: -C * R * V0 * exp(...)
         // Which is: -1 * C * R * V0 * exp(...)
         let numerator = Expr::Mul(
-            Box::new(Expr::Mul(
-                Box::new(Expr::Mul(
-                    Box::new(Expr::Mul(
-                        Box::new(Expr::Number(-1.0)),
-                        Box::new(Expr::Symbol("C".to_string())),
+            Rc::new(Expr::Mul(
+                Rc::new(Expr::Mul(
+                    Rc::new(Expr::Mul(
+                        Rc::new(Expr::Number(-1.0)),
+                        Rc::new(Expr::Symbol("C".to_string())),
                     )),
-                    Box::new(Expr::Symbol("R".to_string())),
+                    Rc::new(Expr::Symbol("R".to_string())),
                 )),
-                Box::new(Expr::Symbol("V0".to_string())),
+                Rc::new(Expr::Symbol("V0".to_string())),
             )),
-            Box::new(exp_term),
+            Rc::new(exp_term),
         );
 
         // Denominator: C * R^2
         let denominator = Expr::Mul(
-            Box::new(Expr::Symbol("C".to_string())),
-            Box::new(Expr::Pow(
-                Box::new(Expr::Symbol("R".to_string())),
-                Box::new(Expr::Number(2.0)),
+            Rc::new(Expr::Symbol("C".to_string())),
+            Rc::new(Expr::Pow(
+                Rc::new(Expr::Symbol("R".to_string())),
+                Rc::new(Expr::Number(2.0)),
             )),
         );
 
-        let expr = Expr::Div(Box::new(numerator), Box::new(denominator));
+        let expr = Expr::Div(Rc::new(numerator), Rc::new(denominator));
 
         println!("\nOriginal expression:");
         println!("{}", expr);
@@ -75,22 +77,22 @@ mod actual_bug_test {
         // Should simplify to: -1 / R
 
         let numerator = Expr::Mul(
-            Box::new(Expr::Mul(
-                Box::new(Expr::Number(-1.0)),
-                Box::new(Expr::Symbol("C".to_string())),
+            Rc::new(Expr::Mul(
+                Rc::new(Expr::Number(-1.0)),
+                Rc::new(Expr::Symbol("C".to_string())),
             )),
-            Box::new(Expr::Symbol("R".to_string())),
+            Rc::new(Expr::Symbol("R".to_string())),
         );
 
         let denominator = Expr::Mul(
-            Box::new(Expr::Symbol("C".to_string())),
-            Box::new(Expr::Pow(
-                Box::new(Expr::Symbol("R".to_string())),
-                Box::new(Expr::Number(2.0)),
+            Rc::new(Expr::Symbol("C".to_string())),
+            Rc::new(Expr::Pow(
+                Rc::new(Expr::Symbol("R".to_string())),
+                Rc::new(Expr::Number(2.0)),
             )),
         );
 
-        let expr = Expr::Div(Box::new(numerator), Box::new(denominator));
+        let expr = Expr::Div(Rc::new(numerator), Rc::new(denominator));
 
         println!("\nSimple test:");
         println!("Original:   {}", expr);

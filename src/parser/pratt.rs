@@ -1,6 +1,7 @@
 // Pratt parser - converts tokens to AST
 use crate::parser::tokens::{Operator, Token};
 use crate::{DiffError, Expr};
+use std::rc::Rc;
 
 /// Parse tokens into an AST using Pratt parsing algorithm
 pub fn parse_expression(tokens: &[Token]) -> Result<Expr, DiffError> {
@@ -204,7 +205,7 @@ impl<'a> Parser<'a> {
             Token::Operator(Operator::Sub) => {
                 self.advance();
                 let expr = self.parse_expr(25)?; // Lower than Pow (30), higher than Mul (20)
-                Ok(Expr::Mul(Box::new(Expr::Number(-1.0)), Box::new(expr)))
+                Ok(Expr::Mul(Rc::new(Expr::Number(-1.0)), Rc::new(expr)))
             }
 
             Token::LeftParen => {
@@ -261,11 +262,11 @@ impl<'a> Parser<'a> {
                 let right = self.parse_expr(next_precedence)?;
 
                 let result = match op {
-                    Operator::Add => Expr::Add(Box::new(left), Box::new(right)),
-                    Operator::Sub => Expr::Sub(Box::new(left), Box::new(right)),
-                    Operator::Mul => Expr::Mul(Box::new(left), Box::new(right)),
-                    Operator::Div => Expr::Div(Box::new(left), Box::new(right)),
-                    Operator::Pow => Expr::Pow(Box::new(left), Box::new(right)),
+                    Operator::Add => Expr::Add(Rc::new(left), Rc::new(right)),
+                    Operator::Sub => Expr::Sub(Rc::new(left), Rc::new(right)),
+                    Operator::Mul => Expr::Mul(Rc::new(left), Rc::new(right)),
+                    Operator::Div => Expr::Div(Rc::new(left), Rc::new(right)),
+                    Operator::Pow => Expr::Pow(Rc::new(left), Rc::new(right)),
                     _ => return Err(DiffError::InvalidToken(format!("{:?}", op))),
                 };
 

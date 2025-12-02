@@ -1,4 +1,6 @@
 /// Abstract Syntax Tree for mathematical expressions
+use std::rc::Rc;
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expr {
     /// Constant number (e.g., 3.14, 1e10)
@@ -12,19 +14,19 @@ pub enum Expr {
 
     // Binary operations
     /// Addition
-    Add(Box<Expr>, Box<Expr>),
+    Add(Rc<Expr>, Rc<Expr>),
 
     /// Subtraction
-    Sub(Box<Expr>, Box<Expr>),
+    Sub(Rc<Expr>, Rc<Expr>),
 
     /// Multiplication
-    Mul(Box<Expr>, Box<Expr>),
+    Mul(Rc<Expr>, Rc<Expr>),
 
     /// Division
-    Div(Box<Expr>, Box<Expr>),
+    Div(Rc<Expr>, Rc<Expr>),
 
     /// Exponentiation
-    Pow(Box<Expr>, Box<Expr>),
+    Pow(Rc<Expr>, Rc<Expr>),
 }
 
 impl Expr {
@@ -42,27 +44,27 @@ impl Expr {
 
     /// Create an addition expression
     pub fn add_expr(left: Expr, right: Expr) -> Self {
-        Expr::Add(Box::new(left), Box::new(right))
+        Expr::Add(Rc::new(left), Rc::new(right))
     }
 
     /// Create a subtraction expression
     pub fn sub_expr(left: Expr, right: Expr) -> Self {
-        Expr::Sub(Box::new(left), Box::new(right))
+        Expr::Sub(Rc::new(left), Rc::new(right))
     }
 
     /// Create a multiplication expression
     pub fn mul_expr(left: Expr, right: Expr) -> Self {
-        Expr::Mul(Box::new(left), Box::new(right))
+        Expr::Mul(Rc::new(left), Rc::new(right))
     }
 
     /// Create a division expression
     pub fn div_expr(left: Expr, right: Expr) -> Self {
-        Expr::Div(Box::new(left), Box::new(right))
+        Expr::Div(Rc::new(left), Rc::new(right))
     }
 
     /// Create a power expression
     pub fn pow(base: Expr, exponent: Expr) -> Self {
-        Expr::Pow(Box::new(base), Box::new(exponent))
+        Expr::Pow(Rc::new(base), Rc::new(exponent))
     }
 
     /// Create a function call expression (single argument convenience)
@@ -153,6 +155,38 @@ impl Expr {
                 r.collect_variables(vars);
             }
             Expr::Number(_) => {}
+        }
+    }
+
+    /// Create a deep clone of the expression tree (no shared nodes)
+    pub fn deep_clone(&self) -> Expr {
+        match self {
+            Expr::Number(n) => Expr::Number(*n),
+            Expr::Symbol(s) => Expr::Symbol(s.clone()),
+            Expr::FunctionCall { name, args } => Expr::FunctionCall {
+                name: name.clone(),
+                args: args.iter().map(|arg| arg.deep_clone()).collect(),
+            },
+            Expr::Add(a, b) => Expr::Add(
+                Rc::new(a.as_ref().deep_clone()),
+                Rc::new(b.as_ref().deep_clone()),
+            ),
+            Expr::Sub(a, b) => Expr::Sub(
+                Rc::new(a.as_ref().deep_clone()),
+                Rc::new(b.as_ref().deep_clone()),
+            ),
+            Expr::Mul(a, b) => Expr::Mul(
+                Rc::new(a.as_ref().deep_clone()),
+                Rc::new(b.as_ref().deep_clone()),
+            ),
+            Expr::Div(a, b) => Expr::Div(
+                Rc::new(a.as_ref().deep_clone()),
+                Rc::new(b.as_ref().deep_clone()),
+            ),
+            Expr::Pow(a, b) => Expr::Pow(
+                Rc::new(a.as_ref().deep_clone()),
+                Rc::new(b.as_ref().deep_clone()),
+            ),
         }
     }
 }

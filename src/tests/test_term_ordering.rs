@@ -5,26 +5,26 @@ use crate::simplification::simplify;
 #[cfg(test)]
 mod tests {
     use super::*;
-
+    use std::rc::Rc;
     #[test]
     fn test_cosh_reversed_order() {
         // (exp(-x) + exp(x)) / 2 -> cosh(x)
         // Testing REVERSED order: e^(-x) first, e^x second
         let expr = Expr::Div(
-            Box::new(Expr::Add(
-                Box::new(Expr::FunctionCall {
+            Rc::new(Expr::Add(
+                Rc::new(Expr::FunctionCall {
                     name: "exp".to_string(),
                     args: vec![Expr::Mul(
-                        Box::new(Expr::Number(-1.0)),
-                        Box::new(Expr::Symbol("x".to_string())),
+                        Rc::new(Expr::Number(-1.0)),
+                        Rc::new(Expr::Symbol("x".to_string())),
                     )],
                 }),
-                Box::new(Expr::FunctionCall {
+                Rc::new(Expr::FunctionCall {
                     name: "exp".to_string(),
                     args: vec![Expr::Symbol("x".to_string())],
                 }),
             )),
-            Box::new(Expr::Number(2.0)),
+            Rc::new(Expr::Number(2.0)),
         );
 
         let simplified = simplify(expr);
@@ -41,20 +41,20 @@ mod tests {
         // (exp(x) + exp(-x)) / 2 -> cosh(x)
         // Testing NORMAL order: e^x first, e^(-x) second
         let expr = Expr::Div(
-            Box::new(Expr::Add(
-                Box::new(Expr::FunctionCall {
+            Rc::new(Expr::Add(
+                Rc::new(Expr::FunctionCall {
                     name: "exp".to_string(),
                     args: vec![Expr::Symbol("x".to_string())],
                 }),
-                Box::new(Expr::FunctionCall {
+                Rc::new(Expr::FunctionCall {
                     name: "exp".to_string(),
                     args: vec![Expr::Mul(
-                        Box::new(Expr::Number(-1.0)),
-                        Box::new(Expr::Symbol("x".to_string())),
+                        Rc::new(Expr::Number(-1.0)),
+                        Rc::new(Expr::Symbol("x".to_string())),
                     )],
                 }),
             )),
-            Box::new(Expr::Number(2.0)),
+            Rc::new(Expr::Number(2.0)),
         );
 
         let simplified = simplify(expr);
@@ -71,29 +71,29 @@ mod tests {
         // (exp(-x) + exp(x)) / (exp(x) - exp(-x)) -> coth(x)
         // Testing REVERSED order in numerator
         let expr = Expr::Div(
-            Box::new(Expr::Add(
-                Box::new(Expr::FunctionCall {
+            Rc::new(Expr::Add(
+                Rc::new(Expr::FunctionCall {
                     name: "exp".to_string(),
                     args: vec![Expr::Mul(
-                        Box::new(Expr::Number(-1.0)),
-                        Box::new(Expr::Symbol("x".to_string())),
+                        Rc::new(Expr::Number(-1.0)),
+                        Rc::new(Expr::Symbol("x".to_string())),
                     )],
                 }),
-                Box::new(Expr::FunctionCall {
+                Rc::new(Expr::FunctionCall {
                     name: "exp".to_string(),
                     args: vec![Expr::Symbol("x".to_string())],
                 }),
             )),
-            Box::new(Expr::Sub(
-                Box::new(Expr::FunctionCall {
+            Rc::new(Expr::Sub(
+                Rc::new(Expr::FunctionCall {
                     name: "exp".to_string(),
                     args: vec![Expr::Symbol("x".to_string())],
                 }),
-                Box::new(Expr::FunctionCall {
+                Rc::new(Expr::FunctionCall {
                     name: "exp".to_string(),
                     args: vec![Expr::Mul(
-                        Box::new(Expr::Number(-1.0)),
-                        Box::new(Expr::Symbol("x".to_string())),
+                        Rc::new(Expr::Number(-1.0)),
+                        Rc::new(Expr::Symbol("x".to_string())),
                     )],
                 }),
             )),
@@ -113,28 +113,28 @@ mod tests {
         // (exp(x) - exp(-x)) / (exp(-x) + exp(x)) -> tanh(x)
         // Testing REVERSED order in denominator
         let expr = Expr::Div(
-            Box::new(Expr::Sub(
-                Box::new(Expr::FunctionCall {
+            Rc::new(Expr::Sub(
+                Rc::new(Expr::FunctionCall {
                     name: "exp".to_string(),
                     args: vec![Expr::Symbol("x".to_string())],
                 }),
-                Box::new(Expr::FunctionCall {
+                Rc::new(Expr::FunctionCall {
                     name: "exp".to_string(),
                     args: vec![Expr::Mul(
-                        Box::new(Expr::Number(-1.0)),
-                        Box::new(Expr::Symbol("x".to_string())),
+                        Rc::new(Expr::Number(-1.0)),
+                        Rc::new(Expr::Symbol("x".to_string())),
                     )],
                 }),
             )),
-            Box::new(Expr::Add(
-                Box::new(Expr::FunctionCall {
+            Rc::new(Expr::Add(
+                Rc::new(Expr::FunctionCall {
                     name: "exp".to_string(),
                     args: vec![Expr::Mul(
-                        Box::new(Expr::Number(-1.0)),
-                        Box::new(Expr::Symbol("x".to_string())),
+                        Rc::new(Expr::Number(-1.0)),
+                        Rc::new(Expr::Symbol("x".to_string())),
                     )],
                 }),
-                Box::new(Expr::FunctionCall {
+                Rc::new(Expr::FunctionCall {
                     name: "exp".to_string(),
                     args: vec![Expr::Symbol("x".to_string())],
                 }),
@@ -155,16 +155,16 @@ mod tests {
         // 2 / (exp(-x) + exp(x)) -> sech(x)
         // Testing REVERSED order in denominator
         let expr = Expr::Div(
-            Box::new(Expr::Number(2.0)),
-            Box::new(Expr::Add(
-                Box::new(Expr::FunctionCall {
+            Rc::new(Expr::Number(2.0)),
+            Rc::new(Expr::Add(
+                Rc::new(Expr::FunctionCall {
                     name: "exp".to_string(),
                     args: vec![Expr::Mul(
-                        Box::new(Expr::Number(-1.0)),
-                        Box::new(Expr::Symbol("x".to_string())),
+                        Rc::new(Expr::Number(-1.0)),
+                        Rc::new(Expr::Symbol("x".to_string())),
                     )],
                 }),
-                Box::new(Expr::FunctionCall {
+                Rc::new(Expr::FunctionCall {
                     name: "exp".to_string(),
                     args: vec![Expr::Symbol("x".to_string())],
                 }),
@@ -193,23 +193,23 @@ mod tests {
         // This is already tested in the original tests, but let's add a variant
         // where the terms appear in a different order due to Add with negation
         let expr = Expr::Div(
-            Box::new(Expr::Add(
-                Box::new(Expr::FunctionCall {
+            Rc::new(Expr::Add(
+                Rc::new(Expr::FunctionCall {
                     name: "exp".to_string(),
                     args: vec![Expr::Symbol("x".to_string())],
                 }),
-                Box::new(Expr::Mul(
-                    Box::new(Expr::Number(-1.0)),
-                    Box::new(Expr::FunctionCall {
+                Rc::new(Expr::Mul(
+                    Rc::new(Expr::Number(-1.0)),
+                    Rc::new(Expr::FunctionCall {
                         name: "exp".to_string(),
                         args: vec![Expr::Mul(
-                            Box::new(Expr::Number(-1.0)),
-                            Box::new(Expr::Symbol("x".to_string())),
+                            Rc::new(Expr::Number(-1.0)),
+                            Rc::new(Expr::Symbol("x".to_string())),
                         )],
                     }),
                 )),
             )),
-            Box::new(Expr::Number(2.0)),
+            Rc::new(Expr::Number(2.0)),
         );
 
         let simplified = simplify(expr);
@@ -226,23 +226,23 @@ mod tests {
         // (-1*exp(-x)) + exp(x) -> sinh(x)
         // Testing REVERSED order in Add pattern with negation first
         let expr = Expr::Div(
-            Box::new(Expr::Add(
-                Box::new(Expr::Mul(
-                    Box::new(Expr::Number(-1.0)),
-                    Box::new(Expr::FunctionCall {
+            Rc::new(Expr::Add(
+                Rc::new(Expr::Mul(
+                    Rc::new(Expr::Number(-1.0)),
+                    Rc::new(Expr::FunctionCall {
                         name: "exp".to_string(),
                         args: vec![Expr::Mul(
-                            Box::new(Expr::Number(-1.0)),
-                            Box::new(Expr::Symbol("x".to_string())),
+                            Rc::new(Expr::Number(-1.0)),
+                            Rc::new(Expr::Symbol("x".to_string())),
                         )],
                     }),
                 )),
-                Box::new(Expr::FunctionCall {
+                Rc::new(Expr::FunctionCall {
                     name: "exp".to_string(),
                     args: vec![Expr::Symbol("x".to_string())],
                 }),
             )),
-            Box::new(Expr::Number(2.0)),
+            Rc::new(Expr::Number(2.0)),
         );
 
         let simplified = simplify(expr);

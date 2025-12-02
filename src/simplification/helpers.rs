@@ -1,4 +1,5 @@
 use crate::Expr;
+use std::rc::Rc;
 
 // Extracts (name, arg) for pow of function: name(arg)^power
 pub(crate) fn get_fn_pow_named(expr: &Expr, power: f64) -> Option<(&str, Expr)> {
@@ -93,8 +94,8 @@ pub(crate) fn flatten_mul(expr: &Expr) -> Vec<Expr> {
 
     while let Some(current) = stack.pop() {
         if let Expr::Mul(a, b) = current {
-            stack.push(*b);
-            stack.push(*a);
+            stack.push(b.as_ref().clone());
+            stack.push(a.as_ref().clone());
         } else {
             factors.push(current);
         }
@@ -159,15 +160,15 @@ pub(crate) fn compare_expr(a: &Expr, b: &Expr) -> std::cmp::Ordering {
 pub(crate) fn flatten_add(expr: Expr) -> Vec<Expr> {
     match expr {
         Expr::Add(l, r) => {
-            let mut terms = flatten_add(*l);
-            terms.extend(flatten_add(*r));
+            let mut terms = flatten_add(l.as_ref().clone());
+            terms.extend(flatten_add(r.as_ref().clone()));
             terms
         }
         Expr::Sub(l, r) => {
             // a - b becomes [a, -1*b]
-            let mut terms = flatten_add(*l);
+            let mut terms = flatten_add(l.as_ref().clone());
             // Negate each term from the right side
-            for term in flatten_add(*r) {
+            for term in flatten_add(r.as_ref().clone()) {
                 terms.push(negate_term(term));
             }
             terms
@@ -184,19 +185,19 @@ fn negate_term(expr: Expr) -> Expr {
             // Check if already has -1 coefficient
             if let Expr::Number(n) = *l {
                 if n == -1.0 {
-                    return *r; // -1 * x becomes x when negated
+                    return r.as_ref().clone(); // -1 * x becomes x when negated
                 }
-                return Expr::Mul(Box::new(Expr::Number(-n)), r);
+                return Expr::Mul(Rc::new(Expr::Number(-n)), r);
             }
             if let Expr::Number(n) = *r {
                 if n == -1.0 {
-                    return *l;
+                    return l.as_ref().clone();
                 }
-                return Expr::Mul(l, Box::new(Expr::Number(-n)));
+                return Expr::Mul(l, Rc::new(Expr::Number(-n)));
             }
-            Expr::Mul(Box::new(Expr::Number(-1.0)), Box::new(Expr::Mul(l, r)))
+            Expr::Mul(Rc::new(Expr::Number(-1.0)), Rc::new(Expr::Mul(l, r)))
         }
-        other => Expr::Mul(Box::new(Expr::Number(-1.0)), Box::new(other)),
+        other => Expr::Mul(Rc::new(Expr::Number(-1.0)), Rc::new(other)),
     }
 }
 
@@ -208,7 +209,7 @@ pub(crate) fn rebuild_add(terms: Vec<Expr>) -> Expr {
     let mut iter = terms.into_iter();
     let mut result = iter.next().unwrap();
     for term in iter {
-        result = Expr::Add(Box::new(result), Box::new(term));
+        result = Expr::Add(Rc::new(result), Rc::new(term));
     }
     result
 }
@@ -221,7 +222,7 @@ pub(crate) fn rebuild_mul(terms: Vec<Expr>) -> Expr {
     let mut iter = terms.into_iter();
     let mut result = iter.next().unwrap();
     for term in iter {
-        result = Expr::Mul(Box::new(result), Box::new(term));
+        result = Expr::Mul(Rc::new(result), Rc::new(term));
     }
     result
 }
@@ -269,8 +270,8 @@ pub(crate) fn extract_coeff(expr: &Expr) -> (f64, Expr) {
 pub(crate) fn prettify_roots(expr: Expr) -> Expr {
     match expr {
         Expr::Pow(base, exp) => {
-            let base = prettify_roots(*base);
-            let exp = prettify_roots(*exp);
+            let base = prettify_roots(base.as_ref().clone());
+            let exp = prettify_roots(exp.as_ref().clone());
 
             // x^(1/2) -> sqrt(x)
             if let Expr::Div(num, den) = &exp
@@ -307,13 +308,25 @@ pub(crate) fn prettify_roots(expr: Expr) -> Expr {
                 };
             }
 
-            Expr::Pow(Box::new(base), Box::new(exp))
+            Expr::Pow(Rc::new(base), Rc::new(exp))
         }
         // Recursively prettify subexpressions
-        Expr::Add(u, v) => Expr::Add(Box::new(prettify_roots(*u)), Box::new(prettify_roots(*v))),
-        Expr::Sub(u, v) => Expr::Sub(Box::new(prettify_roots(*u)), Box::new(prettify_roots(*v))),
-        Expr::Mul(u, v) => Expr::Mul(Box::new(prettify_roots(*u)), Box::new(prettify_roots(*v))),
-        Expr::Div(u, v) => Expr::Div(Box::new(prettify_roots(*u)), Box::new(prettify_roots(*v))),
+        Expr::Add(u, v) => Expr::Add(
+            Rc::new(prettify_roots(u.as_ref().clone())),
+            Rc::new(prettify_roots(v.as_ref().clone())),
+        ),
+        Expr::Sub(u, v) => Expr::Sub(
+            Rc::new(prettify_roots(u.as_ref().clone())),
+            Rc::new(prettify_roots(v.as_ref().clone())),
+        ),
+        Expr::Mul(u, v) => Expr::Mul(
+            Rc::new(prettify_roots(u.as_ref().clone())),
+            Rc::new(prettify_roots(v.as_ref().clone())),
+        ),
+        Expr::Div(u, v) => Expr::Div(
+            Rc::new(prettify_roots(u.as_ref().clone())),
+            Rc::new(prettify_roots(v.as_ref().clone())),
+        ),
         Expr::FunctionCall { name, args } => Expr::FunctionCall {
             name,
             args: args.into_iter().map(prettify_roots).collect(),
