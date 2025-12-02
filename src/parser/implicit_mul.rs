@@ -80,7 +80,6 @@ pub fn insert_implicit_multiplication(
     result
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;

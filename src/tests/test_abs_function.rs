@@ -5,24 +5,36 @@ use std::collections::HashSet;
 fn test_abs_function_simplification() {
     let expr = parse("abs(sigma)", &HashSet::new(), &HashSet::new()).unwrap();
     println!("Parsed expr: {:?}", expr);
-    
+
     let simplified = simplify(format!("{}", expr), None, None).unwrap();
     println!("Simplified expr: {}", simplified);
-    
+
     // Check that abs(sigma) stays as a function call
-    assert!(simplified.contains("abs(sigma)"), 
-            "Expected 'abs(sigma)', got '{}'", simplified);
+    assert!(
+        simplified.contains("abs(sigma)"),
+        "Expected 'abs(sigma)', got '{}'",
+        simplified
+    );
 }
 
 #[test]
 fn test_abs_in_product() {
-    let expr = parse("sqrt(2) * (mu - x) * abs(sigma) / (2 * sigma^4)", &HashSet::new(), &HashSet::new()).unwrap();
+    let expr = parse(
+        "sqrt(2) * (mu - x) * abs(sigma) / (2 * sigma^4)",
+        &HashSet::new(),
+        &HashSet::new(),
+    )
+    .unwrap();
     println!("Parsed expr: {:?}", expr);
-    
+
     let simplified = simplify(format!("{}", expr), None, None).unwrap();
     println!("Simplified expr: {}", simplified);
-    
+
     // Check that abs(sigma) is preserved
-    assert!(simplified.contains("abs(sigma)") || (simplified.contains("abs") && simplified.contains("sigma")),
-            "Expected 'abs(sigma)' to be preserved, got '{}'", simplified);
+    assert!(
+        simplified.contains("abs(sigma)")
+            || (simplified.contains("abs") && simplified.contains("sigma")),
+        "Expected 'abs(sigma)' to be preserved, got '{}'",
+        simplified
+    );
 }
