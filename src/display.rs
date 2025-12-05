@@ -1,6 +1,102 @@
 // Display formatting for AST
 use crate::Expr;
 use std::fmt;
+use std::rc::Rc;
+
+/// Check if an expression is negative (has a leading -1 coefficient)
+/// Returns Some(inner) if the expression is -1 * inner, None otherwise
+fn extract_negative(expr: &Expr) -> Option<Expr> {
+    if let Expr::Mul(left, right) = expr {
+        // Direct -1 * x pattern
+        if let Expr::Number(n) = &**left
+            && *n == -1.0
+        {
+            return Some((**right).clone());
+        }
+        // Nested: (-1 * a) * b = -(a * b)
+        if let Some(inner_left) = extract_negative(left) {
+            return Some(Expr::Mul(Rc::new(inner_left), right.clone()));
+        }
+    }
+    None
+}
+
+/// Check if an expression starts with a function call or exp() (for nested muls)
+fn starts_with_function_or_exp(expr: &Expr) -> bool {
+    match expr {
+        Expr::FunctionCall { .. } => true,
+        // e^x displays as exp(x), so treat it like a function
+        Expr::Pow(base, _) => {
+            if let Expr::Symbol(s) = &**base {
+                s == "e"
+            } else {
+                false
+            }
+        }
+        Expr::Mul(left, _) => starts_with_function_or_exp(left),
+        _ => false,
+    }
+}
+
+/// Check if we need explicit * between two expressions
+fn needs_explicit_mul(left: &Expr, right: &Expr) -> bool {
+    // Number * Number always needs explicit *
+    if matches!(left, Expr::Number(_)) && matches!(right, Expr::Number(_)) {
+        return true;
+    }
+    // Number * (something that starts with number) needs *
+    if matches!(left, Expr::Number(_)) {
+        if let Expr::Mul(inner_left, _) = right
+            && matches!(**inner_left, Expr::Number(_))
+        {
+            return true;
+        }
+        if matches!(right, Expr::Div(_, _)) {
+            return true;
+        }
+    }
+    // Symbol * Symbol needs explicit * for readability: alpha*t not alphat
+    if matches!(left, Expr::Symbol(_)) && matches!(right, Expr::Symbol(_)) {
+        return true;
+    }
+    // Symbol * Number needs explicit *: x*2 not x2
+    if matches!(left, Expr::Symbol(_)) && matches!(right, Expr::Number(_)) {
+        return true;
+    }
+    // Symbol * Pow needs explicit *: pi*sigma^2 not pisigma^2
+    if matches!(left, Expr::Symbol(_)) && matches!(right, Expr::Pow(_, _)) {
+        return true;
+    }
+    // Symbol/Pow * FunctionCall or exp() (or mul starting with function/exp) needs explicit *
+    if matches!(left, Expr::Symbol(_) | Expr::Pow(_, _))
+        && (matches!(right, Expr::FunctionCall { .. }) || starts_with_function_or_exp(right))
+    {
+        return true;
+    }
+    // Pow * Symbol needs explicit *: x^2*y not x^2y
+    if matches!(left, Expr::Pow(_, _)) && matches!(right, Expr::Symbol(_)) {
+        return true;
+    }
+    // FunctionCall * anything needs explicit *
+    if matches!(left, Expr::FunctionCall { .. }) {
+        return true;
+    }
+    // Nested mul ending in symbol/pow * symbol, pow, or function call or exp
+    if let Expr::Mul(_, inner_right) = left {
+        if matches!(**inner_right, Expr::Symbol(_) | Expr::Pow(_, _))
+            && (matches!(
+                right,
+                Expr::Symbol(_) | Expr::Pow(_, _) | Expr::FunctionCall { .. }
+            ) || starts_with_function_or_exp(right))
+        {
+            return true;
+        }
+        if matches!(**inner_right, Expr::FunctionCall { .. }) {
+            return true;
+        }
+    }
+    false
+}
 
 impl fmt::Display for Expr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -34,18 +130,10 @@ impl fmt::Display for Expr {
             }
 
             Expr::Add(u, v) => {
-                // Check if v is a negative term (Mul with -1) to display as subtraction
-                if let Expr::Mul(left, right) = &**v {
-                    if let Expr::Number(n) = **left {
-                        if n == -1.0 {
-                            let inner_str = format_mul_operand(right);
-                            write!(f, "{} - {}", u, inner_str)
-                        } else {
-                            write!(f, "{} + {}", u, v)
-                        }
-                    } else {
-                        write!(f, "{} + {}", u, v)
-                    }
+                // Check if v is a negative term to display as subtraction
+                if let Some(positive_v) = extract_negative(v) {
+                    let inner_str = format_mul_operand(&positive_v);
+                    write!(f, "{} - {}", u, inner_str)
                 } else {
                     write!(f, "{} + {}", u, v)
                 }
@@ -65,11 +153,18 @@ impl fmt::Display for Expr {
                 if let Expr::Number(n) = **u {
                     if n == -1.0 {
                         write!(f, "-{}", format_mul_operand(v))
+                    } else if needs_explicit_mul(u, v) {
+                        // Need explicit * between numbers or number and division
+                        write!(f, "{}*{}", format_mul_operand(u), format_mul_operand(v))
                     } else {
-                        write!(f, "{} * {}", format_mul_operand(u), format_mul_operand(v))
+                        // Compact form: 2x, 3sin(x), etc.
+                        write!(f, "{}{}", format_mul_operand(u), format_mul_operand(v))
                     }
+                } else if needs_explicit_mul(u, v) {
+                    write!(f, "{}*{}", format_mul_operand(u), format_mul_operand(v))
                 } else {
-                    write!(f, "{} * {}", format_mul_operand(u), format_mul_operand(v))
+                    // symbol * symbol or similar - use compact form
+                    write!(f, "{}{}", format_mul_operand(u), format_mul_operand(v))
                 }
             }
 
@@ -89,7 +184,7 @@ impl fmt::Display for Expr {
                     | Expr::FunctionCall { .. } => denom_str,
                     _ => format!("({})", denom_str),
                 };
-                write!(f, "{} / {}", formatted_num, formatted_denom)
+                write!(f, "{}/{}", formatted_num, formatted_denom)
             }
 
             Expr::Pow(u, v) => {
@@ -169,7 +264,7 @@ mod tests {
             Rc::new(Expr::Symbol("x".to_string())),
             Rc::new(Expr::Number(2.0)),
         );
-        assert_eq!(format!("{}", expr), "x * 2");
+        assert_eq!(format!("{}", expr), "x*2");
     }
 
     #[test]
@@ -201,14 +296,14 @@ mod tests {
 
     #[test]
     fn test_display_fraction_parens() {
-        // 1 / x -> 1 / x
+        // 1 / x -> 1/x
         let expr = Expr::Div(
             Rc::new(Expr::Number(1.0)),
             Rc::new(Expr::Symbol("x".to_string())),
         );
-        assert_eq!(format!("{}", expr), "1 / x");
+        assert_eq!(format!("{}", expr), "1/x");
 
-        // 1 / x^2 -> 1 / x^2
+        // 1 / x^2 -> 1/x^2
         let expr = Expr::Div(
             Rc::new(Expr::Number(1.0)),
             Rc::new(Expr::Pow(
@@ -216,9 +311,9 @@ mod tests {
                 Rc::new(Expr::Number(2.0)),
             )),
         );
-        assert_eq!(format!("{}", expr), "1 / x^2");
+        assert_eq!(format!("{}", expr), "1/x^2");
 
-        // 1 / sin(x) -> 1 / sin(x)
+        // 1 / sin(x) -> 1/sin(x)
         let expr = Expr::Div(
             Rc::new(Expr::Number(1.0)),
             Rc::new(Expr::FunctionCall {
@@ -226,9 +321,9 @@ mod tests {
                 args: vec![Expr::Symbol("x".to_string())],
             }),
         );
-        assert_eq!(format!("{}", expr), "1 / sin(x)");
+        assert_eq!(format!("{}", expr), "1/sin(x)");
 
-        // 1 / (2 * x) -> 1 / (2 * x)
+        // 1 / (2 * x) -> 1/(2x)
         let expr = Expr::Div(
             Rc::new(Expr::Number(1.0)),
             Rc::new(Expr::Mul(
@@ -236,9 +331,9 @@ mod tests {
                 Rc::new(Expr::Symbol("x".to_string())),
             )),
         );
-        assert_eq!(format!("{}", expr), "1 / (2 * x)");
+        assert_eq!(format!("{}", expr), "1/(2x)");
 
-        // 1 / (x + 1) -> 1 / (x + 1)
+        // 1 / (x + 1) -> 1/(x + 1)
         let expr = Expr::Div(
             Rc::new(Expr::Number(1.0)),
             Rc::new(Expr::Add(
@@ -246,6 +341,90 @@ mod tests {
                 Rc::new(Expr::Number(1.0)),
             )),
         );
-        assert_eq!(format!("{}", expr), "1 / (x + 1)");
+        assert_eq!(format!("{}", expr), "1/(x + 1)");
+    }
+
+    #[test]
+    fn test_display_neg_x_exp() {
+        // -1 * (x * exp(y)) should display as -x*exp(y)
+        let exp_y = Expr::FunctionCall {
+            name: "exp".to_string(),
+            args: vec![Expr::Symbol("y".to_string())],
+        };
+        let x_times_exp = Expr::Mul(Rc::new(Expr::Symbol("x".to_string())), Rc::new(exp_y));
+        let neg_x_times_exp = Expr::Mul(Rc::new(Expr::Number(-1.0)), Rc::new(x_times_exp));
+
+        eprintln!("AST: {:?}", neg_x_times_exp);
+        eprintln!("Display: {}", neg_x_times_exp);
+        assert_eq!(format!("{}", neg_x_times_exp), "-x*exp(y)");
+
+        // Alternative structure: (-1 * x) * exp(y)
+        let neg_x = Expr::Mul(
+            Rc::new(Expr::Number(-1.0)),
+            Rc::new(Expr::Symbol("x".to_string())),
+        );
+        let neg_x_times_exp2 = Expr::Mul(
+            Rc::new(neg_x),
+            Rc::new(Expr::FunctionCall {
+                name: "exp".to_string(),
+                args: vec![Expr::Symbol("y".to_string())],
+            }),
+        );
+
+        eprintln!("AST2: {:?}", neg_x_times_exp2);
+        eprintln!("Display2: {}", neg_x_times_exp2);
+        assert_eq!(format!("{}", neg_x_times_exp2), "-x*exp(y)");
+
+        // Test: -x * (exp(y) * z) - the exp is nested in a Mul on the right
+        let exp_y_times_z = Expr::Mul(
+            Rc::new(Expr::FunctionCall {
+                name: "exp".to_string(),
+                args: vec![Expr::Symbol("y".to_string())],
+            }),
+            Rc::new(Expr::Symbol("z".to_string())),
+        );
+        let neg_x_times_exp_z = Expr::Mul(
+            Rc::new(Expr::Mul(
+                Rc::new(Expr::Number(-1.0)),
+                Rc::new(Expr::Symbol("x".to_string())),
+            )),
+            Rc::new(exp_y_times_z),
+        );
+
+        eprintln!("AST3: {:?}", neg_x_times_exp_z);
+        eprintln!("Display3: {}", neg_x_times_exp_z);
+    }
+
+    #[test]
+    fn test_display_quantum_derivative() {
+        // Test actual quantum derivative: -xexp(-x^2/(2sigma^2))/(sigma^3*sqrt(pi))
+        // The full expression from the example
+        use crate::parser;
+        use crate::simplification;
+        use std::collections::HashSet;
+
+        let fixed_set: HashSet<String> = ["sigma".to_string()].iter().cloned().collect();
+        let custom_funcs: HashSet<String> = HashSet::new();
+
+        let ast = parser::parse(
+            "(exp(-x^2 / (4 * sigma^2)) / sqrt(sigma * sqrt(pi)))^2",
+            &fixed_set,
+            &custom_funcs,
+        )
+        .unwrap();
+
+        let derivative = ast.derive("x", &fixed_set);
+        let simplified = simplification::simplify_expr(derivative, fixed_set);
+
+        eprintln!("Simplified AST: {:?}", simplified);
+        eprintln!("Quantum derivative: {}", simplified);
+
+        // Should contain x*exp not xexp
+        let display = format!("{}", simplified);
+        assert!(
+            display.contains("x*exp") || display.contains("x * exp"),
+            "Expected 'x*exp' but got: {}",
+            display
+        );
     }
 }

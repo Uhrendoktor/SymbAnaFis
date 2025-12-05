@@ -1,6 +1,6 @@
 #[test]
 fn debug_rc_derivative() {
-    use crate::{Expr, simplification::simplify};
+    use crate::{Expr, simplification::simplify_expr};
     use std::collections::HashSet;
     use std::rc::Rc;
     // Simplified RC test
@@ -32,7 +32,7 @@ fn debug_rc_derivative() {
     let deriv = rc.derive("t", &fixed);
     eprintln!("Raw derivative: {}", deriv);
 
-    let simplified = simplify(deriv);
+    let simplified = simplify_expr(deriv, fixed);
     eprintln!("Simplified: {}", simplified);
     eprintln!("Simplified Debug: {:#?}", simplified);
     eprintln!("Expected: -V0 * exp(-t / (R * C)) / (R * C)");

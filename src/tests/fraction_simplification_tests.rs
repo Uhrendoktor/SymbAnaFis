@@ -1,7 +1,8 @@
 #[cfg(test)]
 mod tests {
     use crate::Expr;
-    use crate::simplification::simplify;
+    use crate::simplification::simplify_expr;
+    use std::collections::HashSet;
     use std::rc::Rc;
     #[test]
     fn test_nested_fraction_div_div() {
@@ -16,7 +17,7 @@ mod tests {
                 Rc::new(Expr::Symbol("a".to_string())),
             )),
         );
-        let simplified = simplify(expr);
+        let simplified = simplify_expr(expr, HashSet::new());
 
         // Expected: (x*a) / (y*z)
         // Note: ordering of multiplication might vary, so we check structure
@@ -53,7 +54,7 @@ mod tests {
                 Rc::new(Expr::Symbol("z".to_string())),
             )),
         );
-        let simplified = simplify(expr);
+        let simplified = simplify_expr(expr, HashSet::new());
 
         // Expected: (x*z) / y
         if let Expr::Div(num, den) = simplified {
@@ -85,7 +86,7 @@ mod tests {
             )),
             Rc::new(Expr::Symbol("z".to_string())),
         );
-        let simplified = simplify(expr);
+        let simplified = simplify_expr(expr, HashSet::new());
 
         // Expected: x / (y*z)
         if let Expr::Div(num, den) = simplified {
@@ -120,7 +121,7 @@ mod tests {
                 Rc::new(Expr::Number(3.0)),
             )),
         );
-        let simplified = simplify(expr);
+        let simplified = simplify_expr(expr, HashSet::new());
 
         if let Expr::Div(num, den) = simplified {
             if let (Expr::Number(n), Expr::Number(d)) = (num.as_ref().clone(), den.as_ref().clone())
@@ -151,7 +152,7 @@ mod tests {
                 )),
             )),
         );
-        let simplified = simplify(expr);
+        let simplified = simplify_expr(expr, HashSet::new());
 
         // Expected: 1 / R
         if let Expr::Div(num, den) = simplified {

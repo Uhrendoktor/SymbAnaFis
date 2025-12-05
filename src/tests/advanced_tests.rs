@@ -1,7 +1,8 @@
 // Advanced simplification and expression tests
 mod simplification_advanced {
     use crate::Expr;
-    use crate::simplification::simplify;
+    use crate::simplification::simplify_expr;
+    use std::collections::HashSet;
     use std::rc::Rc;
 
     #[test]
@@ -17,7 +18,7 @@ mod simplification_advanced {
                 Rc::new(Expr::Symbol("y".to_string())),
             )),
         );
-        let result = simplify(expr);
+        let result = simplify_expr(expr, HashSet::new());
         // Should have no zeros
         assert!(!format!("{:?}", result).contains("0.0"));
     }
@@ -32,7 +33,7 @@ mod simplification_advanced {
             )),
             Rc::new(Expr::Number(0.0)),
         );
-        let result = simplify(expr);
+        let result = simplify_expr(expr, HashSet::new());
         assert_eq!(result, Expr::Number(0.0));
     }
 
@@ -49,7 +50,7 @@ mod simplification_advanced {
                 Rc::new(Expr::Number(1.0)),
             )),
         );
-        let result = simplify(expr);
+        let result = simplify_expr(expr, HashSet::new());
         assert_eq!(result, Expr::Number(25.0));
     }
 
@@ -72,7 +73,7 @@ mod simplification_advanced {
                 Rc::new(Expr::Number(2.0)),
             )),
         );
-        let result = simplify(expr);
+        let result = simplify_expr(expr, HashSet::new());
         // x^0 = 1, y^1 = y, so should have y and z
         assert!(format!("{:?}", result).contains("z"));
     }
@@ -90,7 +91,7 @@ mod simplification_advanced {
                 Rc::new(Expr::Number(2.0)),
             )),
         );
-        let result = simplify(expr);
+        let result = simplify_expr(expr, HashSet::new());
         assert_eq!(result, Expr::Number(1.0));
     }
 
@@ -105,7 +106,7 @@ mod simplification_advanced {
             Rc::new(Expr::Pow(Rc::new(base.clone()), Rc::new(Expr::Number(3.0)))),
             Rc::new(Expr::Pow(Rc::new(base), Rc::new(Expr::Number(2.0)))),
         );
-        let result = simplify(expr);
+        let result = simplify_expr(expr, HashSet::new());
         // Should simplify to (x+1)^1, which should further simplify to (x+1)
         // Due to canonical ordering by degree, it becomes x + 1
         let expected = Expr::Add(
@@ -130,7 +131,7 @@ mod simplification_advanced {
             Rc::new(Expr::Pow(Rc::new(base.clone()), Rc::new(Expr::Number(4.0)))),
             Rc::new(Expr::Pow(Rc::new(base), Rc::new(Expr::Number(2.0)))),
         );
-        let result = simplify(expr);
+        let result = simplify_expr(expr, HashSet::new());
         // Should simplify to (x^2 + y)^2
         // Due to canonical ordering by degree, it becomes x^2 + y
         let expected_base = Expr::Add(
@@ -155,7 +156,7 @@ mod simplification_advanced {
             Rc::new(Expr::Pow(Rc::new(base.clone()), Rc::new(Expr::Number(3.0)))),
             Rc::new(Expr::Pow(Rc::new(base), Rc::new(Expr::Number(2.0)))),
         );
-        let result = simplify(expr);
+        let result = simplify_expr(expr, HashSet::new());
         // Should simplify to sin(x)^1, which should further simplify to sin(x)
         let expected = Expr::FunctionCall {
             name: "sin".to_string(),
@@ -174,7 +175,7 @@ mod simplification_advanced {
             )),
             Rc::new(Expr::Number(1.0)),
         );
-        let result = simplify(expr);
+        let result = simplify_expr(expr, HashSet::new());
         // Should not contain Div anymore
         assert!(!matches!(result, Expr::Div(_, _)));
     }
@@ -186,7 +187,7 @@ mod simplification_advanced {
             Rc::new(Expr::Number(0.0)),
             Rc::new(Expr::Symbol("x".to_string())),
         );
-        let result = simplify(expr);
+        let result = simplify_expr(expr, HashSet::new());
         assert_eq!(result, Expr::Number(0.0));
     }
 
@@ -197,7 +198,7 @@ mod simplification_advanced {
             Rc::new(Expr::Symbol("x".to_string())),
             Rc::new(Expr::Number(0.0)),
         );
-        let result = simplify(expr);
+        let result = simplify_expr(expr, HashSet::new());
         assert_eq!(result, Expr::Symbol("x".to_string()));
     }
 
@@ -205,7 +206,7 @@ mod simplification_advanced {
     fn test_constant_div() {
         // 10 / 2 should become 5
         let expr = Expr::Div(Rc::new(Expr::Number(10.0)), Rc::new(Expr::Number(2.0)));
-        let result = simplify(expr);
+        let result = simplify_expr(expr, HashSet::new());
         assert_eq!(result, Expr::Number(5.0));
     }
 
@@ -213,7 +214,7 @@ mod simplification_advanced {
     fn test_constant_sub() {
         // 10 - 3 should become 7
         let expr = Expr::Sub(Rc::new(Expr::Number(10.0)), Rc::new(Expr::Number(3.0)));
-        let result = simplify(expr);
+        let result = simplify_expr(expr, HashSet::new());
         assert_eq!(result, Expr::Number(7.0));
     }
 }

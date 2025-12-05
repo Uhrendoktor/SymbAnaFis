@@ -11,7 +11,7 @@ use crate::parser::tokens::{Operator, Token};
 /// - Identifier/Number * (: `x (y)` → `x * (y)` (unless function call)
 ///
 /// Exception: Function followed by ( is NOT multiplication
-pub fn insert_implicit_multiplication(
+pub(crate) fn insert_implicit_multiplication(
     tokens: Vec<Token>,
     custom_functions: &std::collections::HashSet<String>,
 ) -> Vec<Token> {

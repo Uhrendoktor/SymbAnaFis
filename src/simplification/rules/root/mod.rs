@@ -1,34 +1,14 @@
 use crate::ast::Expr;
-use crate::simplification::helpers::is_known_non_negative;
 use crate::simplification::rules::{ExprKind, Rule, RuleCategory, RuleContext};
 use std::rc::Rc;
 
-/// Rule for sqrt(x^n) = x^(n/2)
-/// Special case: sqrt(x^2) = abs(x) (since sqrt(x^2) = |x| for all real x)
-pub struct SqrtPowerRule;
-
-impl Rule for SqrtPowerRule {
-    fn name(&self) -> &'static str {
-        "sqrt_power"
-    }
-
-    fn priority(&self) -> i32 {
-        85
-    }
-
-    fn category(&self) -> RuleCategory {
-        RuleCategory::Root
-    }
-
-    fn alters_domain(&self) -> bool {
-        false // No longer alters domain since we use abs(x) for sqrt(x^2)
-    }
-
-    fn applies_to(&self) -> &'static [ExprKind] {
-        &[ExprKind::Function]
-    }
-
-    fn apply(&self, expr: &Expr, _context: &RuleContext) -> Option<Expr> {
+rule!(
+    SqrtPowerRule,
+    "sqrt_power",
+    85,
+    Root,
+    &[ExprKind::Function],
+    |expr: &Expr, _context: &RuleContext| {
         if let Expr::FunctionCall { name, args } = expr
             && name == "sqrt"
             && args.len() == 1
@@ -80,29 +60,15 @@ impl Rule for SqrtPowerRule {
         }
         None
     }
-}
+);
 
-/// Rule for cbrt(x^n) = x^(n/3)
-pub struct CbrtPowerRule;
-
-impl Rule for CbrtPowerRule {
-    fn name(&self) -> &'static str {
-        "cbrt_power"
-    }
-
-    fn priority(&self) -> i32 {
-        85
-    }
-
-    fn category(&self) -> RuleCategory {
-        RuleCategory::Root
-    }
-
-    fn applies_to(&self) -> &'static [ExprKind] {
-        &[ExprKind::Function]
-    }
-
-    fn apply(&self, expr: &Expr, _context: &RuleContext) -> Option<Expr> {
+rule!(
+    CbrtPowerRule,
+    "cbrt_power",
+    85,
+    Root,
+    &[ExprKind::Function],
+    |expr: &Expr, _context: &RuleContext| {
         if let Expr::FunctionCall { name, args } = expr
             && name == "cbrt"
             && args.len() == 1
@@ -141,163 +107,75 @@ impl Rule for CbrtPowerRule {
         }
         None
     }
-}
+);
 
-/// Rule for sqrt(x) * sqrt(y) = sqrt(x*y)
-/// Safe when both x and y are known to be non-negative
-pub struct SqrtMulRule;
-
-impl Rule for SqrtMulRule {
-    fn name(&self) -> &'static str {
-        "sqrt_mul"
-    }
-
-    fn priority(&self) -> i32 {
-        80
-    }
-
-    fn category(&self) -> RuleCategory {
-        RuleCategory::Root
-    }
-
-    fn alters_domain(&self) -> bool {
-        // Return false so the engine always calls apply()
-        // We handle domain-safety logic inside apply() based on whether args are known non-negative
-        false
-    }
-
-    fn applies_to(&self) -> &'static [ExprKind] {
-        &[ExprKind::Mul]
-    }
-
-    fn apply(&self, expr: &Expr, context: &RuleContext) -> Option<Expr> {
-        if let Expr::Mul(u, v) = expr {
-            // Check for sqrt(a) * sqrt(b)
-            if let (
-                Expr::FunctionCall {
-                    name: u_name,
-                    args: u_args,
-                },
-                Expr::FunctionCall {
-                    name: v_name,
-                    args: v_args,
-                },
-            ) = (&**u, &**v)
-                && u_name == "sqrt"
-                && v_name == "sqrt"
-                && u_args.len() == 1
-                && v_args.len() == 1
-            {
-                // Check if both arguments are known to be non-negative
-                let a_non_neg = is_known_non_negative(&u_args[0]);
-                let b_non_neg = is_known_non_negative(&v_args[0]);
-
-                // If in domain-safe mode and we can't prove both are non-negative, skip
-                if context.domain_safe && !(a_non_neg && b_non_neg) {
-                    return None;
-                }
-
-                return Some(Expr::FunctionCall {
-                    name: "sqrt".to_string(),
-                    args: vec![Expr::Mul(
-                        Rc::new(u_args[0].clone()),
-                        Rc::new(v_args[0].clone()),
-                    )],
-                });
-            }
+rule!(SqrtMulRule, "sqrt_mul", 56, Root, &[ExprKind::Mul], alters_domain: true, |expr: &Expr, _context: &RuleContext| {
+    if let Expr::Mul(u, v) = expr {
+        // Check for sqrt(a) * sqrt(b)
+        if let (
+            Expr::FunctionCall {
+                name: u_name,
+                args: u_args,
+            },
+            Expr::FunctionCall {
+                name: v_name,
+                args: v_args,
+            },
+        ) = (&**u, &**v)
+            && u_name == "sqrt"
+            && v_name == "sqrt"
+            && u_args.len() == 1
+            && v_args.len() == 1
+        {
+            return Some(Expr::FunctionCall {
+                name: "sqrt".to_string(),
+                args: vec![Expr::Mul(
+                    Rc::new(u_args[0].clone()),
+                    Rc::new(v_args[0].clone()),
+                )],
+            });
         }
-        None
     }
-}
+    None
+});
 
-/// Rule for sqrt(x)/sqrt(y) = sqrt(x/y)
-/// Safe when both x and y are known to be non-negative (and y != 0)
-pub struct SqrtDivRule;
-
-impl Rule for SqrtDivRule {
-    fn name(&self) -> &'static str {
-        "sqrt_div"
-    }
-
-    fn priority(&self) -> i32 {
-        80
-    }
-
-    fn category(&self) -> RuleCategory {
-        RuleCategory::Root
-    }
-
-    fn alters_domain(&self) -> bool {
-        // Return false so the engine always calls apply()
-        // We handle domain-safety logic inside apply() based on whether args are known non-negative
-        false
-    }
-
-    fn applies_to(&self) -> &'static [ExprKind] {
-        &[ExprKind::Div]
-    }
-
-    fn apply(&self, expr: &Expr, context: &RuleContext) -> Option<Expr> {
-        if let Expr::Div(u, v) = expr {
-            // Check for sqrt(a) / sqrt(b)
-            if let (
-                Expr::FunctionCall {
-                    name: u_name,
-                    args: u_args,
-                },
-                Expr::FunctionCall {
-                    name: v_name,
-                    args: v_args,
-                },
-            ) = (&**u, &**v)
-                && u_name == "sqrt"
-                && v_name == "sqrt"
-                && u_args.len() == 1
-                && v_args.len() == 1
-            {
-                // Check if both arguments are known to be non-negative
-                let a_non_neg = is_known_non_negative(&u_args[0]);
-                let b_non_neg = is_known_non_negative(&v_args[0]);
-
-                // If in domain-safe mode and we can't prove both are non-negative, skip
-                if context.domain_safe && !(a_non_neg && b_non_neg) {
-                    return None;
-                }
-
-                return Some(Expr::FunctionCall {
-                    name: "sqrt".to_string(),
-                    args: vec![Expr::Div(
-                        Rc::new(u_args[0].clone()),
-                        Rc::new(v_args[0].clone()),
-                    )],
-                });
-            }
+rule!(SqrtDivRule, "sqrt_div", 56, Root, &[ExprKind::Div], alters_domain: true, |expr: &Expr, _context: &RuleContext| {
+    if let Expr::Div(u, v) = expr {
+        // Check for sqrt(a) / sqrt(b)
+        if let (
+            Expr::FunctionCall {
+                name: u_name,
+                args: u_args,
+            },
+            Expr::FunctionCall {
+                name: v_name,
+                args: v_args,
+            },
+        ) = (&**u, &**v)
+            && u_name == "sqrt"
+            && v_name == "sqrt"
+            && u_args.len() == 1
+            && v_args.len() == 1
+        {
+            return Some(Expr::FunctionCall {
+                name: "sqrt".to_string(),
+                args: vec![Expr::Div(
+                    Rc::new(u_args[0].clone()),
+                    Rc::new(v_args[0].clone()),
+                )],
+            });
         }
-        None
     }
-}
+    None
+});
 
-/// Rule that applies the monolithic root normalization
-pub struct NormalizeRootsRule;
-
-impl Rule for NormalizeRootsRule {
-    fn name(&self) -> &'static str {
-        "normalize_roots"
-    }
-
-    fn priority(&self) -> i32 {
-        50
-    }
-
-    fn category(&self) -> RuleCategory {
-        RuleCategory::Root
-    }
-
-    fn applies_to(&self) -> &'static [ExprKind] {
-        &[ExprKind::Function]
-    }
-
-    fn apply(&self, expr: &Expr, _context: &RuleContext) -> Option<Expr> {
+rule!(
+    NormalizeRootsRule,
+    "normalize_roots",
+    50,
+    Root,
+    &[ExprKind::Function],
+    |expr: &Expr, _context: &RuleContext| {
         if let Expr::FunctionCall { name, args } = expr
             && args.len() == 1
         {
@@ -325,17 +203,62 @@ impl Rule for NormalizeRootsRule {
         }
         None
     }
-}
+);
+
+rule!(
+    SqrtExtractSquareRule,
+    "sqrt_extract_square",
+    84,
+    Root,
+    &[ExprKind::Function],
+    |expr: &Expr, _context: &RuleContext| {
+        // sqrt(a * x^2) → |x| * sqrt(a)
+        // sqrt(x^2 * a) → |x| * sqrt(a)
+        if let Expr::FunctionCall { name, args } = expr
+            && name == "sqrt"
+            && args.len() == 1
+            && let Expr::Mul(u, v) = &args[0]
+        {
+            // Check if either factor is a square (x^2)
+            let (square_base, other) = if let Expr::Pow(base, exp) = &**u
+                && let Expr::Number(n) = &**exp
+                && *n == 2.0
+            {
+                (Some(base), v)
+            } else if let Expr::Pow(base, exp) = &**v
+                && let Expr::Number(n) = &**exp
+                && *n == 2.0
+            {
+                (Some(base), u)
+            } else {
+                (None, u)
+            };
+
+            if let Some(base) = square_base {
+                // sqrt(other * base^2) = |base| * sqrt(other)
+                let abs_base = Expr::FunctionCall {
+                    name: "abs".to_string(),
+                    args: vec![(**base).clone()],
+                };
+                let sqrt_other = Expr::FunctionCall {
+                    name: "sqrt".to_string(),
+                    args: vec![(**other).clone()],
+                };
+                return Some(Expr::Mul(Rc::new(abs_base), Rc::new(sqrt_other)));
+            }
+        }
+        None
+    }
+);
 
 /// Get all root simplification rules in priority order
-pub fn get_root_rules() -> Vec<Rc<dyn Rule>> {
+pub(crate) fn get_root_rules() -> Vec<Rc<dyn Rule>> {
     vec![
         Rc::new(SqrtPowerRule),
+        Rc::new(SqrtExtractSquareRule),
         Rc::new(CbrtPowerRule),
         Rc::new(SqrtMulRule),
         Rc::new(SqrtDivRule),
-        // NOTE: PowerToRootRule removed - it conflicts with NormalizeRootsRule
-        // Beautification (x^0.5 -> sqrt) is handled by prettify_roots() after convergence
         Rc::new(NormalizeRootsRule),
     ]
 }

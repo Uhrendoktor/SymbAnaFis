@@ -61,7 +61,7 @@ const BUILTINS: &[&str] = &[
 ];
 
 /// Balance parentheses in the input string
-pub fn balance_parentheses(input: &str) -> String {
+pub(crate) fn balance_parentheses(input: &str) -> String {
     let open_count = input.chars().filter(|&c| c == '(').count();
     let close_count = input.chars().filter(|&c| c == ')').count();
 
@@ -239,7 +239,7 @@ fn scan_characters(input: &str) -> Result<Vec<RawToken>, DiffError> {
 }
 
 /// Pass 2: Resolve sequences into tokens using context
-pub fn lex(
+pub(crate) fn lex(
     input: &str,
     fixed_vars: &HashSet<String>,
     custom_functions: &HashSet<String>,

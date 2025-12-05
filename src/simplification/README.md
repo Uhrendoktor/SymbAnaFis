@@ -6,7 +6,20 @@ This document describes all the simplification rules implemented in the SymbAnaF
 
 The simplification system applies rules in a bottom-up manner through the expression tree, using multiple passes until no further simplifications are possible. Rules are organized into modules by mathematical domain and applied in priority order (higher priority first).
 
-## Rule Categories and Priorities
+### Priority Strategy: Expand → Cancel → Compact
+
+Rules follow an **expand → cancel → compact** ordering strategy:
+
+| Priority Range | Phase | Purpose |
+|----------------|-------|--------|
+| **85-95** | Expansion | Distribute, expand powers, flatten nested structures |
+| **70-84** | Identity/Cancellation | x^0→1, x^1→x, x/x→1, x^a/x^b→x^(a-b) |
+| **40-69** | Compression/Consolidation | Combine terms, factor, compact a^n/b^n→(a/b)^n |
+| **1-39** | Canonicalization | Sort terms, normalize display form |
+
+This ordering ensures expressions are first expanded to expose cancellation opportunities, then simplified via identities and cancellations, and finally compacted into canonical form.
+
+## Rule Categories
 
 Rules are grouped by category and listed in priority order within each category.
 
@@ -30,58 +43,65 @@ These handle basic arithmetic identities and constant folding.
 ### Algebraic Rules (Category: Algebraic)
 These handle polynomial operations, factoring, absolute value, sign functions, and structural transformations.
 
-- **abs_numeric** (priority: 95) - Rule for absolute value of numeric constants: abs(5) -> 5, abs(-3) -> 3
-- **sign_numeric** (priority: 95) - Rule for sign of numeric constants: sign(5) -> 1, sign(-3) -> -1, sign(0) -> 0
-- **div_div_flatten** (priority: 95) - Rule for flattening nested divisions: (a/b)/(c/d) -> (a*d)/(b*c)
-- **combine_nested_fraction** (priority: 94) - Rule for combining nested fractions: (a + b/c) / d → (a*c + b) / (c*d), and similar patterns with subtraction. Enables cleaner output for expressions like (1 - v/c) / c → (c - v) / c²
-- **power_zero** (priority: 95) - Rule for x^0 = 1 (when x != 0)
-- **power_one** (priority: 95) - Rule for x^1 = x
-- **expand_power_for_cancellation** (priority: 95) - Rule for expanding powers to enable cancellation: (a*b)^n / a -> a^n * b^n / a
-- **negative_exponent_to_fraction** (priority: 95) - Rule for x^-n -> 1/x^n where n > 0
-- **fraction_to_end** (priority: 93) - Rule for ((1/a) * b) / c -> b / (a * c), keeps one division at the end
-- **polynomial_expansion** (priority: 92) - Rule for expanding polynomials (a+b)^n for n=2,3 when beneficial for cancellation
-- **div_self** (priority: 90) - Rule for x / x = 1 (when x != 0) **[alters domain]**
-- **fraction_cancellation** (priority: 90) - Rule for cancelling common terms in fractions: (a*b)/(a*c) -> b/c, also handles powers: x^a / x^b -> x^(a-b). In domain-safe mode, only cancels nonzero numeric constants; symbolic cancellation **[alters domain]**
-- **abs_abs** (priority: 90) - Rule for nested absolute value: abs(abs(x)) -> abs(x)
-- **abs_neg** (priority: 90) - Rule for absolute value of negation: abs(-x) -> abs(x)
-- **power_to_sqrt** (priority: 90) - Rule for x^(1/2) -> sqrt(x)
-- **power_to_cbrt** (priority: 90) - Rule for x^(1/3) -> cbrt(x)
-- **distribute_mul_in_numerator** (priority: 35) - Rule for distributing multiplication in numerator for term combination. Has smart detection to avoid distributing when the numerator is already a factored product (e.g., (a+b)*(c+d)), preventing infinite loops with factoring rules. Also folds numeric constants during distribution to avoid outputs like `3 * 2 * x` (produces `6 * x` instead)
-- **sign_abs** (priority: 85) - Rule for sign of absolute value: sign(abs(x)) -> 1 (for x != 0)
-- **distribute_negation** (priority: 90) - Rule for distributing negation: -(A + B) -> -A - B
-- **e_pow_ln** (priority: 85) - Rule for e^(ln(x)) -> x (handles Symbol("e") form) **[alters domain]**
-- **e_pow_mul_ln** (priority: 85) - Rule for e^(a*ln(b)) -> b^a (handles Symbol("e") form)
-- **power_power** (priority: 85) - Rule for (x^a)^b -> x^(a*b). Returns abs(x) when (x^even)^(1/even) simplifies to x^1
-- **abs_square** (priority: 85) - Rule for absolute value of square: abs(x^2) -> x^2
-- **abs_pow_even** (priority: 85) - Rule for abs(x)^(even) -> x^(even): abs(x)^2 -> x^2, abs(x)^4 -> x^4
-- **sign_sign** (priority: 85) - Rule for nested sign: sign(sign(x)) -> sign(x)
-- **sign_abs** (priority: 85) - Rule for sign of absolute value: sign(abs(x)) -> 1 (for x != 0)
-- **power_mul** (priority: 85) - Rule for x^a * x^b -> x^(a+b)
+#### Expansion Phase (85-95)
+- **div_div_flatten** (priority: 92) - Rule for flattening nested divisions: (a/b)/(c/d) -> (a*d)/(b*c)
+- **combine_nested_fraction** (priority: 91) - Rule for combining nested fractions: (a + b/c) / d → (a*c + b) / (c*d)
+- **expand_power_for_cancellation** (priority: 92) - Rule for expanding powers to enable cancellation: (a*b)^n / a -> a^n * b^n / a
+- **negative_exponent_to_fraction** (priority: 90) - Rule for x^-n -> 1/x^n where n > 0
+- **polynomial_expansion** (priority: 89) - Rule for expanding polynomials (a+b)^n for n=2,3 when beneficial
+- **power_of_quotient** (priority: 88) - Rule for (a/b)^n -> a^n / b^n when expansion enables simplification
+- **power_expansion** (priority: 86) - Rule for expanding powers: (a*b)^n -> a^n * b^n when beneficial
 - **mul_div_combination** (priority: 85) - Rule for a * (b / c) -> (a * b) / c
 - **expand_difference_of_squares_product** (priority: 85) - Rule for expanding (a+b)(a-b) -> a² - b² when beneficial
-- **power_div** (priority: 93) - Rule for x^a / x^b -> x^(a-b). Higher priority than polynomial_expansion (92) to cancel `(x+1)^2 / (x+1) → x+1` before expanding
+
+#### Identity/Cancellation Phase (70-84)
+- **power_zero** (priority: 80) - Rule for x^0 = 1 (when x != 0)
+- **power_one** (priority: 80) - Rule for x^1 = x
+- **simplify_negative_one** (priority: 80) - Rule for (-1)*1 = -1, (-1)*(-1) = 1
 - **exp_ln** (priority: 80) - Rule for exp(ln(x)) -> x **[alters domain]**
-- **ln_exp** (priority: 80) - Rule for ln(exp(x)) -> x
+- **ln_exp** (priority: 80) - Rule for ln(exp(x)) -> x **[alters domain]**
 - **exp_mul_ln** (priority: 80) - Rule for exp(a * ln(b)) -> b^a **[alters domain]**
 - **abs_sign_mul** (priority: 80) - Rule for abs(x) * sign(x) -> x
-- **power_collection** (priority: 80) - Rule for collecting powers in multiplication: x^a * x^b -> x^(a+b)
-- **common_exponent_div** (priority: 80) - Rule for x^a / y^a -> (x/y)^a. For fractional exponents, checks non-negativity in domain-safe mode
-- **common_exponent_mul** (priority: 80) - Rule for x^a * y^a -> (x*y)^a. For fractional exponents, checks non-negativity in domain-safe mode
-- **combine_like_terms_addition** (priority: 80) - Rule for combining like terms in addition: 2x + 3x -> 5x, x^2 - x^2 -> 0
-- **perfect_square** (priority: 50) - Rule for perfect squares: a^2 + 2ab + b^2 -> (a+b)^2
-- **perfect_cube** (priority: 50) - Rule for perfect cubes: a^3 + 3a^2b + 3ab^2 + b^3 -> (a+b)^3
-- **combine_terms** (priority: 45) - Rule for combining like terms in addition: 2x + 3x -> 5x
-- **combine_factors** (priority: 45) - Rule for combining like factors in multiplication: x * x -> x^2
+- **div_self** (priority: 78) - Rule for x / x = 1 (when x != 0) **[alters domain]**
+- **fraction_cancellation** (priority: 76) - Rule for cancelling common terms in fractions: (a*b)/(a*c) -> b/c **[alters domain]**
+- **power_power** (priority: 75) - Rule for (x^a)^b -> x^(a*b). Returns abs(x) when (x^even)^(1/even) simplifies to x^1
+- **power_mul** (priority: 75) - Rule for x^a * x^b -> x^(a+b)
+- **power_div** (priority: 75) - Rule for x^a / x^b -> x^(a-b)
+
+#### Compression/Consolidation Phase (40-69)
+- **power_collection** (priority: 60) - Rule for collecting powers in multiplication: x^a * x^b -> x^(a+b)
+- **combine_factors** (priority: 58) - Rule for combining like factors in multiplication: x * x -> x^2
+- **common_exponent_div** (priority: 55) - Rule for x^a / y^a -> (x/y)^a (compaction)
+- **common_exponent_mul** (priority: 55) - Rule for x^a * y^a -> (x*y)^a (compaction)
+- **combine_like_terms_addition** (priority: 52) - Rule for combining like terms in addition: 2x + 3x -> 5x
+- **fraction_to_end** (priority: 50) - Rule for ((1/a) * b) / c -> b / (a * c)
+- **combine_terms** (priority: 50) - Rule for combining like terms in addition: 2x + 3x -> 5x
+- **distribute_negation** (priority: 50) - Rule for distributing negation: -(A + B) -> -A - B
+- **perfect_square** (priority: 48) - Rule for perfect squares: a^2 + 2ab + b^2 -> (a+b)^2
+- **factor_difference_of_squares** (priority: 46) - Rule for factoring difference of squares: a^2 - b^2 -> (a-b)(a+b)
+- **add_fraction** (priority: 45) - Rule for adding fractions: a + b/c -> (a*c + b)/c
 - **numeric_gcd_factoring** (priority: 42) - Rule for factoring out numeric GCD: 2*a + 2*b -> 2*(a+b)
-- **power_expansion** (priority: 40) - Rule for expanding powers: (a*b)^n -> a^n * b^n
-- **add_fraction** (priority: 40) - Rule for adding fractions: a + b/c -> (a*c + b)/c
-- **canonicalize** (priority: 40) - Rule for canonicalizing expressions (sorting terms)
+- **perfect_cube** (priority: 40) - Rule for perfect cubes: a^3 + 3a^2b + 3ab^2 + b^3 -> (a+b)^3
 - **common_term_factoring** (priority: 40) - Rule for factoring out common terms: ax + bx -> x(a+b)
-- **common_power_factoring** (priority: 39) - Rule for factoring out common powers: x³ + x² -> x²(x + 1). Only applies to pure power sums (no coefficients, no constant terms)
-- **canonicalize_multiplication** (priority: 15) - Rule for canonical ordering of multiplication terms: (x*y)*z -> x*y*z
+- **common_power_factoring** (priority: 39) - Rule for factoring out common powers: x³ + x² -> x²(x + 1)
+
+#### Absolute Value & Sign Rules
+- **abs_numeric** (priority: 95) - Rule for absolute value of numeric constants: abs(5) -> 5, abs(-3) -> 3
+- **sign_numeric** (priority: 95) - Rule for sign of numeric constants: sign(5) -> 1, sign(-3) -> -1, sign(0) -> 0
+- **abs_abs** (priority: 90) - Rule for nested absolute value: abs(abs(x)) -> abs(x)
+- **abs_neg** (priority: 90) - Rule for absolute value of negation: abs(-x) -> abs(x)
+- **sign_abs** (priority: 85) - Rule for sign of absolute value: sign(abs(x)) -> 1 (for x != 0)
+- **abs_square** (priority: 85) - Rule for absolute value of square: abs(x^2) -> x^2
+- **abs_pow_even** (priority: 85) - Rule for abs(x)^(even) -> x^(even)
+- **sign_sign** (priority: 85) - Rule for nested sign: sign(sign(x)) -> sign(x)
+- **e_pow_ln** (priority: 85) - Rule for e^(ln(x)) -> x (handles Symbol("e") form) **[alters domain]**
+- **e_pow_mul_ln** (priority: 85) - Rule for e^(a*ln(b)) -> b^a (handles Symbol("e") form) **[alters domain]**
+
+#### Canonicalization Phase (1-39)
+- **canonicalize** (priority: 15) - Rule for canonicalizing expressions (sorting terms)
+- **canonicalize_multiplication** (priority: 15) - Rule for canonical ordering of multiplication terms
 - **canonicalize_addition** (priority: 15) - Rule for canonical ordering of addition terms
 - **canonicalize_subtraction** (priority: 15) - Rule for canonical ordering in subtraction
-- **factor_difference_of_squares** (priority: 10) - Rule for factoring difference of squares: a^2 - b^2 -> (a-b)(a+b)
 - **normalize_add_negation** (priority: 5) - Rule for normalizing addition with negation: a + (-b) -> a - b
 
 ### Trigonometric Rules (Category: Trigonometric)
@@ -103,7 +123,7 @@ These handle trigonometric identities, exact values, and transformations.
 - **trig_periodicity** (priority: 85) - Rule for periodicity: sin(x + 2kπ) = sin(x), cos(x + 2kπ) = cos(x)
 - **trig_double_angle** (priority: 85) - Rule for sin(2*x) = 2*sin(x)*cos(x)
 - **cos_double_angle_difference** (priority: 85) - Rule for cosine double angle in difference form
-- **pythagorean_complements** (priority: 85) - Rule for 1 - cos²(x) = sin²(x), 1 - sin²(x) = cos²(x). Also handles the canonicalized forms `-cos²(x) + 1` and `-sin²(x) + 1`. Higher priority ensures trig identity fires before algebraic factoring (difference of squares)
+- **pythagorean_complements** (priority: 70) - Rule for 1 - cos²(x) = sin²(x), 1 - sin²(x) = cos²(x). Also handles the canonicalized forms `-cos²(x) + 1` and `-sin²(x) + 1`.
 - **pythagorean_identity** (priority: 80) - Rule for sin^2(x) + cos^2(x) = 1
 - **trig_reflection** (priority: 80) - Rule for reflection: sin(π - x) = sin(x), cos(π - x) = -cos(x)
 - **trig_three_pi_over_two** (priority: 80) - Rule for sin(3π/2 - x) = -cos(x), cos(3π/2 - x) = -sin(x)
@@ -145,18 +165,20 @@ These handle logarithmic and exponential function identities.
 - **exp_to_e_pow** (priority: 95) - Rule for exp(x) = e^x
 - **log_base_values** (priority: 95) - Rule for specific log values: log10(1)=0, log10(10)=1, log2(1)=0, log2(2)=1
 - **exp_ln_identity** (priority: 90) - Rule for exp(ln(x)) = x (for x > 0) **[alters domain]**
-- **ln_exp_identity** (priority: 90) - Rule for ln(exp(x)) = x
+- **ln_exp_identity** (priority: 90) - Rule for ln(exp(x)) = x **[alters domain]**
 - **log_power** (priority: 90) - Rule for log(x^n) = n * log(x). For even integer exponents, uses abs: log(x^2) = 2*log(abs(x)). Odd exponents **[alters domain]**
 - **log_combination** (priority: 85) - Rule for ln(a) + ln(b) = ln(a*b) and ln(a) - ln(b) = ln(a/b)
 
 ### Root Rules (Category: Root)
 These handle square root and cube root simplifications.
 
+#### Identity/Cancellation Phase (70-84)
 - **sqrt_power** (priority: 85) - Rule for sqrt(x^n) = x^(n/2). Returns abs(x) when sqrt(x^(even)) simplifies to x^1
 - **cbrt_power** (priority: 85) - Rule for cbrt(x^n) = x^(n/3)
-- **sqrt_mul** (priority: 80) - Rule for sqrt(x) * sqrt(y) = sqrt(x*y). Safe when x,y are known non-negative; otherwise **[alters domain]**
-- **sqrt_div** (priority: 80) - Rule for sqrt(x)/sqrt(y) = sqrt(x/y). Safe when x,y are known non-negative; otherwise **[alters domain]**
-- **power_to_root** (priority: 75) - Rule for x^(1/n) = nth root of x
+
+#### Compression/Consolidation Phase (40-69)
+- **sqrt_mul** (priority: 56) - Rule for sqrt(x) * sqrt(y) = sqrt(x*y) **[alters domain]**
+- **sqrt_div** (priority: 56) - Rule for sqrt(x)/sqrt(y) = sqrt(x/y) **[alters domain]**
 - **normalize_roots** (priority: 50) - Rule that applies the monolithic root normalization
 
 ## Domain Safety
@@ -210,12 +232,12 @@ diff("e*x".to_string(), "x".to_string(), Some(&["e".to_string()]), None);
 | Category | Count |
 |----------|-------|
 | Numeric | 13 |
-| Algebraic | 52 |
+| Algebraic | 51 |
 | Trigonometric | 23 |
 | Hyperbolic | 21 |
 | Exponential | 9 |
 | Root | 6 |
-| **Total** | **124** |
+| **Total** | **123** |
 
 ## Implementation Details
 
@@ -225,11 +247,12 @@ diff("e*x".to_string(), "x".to_string(), Some(&["e".to_string()]), None);
 - Numeric precision uses ε = 1e-10 for floating-point comparisons
 - The system preserves exact symbolic forms when possible
 - **Rule priority ordering**: Higher priority numbers run first (e.g., priority 95 runs before 40). Key priority tiers:
-  - 95-100: Identity rules, basic arithmetic, structure flattening
-  - 85-94: Cancellation, power rules, term combination
-  - 40-80: Factoring, polynomial operations, term collection
-  - 5-35: Canonicalization, normalization, display cleanup
-- **Factoring vs Distribution balance**: `CommonTermFactoringRule` (priority 40) runs before `DistributeMulInNumeratorRule` (priority 35), ensuring factored forms are preserved. Distribution only occurs when the numerator is not already a factored product.
+  - 85-95: Expansion rules (flatten, distribute, expand powers)
+  - 70-84: Identity/Cancellation rules (x^0=1, x/x=1, power arithmetic)
+  - 40-69: Compression/Consolidation rules (combine terms, factor, compact)
+  - 1-39: Canonicalization rules (sort terms, normalize display)
+- **Expand → Cancel → Compact strategy**: Rules are ordered so expressions are first expanded to expose simplification opportunities, then simplified via identities and cancellations, and finally compacted into canonical form. This ordering reduces the need for complex conditional checks in individual rules.
+- **Factoring vs Distribution balance**: `CommonTermFactoringRule` (priority 40) runs before distribution rules to ensure factored forms are preserved. Distribution is handled by `MulDivCombinationRule` (priority 85) which combines multiplication with division without conflicting with factoring rules.
 - **Canonical form handling**: Many rules recognize both original forms (e.g., `a - b`) and canonical forms after algebraic simplification (e.g., `a + (-1)*b`)
 - **Recursive simplification**: Subexpressions are simplified before applying rules to the current level
 - **Expression normalization**: Multiplication terms are sorted and normalized for consistent term combination

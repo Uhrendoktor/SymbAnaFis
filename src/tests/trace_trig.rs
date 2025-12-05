@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod tests {
-    use crate::{Expr, simplification::simplify};
+    use crate::{Expr, simplification::simplify_expr};
+    use std::collections::HashSet;
     use std::f64::consts::PI;
     use std::rc::Rc;
 
@@ -14,7 +15,7 @@ mod tests {
                 Rc::new(Expr::Symbol("x".to_string())),
             )],
         };
-        let simplified = simplify(expr);
+        let simplified = simplify_expr(expr, HashSet::new());
         println!("sin(pi - x) -> {}", simplified);
         if let Expr::FunctionCall { name, args } = &simplified {
             assert_eq!(name, "sin");
@@ -31,7 +32,7 @@ mod tests {
                 Rc::new(Expr::Symbol("x".to_string())),
             )],
         };
-        let simplified = simplify(expr);
+        let simplified = simplify_expr(expr, HashSet::new());
         println!("cos(pi + x) -> {}", simplified);
         if let Expr::Mul(a, b) = &simplified {
             assert_eq!(**a, Expr::Number(-1.0));
@@ -53,7 +54,7 @@ mod tests {
                 Rc::new(Expr::Symbol("x".to_string())),
             )],
         };
-        let simplified = simplify(expr);
+        let simplified = simplify_expr(expr, HashSet::new());
         println!("sin(3pi/2 - x) -> {}", simplified);
         if let Expr::Mul(a, b) = &simplified {
             assert_eq!(**a, Expr::Number(-1.0));

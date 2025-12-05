@@ -1,7 +1,8 @@
 #[cfg(test)]
 mod tests {
     use crate::Expr;
-    use crate::simplification::simplify;
+    use crate::simplification::simplify_expr;
+    use std::collections::HashSet;
     use std::rc::Rc;
 
     #[test]
@@ -17,7 +18,7 @@ mod tests {
                 Rc::new(Expr::Number(2.0)),
             )),
         );
-        let simplified = simplify(expr);
+        let simplified = simplify_expr(expr, HashSet::new());
 
         // Expected: (x*y)^2
         if let Expr::Pow(base, exp) = simplified {
@@ -52,7 +53,7 @@ mod tests {
                 Rc::new(Expr::Number(2.0)),
             )),
         );
-        let simplified = simplify(expr);
+        let simplified = simplify_expr(expr, HashSet::new());
 
         // Expected: (x/y)^2
         if let Expr::Pow(base, exp) = simplified {
@@ -91,7 +92,7 @@ mod tests {
                 Rc::new(Expr::Number(2.0)),
             )),
         );
-        let simplified = simplify(expr);
+        let simplified = simplify_expr(expr, HashSet::new());
 
         if let Expr::FunctionCall { name, args } = simplified {
             assert_eq!(name, "sqrt");
@@ -113,7 +114,7 @@ mod tests {
             Rc::new(Expr::Symbol("x".to_string())),
             Rc::new(Expr::Number(0.5)),
         );
-        let simplified = simplify(expr);
+        let simplified = simplify_expr(expr, HashSet::new());
 
         if let Expr::FunctionCall { name, args } = simplified {
             assert_eq!(name, "sqrt");
@@ -138,7 +139,7 @@ mod tests {
                 Rc::new(Expr::Number(3.0)),
             )),
         );
-        let simplified = simplify(expr);
+        let simplified = simplify_expr(expr, HashSet::new());
 
         if let Expr::FunctionCall { name, args } = simplified {
             assert_eq!(name, "cbrt");

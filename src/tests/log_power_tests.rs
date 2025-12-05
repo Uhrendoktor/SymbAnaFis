@@ -1,7 +1,8 @@
 #[cfg(test)]
 mod tests {
     use crate::Expr;
-    use crate::simplification::simplify;
+    use crate::simplification::simplify_expr;
+    use std::collections::HashSet;
     use std::rc::Rc;
     #[test]
     fn test_ln_power() {
@@ -13,7 +14,7 @@ mod tests {
                 Rc::new(Expr::Number(2.0)),
             )],
         };
-        let simplified = simplify(expr);
+        let simplified = simplify_expr(expr, HashSet::new());
 
         // Expected: 2 * ln(abs(x))
         if let Expr::Mul(coeff, func) = simplified {
@@ -49,7 +50,7 @@ mod tests {
                 Rc::new(Expr::Number(3.0)),
             )],
         };
-        let simplified = simplify(expr);
+        let simplified = simplify_expr(expr, HashSet::new());
 
         // Expected: 3 * log10(x)
         if let Expr::Mul(coeff, func) = simplified {
@@ -75,7 +76,7 @@ mod tests {
                 Rc::new(Expr::Number(4.0)),
             )],
         };
-        let simplified = simplify(expr);
+        let simplified = simplify_expr(expr, HashSet::new());
 
         // Expected: 4 * log10(abs(x))
         if let Expr::Mul(coeff, func) = simplified {
@@ -110,7 +111,7 @@ mod tests {
                 Rc::new(Expr::Number(0.5)),
             )],
         };
-        let simplified = simplify(expr);
+        let simplified = simplify_expr(expr, HashSet::new());
 
         // Expected: log2(x) / 2
         if let Expr::Div(num, den) = simplified {

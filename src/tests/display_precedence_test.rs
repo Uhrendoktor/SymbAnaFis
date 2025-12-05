@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::Expr;
+    use std::collections::HashSet;
     use std::rc::Rc;
     #[test]
     fn test_division_precedence_mul() {
@@ -15,7 +16,7 @@ mod tests {
         );
         let display = format!("{}", expr);
         println!("Display: {}", display);
-        assert_eq!(display, "a / (b * c)");
+        assert_eq!(display, "a/(b*c)");
     }
 
     #[test]
@@ -30,12 +31,12 @@ mod tests {
         );
         let display = format!("{}", expr);
         println!("Display: {}", display);
-        assert_eq!(display, "a / (b / c)");
+        assert_eq!(display, "a/(b/c)");
     }
 
     #[test]
     fn test_rc_circuit_derivative() {
-        use crate::simplification::simplify;
+        use crate::simplification::simplify_expr;
         // V0 * exp(-t / (R * C))
         // Derivative should be: -V0 * exp(-t / (R * C)) / (R * C)
         // Or with the bug: ... / C * R^2 ??
@@ -63,7 +64,7 @@ mod tests {
         );
 
         println!("Original: {}", expr);
-        let simplified = simplify(expr.clone());
+        let simplified = simplify_expr(expr.clone(), HashSet::new());
         println!("Simplified: {}", simplified);
 
         // Check if simplified result has correct structure
@@ -99,7 +100,7 @@ mod tests {
         );
 
         println!("Full Original: {}", expr_full);
-        let simplified_full = simplify(expr_full);
+        let simplified_full = simplify_expr(expr_full, HashSet::new());
         println!("Full Simplified: {}", simplified_full);
 
         // Expected display: -V0 * exp(t) / R
@@ -127,6 +128,6 @@ mod tests {
         );
         let display = format!("{}", expr);
         println!("Display: {}", display);
-        assert_eq!(display, "A / (C * R^2)");
+        assert_eq!(display, "A/(C*R^2)");
     }
 }

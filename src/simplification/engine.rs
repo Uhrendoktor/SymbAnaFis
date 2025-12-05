@@ -2,16 +2,20 @@ use super::rules::{ExprKind, RuleContext, RuleRegistry};
 use crate::Expr;
 use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
+use std::sync::OnceLock;
 
-/// Check if tracing is enabled via environment variable
+/// Check if tracing is enabled via environment variable (cached)
 fn trace_enabled() -> bool {
-    std::env::var("SYMB_TRACE")
-        .map(|v| v == "1" || v.to_lowercase() == "true")
-        .unwrap_or(false)
+    static TRACE: OnceLock<bool> = OnceLock::new();
+    *TRACE.get_or_init(|| {
+        std::env::var("SYMB_TRACE")
+            .map(|v| v == "1" || v.to_lowercase() == "true")
+            .unwrap_or(false)
+    })
 }
 
 /// Main simplification engine with rule-based architecture
-pub struct Simplifier {
+pub(crate) struct Simplifier {
     registry: RuleRegistry,
     rule_caches: HashMap<String, HashMap<Expr, Option<Expr>>>, // Per-rule memoization with content-based keys
     max_iterations: usize,
@@ -71,6 +75,7 @@ impl Simplifier {
     pub fn simplify(&mut self, expr: Expr) -> Expr {
         let mut current = Rc::new(expr);
         let mut iterations = 0;
+        let mut seen_expressions: HashSet<Expr> = HashSet::new();
 
         loop {
             if iterations >= self.max_iterations {
@@ -84,9 +89,30 @@ impl Simplifier {
             let original = current.clone();
             current = self.apply_rules_bottom_up(current, 0);
 
+            if trace_enabled() {
+                eprintln!(
+                    "[DEBUG] Iteration {}: {} -> {}",
+                    iterations, original, current
+                );
+            }
+
+            // Use structural equality to check if expression changed
             if *current == *original {
                 break; // No changes
             }
+
+            // After a full pass of all rules, check if we've seen this result before
+            // Use normalized form for proper cycle detection (handles Sub vs Add(-1*x) equivalence)
+            let normalized = crate::simplification::helpers::normalize_for_comparison(&current);
+            if seen_expressions.contains(&normalized) {
+                // We're in a cycle - stop here with the current result
+                if trace_enabled() {
+                    eprintln!("[DEBUG] Cycle detected, stopping");
+                }
+                break;
+            }
+            // Add AFTER checking, so first iteration's result doesn't trigger false positive
+            seen_expressions.insert(normalized);
 
             iterations += 1;
         }
@@ -247,7 +273,7 @@ impl Simplifier {
 }
 
 /// Convenience function with user-specified fixed variables
-pub fn simplify_expr_with_fixed_vars(expr: Expr, fixed_vars: HashSet<String>) -> Expr {
+pub(crate) fn simplify_expr_with_fixed_vars(expr: Expr, fixed_vars: HashSet<String>) -> Expr {
     let variables = expr.variables();
     // Skip verification for performance - just simplify directly
     let mut simplifier = Simplifier::new()

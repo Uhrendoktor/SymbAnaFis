@@ -4,7 +4,7 @@ use crate::{DiffError, Expr};
 use std::rc::Rc;
 
 /// Parse tokens into an AST using Pratt parsing algorithm
-pub fn parse_expression(tokens: &[Token]) -> Result<Expr, DiffError> {
+pub(crate) fn parse_expression(tokens: &[Token]) -> Result<Expr, DiffError> {
     if tokens.is_empty() {
         return Err(DiffError::UnexpectedEndOfInput);
     }

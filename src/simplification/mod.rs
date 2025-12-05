@@ -9,14 +9,9 @@ use crate::Expr;
 use std::collections::HashSet;
 use std::rc::Rc;
 
-/// Simplify an expression using the new rule-based engine
-pub fn simplify(expr: Expr) -> Expr {
-    simplify_with_fixed_vars(expr, HashSet::new())
-}
-
 /// Simplify an expression with user-specified fixed variables
 /// Fixed variables are treated as constants (e.g., "e" as a variable, not Euler's constant)
-pub fn simplify_with_fixed_vars(expr: Expr, fixed_vars: HashSet<String>) -> Expr {
+pub fn simplify_expr(expr: Expr, fixed_vars: HashSet<String>) -> Expr {
     let mut current = expr;
 
     // Use the new rule-based simplification engine with fixed vars
@@ -35,7 +30,7 @@ pub fn simplify_with_fixed_vars(expr: Expr, fixed_vars: HashSet<String>) -> Expr
 
 /// Simplify an expression with domain safety and user-specified fixed variables
 /// Fixed variables are treated as constants (e.g., "e" as a variable, not Euler's constant)
-pub fn simplify_domain_safe_with_fixed_vars(expr: Expr, fixed_vars: HashSet<String>) -> Expr {
+pub fn simplify_domain_safe(expr: Expr, fixed_vars: HashSet<String>) -> Expr {
     let mut current = expr;
 
     let mut simplifier = engine::Simplifier::new()

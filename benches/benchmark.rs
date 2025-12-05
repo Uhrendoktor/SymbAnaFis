@@ -1,7 +1,7 @@
 use criterion::{Criterion, criterion_group, criterion_main};
 use std::collections::HashSet;
 use std::hint::black_box;
-use symb_anafis::{diff, parse, simplify, simplify_ast};
+use symb_anafis::{diff, parse, simplify, simplify_expr};
 
 // Benchmark parsing separately
 fn bench_parsing(c: &mut Criterion) {
@@ -81,19 +81,19 @@ fn bench_simplify_ast(c: &mut Criterion) {
     let exp_comb = parse("exp(x) * exp(y)", &empty, &empty).unwrap();
 
     group.bench_function("simplify_ast_pythagorean", |b| {
-        b.iter(|| simplify_ast(black_box(pythag.clone())))
+        b.iter(|| simplify_expr(black_box(pythag.clone()), HashSet::new()))
     });
 
     group.bench_function("simplify_ast_perfect_square", |b| {
-        b.iter(|| simplify_ast(black_box(perfect.clone())))
+        b.iter(|| simplify_expr(black_box(perfect.clone()), HashSet::new()))
     });
 
     group.bench_function("simplify_ast_fraction", |b| {
-        b.iter(|| simplify_ast(black_box(frac.clone())))
+        b.iter(|| simplify_expr(black_box(frac.clone()), HashSet::new()))
     });
 
     group.bench_function("simplify_ast_exp_combine", |b| {
-        b.iter(|| simplify_ast(black_box(exp_comb.clone())))
+        b.iter(|| simplify_expr(black_box(exp_comb.clone()), HashSet::new()))
     });
 
     group.finish();

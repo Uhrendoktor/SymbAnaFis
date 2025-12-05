@@ -60,7 +60,7 @@ mod tests {
         // Should normalize to -x / 2 or -1 * x / 2
         assert!(
             (result_str.contains("-x") || result_str.contains("-1 * x"))
-                && result_str.contains("/ 2"),
+                && result_str.contains("/2"),
             "Expected negative in numerator, got: {}",
             result_str
         );

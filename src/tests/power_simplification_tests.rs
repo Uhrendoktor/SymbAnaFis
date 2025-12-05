@@ -1,7 +1,8 @@
 #[cfg(test)]
 mod tests {
     use crate::Expr;
-    use crate::simplification::simplify;
+    use crate::simplification::simplify_expr;
+    use std::collections::HashSet;
     use std::rc::Rc;
     #[test]
     fn test_power_of_power() {
@@ -13,7 +14,7 @@ mod tests {
             )),
             Rc::new(Expr::Number(2.0)),
         );
-        let simplified = simplify(expr);
+        let simplified = simplify_expr(expr, HashSet::new());
 
         // Expected: x^4
         if let Expr::Pow(base, exp) = simplified {
@@ -42,7 +43,7 @@ mod tests {
             )),
             Rc::new(Expr::Symbol("b".to_string())),
         );
-        let simplified = simplify(expr);
+        let simplified = simplify_expr(expr, HashSet::new());
 
         // Expected: x^(a*b)
         if let Expr::Pow(base, exp) = simplified {
@@ -75,7 +76,7 @@ mod tests {
             )),
             Rc::new(Expr::Number(2.0)),
         );
-        let simplified = simplify(expr);
+        let simplified = simplify_expr(expr, HashSet::new());
 
         // Expected: sigma^4
         if let Expr::Pow(base, exp) = simplified {

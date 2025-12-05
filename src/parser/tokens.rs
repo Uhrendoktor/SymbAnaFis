@@ -1,6 +1,6 @@
 /// Token types produced by the lexer
 #[derive(Debug, Clone, PartialEq)]
-pub enum Token {
+pub(crate) enum Token {
     Number(f64),
     Identifier(String),
     Operator(Operator),
@@ -17,29 +17,29 @@ pub enum Token {
 
 /// Operator types (arithmetic and built-in functions)
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Operator {
+pub(crate) enum Operator {
     // Arithmetic
     Add,
-    Sub, // NEW: Subtraction
+    Sub,
     Mul,
-    Div, // NEW: Division
+    Div,
     Pow, // Both ^ and **
 
     // Trigonometric
     Sin,
     Cos,
-    Tan, // NEW
-    Cot, // NEW
-    Sec, // NEW
-    Csc, // NEW
+    Tan,
+    Cot,
+    Sec,
+    Csc,
 
     // Inverse Trigonometric
-    Asin, // NEW
-    Acos, // NEW
-    Atan, // NEW
-    Acot, // NEW
-    Asec, // NEW
-    Acsc, // NEW
+    Asin,
+    Acos,
+    Atan,
+    Acot,
+    Asec,
+    Acsc,
 
     // Logarithmic/Exponential
     Ln,
@@ -49,9 +49,9 @@ pub enum Operator {
     Sinh,
     Cosh,
     Tanh,
-    Coth, // NEW (Tier 2 preparation)
-    Sech, // NEW (Tier 2 preparation)
-    Csch, // NEW (Tier 2 preparation)
+    Coth,
+    Sech,
+    Csch,
 
     // Inverse Hyperbolic (Tier 2)
     Asinh,
@@ -62,8 +62,8 @@ pub enum Operator {
     Acsch,
 
     // Roots
-    Sqrt, // NEW
-    Cbrt, // NEW
+    Sqrt,
+    Cbrt,
 
     // Logarithmic variants (Tier 2)
     Log, // log(x, base) - needs multi-arg support

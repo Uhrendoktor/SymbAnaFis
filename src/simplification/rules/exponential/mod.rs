@@ -2,27 +2,13 @@ use crate::ast::Expr;
 use crate::simplification::rules::{ExprKind, Rule, RuleCategory, RuleContext};
 use std::rc::Rc;
 
-/// Rule for ln(1) = 0
-pub struct LnOneRule;
-
-impl Rule for LnOneRule {
-    fn name(&self) -> &'static str {
-        "ln_one"
-    }
-
-    fn priority(&self) -> i32 {
-        95
-    }
-
-    fn category(&self) -> RuleCategory {
-        RuleCategory::Exponential
-    }
-
-    fn applies_to(&self) -> &'static [ExprKind] {
-        &[ExprKind::Function]
-    }
-
-    fn apply(&self, expr: &Expr, _context: &RuleContext) -> Option<Expr> {
+rule!(
+    LnOneRule,
+    "ln_one",
+    95,
+    Exponential,
+    &[ExprKind::Function],
+    |expr: &Expr, _context: &RuleContext| {
         if let Expr::FunctionCall { name, args } = expr
             && name == "ln"
             && args.len() == 1
@@ -32,36 +18,22 @@ impl Rule for LnOneRule {
         }
         None
     }
-}
+);
 
-/// Rule for ln(e) = 1
-pub struct LnERule;
-
-impl Rule for LnERule {
-    fn name(&self) -> &'static str {
-        "ln_e"
-    }
-
-    fn priority(&self) -> i32 {
-        95
-    }
-
-    fn category(&self) -> RuleCategory {
-        RuleCategory::Exponential
-    }
-
-    fn applies_to(&self) -> &'static [ExprKind] {
-        &[ExprKind::Function]
-    }
-
-    fn apply(&self, expr: &Expr, context: &RuleContext) -> Option<Expr> {
+rule!(
+    LnERule,
+    "ln_e",
+    95,
+    Exponential,
+    &[ExprKind::Function],
+    |expr: &Expr, context: &RuleContext| {
         if let Expr::FunctionCall { name, args } = expr
             && name == "ln"
             && args.len() == 1
         {
             // Check for ln(exp(1))
             if matches!(&args[0], Expr::FunctionCall { name: exp_name, args: exp_args }
-                           if exp_name == "exp" && exp_args.len() == 1 && matches!(exp_args[0], Expr::Number(n) if n == 1.0))
+                       if exp_name == "exp" && exp_args.len() == 1 && matches!(exp_args[0], Expr::Number(n) if n == 1.0))
             {
                 return Some(Expr::Number(1.0));
             }
@@ -75,29 +47,15 @@ impl Rule for LnERule {
         }
         None
     }
-}
+);
 
-/// Rule for exp(0) = 1
-pub struct ExpZeroRule;
-
-impl Rule for ExpZeroRule {
-    fn name(&self) -> &'static str {
-        "exp_zero"
-    }
-
-    fn priority(&self) -> i32 {
-        95
-    }
-
-    fn category(&self) -> RuleCategory {
-        RuleCategory::Exponential
-    }
-
-    fn applies_to(&self) -> &'static [ExprKind] {
-        &[ExprKind::Function]
-    }
-
-    fn apply(&self, expr: &Expr, _context: &RuleContext) -> Option<Expr> {
+rule!(
+    ExpZeroRule,
+    "exp_zero",
+    95,
+    Exponential,
+    &[ExprKind::Function],
+    |expr: &Expr, _context: &RuleContext| {
         if let Expr::FunctionCall { name, args } = expr
             && name == "exp"
             && args.len() == 1
@@ -107,124 +65,57 @@ impl Rule for ExpZeroRule {
         }
         None
     }
-}
+);
 
-/// Rule for exp(ln(x)) = x (for x > 0)
-pub struct ExpLnIdentityRule;
-
-impl Rule for ExpLnIdentityRule {
-    fn name(&self) -> &'static str {
-        "exp_ln_identity"
+rule!(ExpLnIdentityRule, "exp_ln_identity", 90, Exponential, &[ExprKind::Function], alters_domain: true, |expr: &Expr, _context: &RuleContext| {
+    if let Expr::FunctionCall { name, args } = expr
+        && name == "exp"
+        && args.len() == 1
+        && let Expr::FunctionCall {
+            name: inner_name,
+            args: inner_args,
+        } = &args[0]
+        && inner_name == "ln"
+        && inner_args.len() == 1
+    {
+        return Some(inner_args[0].clone());
     }
+    None
+});
 
-    fn priority(&self) -> i32 {
-        90
-    }
-
-    fn category(&self) -> RuleCategory {
-        RuleCategory::Exponential
-    }
-
-    fn alters_domain(&self) -> bool {
-        true
-    }
-
-    fn applies_to(&self) -> &'static [ExprKind] {
-        &[ExprKind::Function]
-    }
-
-    fn apply(&self, expr: &Expr, _context: &RuleContext) -> Option<Expr> {
-        if let Expr::FunctionCall { name, args } = expr
-            && name == "exp"
-            && args.len() == 1
-            && let Expr::FunctionCall {
-                name: inner_name,
-                args: inner_args,
-            } = &args[0]
-            && inner_name == "ln"
+rule!(LnExpIdentityRule, "ln_exp_identity", 90, Exponential, &[ExprKind::Function], alters_domain: true, |expr: &Expr, _context: &RuleContext| {
+    if let Expr::FunctionCall { name, args } = expr
+        && name == "ln"
+        && args.len() == 1
+    {
+        // Check for ln(exp(x))
+        if let Expr::FunctionCall {
+            name: inner_name,
+            args: inner_args,
+        } = &args[0]
+            && inner_name == "exp"
             && inner_args.len() == 1
         {
             return Some(inner_args[0].clone());
         }
-        None
-    }
-}
-
-/// Rule for ln(exp(x)) = x
-pub struct LnExpIdentityRule;
-
-impl Rule for LnExpIdentityRule {
-    fn name(&self) -> &'static str {
-        "ln_exp_identity"
-    }
-
-    fn priority(&self) -> i32 {
-        90
-    }
-
-    fn category(&self) -> RuleCategory {
-        RuleCategory::Exponential
-    }
-
-    fn applies_to(&self) -> &'static [ExprKind] {
-        &[ExprKind::Function]
-    }
-
-    fn apply(&self, expr: &Expr, _context: &RuleContext) -> Option<Expr> {
-        if let Expr::FunctionCall { name, args } = expr
-            && name == "ln"
-            && args.len() == 1
+        // Check for ln(e^x)
+        if let Expr::Pow(base, exp) = &args[0]
+            && let Expr::Symbol(b) = &**base
+            && b == "e"
         {
-            // Check for ln(exp(x))
-            if let Expr::FunctionCall {
-                name: inner_name,
-                args: inner_args,
-            } = &args[0]
-                && inner_name == "exp"
-                && inner_args.len() == 1
-            {
-                return Some(inner_args[0].clone());
-            }
-            // Check for ln(e^x)
-            if let Expr::Pow(base, exp) = &args[0]
-                && let Expr::Symbol(b) = &**base
-                && b == "e"
-            {
-                return Some(exp.as_ref().clone());
-            }
+            return Some(exp.as_ref().clone());
         }
-        None
     }
-}
+    None
+});
 
-/// Rule for log(x^n) = n * log(x) for ln, log10, log2
-/// For even integer exponents: log(x^2) = 2*log(|x|) - always correct
-/// For odd integer exponents: log(x^3) = 3*log(x) - only for x > 0, alters domain
-pub struct LogPowerRule;
-
-impl Rule for LogPowerRule {
-    fn name(&self) -> &'static str {
-        "log_power"
-    }
-
-    fn priority(&self) -> i32 {
-        90
-    }
-
-    fn category(&self) -> RuleCategory {
-        RuleCategory::Exponential
-    }
-
-    fn alters_domain(&self) -> bool {
-        // We handle domain safety dynamically in apply()
-        false
-    }
-
-    fn applies_to(&self) -> &'static [ExprKind] {
-        &[ExprKind::Function]
-    }
-
-    fn apply(&self, expr: &Expr, context: &RuleContext) -> Option<Expr> {
+rule!(
+    LogPowerRule,
+    "log_power",
+    90,
+    Exponential,
+    &[ExprKind::Function],
+    |expr: &Expr, context: &RuleContext| {
         if let Expr::FunctionCall { name, args } = expr
             && args.len() == 1
             && (name == "ln" || name == "log10" || name == "log2")
@@ -327,29 +218,15 @@ impl Rule for LogPowerRule {
         }
         None
     }
-}
+);
 
-/// Rule for specific log values: log10(1)=0, log10(10)=1, log2(1)=0, log2(2)=1
-pub struct LogBaseRules;
-
-impl Rule for LogBaseRules {
-    fn name(&self) -> &'static str {
-        "log_base_values"
-    }
-
-    fn priority(&self) -> i32 {
-        95
-    }
-
-    fn category(&self) -> RuleCategory {
-        RuleCategory::Exponential
-    }
-
-    fn applies_to(&self) -> &'static [ExprKind] {
-        &[ExprKind::Function]
-    }
-
-    fn apply(&self, expr: &Expr, _context: &RuleContext) -> Option<Expr> {
+rule!(
+    LogBaseRules,
+    "log_base_values",
+    95,
+    Exponential,
+    &[ExprKind::Function],
+    |expr: &Expr, _context: &RuleContext| {
         if let Expr::FunctionCall { name, args } = expr
             && args.len() == 1
         {
@@ -371,29 +248,15 @@ impl Rule for LogBaseRules {
         }
         None
     }
-}
+);
 
-/// Rule for exp(x) = e^x
-pub struct ExpToEPowRule;
-
-impl Rule for ExpToEPowRule {
-    fn name(&self) -> &'static str {
-        "exp_to_e_pow"
-    }
-
-    fn priority(&self) -> i32 {
-        95
-    }
-
-    fn category(&self) -> RuleCategory {
-        RuleCategory::Exponential
-    }
-
-    fn applies_to(&self) -> &'static [ExprKind] {
-        &[ExprKind::Function]
-    }
-
-    fn apply(&self, expr: &Expr, _context: &RuleContext) -> Option<Expr> {
+rule!(
+    ExpToEPowRule,
+    "exp_to_e_pow",
+    95,
+    Exponential,
+    &[ExprKind::Function],
+    |expr: &Expr, _context: &RuleContext| {
         if let Expr::FunctionCall { name, args } = expr
             && name == "exp"
             && args.len() == 1
@@ -405,33 +268,28 @@ impl Rule for ExpToEPowRule {
         }
         None
     }
+);
+
+/// Helper function to extract ln argument
+fn get_ln_arg(expr: &Expr) -> Option<Expr> {
+    if let Expr::FunctionCall { name, args } = expr
+        && name == "ln"
+        && args.len() == 1
+    {
+        return Some(args[0].clone());
+    }
+    None
 }
 
-/// Rule for ln(a) + ln(b) = ln(a*b) and ln(a) - ln(b) = ln(a/b)
-pub struct LogCombinationRule;
-
-impl Rule for LogCombinationRule {
-    fn name(&self) -> &'static str {
-        "log_combination"
-    }
-
-    fn priority(&self) -> i32 {
-        85
-    }
-
-    fn category(&self) -> RuleCategory {
-        RuleCategory::Exponential
-    }
-
-    fn applies_to(&self) -> &'static [ExprKind] {
-        &[ExprKind::Add, ExprKind::Sub]
-    }
-
-    fn apply(&self, expr: &Expr, _context: &RuleContext) -> Option<Expr> {
+rule_with_helpers!(LogCombinationRule, "log_combination", 85, Exponential, &[ExprKind::Add, ExprKind::Sub],
+    helpers: {
+        // Helper defined above
+    },
+    |expr: &Expr, _context: &RuleContext| {
         match expr {
             Expr::Add(u, v) => {
                 // ln(a) + ln(b) = ln(a * b)
-                if let (Some(arg1), Some(arg2)) = (Self::get_ln_arg(u), Self::get_ln_arg(v)) {
+                if let (Some(arg1), Some(arg2)) = (get_ln_arg(u), get_ln_arg(v)) {
                     return Some(Expr::FunctionCall {
                         name: "ln".to_string(),
                         args: vec![Expr::Mul(Rc::new(arg1), Rc::new(arg2))],
@@ -440,7 +298,7 @@ impl Rule for LogCombinationRule {
             }
             Expr::Sub(u, v) => {
                 // ln(a) - ln(b) = ln(a / b)
-                if let (Some(arg1), Some(arg2)) = (Self::get_ln_arg(u), Self::get_ln_arg(v)) {
+                if let (Some(arg1), Some(arg2)) = (get_ln_arg(u), get_ln_arg(v)) {
                     return Some(Expr::FunctionCall {
                         name: "ln".to_string(),
                         args: vec![Expr::Div(Rc::new(arg1), Rc::new(arg2))],
@@ -451,22 +309,10 @@ impl Rule for LogCombinationRule {
         }
         None
     }
-}
-
-impl LogCombinationRule {
-    fn get_ln_arg(expr: &Expr) -> Option<Expr> {
-        if let Expr::FunctionCall { name, args } = expr
-            && name == "ln"
-            && args.len() == 1
-        {
-            return Some(args[0].clone());
-        }
-        None
-    }
-}
+);
 
 /// Get all exponential/logarithmic rules in priority order
-pub fn get_exponential_rules() -> Vec<Rc<dyn Rule>> {
+pub(crate) fn get_exponential_rules() -> Vec<Rc<dyn Rule>> {
     vec![
         Rc::new(LnOneRule),
         Rc::new(LnERule),

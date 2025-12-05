@@ -136,7 +136,7 @@ fn test_derivative_simplification_from_examples() {
     let result = diff("sin(x) * cos(x)".to_string(), "x".to_string(), None, None).unwrap();
 
     // The result should be cos(2*x)
-    assert!(result.contains("cos(2 * x)"));
+    assert!(result.contains("cos(2x)"));
 }
 
 #[test]
@@ -149,5 +149,5 @@ fn test_chain_rule_derivative_from_examples() {
     assert!(result.contains("-4"));
     assert!(result.contains("cos(x)"));
     assert!(result.contains("sin(x)"));
-    assert!(result.contains("cos(cos(2 * x))"));
+    assert!(result.contains("cos(cos(2x))"));
 }

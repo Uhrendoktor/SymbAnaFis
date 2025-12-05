@@ -1,25 +1,50 @@
-# SymbAnaFis: Symbolic Analysis for Physics
+# SymbAnaFis: Fast Symbolic Differentiation for Python & Rust
 
-A fast, focused Rust library for symbolic differentiation and analysis, designed for physics and engineering applications.
+[![Crates.io](https://img.shields.io/crates/v/symb_anafis.svg)](https://crates.io/crates/symb_anafis)
+[![PyPI](https://img.shields.io/pypi/v/symb-anafis.svg)](https://pypi.org/project/symb-anafis/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## Features
+A **high-performance symbolic mathematics library** written in Rust with Python bindings. SymbAnaFis provides fast symbolic differentiation and simplification.
 
-- **Symbolic Differentiation**: Compute derivatives of complex mathematical expressions.
-- **Context-Aware Parsing**: Support for fixed variables (constants) and custom functions.
-- **Simplification**: Comprehensive algebraic, trigonometric, hyperbolic, and logarithmic simplification rules.
-- **Extensible**: Easily add new functions and simplification rules.
-- **Safe**: Built with Rust's safety guarantees, with limits on recursion depth and node count.
 
 ## Installation
+
+### Python (Recommended)
+
+```bash
+pip install symb-anafis
+```
+
+### Rust
 
 Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-symb_anafis = "0.1.0"
+symb_anafis = "0.2.5"
 ```
 
 ## Quick Start
+
+### Python
+
+```python
+import symb_anafis
+
+# Differentiation
+result = symb_anafis.diff("x^3 + 2*x^2 + x", "x")
+print(result)  # Output: 3 * x^2 + 4 * x + 1
+
+# Simplification
+result = symb_anafis.simplify("sin(x)^2 + cos(x)^2")
+print(result)  # Output: 1
+
+# With constants
+result = symb_anafis.diff("a * x^2", "x", fixed_vars=["a"])
+print(result)  # Output: 2 * a * x
+```
+
+### Rust
 
 ```rust
 use symb_anafis::{diff, simplify};
@@ -48,17 +73,218 @@ fn main() {
 }
 ```
 
+## Features
+
+✅ **Fast Differentiation**
+- Supports all standard calculus rules (product, chain, quotient, power)
+- Handles trigonometric, exponential, and logarithmic functions
+- Support for custom functions and implicit differentiation
+
+✅ **Powerful Simplification**
+- Automatic constant folding
+- Trigonometric identities (Pythagorean, double angle, etc.)
+- Algebraic simplification (factoring, expanding)
+- Fraction cancellation and rationalization
+
+✅ **Flexible API**
+- Fixed variables (constants that aren't differentiated)
+- Custom function definitions
+- Domain-safety mode to avoid incorrect simplifications (set `SYMB_ANAFIS_DOMAIN_SAFETY=true`)
+
+✅ **Cross-Language Support**
+- Native Rust performance with zero-cost abstractions
+- Python bindings via PyO3
+- Consistent API across languages
+
 ## Configuration
 
 You can configure safety limits using environment variables:
 
 - `SYMB_ANAFIS_MAX_DEPTH`: Maximum AST depth (default: 100)
 - `SYMB_ANAFIS_MAX_NODES`: Maximum AST node count (default: 10000)
+- `SYMB_ANAFIS_DOMAIN_SAFETY`: Enable domain-safe mode (default: false)
 
 ```bash
 export SYMB_ANAFIS_MAX_DEPTH=200
 export SYMB_ANAFIS_MAX_NODES=50000
+export SYMB_ANAFIS_DOMAIN_SAFETY=true
 ```
+
+### Domain-Safe Mode
+
+Domain-safe mode prevents mathematically incorrect simplifications by skipping rules that could alter the domain of expressions. For example:
+
+- **Without domain safety**: `sqrt(x^2)` → `x` (incorrect when x < 0)
+- **With domain safety**: `sqrt(x^2)` → `abs(x)` (correct for all real x)
+
+Enable domain-safe mode when you need guaranteed mathematical correctness:
+
+#### Python
+```bash
+export SYMB_ANAFIS_DOMAIN_SAFETY=true
+python -c "import symb_anafis; print(symb_anafis.simplify('sqrt(x^2)'))"
+# Output: abs(x)
+```
+
+#### Rust
+```rust
+use symb_anafis::simplify;
+
+// Set domain safety via environment variable before compilation
+// Or use the internal API (not recommended for external use)
+fn main() {
+    let result = simplify(
+        "sqrt(x^2)".to_string(),
+        Some(&["x".to_string()]),
+        None
+    ).unwrap();
+    println!("Result: {}", result);  // With SYMB_ANAFIS_DOMAIN_SAFETY=true: abs(x)
+}
+```
+
+## Examples
+
+### Physics: RC Circuit
+
+#### Python
+```python
+# Voltage in RC circuit: V(t) = V₀ * exp(-t/(R*C))
+voltage = "V0 * exp(-t / (R * C))"
+current = symb_anafis.diff(
+    voltage, 
+    "t", 
+    fixed_vars=["V0", "R", "C"]
+)
+print(current)  # Current: dV/dt
+```
+
+#### Rust
+```rust
+use symb_anafis::diff;
+
+fn main() {
+    let voltage = "V0 * exp(-t / (R * C))".to_string();
+    let current = diff(
+        voltage,
+        "t".to_string(),
+        Some(&["V0".to_string(), "R".to_string(), "C".to_string()]),
+        None
+    ).unwrap();
+    println!("Current: {}", current);
+}
+```
+
+### Statistics: Normal Distribution
+
+#### Python
+```python
+# Normal PDF: f(x) = exp(-(x-μ)²/(2σ²)) / √(2πσ²)
+pdf = "exp(-(x - mu)^2 / (2 * sigma^2)) / sqrt(2 * pi * sigma^2)"
+derivative = symb_anafis.diff(
+    pdf,
+    "x",
+    fixed_vars=["mu", "sigma"]
+)
+print(derivative)  # Derivative with respect to x
+```
+
+#### Rust
+```rust
+use symb_anafis::diff;
+
+fn main() {
+    let pdf = "exp(-(x - mu)^2 / (2 * sigma^2)) / sqrt(2 * pi * sigma^2)".to_string();
+    let derivative = diff(
+        pdf,
+        "x".to_string(),
+        Some(&["mu".to_string(), "sigma".to_string()]),
+        None
+    ).unwrap();
+    println!("Derivative: {}", derivative);
+}
+```
+
+### Calculus: Chain Rule
+
+#### Python
+```python
+# Chain rule: d/dx[sin(cos(tan(x)))]
+result = symb_anafis.diff("sin(cos(tan(x)))", "x")
+print(result)
+```
+
+#### Rust
+```rust
+use symb_anafis::diff;
+
+fn main() {
+    let result = diff(
+        "sin(cos(tan(x)))".to_string(),
+        "x".to_string(),
+        None,
+        None
+    ).unwrap();
+    println!("Result: {}", result);
+}
+```
+
+## API Reference
+
+### Python API
+
+#### `diff(formula, var, fixed_vars=None, custom_functions=None) -> str`
+
+Differentiate a mathematical expression.
+
+**Parameters:**
+- `formula` (str): Mathematical expression (e.g., `"x^2 + sin(x)"`)
+- `var` (str): Variable to differentiate with respect to
+- `fixed_vars` (list, optional): Variables that are constants
+- `custom_functions` (list, optional): User-defined function names
+
+**Returns:** Simplified derivative as a string
+
+**Raises:** `ValueError` if parsing/differentiation fails
+
+**Note:** Set environment variable `SYMB_ANAFIS_DOMAIN_SAFETY=true` for domain-safe simplification.
+
+#### `simplify(formula, fixed_vars=None, custom_functions=None) -> str`
+
+Simplify a mathematical expression.
+
+**Parameters:**
+- `formula` (str): Expression to simplify
+- `fixed_vars` (list, optional): Variables that are constants
+- `custom_functions` (list, optional): User-defined function names
+
+**Returns:** Simplified expression as a string
+
+**Note:** Set environment variable `SYMB_ANAFIS_DOMAIN_SAFETY=true` for domain-safe simplification.
+
+#### `parse(formula, fixed_vars=None, custom_functions=None) -> str`
+
+Parse and normalize an expression.
+
+**Parameters:**
+- `formula` (str): Expression to parse
+- `fixed_vars` (list, optional): Variables that are constants
+- `custom_functions` (list, optional): User-defined function names
+
+**Returns:** Normalized expression string
+
+### Rust API
+
+#### `diff(formula: String, var: String, fixed_vars: Option<&[String]>, custom_functions: Option<&[String]>) -> Result<String, DiffError>`
+
+Differentiate a mathematical expression.
+
+#### `simplify(formula: String, fixed_vars: Option<&[String]>, custom_functions: Option<&[String]>) -> Result<String, DiffError>`
+
+Simplify a mathematical expression. Set environment variable `SYMB_ANAFIS_DOMAIN_SAFETY=true` for domain-safe mode.
+
+#### `parse(formula: String, fixed_vars: Option<&[String]>, custom_functions: Option<&[String]>) -> Result<Expr, DiffError>`
+
+Parse and normalize an expression into an AST.
 
 ## Advanced Usage
 
@@ -66,19 +292,23 @@ export SYMB_ANAFIS_MAX_NODES=50000
 
 You can simplify expressions without differentiation:
 
+#### Python
+```python
+result = symb_anafis.simplify("sin(x)^2 + cos(x)^2")
+print(result)  # Output: 1
+```
+
+#### Rust
 ```rust
 use symb_anafis::simplify;
 
 fn main() {
-    // Simplify a complex expression
     let result = simplify(
         "sin(x)^2 + cos(x)^2".to_string(),
-        None, // No fixed variables
-        None  // No custom functions
+        None,
+        None
     ).unwrap();
-
-    println!("Simplified: {}", result);
-    // Output: 1
+    println!("Simplified: {}", result);  // Output: 1
 }
 ```
 
@@ -86,18 +316,24 @@ fn main() {
 
 For symbols with multiple characters (like "sigma", "alpha", etc.), pass them as fixed variables to ensure they're treated as single symbols:
 
+#### Python
+```python
+# This treats "sigma" as one symbol
+result = symb_anafis.simplify("(sigma^2)^2", fixed_vars=["sigma"])
+print(result)  # Output: sigma^4
+```
+
+#### Rust
 ```rust
 use symb_anafis::simplify;
 
 fn main() {
-    // This treats "sigma" as one symbol
     let result = simplify(
         "(sigma^2)^2".to_string(),
         Some(&["sigma".to_string()]),
         None
     ).unwrap();
-    println!("Simplified: {}", result);
-    // Output: sigma^4
+    println!("Simplified: {}", result);  // Output: sigma^4
 }
 ```
 
@@ -105,20 +341,50 @@ fn main() {
 
 You can define constants (like `a`, `b`) and custom functions (like `f(x)`) that are treated correctly during differentiation.
 
+#### Python
+```python
+result = symb_anafis.diff("a * f(x)", "x", fixed_vars=["a"], custom_functions=["f"])
+print(result)  # Output: a * ∂_f(x)/∂_x
+```
+
+#### Rust
 ```rust
 use symb_anafis::diff;
 
 fn main() {
-    // Differentiate a * f(x) with respect to x
     let result = diff(
         "a * f(x)".to_string(),
         "x".to_string(),
-        Some(&["a".to_string()]),       // 'a' is a constant
-        Some(&["f".to_string()])        // 'f' is a custom function
+        Some(&["a".to_string()]),
+        Some(&["f".to_string()])
     ).unwrap();
+    println!("Derivative: {}", result);  // Output: a * ∂_f(x)/∂_x
+}
+```
 
-    println!("Derivative: {}", result);
-    // Output: a * ∂_f(x)/∂_x
+### Domain-Safe Simplification
+
+Domain-safe mode prevents mathematically incorrect simplifications:
+
+#### Python
+```bash
+export SYMB_ANAFIS_DOMAIN_SAFETY=true
+python -c "import symb_anafis; print(symb_anafis.simplify('sqrt(x^2)'))"
+# Output: abs(x)  (correct for all real x)
+```
+
+#### Rust
+```rust
+use symb_anafis::simplify;
+
+fn main() {
+    // Domain safety is controlled by SYMB_ANAFIS_DOMAIN_SAFETY environment variable
+    let result = simplify(
+        "sqrt(x^2)".to_string(),
+        Some(&["x".to_string()]),
+        None
+    ).unwrap();
+    println!("Result: {}", result);  // abs(x) when domain safety is enabled
 }
 ```
 
@@ -133,6 +399,57 @@ fn main() {
 
 Note: The `polygamma(n, x)` function provides derivatives for all polygamma functions. Functions with non-elementary derivatives use custom notation.
 
+## Expression Syntax
+
+- **Variables:** `x`, `y`, `sigma`, etc.
+- **Numbers:** `1`, `3.14`, `1e-5`, `2.5e3`
+- **Operations:** `+`, `-`, `*`, `/`, `^` (power)
+- **Functions:** `sin()`, `cos()`, `exp()`, `ln()`, `sqrt()`
+- **Constants:** `pi`, `e` (automatically recognized)
+- **Implicit multiplication:** `2x` = `2*x`, `(x+1)(x-1)` = `(x+1)*(x-1)`
+
+## Comparison with SymPy
+
+| Feature | SymbAnaFis | SymPy |
+|---------|-----------|-------|
+| Speed (diff+simplify) | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ |
+| Differentiation | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
+| Simplification | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ |
+| Python Integration | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
+| Symbolic solving | ⭐ | ⭐⭐⭐⭐⭐ |
+| Maturity | Newer | Established |
+
+**When to use SymbAnaFis:**
+- You need fast differentiation + simplification
+- Performance is critical
+- You're working with real-world physics/engineering expressions
+
+**When to use SymPy:**
+- You need symbolic equation solving
+- You need broader symbolic capabilities
+- You prefer pure Python implementation
+
+## Building from Source
+
+```bash
+# Install Rust
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
+# Clone repository
+git clone https://github.com/CokieMiner/symb_anafis.git
+cd symb_anafis
+
+# Build Python bindings
+pip install maturin
+maturin develop --release
+
+# Build Rust library
+cargo build --release
+
+# Run tests
+cargo test --release
+```
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
@@ -140,3 +457,27 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Citation
+
+If you use SymbAnaFis in academic work, please cite:
+
+```bibtex
+@software{symb_anafis,
+  author = {CokieMiner},
+  title = {SymbAnaFis: Fast Symbolic Differentiation Library},
+  url = {https://github.com/CokieMiner/symb_anafis},
+  year = {2025}
+}
+```
+
+## Resources
+
+- **GitHub:** https://github.com/CokieMiner/symb_anafis
+- **Crates.io:** https://crates.io/crates/symb_anafis
+- **PyPI:** https://pypi.org/project/symb-anafis/
+- **Documentation:** https://docs.rs/symb_anafis
+
+---
+
+**Built with ❤️ in Rust for Python** 🚀

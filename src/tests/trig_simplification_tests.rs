@@ -1,5 +1,6 @@
 use crate::Expr;
-use crate::simplification::simplify;
+use crate::simplification::simplify_expr;
+use std::collections::HashSet;
 use std::rc::Rc;
 
 #[test]
@@ -12,7 +13,7 @@ fn test_trig_symmetry_extended() {
             Rc::new(Expr::Symbol("x".to_string())),
         )],
     };
-    let simplified = simplify(expr);
+    let simplified = simplify_expr(expr, HashSet::new());
     // Should be -1 * tan(x)
     if let Expr::Mul(a, b) = simplified {
         assert_eq!(*a, Expr::Number(-1.0));
@@ -34,7 +35,7 @@ fn test_trig_symmetry_extended() {
             Rc::new(Expr::Symbol("x".to_string())),
         )],
     };
-    let simplified = simplify(expr);
+    let simplified = simplify_expr(expr, HashSet::new());
     if let Expr::FunctionCall { name, args } = simplified {
         assert_eq!(name, "sec");
         assert_eq!(args[0], Expr::Symbol("x".to_string()));
@@ -53,7 +54,10 @@ fn test_inverse_composition() {
             args: vec![Expr::Symbol("x".to_string())],
         }],
     };
-    assert_eq!(simplify(expr), Expr::Symbol("x".to_string()));
+    assert_eq!(
+        simplify_expr(expr, HashSet::new()),
+        Expr::Symbol("x".to_string())
+    );
 
     // cos(acos(x)) = x
     let expr = Expr::FunctionCall {
@@ -63,7 +67,10 @@ fn test_inverse_composition() {
             args: vec![Expr::Symbol("x".to_string())],
         }],
     };
-    assert_eq!(simplify(expr), Expr::Symbol("x".to_string()));
+    assert_eq!(
+        simplify_expr(expr, HashSet::new()),
+        Expr::Symbol("x".to_string())
+    );
 
     // tan(atan(x)) = x
     let expr = Expr::FunctionCall {
@@ -73,7 +80,10 @@ fn test_inverse_composition() {
             args: vec![Expr::Symbol("x".to_string())],
         }],
     };
-    assert_eq!(simplify(expr), Expr::Symbol("x".to_string()));
+    assert_eq!(
+        simplify_expr(expr, HashSet::new()),
+        Expr::Symbol("x".to_string())
+    );
 }
 
 #[test]
@@ -86,7 +96,10 @@ fn test_inverse_composition_reverse() {
             args: vec![Expr::Symbol("x".to_string())],
         }],
     };
-    assert_eq!(simplify(expr), Expr::Symbol("x".to_string()));
+    assert_eq!(
+        simplify_expr(expr, HashSet::new()),
+        Expr::Symbol("x".to_string())
+    );
 
     // acos(cos(x)) = x
     let expr = Expr::FunctionCall {
@@ -96,7 +109,10 @@ fn test_inverse_composition_reverse() {
             args: vec![Expr::Symbol("x".to_string())],
         }],
     };
-    assert_eq!(simplify(expr), Expr::Symbol("x".to_string()));
+    assert_eq!(
+        simplify_expr(expr, HashSet::new()),
+        Expr::Symbol("x".to_string())
+    );
 }
 
 #[test]
@@ -118,7 +134,7 @@ fn test_pythagorean_identities() {
             Rc::new(Expr::Number(2.0)),
         )),
     );
-    assert_eq!(simplify(expr), Expr::Number(1.0));
+    assert_eq!(simplify_expr(expr, HashSet::new()), Expr::Number(1.0));
 
     // 1 + tan^2(x) = sec^2(x)
     let expr = Expr::Add(
@@ -131,7 +147,7 @@ fn test_pythagorean_identities() {
             Rc::new(Expr::Number(2.0)),
         )),
     );
-    let simplified = simplify(expr);
+    let simplified = simplify_expr(expr, HashSet::new());
     if let Expr::Pow(base, exp) = simplified {
         assert_eq!(*exp, Expr::Number(2.0));
         if let Expr::FunctionCall { name, args } = base.as_ref() {
@@ -155,7 +171,7 @@ fn test_pythagorean_identities() {
             Rc::new(Expr::Number(2.0)),
         )),
     );
-    let simplified = simplify(expr);
+    let simplified = simplify_expr(expr, HashSet::new());
     if let Expr::Pow(base, exp) = simplified {
         assert_eq!(*exp, Expr::Number(2.0));
         if let Expr::FunctionCall { name, args } = base.as_ref() {
@@ -180,7 +196,7 @@ fn test_cofunction_identities() {
             Rc::new(Expr::Symbol("x".to_string())),
         )],
     };
-    let simplified = simplify(expr);
+    let simplified = simplify_expr(expr, HashSet::new());
     if let Expr::FunctionCall { name, args } = simplified {
         assert_eq!(name, "cos");
         assert_eq!(args[0], Expr::Symbol("x".to_string()));
@@ -196,7 +212,7 @@ fn test_cofunction_identities() {
             Rc::new(Expr::Symbol("x".to_string())),
         )],
     };
-    let simplified = simplify(expr);
+    let simplified = simplify_expr(expr, HashSet::new());
     if let Expr::FunctionCall { name, args } = simplified {
         assert_eq!(name, "sin");
         assert_eq!(args[0], Expr::Symbol("x".to_string()));
@@ -216,7 +232,7 @@ fn test_trig_periodicity() {
             Rc::new(Expr::Number(2.0 * PI)),
         )],
     };
-    let simplified = simplify(expr);
+    let simplified = simplify_expr(expr, HashSet::new());
     if let Expr::FunctionCall { name, args } = simplified {
         assert_eq!(name, "sin");
         assert_eq!(args[0], Expr::Symbol("x".to_string()));
@@ -232,7 +248,7 @@ fn test_trig_periodicity() {
             Rc::new(Expr::Number(2.0 * PI)),
         )],
     };
-    let simplified = simplify(expr);
+    let simplified = simplify_expr(expr, HashSet::new());
     if let Expr::FunctionCall { name, args } = simplified {
         assert_eq!(name, "cos");
         assert_eq!(args[0], Expr::Symbol("x".to_string()));
@@ -252,7 +268,7 @@ fn test_trig_periodicity_general() {
             Rc::new(Expr::Number(4.0 * PI)),
         )],
     };
-    let simplified = simplify(expr);
+    let simplified = simplify_expr(expr, HashSet::new());
     if let Expr::FunctionCall { name, args } = simplified {
         assert_eq!(name, "sin");
         assert_eq!(args[0], Expr::Symbol("x".to_string()));
@@ -268,7 +284,7 @@ fn test_trig_periodicity_general() {
             Rc::new(Expr::Number(-2.0 * PI)),
         )],
     };
-    let simplified = simplify(expr);
+    let simplified = simplify_expr(expr, HashSet::new());
     if let Expr::FunctionCall { name, args } = simplified {
         assert_eq!(name, "cos");
         assert_eq!(args[0], Expr::Symbol("x".to_string()));
@@ -288,7 +304,7 @@ fn test_trig_reflection_shifts() {
             Rc::new(Expr::Symbol("x".to_string())),
         )],
     };
-    let simplified = simplify(expr);
+    let simplified = simplify_expr(expr, HashSet::new());
     if let Expr::FunctionCall { name, args } = simplified {
         assert_eq!(name, "sin");
         assert_eq!(args[0], Expr::Symbol("x".to_string()));
@@ -304,7 +320,7 @@ fn test_trig_reflection_shifts() {
             Rc::new(Expr::Symbol("x".to_string())),
         )],
     };
-    let simplified = simplify(expr);
+    let simplified = simplify_expr(expr, HashSet::new());
     if let Expr::Mul(a, b) = simplified {
         assert_eq!(*a, Expr::Number(-1.0));
         if let Expr::FunctionCall { name, args } = b.as_ref() {
@@ -325,7 +341,7 @@ fn test_trig_reflection_shifts() {
             Rc::new(Expr::Symbol("x".to_string())),
         )],
     };
-    let simplified = simplify(expr);
+    let simplified = simplify_expr(expr, HashSet::new());
     if let Expr::Mul(a, b) = simplified {
         assert_eq!(*a, Expr::Number(-1.0));
         if let Expr::FunctionCall { name, args } = b.as_ref() {
@@ -348,28 +364,28 @@ fn test_trig_exact_values_extended() {
         name: "sin".to_string(),
         args: vec![Expr::Number(PI / 6.0)],
     };
-    assert_eq!(simplify(expr), Expr::Number(0.5));
+    assert_eq!(simplify_expr(expr, HashSet::new()), Expr::Number(0.5));
 
     // cos(pi/3) = 0.5
     let expr = Expr::FunctionCall {
         name: "cos".to_string(),
         args: vec![Expr::Number(PI / 3.0)],
     };
-    assert_eq!(simplify(expr), Expr::Number(0.5));
+    assert_eq!(simplify_expr(expr, HashSet::new()), Expr::Number(0.5));
 
     // tan(pi/4) = 1.0
     let expr = Expr::FunctionCall {
         name: "tan".to_string(),
         args: vec![Expr::Number(PI / 4.0)],
     };
-    assert_eq!(simplify(expr), Expr::Number(1.0));
+    assert_eq!(simplify_expr(expr, HashSet::new()), Expr::Number(1.0));
 
     // sin(pi/4) = sqrt(2)/2 approx 0.70710678
     let expr = Expr::FunctionCall {
         name: "sin".to_string(),
         args: vec![Expr::Number(PI / 4.0)],
     };
-    let simplified = simplify(expr);
+    let simplified = simplify_expr(expr, HashSet::new());
     if let Expr::Number(n) = simplified {
         assert!((n - (2.0f64.sqrt() / 2.0)).abs() < 1e-10);
     } else {
@@ -387,7 +403,7 @@ fn test_double_angle_formulas() {
             Rc::new(Expr::Symbol("x".to_string())),
         )],
     };
-    let simplified = simplify(expr);
+    let simplified = simplify_expr(expr, HashSet::new());
     // Should be 2*sin(x)*cos(x) - the structure is ((2*cos(x))*sin(x))
     if let Expr::Mul(a, b) = &simplified {
         // a should be (2*cos(x))
@@ -421,7 +437,7 @@ fn test_double_angle_formulas() {
             Rc::new(Expr::Symbol("x".to_string())),
         )],
     };
-    let simplified = simplify(expr);
+    let simplified = simplify_expr(expr, HashSet::new());
     // Should stay as cos(2x)
     if let Expr::FunctionCall { name, args } = simplified {
         assert_eq!(name, "cos");
@@ -443,7 +459,7 @@ fn test_double_angle_formulas() {
             Rc::new(Expr::Symbol("x".to_string())),
         )],
     };
-    let simplified = simplify(expr);
+    let simplified = simplify_expr(expr, HashSet::new());
     // Should stay as tan(2x)
     if let Expr::FunctionCall { name, args } = simplified {
         assert_eq!(name, "tan");

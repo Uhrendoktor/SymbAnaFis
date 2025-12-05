@@ -2,6 +2,175 @@ use crate::Expr;
 use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
+/// Macro to define a simplification rule with minimal boilerplate
+///
+/// Basic usage:
+/// ```ignore
+/// rule!(RuleName, "rule_name", priority, Category, &[ExprKind::Type], |expr, context| { logic })
+/// ```
+///
+/// With alters_domain:
+/// ```ignore
+/// rule!(RuleName, "rule_name", priority, Category, &[ExprKind::Type], alters_domain: true, |expr, context| { logic })
+/// ```
+///
+/// With helper functions (use rule_with_helpers! instead for complex cases)
+#[macro_export]
+macro_rules! rule {
+    // Basic form without alters_domain
+    ($name:ident, $rule_name:expr, $priority:expr, $category:ident, $applies_to:expr, $logic:expr) => {
+        pub struct $name;
+
+        impl Rule for $name {
+            fn name(&self) -> &'static str {
+                $rule_name
+            }
+
+            fn priority(&self) -> i32 {
+                $priority
+            }
+
+            fn category(&self) -> RuleCategory {
+                RuleCategory::$category
+            }
+
+            fn applies_to(&self) -> &'static [ExprKind] {
+                $applies_to
+            }
+
+            fn apply(&self, expr: &Expr, context: &RuleContext) -> Option<Expr> {
+                // Suppress unused variable warning when context isn't used
+                let _ = context;
+                ($logic)(expr, context)
+            }
+        }
+    };
+
+    // Form with alters_domain
+    ($name:ident, $rule_name:expr, $priority:expr, $category:ident, $applies_to:expr, alters_domain: $alters:expr, $logic:expr) => {
+        pub struct $name;
+
+        impl Rule for $name {
+            fn name(&self) -> &'static str {
+                $rule_name
+            }
+
+            fn priority(&self) -> i32 {
+                $priority
+            }
+
+            fn category(&self) -> RuleCategory {
+                RuleCategory::$category
+            }
+
+            fn alters_domain(&self) -> bool {
+                $alters
+            }
+
+            fn applies_to(&self) -> &'static [ExprKind] {
+                $applies_to
+            }
+
+            fn apply(&self, expr: &Expr, context: &RuleContext) -> Option<Expr> {
+                // Suppress unused variable warning when context isn't used
+                let _ = context;
+                ($logic)(expr, context)
+            }
+        }
+    };
+}
+
+/// Macro for rules that need helper functions defined inside apply()
+/// The helpers block is inserted at the start of apply()
+///
+/// Usage:
+/// ```ignore
+/// rule_with_helpers!(RuleName, "rule_name", priority, Category, &[ExprKind::Type],
+///     helpers: {
+///         fn my_helper(x: &Expr) -> bool { ... }
+///     },
+///     |expr, context| { logic using my_helper }
+/// )
+/// ```
+#[macro_export]
+macro_rules! rule_with_helpers {
+    ($name:ident, $rule_name:expr, $priority:expr, $category:ident, $applies_to:expr,
+     helpers: { $($helper:item)* },
+     $logic:expr) => {
+        pub struct $name;
+
+        impl Rule for $name {
+            fn name(&self) -> &'static str {
+                $rule_name
+            }
+
+            fn priority(&self) -> i32 {
+                $priority
+            }
+
+            fn category(&self) -> RuleCategory {
+                RuleCategory::$category
+            }
+
+            fn applies_to(&self) -> &'static [ExprKind] {
+                $applies_to
+            }
+
+            fn apply(&self, expr: &Expr, context: &RuleContext) -> Option<Expr> {
+                // Suppress unused variable warning when context isn't used
+                let _ = context;
+
+                // Helper functions
+                $($helper)*
+
+                // Main logic
+                ($logic)(expr, context)
+            }
+        }
+    };
+
+    // With alters_domain
+    ($name:ident, $rule_name:expr, $priority:expr, $category:ident, $applies_to:expr,
+     alters_domain: $alters:expr,
+     helpers: { $($helper:item)* },
+     $logic:expr) => {
+        pub struct $name;
+
+        impl Rule for $name {
+            fn name(&self) -> &'static str {
+                $rule_name
+            }
+
+            fn priority(&self) -> i32 {
+                $priority
+            }
+
+            fn category(&self) -> RuleCategory {
+                RuleCategory::$category
+            }
+
+            fn alters_domain(&self) -> bool {
+                $alters
+            }
+
+            fn applies_to(&self) -> &'static [ExprKind] {
+                $applies_to
+            }
+
+            fn apply(&self, expr: &Expr, context: &RuleContext) -> Option<Expr> {
+                // Suppress unused variable warning when context isn't used
+                let _ = context;
+
+                // Helper functions
+                $($helper)*
+
+                // Main logic
+                ($logic)(expr, context)
+            }
+        }
+    };
+}
+
 /// Expression kind for fast rule filtering
 /// Rules declare which expression kinds they can apply to
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
@@ -74,9 +243,10 @@ pub enum RuleCategory {
 }
 
 /// Priority ranges for different types of operations:
-/// - 100-199: Expansion rules (distribute, expand powers, etc.)
-/// - 50-99: Identity/Cancellation rules (x/x=1, x-x=0, etc.)
-/// - 1-49: Compression/Consolidation rules (combine terms, factor, etc.)
+/// - 85-95: Expansion rules (distribute, expand powers, flatten nested structures)
+/// - 70-84: Identity/Cancellation rules (x/x=1, x-x=0, x^a/x^b=x^(a-b), etc.)
+/// - 40-69: Compression/Consolidation rules (combine terms, factor, compact a^n/b^n → (a/b)^n)
+/// - 1-39: Canonicalization rules (sort terms, normalize display form)
 ///
 /// Context passed to rules during application
 #[derive(Clone, Debug, Default)]
@@ -116,25 +286,25 @@ impl RuleContext {
 }
 
 /// Numeric simplification rules
-pub mod numeric;
+pub(crate) mod numeric;
 
 /// Algebraic simplification rules
-pub mod algebraic;
+pub(crate) mod algebraic;
 
 /// Trigonometric simplification rules
-pub mod trigonometric;
+pub(crate) mod trigonometric;
 
 /// Exponential and logarithmic simplification rules
-pub mod exponential;
+pub(crate) mod exponential;
 
 /// Root simplification rules
-pub mod root;
+pub(crate) mod root;
 
 /// Hyperbolic function simplification rules
-pub mod hyperbolic;
+pub(crate) mod hyperbolic;
 
 /// Rule Registry for dynamic loading and dependency management
-pub struct RuleRegistry {
+pub(crate) struct RuleRegistry {
     pub(crate) rules: Vec<Rc<dyn Rule>>,
     /// Rules indexed by expression kind for fast lookup
     rules_by_kind: HashMap<ExprKind, Vec<Rc<dyn Rule>>>,

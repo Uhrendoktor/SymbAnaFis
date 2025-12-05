@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod division_bug_tests {
-    use crate::{Expr, simplification::simplify};
+    use crate::{Expr, simplification::simplify_expr};
+    use std::collections::HashSet;
     use std::rc::Rc;
     #[test]
     fn verify_display_parens() {
@@ -18,8 +19,8 @@ mod division_bug_tests {
         let display = format!("{}", expr);
         println!("Display: {}", display);
         assert_eq!(
-            display, "A / (C * R^2)",
-            "Display should be 'A / (C * R^2)' not '{}'",
+            display, "A/(C*R^2)",
+            "Display should be 'A/(C*R^2)' not '{}'",
             display
         );
     }
@@ -48,14 +49,14 @@ mod division_bug_tests {
         );
 
         println!("Original:   {}", expr);
-        let simplified = simplify(expr);
+        let simplified = simplify_expr(expr, HashSet::new());
         println!("Simplified: {}", simplified);
 
-        // Expected: -V0 / R
+        // Expected: -V0/R
         let display = format!("{}", simplified);
         assert_eq!(
-            display, "-V0 / R",
-            "Simplification should be '-V0 / R' not '{}'",
+            display, "-V0/R",
+            "Simplification should be '-V0/R' not '{}'",
             display
         );
     }

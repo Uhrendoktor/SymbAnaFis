@@ -26,11 +26,7 @@ mod tests;
 pub use ast::Expr;
 pub use error::DiffError;
 pub use parser::parse;
-
-// Re-export simplification module for AST-level operations
-pub use simplification::{
-    simplify as simplify_ast, simplify_with_fixed_vars as simplify_ast_with_fixed_vars,
-};
+pub use simplification::simplify_expr;
 
 use std::collections::HashSet;
 use std::env;
@@ -123,9 +119,9 @@ pub fn diff(
 
     // Step 6: Simplify with configured domain safety and fixed vars
     let simplified = if domain_safety() {
-        simplification::simplify_domain_safe_with_fixed_vars(derivative, fixed_set)
+        simplification::simplify_domain_safe(derivative, fixed_set)
     } else {
-        simplification::simplify_with_fixed_vars(derivative, fixed_set)
+        simplification::simplify_expr(derivative, fixed_set)
     };
 
     // Step 7: Convert to string
@@ -144,7 +140,7 @@ pub fn diff(
 ///
 /// # Example
 /// ```ignore
-/// let result = simplify(
+/// let result = simplify_str(
 ///     "x^2 + 2*x + 1".to_string(),
 ///     None, // No fixed variables
 ///     None  // No custom functions
@@ -182,9 +178,9 @@ pub fn simplify(
 
     // Step 4: Simplify with configured domain safety and fixed vars
     let simplified = if domain_safety() {
-        simplification::simplify_domain_safe_with_fixed_vars(ast, fixed_set)
+        simplification::simplify_domain_safe(ast, fixed_set)
     } else {
-        simplification::simplify_with_fixed_vars(ast, fixed_set)
+        simplification::simplify_expr(ast, fixed_set)
     };
 
     // Step 5: Convert to string

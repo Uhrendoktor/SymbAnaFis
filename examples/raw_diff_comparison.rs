@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 use std::time::Instant;
-use symb_anafis::{parse, simplify_ast};
+use symb_anafis::{parse, simplify_expr};
 
 fn main() {
     // Normal PDF expression - complex real-world example
@@ -30,9 +30,10 @@ fn main() {
 
             // Benchmark diff + simplify
             let start = Instant::now();
-            let mut simplified_diff = simplify_ast(expr.derive("x", &fixed_vars));
+            let mut simplified_diff =
+                simplify_expr(expr.derive("x", &fixed_vars), fixed_vars.clone());
             for _ in 1..iterations {
-                simplified_diff = simplify_ast(expr.derive("x", &fixed_vars));
+                simplified_diff = simplify_expr(expr.derive("x", &fixed_vars), fixed_vars.clone());
             }
             let simp_time = start.elapsed().as_micros() as f64 / iterations as f64;
 

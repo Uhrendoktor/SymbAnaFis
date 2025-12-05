@@ -46,8 +46,8 @@ mod tests {
 
         // Expect (2*x + 1)^2 or equivalent
         assert!(
-            result_str.contains("(2 * x + 1)^2") || result_str.contains("(1 + 2 * x)^2"),
-            "Expected (2*x + 1)^2, got: {}",
+            result_str.contains("(2x + 1)^2") || result_str.contains("(1 + 2x)^2"),
+            "Expected (2x + 1)^2, got: {}",
             result_str
         );
     }

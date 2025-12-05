@@ -9,7 +9,7 @@ mod tests {
         let expr = "C * R / (C * R)^2";
         let simplified = simplify(expr.to_string(), None, None).unwrap();
         println!("{} -> {}", expr, simplified);
-        assert_eq!(simplified.to_string(), "1 / (C * R)");
+        assert_eq!(simplified.to_string(), "1/(C*R)");
     }
 
     #[test]
@@ -18,7 +18,7 @@ mod tests {
         let expr = "sqrt(x) / x";
         let simplified = simplify(expr.to_string(), None, None).unwrap();
         println!("{} -> {}", expr, simplified);
-        assert_eq!(simplified.to_string(), "1 / sqrt(x)");
+        assert_eq!(simplified.to_string(), "1/sqrt(x)");
     }
 
     #[test]
@@ -27,7 +27,7 @@ mod tests {
         let expr = "2 * x / 4";
         let simplified = simplify(expr.to_string(), None, None).unwrap();
         println!("{} -> {}", expr, simplified);
-        assert_eq!(simplified.to_string(), "x / 2");
+        assert_eq!(simplified.to_string(), "x/2");
     }
 
     #[test]
@@ -42,13 +42,14 @@ mod tests {
             Rc::new(Expr::Mul(Rc::new(a.clone()), Rc::new(b.clone()))),
         );
 
-        let simplified = crate::simplification::simplify(expr);
+        let simplified =
+            crate::simplification::simplify_expr(expr, std::collections::HashSet::new());
         let result = format!("{}", simplified);
         println!("sqrt(a * b) / (a * b) -> {}", result);
 
         assert!(
-            result.contains("1 / sqrt(a * b)") || result.contains("1 / (sqrt(a) * sqrt(b))"),
-            "Expected 1 / sqrt(a * b) or equivalent, got {}",
+            result.contains("1/sqrt(a*b)") || result.contains("1/(sqrt(a)*sqrt(b))"),
+            "Expected 1/sqrt(a*b) or equivalent, got {}",
             result
         );
     }
@@ -82,7 +83,8 @@ mod tests {
         );
         let expr = Expr::Div(Rc::new(num), Rc::new(den));
 
-        let simplified = crate::simplification::simplify(expr);
+        let simplified =
+            crate::simplification::simplify_expr(expr, std::collections::HashSet::new());
         let result = format!("{}", simplified);
         println!("Heat flux term -> {}", result);
 
@@ -98,5 +100,25 @@ mod tests {
             "Should not contain sqrt(t) in numerator, got {}",
             result
         );
+    }
+
+    #[test]
+    fn test_power_div_cancellation() {
+        // (x - 1)^2 / (x - 1) should simplify to (x - 1)
+        let expr = "(x - 1)^2 / (x - 1)";
+        let result = simplify(expr.to_string(), None, None).unwrap();
+        println!("(x-1)^2 / (x-1) = {}", result);
+        // Should be x - 1
+        assert_eq!(result.to_string(), "x - 1");
+    }
+
+    #[test]
+    fn test_full_fraction_cancellation() {
+        // (x - 1)^2 * (x + 1) / (x^2 - 1) should simplify to (x - 1)
+        let expr = "(x - 1)^2 * (x + 1) / (x^2 - 1)";
+        let result = simplify(expr.to_string(), None, None).unwrap();
+        println!("(x-1)^2 * (x+1) / (x^2-1) = {}", result);
+        // Should be x - 1
+        assert_eq!(result.to_string(), "x - 1");
     }
 }

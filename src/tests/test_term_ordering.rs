@@ -1,10 +1,11 @@
 // Test to verify that hyperbolic conversion patterns handle different term orderings
 use crate::Expr;
-use crate::simplification::simplify;
+use crate::simplification::simplify_expr;
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::HashSet;
     use std::rc::Rc;
     #[test]
     fn test_cosh_reversed_order() {
@@ -27,7 +28,7 @@ mod tests {
             Rc::new(Expr::Number(2.0)),
         );
 
-        let simplified = simplify(expr);
+        let simplified = simplify_expr(expr, HashSet::new());
         if let Expr::FunctionCall { name, args } = simplified {
             assert_eq!(name, "cosh");
             assert_eq!(args[0], Expr::Symbol("x".to_string()));
@@ -57,7 +58,7 @@ mod tests {
             Rc::new(Expr::Number(2.0)),
         );
 
-        let simplified = simplify(expr);
+        let simplified = simplify_expr(expr, HashSet::new());
         if let Expr::FunctionCall { name, args } = simplified {
             assert_eq!(name, "cosh");
             assert_eq!(args[0], Expr::Symbol("x".to_string()));
@@ -99,7 +100,7 @@ mod tests {
             )),
         );
 
-        let simplified = simplify(expr);
+        let simplified = simplify_expr(expr, HashSet::new());
         if let Expr::FunctionCall { name, args } = simplified {
             assert_eq!(name, "coth");
             assert_eq!(args[0], Expr::Symbol("x".to_string()));
@@ -141,7 +142,7 @@ mod tests {
             )),
         );
 
-        let simplified = simplify(expr);
+        let simplified = simplify_expr(expr, HashSet::new());
         if let Expr::FunctionCall { name, args } = simplified {
             assert_eq!(name, "tanh");
             assert_eq!(args[0], Expr::Symbol("x".to_string()));
@@ -171,7 +172,7 @@ mod tests {
             )),
         );
 
-        let simplified = simplify(expr);
+        let simplified = simplify_expr(expr, HashSet::new());
         if let Expr::FunctionCall { name, args } = simplified {
             assert_eq!(name, "sech");
             assert_eq!(args[0], Expr::Symbol("x".to_string()));
@@ -212,7 +213,7 @@ mod tests {
             Rc::new(Expr::Number(2.0)),
         );
 
-        let simplified = simplify(expr);
+        let simplified = simplify_expr(expr, HashSet::new());
         if let Expr::FunctionCall { name, args } = simplified {
             assert_eq!(name, "sinh");
             assert_eq!(args[0], Expr::Symbol("x".to_string()));
@@ -245,7 +246,7 @@ mod tests {
             Rc::new(Expr::Number(2.0)),
         );
 
-        let simplified = simplify(expr);
+        let simplified = simplify_expr(expr, HashSet::new());
         if let Expr::FunctionCall { name, args } = simplified {
             assert_eq!(name, "sinh");
             assert_eq!(args[0], Expr::Symbol("x".to_string()));

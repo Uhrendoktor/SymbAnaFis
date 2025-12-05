@@ -3,6 +3,7 @@ mod advanced_simplification_tests;
 mod advanced_tests;
 mod debug_div_hang;
 mod debug_division_structure;
+mod debug_issue;
 mod debug_rc;
 mod debug_root;
 mod debug_root_issue;

@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod tests {
-    use crate::{Expr, simplification::simplify};
+    use crate::{Expr, simplification::simplify_expr};
+    use std::collections::HashSet;
     use std::rc::Rc;
 
     #[test]
@@ -19,7 +20,7 @@ mod tests {
             )),
             Rc::new(Expr::Number(1.0)),
         );
-        let simplified = simplify(expr);
+        let simplified = simplify_expr(expr, HashSet::new());
         println!("Simplified: {:?}", simplified);
 
         // Expected: (x + 1)^2

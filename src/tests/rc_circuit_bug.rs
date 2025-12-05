@@ -1,7 +1,7 @@
 #[cfg(test)]
 
 mod rc_circuit_differentiation_bug {
-    use crate::{Expr, simplification::simplify};
+    use crate::{Expr, simplification::simplify_expr};
     use std::collections::HashSet;
     use std::rc::Rc;
     #[test]
@@ -38,7 +38,7 @@ mod rc_circuit_differentiation_bug {
         println!("Derivative (raw): {}", deriv);
 
         // Simplify
-        let simplified = simplify(deriv);
+        let simplified = simplify_expr(deriv, fixed_vars);
         println!("Derivative (simplified): {}", simplified);
 
         // Expected: -V0 * exp(-t / (R * C)) / (R * C)

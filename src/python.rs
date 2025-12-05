@@ -120,7 +120,7 @@ fn parse(
 /// Example:
 ///     >>> import symb_anafis
 ///     >>> symb_anafis.diff("x^3 + 2*x^2 + x", "x")
-///     '3 * x^2 + 4 * x + 1'
+///     '3*x^2+4*x+1'
 ///     >>> symb_anafis.simplify("sin(x)^2 + cos(x)^2")
 ///     '1'
 #[pymodule]

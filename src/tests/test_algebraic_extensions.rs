@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod tests {
-    use crate::{Expr, simplification::simplify};
+    use crate::{Expr, simplification::simplify_expr};
+    use std::collections::HashSet;
     use std::rc::Rc;
 
     // Rule 1: Pull Out Common Factors
@@ -17,7 +18,7 @@ mod tests {
                 Rc::new(Expr::Symbol("z".to_string())),
             )),
         );
-        let simplified = simplify(expr);
+        let simplified = simplify_expr(expr, HashSet::new());
         // Expected: x * (y + z) or (y + z) * x (both are valid after canonicalization)
         // Note: The order of factors and terms might depend on canonicalization
         if let Expr::Mul(a, b) = simplified {
@@ -71,7 +72,7 @@ mod tests {
             Rc::new(Expr::Mul(Rc::new(ex.clone()), Rc::new(cosx.clone()))),
         );
 
-        let simplified = simplify(expr);
+        let simplified = simplify_expr(expr, HashSet::new());
         // Expected: e^x * (sin(x) + cos(x)) or (sin(x) + cos(x)) * e^x
         if let Expr::Mul(a, b) = simplified {
             let (exp_part, sum_part) = if *a == ex {
@@ -110,7 +111,7 @@ mod tests {
                 Rc::new(Expr::Symbol("C".to_string())),
             )),
         );
-        let simplified = simplify(expr);
+        let simplified = simplify_expr(expr, HashSet::new());
         // Expected: (A+B)/C
         if let Expr::Div(num, den) = simplified {
             assert_eq!(*den, Expr::Symbol("C".to_string()));
@@ -140,7 +141,7 @@ mod tests {
                 Rc::new(Expr::Symbol("B".to_string())),
             )),
         );
-        let simplified = simplify(expr);
+        let simplified = simplify_expr(expr, HashSet::new());
         // Expected: B - A or B + (-A), which should display as B - A
         let display = format!("{}", simplified);
         assert!(
@@ -163,7 +164,7 @@ mod tests {
                 )),
             )),
         );
-        let simplified = simplify(expr);
+        let simplified = simplify_expr(expr, HashSet::new());
         let display = format!("{}", simplified);
         assert!(
             display == "B - A" || display == "B + (-1) * A",
@@ -185,7 +186,7 @@ mod tests {
                 Rc::new(Expr::Symbol("B".to_string())),
             )),
         );
-        let simplified = simplify(expr);
+        let simplified = simplify_expr(expr, HashSet::new());
         if let Expr::Div(num, den) = simplified {
             assert_eq!(*num, Expr::Symbol("A".to_string()));
             assert_eq!(*den, Expr::Symbol("B".to_string()));
@@ -205,7 +206,7 @@ mod tests {
                 Rc::new(Expr::Symbol("x".to_string())),
             )),
         );
-        let simplified = simplify(expr);
+        let simplified = simplify_expr(expr, HashSet::new());
         if let Expr::Pow(base, exp) = simplified {
             assert_eq!(*base, Expr::Number(2.0));
             if let Expr::Add(a, b) = exp.as_ref() {
@@ -240,7 +241,7 @@ mod tests {
             Rc::new(Expr::Mul(Rc::new(sinx.clone()), Rc::new(ex.clone()))),
         );
 
-        let simplified = simplify(expr);
+        let simplified = simplify_expr(expr, HashSet::new());
 
         // Expected: e^x * (1 + sin(x)) or (1 + sin(x)) * e^x
         if let Expr::Mul(a, b) = simplified {

@@ -121,10 +121,7 @@ impl Expr {
                                 name: "sin".to_string(),
                                 args: vec![content.clone()],
                             };
-                            let neg_sin_u = Expr::Mul(
-                                Rc::new(Expr::Number(-1.0)),
-                                Rc::new(sin_u),
-                            );
+                            let neg_sin_u = Expr::Mul(Rc::new(Expr::Number(-1.0)), Rc::new(sin_u));
                             if u_prime.as_number() == Some(1.0) {
                                 neg_sin_u
                             } else {
@@ -139,10 +136,8 @@ impl Expr {
                         if u_prime.as_number() == Some(0.0) {
                             Expr::Number(0.0)
                         } else {
-                            let inv_u = Expr::Pow(
-                                Rc::new(content.clone()),
-                                Rc::new(Expr::Number(-1.0)),
-                            );
+                            let inv_u =
+                                Expr::Pow(Rc::new(content.clone()), Rc::new(Expr::Number(-1.0)));
                             if u_prime.as_number() == Some(1.0) {
                                 inv_u
                             } else {
@@ -1275,7 +1270,7 @@ impl Expr {
                     // Constant exponent - use standard power rule
                     // (u^n)' = n * u^(n-1) * u'
                     let u_prime = u.derive(var, fixed_vars);
-                    
+
                     // If u' is 0, result is 0
                     if u_prime.as_number() == Some(0.0) {
                         Expr::Number(0.0)
@@ -1316,16 +1311,13 @@ impl Expr {
                             // Non-numeric constant exponent
                             let n_minus_1 = Expr::Sub(v.clone(), Rc::new(Expr::Number(1.0)));
                             let u_pow_n_minus_1 = Expr::Pow(u.clone(), Rc::new(n_minus_1));
-                            
+
                             if u_prime.as_number() == Some(1.0) {
                                 Expr::Mul(v.clone(), Rc::new(u_pow_n_minus_1))
                             } else {
                                 Expr::Mul(
                                     v.clone(),
-                                    Rc::new(Expr::Mul(
-                                        Rc::new(u_pow_n_minus_1),
-                                        Rc::new(u_prime),
-                                    )),
+                                    Rc::new(Expr::Mul(Rc::new(u_pow_n_minus_1), Rc::new(u_prime))),
                                 )
                             }
                         }
@@ -1355,15 +1347,16 @@ impl Expr {
                                 args: vec![u.as_ref().clone()],
                             }
                         };
-                        let term1 = if v_prime.as_number() == Some(0.0) || ln_u.as_number() == Some(0.0) {
-                            Expr::Number(0.0)
-                        } else if v_prime.as_number() == Some(1.0) {
-                            ln_u
-                        } else if ln_u.as_number() == Some(1.0) {
-                            v_prime.clone()
-                        } else {
-                            Expr::Mul(Rc::new(v_prime.clone()), Rc::new(ln_u))
-                        };
+                        let term1 =
+                            if v_prime.as_number() == Some(0.0) || ln_u.as_number() == Some(0.0) {
+                                Expr::Number(0.0)
+                            } else if v_prime.as_number() == Some(1.0) {
+                                ln_u
+                            } else if ln_u.as_number() == Some(1.0) {
+                                v_prime.clone()
+                            } else {
+                                Expr::Mul(Rc::new(v_prime.clone()), Rc::new(ln_u))
+                            };
 
                         // Term 2: v * (u'/u)
                         let u_over_u_prime = if u_prime.as_number() == Some(0.0) {

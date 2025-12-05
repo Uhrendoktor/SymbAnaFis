@@ -1,7 +1,7 @@
 use crate::Expr;
 
 /// Common pattern matching utilities for simplification rules
-pub mod common {
+pub(crate) mod common {
     use super::*;
 
     /// Extract coefficient and base from a multiplication term
@@ -22,7 +22,7 @@ pub mod common {
 }
 
 /// Trigonometric pattern matching utilities
-pub mod trigonometric {
+pub(crate) mod trigonometric {
     use super::*;
 
     /// Extract function name and argument if expression is a trig function

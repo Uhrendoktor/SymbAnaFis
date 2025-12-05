@@ -1,7 +1,8 @@
 #[cfg(test)]
 
 mod actual_bug_test {
-    use crate::{Expr, simplification::simplify};
+    use crate::{Expr, simplification::simplify_expr};
+    use std::collections::HashSet;
     use std::rc::Rc;
 
     #[test]
@@ -54,19 +55,19 @@ mod actual_bug_test {
         println!("\nOriginal expression:");
         println!("{}", expr);
 
-        let simplified = simplify(expr);
+        let simplified = simplify_expr(expr, HashSet::new());
 
         println!("\nSimplified expression:");
         println!("{}", simplified);
 
         println!("\nExpected:");
-        println!("-V0 * exp(-t / (C * R)) / R");
+        println!("-V0*exp(-t/(C*R))/R");
         // The simplified form should have cancelled C and reduced R^2 to R
         // Check that the denominator is just R, not (C * R^2) or similar
         let display = format!("{}", simplified);
         assert!(
-            display.ends_with("/ R"),
-            "Expression should end with '/ R', got: {}",
+            display.ends_with("/R"),
+            "Expression should end with '/R', got: {}",
             display
         );
     }
@@ -96,11 +97,11 @@ mod actual_bug_test {
 
         println!("\nSimple test:");
         println!("Original:   {}", expr);
-        let simplified = simplify(expr);
+        let simplified = simplify_expr(expr, HashSet::new());
         println!("Simplified: {}", simplified);
-        println!("Expected:   -1 / R");
+        println!("Expected:   -1/R");
 
         let display = format!("{}", simplified);
-        assert_eq!(display, "-1 / R", "Expected '-1 / R', got '{}'", display);
+        assert_eq!(display, "-1/R", "Expected '-1/R', got '{}'", display);
     }
 }

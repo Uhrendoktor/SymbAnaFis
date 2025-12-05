@@ -64,7 +64,7 @@ mod tier2_log_variants {
     fn test_log_default() {
         let result = diff("log(x)".to_string(), "x".to_string(), None, None).unwrap();
         // 1/x
-        assert_eq!(result, "1 / x");
+        assert_eq!(result, "1/x");
     }
 }
 

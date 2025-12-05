@@ -30,7 +30,7 @@ mod tests {
         )
         .unwrap();
         println!("Heat Conduction: {}", simplified);
-        assert_eq!(simplified, "x^2 / (4 * alpha * t)");
+        assert_eq!(simplified, "x^2/(4alpha*t)");
     }
     #[test]
     fn test_sqrt_combination() {
@@ -38,7 +38,7 @@ mod tests {
         let expr = "sqrt(2) * sqrt(pi)";
         let simplified = simplify(expr.to_string(), Some(&["pi".to_string()]), None).unwrap();
         println!("Sqrt Combination: {}", simplified);
-        assert_eq!(simplified, "sqrt(2 * pi)");
+        assert_eq!(simplified, "sqrt(2pi)");
     }
     #[test]
     fn test_nested_sqrt_cancellation() {
