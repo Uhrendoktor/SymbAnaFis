@@ -11,7 +11,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13']
+        python-version: ['3.10', '3.11', '3.12', '3.13', '3.14']
 
     steps:
       - uses: actions/checkout@v4
@@ -21,12 +21,24 @@ jobs:
           command: build
           args: --release --out dist
           python-version: ${{ matrix.python-version }}
+          maturin-version: latest
 
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
           name: wheels-${{ matrix.os }}-${{ matrix.python-version }}
           path: dist
+
+      - name: Verify wheel integrity
+        run: |
+          python3 -m pip install wheel
+          for whl in dist/*.whl; do
+            if [ -f "$whl" ]; then
+              python3 -m wheel unpack "$whl" -d /tmp/wheel_check && echo "✓ $whl is valid"
+              rm -rf /tmp/wheel_check/*
+            fi
+          done
+        shell: bash
 
   publish:
     needs: build
