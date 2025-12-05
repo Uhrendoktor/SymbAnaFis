@@ -16,11 +16,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      
       - uses: PyO3/maturin-action@v1
         with:
           command: build
           args: --release --out dist
-          python-version: ${{ matrix.python-version }}
           maturin-version: latest
 
       - name: Upload wheels
