@@ -1,6 +1,5 @@
-use crate::Expr;
 use crate::simplification::rules::{ExprKind, Rule, RuleCategory, RuleContext};
-use std::rc::Rc;
+use crate::{Expr, ExprKind as AstKind};
 
 rule!(
     CanonicalizeRule,
@@ -9,8 +8,8 @@ rule!(
     Algebraic,
     &[ExprKind::Add, ExprKind::Mul, ExprKind::Sub],
     |expr: &Expr, _context: &RuleContext| {
-        match expr {
-            Expr::Add(_, _) => {
+        match &expr.kind {
+            AstKind::Add(_, _) => {
                 let terms = crate::simplification::helpers::flatten_add(expr);
                 if terms.len() > 1 {
                     Some(crate::simplification::helpers::rebuild_add(terms))
@@ -18,7 +17,7 @@ rule!(
                     None
                 }
             }
-            Expr::Mul(_, _) => {
+            AstKind::Mul(_, _) => {
                 let factors = crate::simplification::helpers::flatten_mul(expr);
                 if factors.len() > 1 {
                     Some(crate::simplification::helpers::rebuild_mul(factors))
@@ -26,11 +25,11 @@ rule!(
                     None
                 }
             }
-            Expr::Sub(a, b) => {
+            AstKind::Sub(a, b) => {
                 // Convert a - b to a + (-b)
-                Some(Expr::Add(
-                    a.clone(),
-                    Rc::new(Expr::Mul(Rc::new(Expr::Number(-1.0)), b.clone())),
+                Some(Expr::add_expr(
+                    a.as_ref().clone(),
+                    Expr::mul_expr(Expr::number(-1.0), b.as_ref().clone()),
                 ))
             }
             _ => None,
@@ -98,10 +97,10 @@ rule!(
     &[ExprKind::Sub],
     |expr: &Expr, _context: &RuleContext| {
         // Convert subtraction to addition with negative
-        if let Expr::Sub(a, b) = expr {
-            Some(Expr::Add(
-                a.clone(),
-                Rc::new(Expr::Mul(Rc::new(Expr::Number(-1.0)), b.clone())),
+        if let AstKind::Sub(a, b) = &expr.kind {
+            Some(Expr::add_expr(
+                a.as_ref().clone(),
+                Expr::mul_expr(Expr::number(-1.0), b.as_ref().clone()),
             ))
         } else {
             None
@@ -117,34 +116,34 @@ rule!(
     &[ExprKind::Add],
     |expr: &Expr, _context: &RuleContext| {
         // Convert additions with negative terms to subtraction form for cleaner display
-        if let Expr::Add(a, b) = expr {
+        if let AstKind::Add(a, b) = &expr.kind {
             // Check if first term (a) is -1 * something: (-x) + y -> y - x
-            if let Expr::Mul(coeff, inner) = &**a
-                && let Expr::Number(n) = &**coeff
+            if let AstKind::Mul(coeff, inner) = &a.kind
+                && let AstKind::Number(n) = &coeff.kind
                 && (*n + 1.0).abs() < 1e-10
             {
                 // Convert Add(Mul(-1, inner), b) to Sub(b, inner)
-                return Some(Expr::Sub(b.clone(), inner.clone()));
+                return Some(Expr::sub_expr(b.as_ref().clone(), inner.as_ref().clone()));
             }
             // Check if second term (b) is -1 * something: x + (-y) -> x - y
-            if let Expr::Mul(coeff, inner) = &**b
-                && let Expr::Number(n) = &**coeff
+            if let AstKind::Mul(coeff, inner) = &b.kind
+                && let AstKind::Number(n) = &coeff.kind
                 && (*n + 1.0).abs() < 1e-10
             {
                 // Convert Add(a, Mul(-1, inner)) to Sub(a, inner)
-                return Some(Expr::Sub(a.clone(), inner.clone()));
+                return Some(Expr::sub_expr(a.as_ref().clone(), inner.as_ref().clone()));
             }
             // Check if first term is a negative number: (-n) + x -> x - n
-            if let Expr::Number(n) = &**a
+            if let AstKind::Number(n) = &a.kind
                 && *n < 0.0
             {
-                return Some(Expr::Sub(b.clone(), Rc::new(Expr::Number(-*n))));
+                return Some(Expr::sub_expr(b.as_ref().clone(), Expr::number(-*n)));
             }
             // Check if second term is a negative number: x + (-n) -> x - n
-            if let Expr::Number(n) = &**b
+            if let AstKind::Number(n) = &b.kind
                 && *n < 0.0
             {
-                return Some(Expr::Sub(a.clone(), Rc::new(Expr::Number(-*n))));
+                return Some(Expr::sub_expr(a.as_ref().clone(), Expr::number(-*n)));
             }
         }
         None
@@ -158,22 +157,22 @@ rule!(
     Algebraic,
     &[ExprKind::Mul],
     |expr: &Expr, _context: &RuleContext| {
-        if let Expr::Mul(a, b) = expr {
+        if let AstKind::Mul(a, b) = &expr.kind {
             // Case: (-1) * 1 = -1
-            if let (Expr::Number(n1), Expr::Number(n2)) = (&**a, &**b) {
+            if let (AstKind::Number(n1), AstKind::Number(n2)) = (&a.kind, &b.kind) {
                 if (*n1 + 1.0).abs() < 1e-10 && (*n2 - 1.0).abs() < 1e-10 {
-                    return Some(Expr::Number(-1.0));
+                    return Some(Expr::number(-1.0));
                 }
                 if (*n2 + 1.0).abs() < 1e-10 && (*n1 - 1.0).abs() < 1e-10 {
-                    return Some(Expr::Number(-1.0));
+                    return Some(Expr::number(-1.0));
                 }
             }
             // Case: (-1) * (-1) = 1
-            if let (Expr::Number(n1), Expr::Number(n2)) = (&**a, &**b)
+            if let (AstKind::Number(n1), AstKind::Number(n2)) = (&a.kind, &b.kind)
                 && (*n1 + 1.0).abs() < 1e-10
                 && (*n2 + 1.0).abs() < 1e-10
             {
-                return Some(Expr::Number(1.0));
+                return Some(Expr::number(1.0));
             }
         }
         None

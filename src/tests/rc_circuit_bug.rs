@@ -1,30 +1,29 @@
 #[cfg(test)]
-
 mod rc_circuit_differentiation_bug {
-    use crate::{Expr, simplification::simplify_expr};
+    use crate::{Expr, ExprKind, simplification::simplify_expr};
     use std::collections::HashSet;
-    use std::rc::Rc;
+    use std::sync::Arc;
     #[test]
     fn test_rc_circuit_derivative_simplification() {
         // RC Circuit: V(t) = V0 * exp(-t / (R * C))
         // Derivative should simplify cleanly
 
-        let rc_expr = Expr::Mul(
-            Rc::new(Expr::Symbol("V0".to_string())),
-            Rc::new(Expr::FunctionCall {
+        let rc_expr = Expr::new(ExprKind::Mul(
+            Arc::new(Expr::symbol("V0".to_string())),
+            Arc::new(Expr::new(ExprKind::FunctionCall {
                 name: "exp".to_string(),
-                args: vec![Expr::Div(
-                    Rc::new(Expr::Mul(
-                        Rc::new(Expr::Number(-1.0)),
-                        Rc::new(Expr::Symbol("t".to_string())),
-                    )),
-                    Rc::new(Expr::Mul(
-                        Rc::new(Expr::Symbol("R".to_string())),
-                        Rc::new(Expr::Symbol("C".to_string())),
-                    )),
-                )],
-            }),
-        );
+                args: vec![Expr::new(ExprKind::Div(
+                    Arc::new(Expr::new(ExprKind::Mul(
+                        Arc::new(Expr::number(-1.0)),
+                        Arc::new(Expr::symbol("t".to_string())),
+                    ))),
+                    Arc::new(Expr::new(ExprKind::Mul(
+                        Arc::new(Expr::symbol("R".to_string())),
+                        Arc::new(Expr::symbol("C".to_string())),
+                    ))),
+                ))],
+            })),
+        ));
 
         println!("\nOriginal: V(t) = {}", rc_expr);
 
@@ -34,7 +33,12 @@ mod rc_circuit_differentiation_bug {
         fixed_vars.insert("C".to_string());
         fixed_vars.insert("V0".to_string());
 
-        let deriv = rc_expr.derive("t", &fixed_vars);
+        let deriv = rc_expr.derive(
+            "t",
+            &fixed_vars,
+            &std::collections::HashMap::new(),
+            &std::collections::HashMap::new(),
+        );
         println!("Derivative (raw): {}", deriv);
 
         // Simplify

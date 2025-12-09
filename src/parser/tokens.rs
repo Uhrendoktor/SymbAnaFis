@@ -10,9 +10,31 @@ pub(crate) enum Token {
     Derivative {
         order: u32,
         func: String,
-        args: String,
+        args: Vec<Token>,
         var: String,
     },
+}
+
+impl Token {
+    /// Convert token to a user-friendly string for error messages
+    pub fn to_user_string(&self) -> String {
+        match self {
+            Token::Number(n) => format!("number '{}'", n),
+            Token::Identifier(s) => format!("variable '{}'", s),
+            Token::Operator(op) => format!("operator '{}'", op.to_name()),
+            Token::LeftParen => "'('".to_string(),
+            Token::RightParen => "')'".to_string(),
+            Token::Comma => "','".to_string(),
+            Token::Derivative {
+                func, var, order, ..
+            } => {
+                format!(
+                    "derivative ∂^{}{}({}) / ∂{}^{}",
+                    order, func, var, var, order
+                )
+            }
+        }
+    }
 }
 
 /// Operator types (arithmetic and built-in functions)
@@ -77,6 +99,10 @@ pub(crate) enum Operator {
     // Utility Functions
     Abs,
     Sign,
+    Signum,
+    Floor,
+    Ceil,
+    Round,
 
     // Error & Probability (Tier 3)
     Erf,
@@ -89,6 +115,8 @@ pub(crate) enum Operator {
     Tetragamma,
     Polygamma,
     Beta,
+    Zeta,
+    ZetaDeriv,
 
     // Bessel functions (Tier 3)
     BesselJ,
@@ -108,62 +136,80 @@ pub(crate) enum Operator {
 impl Operator {
     /// Check if this operator represents a function (vs arithmetic)
     pub fn is_function(&self) -> bool {
-        matches!(
-            self,
-            Operator::Sin
-                | Operator::Cos
-                | Operator::Tan
-                | Operator::Cot
-                | Operator::Sec
-                | Operator::Csc
-                | Operator::Asin
-                | Operator::Acos
-                | Operator::Atan
-                | Operator::Acot
-                | Operator::Asec
-                | Operator::Acsc
-                | Operator::Ln
-                | Operator::Exp
-                | Operator::Log
-                | Operator::Log10
-                | Operator::Log2
-                | Operator::ExpPolar
-                | Operator::Sinh
-                | Operator::Cosh
-                | Operator::Tanh
-                | Operator::Coth
-                | Operator::Sech
-                | Operator::Csch
-                | Operator::Asinh
-                | Operator::Acosh
-                | Operator::Atanh
-                | Operator::Acoth
-                | Operator::Asech
-                | Operator::Acsch
-                | Operator::Sqrt
-                | Operator::Cbrt
-                | Operator::Sinc
-                | Operator::Abs
-                | Operator::Sign
-                | Operator::Erf
-                | Operator::Erfc
-                | Operator::Gamma
-                | Operator::Digamma
-                | Operator::Trigamma
-                | Operator::Tetragamma
-                | Operator::Polygamma
-                | Operator::Beta
-                | Operator::BesselJ
-                | Operator::BesselY
-                | Operator::BesselI
-                | Operator::BesselK
-                | Operator::LambertW
-                | Operator::Ynm
-                | Operator::AssocLegendre
-                | Operator::Hermite
-                | Operator::EllipticE
-                | Operator::EllipticK
-        )
+        self.precedence() == 40
+    }
+
+    /// Get the canonical string name for this operator
+    ///
+    /// This is the inverse of `parse_str` and provides a single source of truth
+    /// for Operator → String conversion, used by the Pratt parser and other components.
+    pub fn to_name(&self) -> &'static str {
+        match self {
+            Operator::Add => "+",
+            Operator::Sub => "-",
+            Operator::Mul => "*",
+            Operator::Div => "/",
+            Operator::Pow => "^",
+            Operator::Sin => "sin",
+            Operator::Cos => "cos",
+            Operator::Tan => "tan",
+            Operator::Cot => "cot",
+            Operator::Sec => "sec",
+            Operator::Csc => "csc",
+            Operator::Asin => "asin",
+            Operator::Acos => "acos",
+            Operator::Atan => "atan",
+            Operator::Acot => "acot",
+            Operator::Asec => "asec",
+            Operator::Acsc => "acsc",
+            Operator::Ln => "ln",
+            Operator::Exp => "exp",
+            Operator::Sinh => "sinh",
+            Operator::Cosh => "cosh",
+            Operator::Tanh => "tanh",
+            Operator::Coth => "coth",
+            Operator::Sech => "sech",
+            Operator::Csch => "csch",
+            Operator::Asinh => "asinh",
+            Operator::Acosh => "acosh",
+            Operator::Atanh => "atanh",
+            Operator::Acoth => "acoth",
+            Operator::Asech => "asech",
+            Operator::Acsch => "acsch",
+            Operator::Sqrt => "sqrt",
+            Operator::Cbrt => "cbrt",
+            Operator::Log => "log",
+            Operator::Log10 => "log10",
+            Operator::Log2 => "log2",
+            Operator::Sinc => "sinc",
+            Operator::ExpPolar => "exp_polar",
+            Operator::Abs => "abs",
+            Operator::Sign => "sign",
+            Operator::Signum => "signum",
+            Operator::Floor => "floor",
+            Operator::Ceil => "ceil",
+            Operator::Round => "round",
+            Operator::Erf => "erf",
+            Operator::Erfc => "erfc",
+            Operator::Gamma => "gamma",
+            Operator::Digamma => "digamma",
+            Operator::Trigamma => "trigamma",
+            Operator::Tetragamma => "tetragamma",
+            Operator::Polygamma => "polygamma",
+            Operator::Beta => "beta",
+            Operator::Zeta => "zeta",
+            Operator::ZetaDeriv => "zeta_deriv",
+            Operator::BesselJ => "besselj",
+            Operator::BesselY => "bessely",
+            Operator::BesselI => "besseli",
+            Operator::BesselK => "besselk",
+            Operator::LambertW => "LambertW",
+            Operator::Ynm => "ynm",
+            Operator::AssocLegendre => "assoc_legendre",
+            Operator::Hermite => "hermite",
+            Operator::EllipticE => "elliptic_e",
+            Operator::EllipticK => "elliptic_k",
+        }
     }
 
     /// Convert a string to an operator
@@ -208,7 +254,11 @@ impl Operator {
             "sinc" => Some(Operator::Sinc),
             "exp_polar" => Some(Operator::ExpPolar),
             "abs" => Some(Operator::Abs),
-            "sign" => Some(Operator::Sign),
+            "sign" | "sgn" => Some(Operator::Sign),
+            "signum" => Some(Operator::Signum),
+            "floor" => Some(Operator::Floor),
+            "ceil" => Some(Operator::Ceil),
+            "round" => Some(Operator::Round),
             "erf" => Some(Operator::Erf),
             "erfc" => Some(Operator::Erfc),
             "gamma" => Some(Operator::Gamma),
@@ -217,12 +267,14 @@ impl Operator {
             "tetragamma" => Some(Operator::Tetragamma),
             "polygamma" => Some(Operator::Polygamma),
             "beta" => Some(Operator::Beta),
+            "zeta" => Some(Operator::Zeta),
+            "zeta_deriv" => Some(Operator::ZetaDeriv),
             "besselj" => Some(Operator::BesselJ),
             "bessely" => Some(Operator::BesselY),
             "besseli" => Some(Operator::BesselI),
             "besselk" => Some(Operator::BesselK),
-            "LambertW" => Some(Operator::LambertW),
-            "Ynm" => Some(Operator::Ynm),
+            "lambertw" => Some(Operator::LambertW),
+            "ynm" => Some(Operator::Ynm),
             "assoc_legendre" => Some(Operator::AssocLegendre),
             "hermite" => Some(Operator::Hermite),
             "elliptic_e" => Some(Operator::EllipticE),
@@ -232,6 +284,21 @@ impl Operator {
     }
 
     /// Get the precedence level (higher = binds tighter)
+    ///
+    /// # Precedence Hierarchy
+    ///
+    /// | Precedence | Operators | Associativity | Notes |
+    /// |------------|-----------|---------------|-------|
+    /// | 40 | Functions (sin, cos, ...) | N/A | Function application |
+    /// | 30 | `^`, `**` | Right | Exponentiation |
+    /// | 25 | Unary `-`, `+` | N/A | Prefix operators |
+    /// | 20 | `*`, `/` | Left | Multiplicative |
+    /// | 10 | `+`, `-` | Left | Additive |
+    ///
+    /// # Examples
+    /// - `2 + 3 * 4` parses as `2 + (3 * 4)` (mul > add)
+    /// - `2^3^4` parses as `2^(3^4)` (right associative)
+    /// - `-x^2` parses as `-(x^2)` (pow > unary minus)
     pub fn precedence(&self) -> u8 {
         match self {
             // Functions (highest precedence) - All Tiers
@@ -270,6 +337,10 @@ impl Operator {
             | Operator::Sinc
             | Operator::Abs
             | Operator::Sign
+            | Operator::Signum
+            | Operator::Floor
+            | Operator::Ceil
+            | Operator::Round
             | Operator::Erf
             | Operator::Erfc
             | Operator::Gamma
@@ -278,6 +349,8 @@ impl Operator {
             | Operator::Tetragamma
             | Operator::Polygamma
             | Operator::Beta
+            | Operator::Zeta
+            | Operator::ZetaDeriv
             | Operator::BesselJ
             | Operator::BesselY
             | Operator::BesselI

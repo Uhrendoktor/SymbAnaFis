@@ -1,5 +1,5 @@
 use crate::simplification::rules::Rule;
-use std::rc::Rc;
+use std::sync::Arc;
 
 pub(crate) mod conversions;
 mod helpers;
@@ -11,32 +11,32 @@ pub(crate) use identities::*;
 pub(crate) use ratios::*;
 
 /// Get all hyperbolic rules in priority order
-pub(crate) fn get_hyperbolic_rules() -> Vec<Rc<dyn Rule>> {
+pub(crate) fn get_hyperbolic_rules() -> Vec<Arc<dyn Rule + Send + Sync>> {
     vec![
         // High priority rules first
-        Rc::new(SinhZeroRule),
-        Rc::new(CoshZeroRule),
-        Rc::new(SinhAsinhIdentityRule),
-        Rc::new(CoshAcoshIdentityRule),
-        Rc::new(TanhAtanhIdentityRule),
-        Rc::new(SinhNegationRule),
-        Rc::new(CoshNegationRule),
-        Rc::new(TanhNegationRule),
+        Arc::new(SinhZeroRule),
+        Arc::new(CoshZeroRule),
+        Arc::new(SinhAsinhIdentityRule),
+        Arc::new(CoshAcoshIdentityRule),
+        Arc::new(TanhAtanhIdentityRule),
+        Arc::new(SinhNegationRule),
+        Arc::new(CoshNegationRule),
+        Arc::new(TanhNegationRule),
         // Identity rules
-        Rc::new(HyperbolicIdentityRule),
+        Arc::new(HyperbolicIdentityRule),
         // Ratio rules - convert to tanh, coth, sech, csch
-        Rc::new(SinhCoshToTanhRule),
-        Rc::new(CoshSinhToCothRule),
-        Rc::new(OneCoshToSechRule),
-        Rc::new(OneSinhToCschRule),
-        Rc::new(OneTanhToCothRule),
+        Arc::new(SinhCoshToTanhRule),
+        Arc::new(CoshSinhToCothRule),
+        Arc::new(OneCoshToSechRule),
+        Arc::new(OneSinhToCschRule),
+        Arc::new(OneTanhToCothRule),
         // Conversion from exponential forms
-        Rc::new(SinhFromExpRule),
-        Rc::new(CoshFromExpRule),
-        Rc::new(TanhFromExpRule),
-        Rc::new(SechFromExpRule),
-        Rc::new(CschFromExpRule),
-        Rc::new(CothFromExpRule),
-        Rc::new(HyperbolicTripleAngleRule),
+        Arc::new(SinhFromExpRule),
+        Arc::new(CoshFromExpRule),
+        Arc::new(TanhFromExpRule),
+        Arc::new(SechFromExpRule),
+        Arc::new(CschFromExpRule),
+        Arc::new(CothFromExpRule),
+        Arc::new(HyperbolicTripleAngleRule),
     ]
 }

@@ -1,7 +1,5 @@
-// Pratt parser - converts tokens to AST
 use crate::parser::tokens::{Operator, Token};
-use crate::{DiffError, Expr};
-use std::rc::Rc;
+use crate::{DiffError, Expr, ExprKind};
 
 /// Parse tokens into an AST using Pratt parsing algorithm
 pub(crate) fn parse_expression(tokens: &[Token]) -> Result<Expr, DiffError> {
@@ -70,6 +68,7 @@ impl<'a> Parser<'a> {
                     return Err(DiffError::UnexpectedToken {
                         expected: ", or )".to_string(),
                         got: format!("{:?}", self.current()),
+                        span: None,
                     });
                 }
             }
@@ -79,15 +78,17 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_prefix(&mut self) -> Result<Expr, DiffError> {
+        // Direct access enables borrowing token while mutating self.pos (via advance)
+        // because we borrow from the underlying slice 'a, not from self
         let token = self
-            .current()
-            .ok_or(DiffError::UnexpectedEndOfInput)?
-            .clone();
+            .tokens
+            .get(self.pos)
+            .ok_or(DiffError::UnexpectedEndOfInput)?;
 
         match token {
             Token::Number(n) => {
                 self.advance();
-                Ok(Expr::Number(n))
+                Ok(Expr::number(*n))
             }
 
             Token::Identifier(name) => {
@@ -105,12 +106,16 @@ impl<'a> Parser<'a> {
                         return Err(DiffError::UnexpectedToken {
                             expected: ")".to_string(),
                             got: format!("{:?}", self.current()),
+                            span: None,
                         });
                     }
 
-                    Ok(Expr::FunctionCall { name, args })
+                    Ok(Expr::new(ExprKind::FunctionCall {
+                        name: name.clone(),
+                        args,
+                    }))
                 } else {
-                    Ok(Expr::Symbol(name))
+                    Ok(Expr::symbol(name.clone()))
                 }
             }
 
@@ -128,74 +133,22 @@ impl<'a> Parser<'a> {
                         return Err(DiffError::UnexpectedToken {
                             expected: ")".to_string(),
                             got: format!("{:?}", self.current()),
+                            span: None,
                         });
                     }
 
-                    let func_name = match op {
-                        Operator::Sin => "sin",
-                        Operator::Cos => "cos",
-                        Operator::Tan => "tan",
-                        Operator::Cot => "cot",
-                        Operator::Sec => "sec",
-                        Operator::Csc => "csc",
-                        Operator::Asin => "asin",
-                        Operator::Acos => "acos",
-                        Operator::Atan => "atan",
-                        Operator::Acot => "acot",
-                        Operator::Asec => "asec",
-                        Operator::Acsc => "acsc",
-                        Operator::Ln => "ln",
-                        Operator::Exp => "exp",
-                        Operator::Sinh => "sinh",
-                        Operator::Cosh => "cosh",
-                        Operator::Tanh => "tanh",
-                        Operator::Coth => "coth",
-                        Operator::Sech => "sech",
-                        Operator::Csch => "csch",
-                        Operator::Sqrt => "sqrt",
-                        Operator::Cbrt => "cbrt",
-                        Operator::Log => "log",
-                        Operator::Log10 => "log10",
-                        Operator::Log2 => "log2",
-                        Operator::Sinc => "sinc",
-                        Operator::ExpPolar => "exp_polar",
-                        Operator::Abs => "abs",
-                        Operator::Sign => "sign",
-                        Operator::Erf => "erf",
-                        Operator::Erfc => "erfc",
-                        Operator::Gamma => "gamma",
-                        Operator::Digamma => "digamma",
-                        Operator::Trigamma => "trigamma",
-                        Operator::Tetragamma => "tetragamma",
-                        Operator::Polygamma => "polygamma",
-                        Operator::Beta => "beta",
-                        Operator::BesselJ => "besselj",
-                        Operator::BesselY => "bessely",
-                        Operator::BesselI => "besseli",
-                        Operator::BesselK => "besselk",
-                        Operator::LambertW => "LambertW",
-                        Operator::Ynm => "Ynm",
-                        Operator::AssocLegendre => "assoc_legendre",
-                        Operator::Hermite => "hermite",
-                        Operator::EllipticE => "elliptic_e",
-                        Operator::EllipticK => "elliptic_k",
-                        Operator::Asinh => "asinh",
-                        Operator::Acosh => "acosh",
-                        Operator::Atanh => "atanh",
-                        Operator::Acoth => "acoth",
-                        Operator::Asech => "asech",
-                        Operator::Acsch => "acsch",
-                        _ => unreachable!(),
-                    };
+                    // Use the canonical name from Operator::to_name()
+                    let func_name = op.to_name();
 
-                    Ok(Expr::FunctionCall {
+                    Ok(Expr::new(ExprKind::FunctionCall {
                         name: func_name.to_string(),
                         args,
-                    })
+                    }))
                 } else {
                     Err(DiffError::UnexpectedToken {
                         expected: "(".to_string(),
                         got: format!("{:?}", self.current()),
+                        span: None,
                     })
                 }
             }
@@ -205,7 +158,13 @@ impl<'a> Parser<'a> {
             Token::Operator(Operator::Sub) => {
                 self.advance();
                 let expr = self.parse_expr(25)?; // Lower than Pow (30), higher than Mul (20)
-                Ok(Expr::Mul(Rc::new(Expr::Number(-1.0)), Rc::new(expr)))
+                Ok(Expr::mul_expr(Expr::number(-1.0), expr))
+            }
+
+            // Unary plus: same precedence as unary minus, just returns the expression
+            Token::Operator(Operator::Add) => {
+                self.advance();
+                self.parse_expr(25) // Same precedence as unary minus
             }
 
             Token::LeftParen => {
@@ -219,6 +178,7 @@ impl<'a> Parser<'a> {
                     Err(DiffError::UnexpectedToken {
                         expected: ")".to_string(),
                         got: format!("{:?}", self.current()),
+                        span: None,
                     })
                 }
             }
@@ -226,27 +186,64 @@ impl<'a> Parser<'a> {
             Token::Derivative {
                 order,
                 func,
-                args: _,
+                args,
                 var,
             } => {
                 self.advance();
-                // For now, create a symbol with the derivative notation
-                // Later we might want to create a more structured representation
-                Ok(Expr::Symbol(format!(
-                    "∂^{}_{}/∂_{}^{}",
-                    order, func, var, order
-                )))
+
+                let arg_exprs = if args.is_empty() {
+                    // Implicit dependency on the differentiation variable
+                    vec![Expr::symbol(var.clone())]
+                } else {
+                    // Parse the tokenized arguments
+                    // We create a temporary sub-parser for the argument tokens
+                    let mut sub_parser = Parser {
+                        tokens: args,
+                        pos: 0,
+                    };
+                    let mut exprs = Vec::new();
+
+                    loop {
+                        if sub_parser.current().is_none() {
+                            break;
+                        }
+                        let expr = sub_parser.parse_expr(0)?;
+                        exprs.push(expr);
+
+                        if let Some(Token::Comma) = sub_parser.current() {
+                            sub_parser.advance();
+                        } else {
+                            // If not comma, we expect end of input (sub-parser exhausted)
+                            if sub_parser.current().is_some() {
+                                return Err(DiffError::UnexpectedToken {
+                                    expected: "comma or end of arguments".to_string(),
+                                    got: format!("{:?}", sub_parser.current()), // sub_parser.current() is Option<&Token>
+                                    span: None,
+                                });
+                            }
+                            break;
+                        }
+                    }
+                    exprs
+                };
+
+                let inner_expr = Expr::new(ExprKind::FunctionCall {
+                    name: func.clone(),
+                    args: arg_exprs,
+                });
+
+                Ok(Expr::derivative(inner_expr, var.clone(), *order))
             }
 
-            _ => Err(DiffError::InvalidToken(format!("{:?}", token))),
+            _ => Err(DiffError::invalid_token(token.to_user_string())),
         }
     }
 
     fn parse_infix(&mut self, left: Expr, precedence: u8) -> Result<Expr, DiffError> {
         let token = self
-            .current()
-            .ok_or(DiffError::UnexpectedEndOfInput)?
-            .clone();
+            .tokens
+            .get(self.pos)
+            .ok_or(DiffError::UnexpectedEndOfInput)?;
 
         match token {
             Token::Operator(op) => {
@@ -262,18 +259,23 @@ impl<'a> Parser<'a> {
                 let right = self.parse_expr(next_precedence)?;
 
                 let result = match op {
-                    Operator::Add => Expr::Add(Rc::new(left), Rc::new(right)),
-                    Operator::Sub => Expr::Sub(Rc::new(left), Rc::new(right)),
-                    Operator::Mul => Expr::Mul(Rc::new(left), Rc::new(right)),
-                    Operator::Div => Expr::Div(Rc::new(left), Rc::new(right)),
-                    Operator::Pow => Expr::Pow(Rc::new(left), Rc::new(right)),
-                    _ => return Err(DiffError::InvalidToken(format!("{:?}", op))),
+                    Operator::Add => Expr::add_expr(left, right),
+                    Operator::Sub => Expr::sub_expr(left, right),
+                    Operator::Mul => Expr::mul_expr(left, right),
+                    Operator::Div => Expr::div_expr(left, right),
+                    Operator::Pow => Expr::pow(left, right),
+                    _ => {
+                        return Err(DiffError::invalid_token(format!(
+                            "operator '{}'",
+                            op.to_name()
+                        )));
+                    }
                 };
 
                 Ok(result)
             }
 
-            _ => Err(DiffError::InvalidToken(format!("{:?}", token))),
+            _ => Err(DiffError::invalid_token(token.to_user_string())),
         }
     }
 }
@@ -286,14 +288,14 @@ mod tests {
     fn test_parse_number() {
         let tokens = vec![Token::Number(314.0 / 100.0)];
         let ast = parse_expression(&tokens).unwrap();
-        assert_eq!(ast, Expr::Number(314.0 / 100.0));
+        assert_eq!(ast, Expr::number(314.0 / 100.0));
     }
 
     #[test]
     fn test_parse_symbol() {
         let tokens = vec![Token::Identifier("x".to_string())];
         let ast = parse_expression(&tokens).unwrap();
-        assert_eq!(ast, Expr::Symbol("x".to_string()));
+        assert_eq!(ast, Expr::symbol("x".to_string()));
     }
 
     #[test]
@@ -304,7 +306,7 @@ mod tests {
             Token::Number(2.0),
         ];
         let ast = parse_expression(&tokens).unwrap();
-        assert!(matches!(ast, Expr::Add(_, _)));
+        assert!(matches!(ast.kind, ExprKind::Add(_, _)));
     }
 
     #[test]
@@ -315,7 +317,7 @@ mod tests {
             Token::Number(2.0),
         ];
         let ast = parse_expression(&tokens).unwrap();
-        assert!(matches!(ast, Expr::Mul(_, _)));
+        assert!(matches!(ast.kind, ExprKind::Mul(_, _)));
     }
 
     #[test]
@@ -326,7 +328,7 @@ mod tests {
             Token::Number(2.0),
         ];
         let ast = parse_expression(&tokens).unwrap();
-        assert!(matches!(ast, Expr::Pow(_, _)));
+        assert!(matches!(ast.kind, ExprKind::Pow(_, _)));
     }
 
     #[test]
@@ -338,7 +340,7 @@ mod tests {
             Token::RightParen,
         ];
         let ast = parse_expression(&tokens).unwrap();
-        assert!(matches!(ast, Expr::FunctionCall { .. }));
+        assert!(matches!(ast.kind, ExprKind::FunctionCall { .. }));
     }
 
     #[test]
@@ -353,10 +355,10 @@ mod tests {
         ];
         let ast = parse_expression(&tokens).unwrap();
 
-        match ast {
-            Expr::Add(left, right) => {
-                assert!(matches!(*left, Expr::Symbol(_)));
-                assert!(matches!(*right, Expr::Mul(_, _)));
+        match ast.kind {
+            ExprKind::Add(left, right) => {
+                assert!(matches!(left.kind, ExprKind::Symbol(_)));
+                assert!(matches!(right.kind, ExprKind::Mul(_, _)));
             }
             _ => panic!("Expected Add at top level"),
         }
@@ -376,12 +378,24 @@ mod tests {
         ];
         let ast = parse_expression(&tokens).unwrap();
 
-        match ast {
-            Expr::Mul(left, right) => {
-                assert!(matches!(*left, Expr::Add(_, _)));
-                assert!(matches!(*right, Expr::Number(2.0)));
+        match ast.kind {
+            ExprKind::Mul(left, right) => {
+                assert!(matches!(left.kind, ExprKind::Add(_, _)));
+                assert!(matches!(right.kind, ExprKind::Number(2.0)));
             }
             _ => panic!("Expected Mul at top level"),
         }
+    }
+
+    #[test]
+    fn test_empty_parentheses() {
+        // () should be an error, NOT 1.0 or anything else
+        let tokens = vec![Token::LeftParen, Token::RightParen];
+        let result = parse_expression(&tokens);
+        assert!(
+            result.is_err(),
+            "Empty parentheses should fail to parse, but got: {:?}",
+            result
+        );
     }
 }

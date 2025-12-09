@@ -1,11 +1,10 @@
-use crate::Expr;
-use std::rc::Rc;
+use crate::{Expr, ExprKind};
 
 // Extracts (name, arg) for pow of function: name(arg)^power
 pub(crate) fn get_fn_pow_named(expr: &Expr, power: f64) -> Option<(&str, Expr)> {
-    if let Expr::Pow(base, exp) = expr
-        && matches!(**exp, Expr::Number(n) if n == power)
-        && let Expr::FunctionCall { name, args } = &**base
+    if let ExprKind::Pow(base, exp) = &expr.kind
+        && matches!(exp.kind, ExprKind::Number(n) if n == power)
+        && let ExprKind::FunctionCall { name, args } = &base.kind
         && args.len() == 1
     {
         return Some((name.as_str(), args[0].clone()));
@@ -15,11 +14,11 @@ pub(crate) fn get_fn_pow_named(expr: &Expr, power: f64) -> Option<(&str, Expr)> 
 
 // Generic helper to extract arguments from product of two function calls, order-insensitive
 pub(crate) fn get_product_fn_args(expr: &Expr, fname1: &str, fname2: &str) -> Option<(Expr, Expr)> {
-    if let Expr::Mul(lhs, rhs) = expr
+    if let ExprKind::Mul(lhs, rhs) = &expr.kind
         && let (
-            Expr::FunctionCall { name: n1, args: a1 },
-            Expr::FunctionCall { name: n2, args: a2 },
-        ) = (&**lhs, &**rhs)
+            ExprKind::FunctionCall { name: n1, args: a1 },
+            ExprKind::FunctionCall { name: n2, args: a2 },
+        ) = (&lhs.kind, &rhs.kind)
         && a1.len() == 1
         && a2.len() == 1
     {
@@ -40,7 +39,7 @@ pub(crate) fn approx_eq(a: f64, b: f64) -> bool {
 
 // Get numeric value from expression if it's a Number
 pub(crate) fn get_numeric_value(expr: &Expr) -> f64 {
-    if let Expr::Number(n) = expr {
+    if let ExprKind::Number(n) = &expr.kind {
         *n
     } else {
         f64::NAN
@@ -50,20 +49,20 @@ pub(crate) fn get_numeric_value(expr: &Expr) -> f64 {
 // Trigonometric helpers
 use std::f64::consts::PI;
 pub(crate) fn is_multiple_of_two_pi(expr: &Expr) -> bool {
-    if let Expr::Number(n) = expr {
+    if let ExprKind::Number(n) = &expr.kind {
         let two_pi = 2.0 * PI;
         let k = n / two_pi;
         return approx_eq(k, k.round());
     }
     // Handle n * pi
-    if let Expr::Mul(lhs, rhs) = expr {
-        if let (Expr::Number(n), Expr::Symbol(s)) = (&**lhs, &**rhs)
+    if let ExprKind::Mul(lhs, rhs) = &expr.kind {
+        if let (ExprKind::Number(n), ExprKind::Symbol(s)) = (&lhs.kind, &rhs.kind)
             && s == "pi"
             && n % 2.0 == 0.0
         {
             return true;
         }
-        if let (Expr::Symbol(s), Expr::Number(n)) = (&**lhs, &**rhs)
+        if let (ExprKind::Symbol(s), ExprKind::Number(n)) = (&lhs.kind, &rhs.kind)
             && s == "pi"
             && n % 2.0 == 0.0
         {
@@ -74,30 +73,32 @@ pub(crate) fn is_multiple_of_two_pi(expr: &Expr) -> bool {
 }
 
 pub(crate) fn is_pi(expr: &Expr) -> bool {
-    if let Expr::Number(n) = expr {
+    if let ExprKind::Number(n) = &expr.kind {
         return (n - PI).abs() < 1e-10;
     }
     false
 }
 
 pub(crate) fn is_three_pi_over_two(expr: &Expr) -> bool {
-    if let Expr::Number(n) = expr {
+    if let ExprKind::Number(n) = &expr.kind {
         return (n - 3.0 * PI / 2.0).abs() < 1e-10;
     }
     false
 }
 
 /// Flatten nested multiplication into a list of factors
+/// Uses references during traversal, only clones leaf nodes
 pub(crate) fn flatten_mul(expr: &Expr) -> Vec<Expr> {
     let mut factors = Vec::with_capacity(4); // Most expressions have few factors
-    let mut stack = vec![expr.clone()];
+    let mut stack: Vec<&Expr> = vec![expr];
 
     while let Some(current) = stack.pop() {
-        if let Expr::Mul(a, b) = current {
-            stack.push(b.as_ref().clone());
-            stack.push(a.as_ref().clone());
+        if let ExprKind::Mul(a, b) = &current.kind {
+            stack.push(b.as_ref());
+            stack.push(a.as_ref());
         } else {
-            factors.push(current);
+            // Only clone at the leaf level
+            factors.push(current.clone());
         }
     }
     factors
@@ -115,19 +116,19 @@ pub(crate) fn flatten_mul(expr: &Expr) -> Vec<Expr> {
 /// - Then symbols alphabetically
 /// - Then more complex expressions
 pub(crate) fn compare_expr(a: &Expr, b: &Expr) -> std::cmp::Ordering {
-    use crate::Expr::*;
+    use crate::ExprKind::*;
     use std::cmp::Ordering;
 
     // Helper to get polynomial degree for addition term ordering
     fn get_poly_degree(e: &Expr) -> (i32, f64, String) {
         // Returns (type_priority, exponent/degree, variable_name)
         // Lower type_priority = comes first in sorted order for polynomial terms
-        match e {
+        match &e.kind {
             Number(_) => (100, 0.0, String::new()), // Constants come last
             Symbol(s) => (50, -1.0, s.clone()), // Variables are degree 1, negative so they sort first
             Pow(base, exp) => {
-                if let Symbol(s) = &**base {
-                    if let Number(n) = &**exp {
+                if let Symbol(s) = &base.kind {
+                    if let Number(n) = &exp.kind {
                         (10, -*n, s.clone()) // Negative exponent so higher powers sort first
                     } else {
                         (20, -999.0, s.clone()) // Symbolic exponent - treat as very high degree
@@ -159,6 +160,7 @@ pub(crate) fn compare_expr(a: &Expr, b: &Expr) -> std::cmp::Ordering {
             Add(..) => (70, 0.0, String::new()),
             Sub(..) => (70, 0.0, String::new()),
             Div(..) => (40, 0.0, String::new()),
+            Derivative { var, .. } => (65, 0.0, var.clone()),
         }
     }
 
@@ -184,12 +186,12 @@ pub(crate) fn compare_expr(a: &Expr, b: &Expr) -> std::cmp::Ordering {
     }
 
     // For numbers, compare by value (smaller numbers first for coefficients)
-    if let (Number(n1), Number(n2)) = (a, b) {
+    if let (Number(n1), Number(n2)) = (&a.kind, &b.kind) {
         return n1.partial_cmp(n2).unwrap_or(Ordering::Equal);
     }
 
     // For symbols, alphabetical order
-    if let (Symbol(s1), Symbol(s2)) = (a, b) {
+    if let (Symbol(s1), Symbol(s2)) = (&a.kind, &b.kind) {
         return s1.cmp(s2);
     }
 
@@ -199,15 +201,15 @@ pub(crate) fn compare_expr(a: &Expr, b: &Expr) -> std::cmp::Ordering {
 /// Compare expressions for multiplication factor ordering
 /// Numbers (coefficients) come first, then symbols, then complex expressions
 pub(crate) fn compare_mul_factors(a: &Expr, b: &Expr) -> std::cmp::Ordering {
-    use crate::Expr::*;
+    use crate::ExprKind::*;
     use std::cmp::Ordering;
 
     fn factor_priority(e: &Expr) -> i32 {
-        match e {
+        match &e.kind {
             Number(_) => 0,  // Numbers first (coefficients)
             Symbol(_) => 10, // Then symbols
             Pow(base, _) => {
-                if matches!(&**base, Symbol(_)) {
+                if matches!(base.kind, Symbol(_)) {
                     20
                 } else {
                     30
@@ -216,6 +218,7 @@ pub(crate) fn compare_mul_factors(a: &Expr, b: &Expr) -> std::cmp::Ordering {
             FunctionCall { .. } => 40,
             Mul(..) | Div(..) => 50,
             Add(..) | Sub(..) => 60,
+            Derivative { .. } => 45, // After functions, before mul/div
         }
     }
 
@@ -239,22 +242,22 @@ pub(crate) fn flatten_add(expr: &Expr) -> Vec<Expr> {
     let mut stack: Vec<(&Expr, bool)> = vec![(expr, false)];
 
     while let Some((current, negate)) = stack.pop() {
-        match current {
-            Expr::Add(l, r) => {
+        match &current.kind {
+            ExprKind::Add(l, r) => {
                 stack.push((r.as_ref(), negate));
                 stack.push((l.as_ref(), negate));
             }
-            Expr::Sub(l, r) => {
+            ExprKind::Sub(l, r) => {
                 // a - b: left keeps sign, right gets flipped
                 stack.push((r.as_ref(), !negate));
                 stack.push((l.as_ref(), negate));
             }
-            leaf => {
+            _leaf => {
                 // Only clone when we actually need the result
                 if negate {
-                    terms.push(negate_term_ref(leaf));
+                    terms.push(negate_term_ref(current));
                 } else {
-                    terms.push(leaf.clone());
+                    terms.push(current.clone());
                 }
             }
         }
@@ -265,37 +268,37 @@ pub(crate) fn flatten_add(expr: &Expr) -> Vec<Expr> {
 /// Helper: Negate a term (multiply by -1, or simplify if already negative)
 /// Takes reference to avoid unnecessary cloning
 fn negate_term_ref(expr: &Expr) -> Expr {
-    match expr {
-        Expr::Number(n) => Expr::Number(-n),
-        Expr::Mul(l, r) => {
+    match &expr.kind {
+        ExprKind::Number(n) => Expr::number(-n),
+        ExprKind::Mul(l, r) => {
             // Check if already has -1 coefficient
-            if let Expr::Number(n) = l.as_ref() {
+            if let ExprKind::Number(n) = &l.kind {
                 if *n == -1.0 {
                     return r.as_ref().clone(); // -1 * x becomes x when negated
                 }
-                return Expr::Mul(Rc::new(Expr::Number(-n)), r.clone());
+                return Expr::mul_expr(Expr::number(-n), r.as_ref().clone());
             }
-            if let Expr::Number(n) = r.as_ref() {
+            if let ExprKind::Number(n) = &r.kind {
                 if *n == -1.0 {
                     return l.as_ref().clone();
                 }
-                return Expr::Mul(l.clone(), Rc::new(Expr::Number(-n)));
+                return Expr::mul_expr(l.as_ref().clone(), Expr::number(-n));
             }
-            Expr::Mul(Rc::new(Expr::Number(-1.0)), Rc::new(expr.clone()))
+            Expr::mul_expr(Expr::number(-1.0), expr.clone())
         }
-        _ => Expr::Mul(Rc::new(Expr::Number(-1.0)), Rc::new(expr.clone())),
+        _ => Expr::mul_expr(Expr::number(-1.0), expr.clone()),
     }
 }
 
 /// Helper: Rebuild addition tree (left-associative)
 pub(crate) fn rebuild_add(terms: Vec<Expr>) -> Expr {
     if terms.is_empty() {
-        return Expr::Number(0.0);
+        return Expr::number(0.0);
     }
     let mut iter = terms.into_iter();
     let mut result = iter.next().unwrap();
     for term in iter {
-        result = Expr::Add(Rc::new(result), Rc::new(term));
+        result = Expr::add_expr(result, term);
     }
     result
 }
@@ -303,12 +306,12 @@ pub(crate) fn rebuild_add(terms: Vec<Expr>) -> Expr {
 /// Helper: Rebuild multiplication tree
 pub(crate) fn rebuild_mul(terms: Vec<Expr>) -> Expr {
     if terms.is_empty() {
-        return Expr::Number(1.0);
+        return Expr::number(1.0);
     }
     let mut iter = terms.into_iter();
     let mut result = iter.next().unwrap();
     for term in iter {
-        result = Expr::Mul(Rc::new(result), Rc::new(term));
+        result = Expr::mul_expr(result, term);
     }
     result
 }
@@ -316,8 +319,11 @@ pub(crate) fn rebuild_mul(terms: Vec<Expr>) -> Expr {
 /// Helper: Normalize expression by sorting factors in multiplication
 pub(crate) fn normalize_expr(expr: Expr) -> Expr {
     match expr {
-        Expr::Mul(u, v) => {
-            let mut factors = flatten_mul(&Expr::Mul(u, v));
+        Expr {
+            kind: ExprKind::Mul(u, v),
+            ..
+        } => {
+            let mut factors = flatten_mul(&Expr::new(ExprKind::Mul(u, v)));
             factors.sort_by(compare_expr);
             rebuild_mul(factors)
         }
@@ -334,14 +340,14 @@ pub(crate) fn extract_coeff(expr: &Expr) -> (f64, Expr) {
     let mut coeff = 1.0;
     let mut non_num = Vec::new();
     for term in flattened {
-        if let Expr::Number(n) = term {
+        if let ExprKind::Number(n) = &term.kind {
             coeff *= n;
         } else {
             non_num.push(term);
         }
     }
     let base = if non_num.is_empty() {
-        Expr::Number(1.0)
+        Expr::number(1.0)
     } else if non_num.len() == 1 {
         non_num[0].clone()
     } else {
@@ -354,29 +360,29 @@ pub(crate) fn extract_coeff(expr: &Expr) -> (f64, Expr) {
 /// x^(1/2) -> sqrt(x)
 /// x^(1/3) -> cbrt(x)
 pub(crate) fn prettify_roots(expr: Expr) -> Expr {
-    match expr {
-        Expr::Pow(base, exp) => {
+    match expr.kind {
+        ExprKind::Pow(base, exp) => {
             let base = prettify_roots(base.as_ref().clone());
             let exp = prettify_roots(exp.as_ref().clone());
 
             // x^(1/2) -> sqrt(x)
-            if let Expr::Div(num, den) = &exp
-                && matches!(**num, Expr::Number(n) if n == 1.0)
-                && matches!(**den, Expr::Number(n) if n == 2.0)
+            if let ExprKind::Div(num, den) = &exp.kind
+                && matches!(num.kind, ExprKind::Number(n) if n == 1.0)
+                && matches!(den.kind, ExprKind::Number(n) if n == 2.0)
             {
-                return Expr::FunctionCall {
+                return Expr::new(ExprKind::FunctionCall {
                     name: "sqrt".to_string(),
                     args: vec![base],
-                };
+                });
             }
             // x^0.5 -> sqrt(x)
-            if let Expr::Number(n) = &exp
+            if let ExprKind::Number(n) = &exp.kind
                 && (n - 0.5).abs() < 1e-10
             {
-                return Expr::FunctionCall {
+                return Expr::new(ExprKind::FunctionCall {
                     name: "sqrt".to_string(),
                     args: vec![base],
-                };
+                });
             }
 
             // Note: x^-0.5 is NOT converted to 1/sqrt(x) because that would
@@ -384,53 +390,53 @@ pub(crate) fn prettify_roots(expr: Expr) -> Expr {
             // handles x^(-n) -> 1/x^n, then prettify_roots converts x^(1/2) -> sqrt(x).
 
             // x^(1/3) -> cbrt(x)
-            if let Expr::Div(num, den) = &exp
-                && matches!(**num, Expr::Number(n) if n == 1.0)
-                && matches!(**den, Expr::Number(n) if n == 3.0)
+            if let ExprKind::Div(num, den) = &exp.kind
+                && matches!(num.kind, ExprKind::Number(n) if n == 1.0)
+                && matches!(den.kind, ExprKind::Number(n) if n == 3.0)
             {
-                return Expr::FunctionCall {
+                return Expr::new(ExprKind::FunctionCall {
                     name: "cbrt".to_string(),
                     args: vec![base],
-                };
+                });
             }
 
-            Expr::Pow(Rc::new(base), Rc::new(exp))
+            Expr::pow(base, exp)
         }
         // Recursively prettify subexpressions
-        Expr::Add(u, v) => Expr::Add(
-            Rc::new(prettify_roots(u.as_ref().clone())),
-            Rc::new(prettify_roots(v.as_ref().clone())),
+        ExprKind::Add(u, v) => Expr::add_expr(
+            prettify_roots(u.as_ref().clone()),
+            prettify_roots(v.as_ref().clone()),
         ),
-        Expr::Sub(u, v) => Expr::Sub(
-            Rc::new(prettify_roots(u.as_ref().clone())),
-            Rc::new(prettify_roots(v.as_ref().clone())),
+        ExprKind::Sub(u, v) => Expr::sub_expr(
+            prettify_roots(u.as_ref().clone()),
+            prettify_roots(v.as_ref().clone()),
         ),
-        Expr::Mul(u, v) => Expr::Mul(
-            Rc::new(prettify_roots(u.as_ref().clone())),
-            Rc::new(prettify_roots(v.as_ref().clone())),
+        ExprKind::Mul(u, v) => Expr::mul_expr(
+            prettify_roots(u.as_ref().clone()),
+            prettify_roots(v.as_ref().clone()),
         ),
-        Expr::Div(u, v) => Expr::Div(
-            Rc::new(prettify_roots(u.as_ref().clone())),
-            Rc::new(prettify_roots(v.as_ref().clone())),
+        ExprKind::Div(u, v) => Expr::div_expr(
+            prettify_roots(u.as_ref().clone()),
+            prettify_roots(v.as_ref().clone()),
         ),
-        Expr::FunctionCall { name, args } => Expr::FunctionCall {
+        ExprKind::FunctionCall { name, args } => Expr::new(ExprKind::FunctionCall {
             name,
             args: args.into_iter().map(prettify_roots).collect(),
-        },
-        _ => expr,
+        }),
+        _ => Expr::new(expr.kind), // Reconstruct
     }
 }
 
 /// Check if an expression is known to be non-negative for all real values of its variables.
 /// This is a conservative check - returns true only when we can prove non-negativity.
 pub(crate) fn is_known_non_negative(expr: &Expr) -> bool {
-    match expr {
+    match &expr.kind {
         // Positive numbers
-        Expr::Number(n) => *n >= 0.0,
+        ExprKind::Number(n) => *n >= 0.0,
 
         // x^2, x^4, x^6, ... are always non-negative
-        Expr::Pow(_, exp) => {
-            if let Expr::Number(n) = &**exp {
+        ExprKind::Pow(_, exp) => {
+            if let ExprKind::Number(n) = &exp.kind {
                 // Even positive integer exponents
                 *n > 0.0 && n.fract() == 0.0 && (*n as i64) % 2 == 0
             } else {
@@ -439,7 +445,7 @@ pub(crate) fn is_known_non_negative(expr: &Expr) -> bool {
         }
 
         // abs(x) is always non-negative
-        Expr::FunctionCall { name, args } if args.len() == 1 => {
+        ExprKind::FunctionCall { name, args } if args.len() == 1 => {
             match name.as_str() {
                 "abs" | "Abs" => true,
                 // exp(x) is always positive
@@ -453,10 +459,10 @@ pub(crate) fn is_known_non_negative(expr: &Expr) -> bool {
         }
 
         // Product of two non-negatives is non-negative
-        Expr::Mul(a, b) => is_known_non_negative(a) && is_known_non_negative(b),
+        ExprKind::Mul(a, b) => is_known_non_negative(a) && is_known_non_negative(b),
 
         // Sum of two non-negatives is non-negative
-        Expr::Add(a, b) => is_known_non_negative(a) && is_known_non_negative(b),
+        ExprKind::Add(a, b) => is_known_non_negative(a) && is_known_non_negative(b),
 
         // Division of non-negative by positive is non-negative (but we can't easily check "positive")
         // Be conservative here
@@ -467,10 +473,10 @@ pub(crate) fn is_known_non_negative(expr: &Expr) -> bool {
 /// Check if an exponent represents a fractional power that requires non-negative base
 /// (i.e., exponents like 1/2, 1/4, 3/2, etc. where denominator is even)
 pub(crate) fn is_fractional_root_exponent(expr: &Expr) -> bool {
-    match expr {
+    match &expr.kind {
         // Direct fraction: 1/2, 1/4, 3/4, etc.
-        Expr::Div(_, den) => {
-            if let Expr::Number(d) = &**den {
+        ExprKind::Div(_, den) => {
+            if let ExprKind::Number(d) = &den.kind {
                 // Check if denominator is an even integer
                 d.fract() == 0.0 && (*d as i64) % 2 == 0
             } else {
@@ -479,7 +485,7 @@ pub(crate) fn is_fractional_root_exponent(expr: &Expr) -> bool {
             }
         }
         // Decimal like 0.5
-        Expr::Number(n) => {
+        ExprKind::Number(n) => {
             // Check if it's a fractional power (not an integer)
             // For 0.5, 0.25, 1.5, etc. - these involve even roots
             if n.fract() != 0.0 {
@@ -509,8 +515,8 @@ pub(crate) fn gcd(a: i64, b: i64) -> i64 {
 
 /// Check if an expression contains a specific factor
 pub(crate) fn contains_factor(expr: &Expr, factor: &Expr) -> bool {
-    match expr {
-        Expr::Mul(_, _) => {
+    match &expr.kind {
+        ExprKind::Mul(_, _) => {
             let factors = flatten_mul(expr);
             factors.iter().any(|f| f == factor)
         }
@@ -520,8 +526,8 @@ pub(crate) fn contains_factor(expr: &Expr, factor: &Expr) -> bool {
 
 /// Remove factors from an expression
 pub(crate) fn remove_factors(expr: &Expr, factors_to_remove: &Expr) -> Expr {
-    match expr {
-        Expr::Mul(_, _) => {
+    match &expr.kind {
+        ExprKind::Mul(_, _) => {
             let expr_factors = flatten_mul(expr);
             let remove_factors = flatten_mul(factors_to_remove);
 
@@ -540,7 +546,7 @@ pub(crate) fn remove_factors(expr: &Expr, factors_to_remove: &Expr) -> Expr {
             }
 
             if remaining_factors.is_empty() {
-                Expr::Number(1.0)
+                Expr::number(1.0)
             } else if remaining_factors.len() == 1 {
                 remaining_factors.into_iter().next().unwrap()
             } else {
@@ -550,7 +556,7 @@ pub(crate) fn remove_factors(expr: &Expr, factors_to_remove: &Expr) -> Expr {
         _ => {
             // If the expression is not a multiplication, check if it matches the factors to remove
             if expr == factors_to_remove {
-                Expr::Number(1.0)
+                Expr::number(1.0)
             } else {
                 expr.clone()
             }
@@ -560,31 +566,31 @@ pub(crate) fn remove_factors(expr: &Expr, factors_to_remove: &Expr) -> Expr {
 
 /// Get a signature for a term to group like terms
 pub(crate) fn get_term_signature(expr: &Expr) -> String {
-    match expr {
+    match &expr.kind {
         // Numbers are "like terms" only with other numbers (can be combined)
-        Expr::Number(_) => "number".to_string(),
-        Expr::Symbol(s) => format!("symbol:{}", s),
-        Expr::Mul(_, _) => {
+        ExprKind::Number(_) => "number".to_string(),
+        ExprKind::Symbol(s) => format!("symbol:{}", s),
+        ExprKind::Mul(_, _) => {
             let factors = flatten_mul(expr);
             let mut sorted_factors: Vec<String> = factors
                 .iter()
-                .filter(|f| !matches!(f, Expr::Number(_))) // Skip coefficients
+                .filter(|f| !matches!(f.kind, ExprKind::Number(_))) // Skip coefficients
                 .map(get_term_signature)
                 .collect();
             sorted_factors.sort();
             format!("mul:{}", sorted_factors.join(","))
         }
-        Expr::Pow(base, exp) => {
+        ExprKind::Pow(base, exp) => {
             // For powers, we need to include the exponent in the signature
             // x^2 and x^3 are NOT like terms
             // But 2*x^3 and 3*x^3 ARE like terms (same base, same exponent)
-            let exp_sig = match &**exp {
-                Expr::Number(n) => format!("{}", n),
+            let exp_sig = match &exp.kind {
+                ExprKind::Number(n) => format!("{}", n),
                 _ => get_term_signature(exp),
             };
             format!("pow:{}^{}", get_term_signature(base), exp_sig)
         }
-        Expr::FunctionCall { name, args } => {
+        ExprKind::FunctionCall { name, args } => {
             let arg_sigs: Vec<String> = args.iter().map(get_term_signature).collect();
             format!("func:{}({})", name, arg_sigs.join(","))
         }
@@ -599,54 +605,82 @@ pub(crate) fn get_term_signature(expr: &Expr) -> String {
 ///
 /// This ensures that semantically equivalent expressions compare as equal.
 pub(crate) fn normalize_for_comparison(expr: &Expr) -> Expr {
-    match expr {
+    // Early exit for leaf nodes - just clone, no transformation needed
+    match &expr.kind {
+        ExprKind::Number(_) | ExprKind::Symbol(_) => return expr.clone(),
+        _ => {}
+    }
+
+    match &expr.kind {
         // Normalize Sub(a, b) to Add(a, -b) for consistent comparison
-        Expr::Sub(a, b) => {
+        ExprKind::Sub(a, b) => {
             let norm_a = normalize_for_comparison(a);
             let norm_b = normalize_for_comparison(b);
             // Create the negated form and normalize it too
-            let neg_b = if let Expr::Number(n) = &norm_b {
-                Expr::Number(-n)
+            let neg_b = if let ExprKind::Number(n) = &norm_b.kind {
+                Expr::number(-n)
             } else {
-                Expr::Mul(Rc::new(Expr::Number(-1.0)), Rc::new(norm_b))
+                Expr::mul_expr(Expr::number(-1.0), norm_b)
             };
-            Expr::Add(Rc::new(norm_a), Rc::new(neg_b))
+            Expr::add_expr(norm_a, neg_b)
         }
         // Normalize Add - recurse into children
-        Expr::Add(a, b) => {
+        ExprKind::Add(a, b) => {
             let norm_a = normalize_for_comparison(a);
             let norm_b = normalize_for_comparison(b);
-            Expr::Add(Rc::new(norm_a), Rc::new(norm_b))
+            // Only create new expression if children changed
+            if norm_a.id == a.id && norm_b.id == b.id {
+                return expr.clone();
+            }
+            Expr::add_expr(norm_a, norm_b)
         }
         // Normalize Mul - simplify numeric products
-        Expr::Mul(a, b) => {
+        ExprKind::Mul(a, b) => {
             let norm_a = normalize_for_comparison(a);
             let norm_b = normalize_for_comparison(b);
             // Simplify products of numbers: Mul(n1, n2) -> n1*n2
-            if let (Expr::Number(n1), Expr::Number(n2)) = (&norm_a, &norm_b) {
-                return Expr::Number(n1 * n2);
+            if let (ExprKind::Number(n1), ExprKind::Number(n2)) = (&norm_a.kind, &norm_b.kind) {
+                return Expr::number(n1 * n2);
             }
-            Expr::Mul(Rc::new(norm_a), Rc::new(norm_b))
+            // Only create new expression if children changed
+            if norm_a.id == a.id && norm_b.id == b.id {
+                return expr.clone();
+            }
+            Expr::mul_expr(norm_a, norm_b)
         }
-        Expr::Div(a, b) => {
+        ExprKind::Div(a, b) => {
             let norm_a = normalize_for_comparison(a);
             let norm_b = normalize_for_comparison(b);
-            Expr::Div(Rc::new(norm_a), Rc::new(norm_b))
+            if norm_a.id == a.id && norm_b.id == b.id {
+                return expr.clone();
+            }
+            Expr::div_expr(norm_a, norm_b)
         }
-        Expr::Pow(a, b) => {
+        ExprKind::Pow(a, b) => {
             let norm_a = normalize_for_comparison(a);
             let norm_b = normalize_for_comparison(b);
-            Expr::Pow(Rc::new(norm_a), Rc::new(norm_b))
+            if norm_a.id == a.id && norm_b.id == b.id {
+                return expr.clone();
+            }
+            Expr::pow(norm_a, norm_b)
         }
-        Expr::FunctionCall { name, args } => {
+        ExprKind::FunctionCall { name, args } => {
             let norm_args: Vec<Expr> = args.iter().map(normalize_for_comparison).collect();
-            Expr::FunctionCall {
+            // Check if any arg changed
+            let changed = norm_args
+                .iter()
+                .zip(args.iter())
+                .any(|(new, old)| new.id != old.id);
+            if !changed {
+                return expr.clone();
+            }
+            Expr::new(ExprKind::FunctionCall {
                 name: name.clone(),
                 args: norm_args,
-            }
+            })
         }
-        // Leaves remain unchanged
-        other => other.clone(),
+        // Leaves remain unchanged (already handled at the top)
+        _ => expr.clone(),
     }
 }
 

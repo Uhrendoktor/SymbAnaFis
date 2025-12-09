@@ -1,6 +1,7 @@
 use crate::Expr;
+use crate::ExprKind as AstKind;
 use std::collections::{HashMap, HashSet};
-use std::rc::Rc;
+use std::sync::Arc;
 
 /// Macro to define a simplification rule with minimal boilerplate
 ///
@@ -38,10 +39,15 @@ macro_rules! rule {
                 $applies_to
             }
 
-            fn apply(&self, expr: &Expr, context: &RuleContext) -> Option<Expr> {
+            fn apply(
+                &self,
+                expr: &std::sync::Arc<Expr>,
+                context: &RuleContext,
+            ) -> Option<std::sync::Arc<Expr>> {
                 // Suppress unused variable warning when context isn't used
                 let _ = context;
-                ($logic)(expr, context)
+                // Adapter: closure works with &Expr, we wrap result in Arc
+                ($logic)(expr.as_ref(), context).map(std::sync::Arc::new)
             }
         }
     };
@@ -71,10 +77,15 @@ macro_rules! rule {
                 $applies_to
             }
 
-            fn apply(&self, expr: &Expr, context: &RuleContext) -> Option<Expr> {
+            fn apply(
+                &self,
+                expr: &std::sync::Arc<Expr>,
+                context: &RuleContext,
+            ) -> Option<std::sync::Arc<Expr>> {
                 // Suppress unused variable warning when context isn't used
                 let _ = context;
-                ($logic)(expr, context)
+                // Adapter: closure works with &Expr, we wrap result in Arc
+                ($logic)(expr.as_ref(), context).map(std::sync::Arc::new)
             }
         }
     };
@@ -116,15 +127,15 @@ macro_rules! rule_with_helpers {
                 $applies_to
             }
 
-            fn apply(&self, expr: &Expr, context: &RuleContext) -> Option<Expr> {
+            fn apply(&self, expr: &std::sync::Arc<Expr>, context: &RuleContext) -> Option<std::sync::Arc<Expr>> {
                 // Suppress unused variable warning when context isn't used
                 let _ = context;
 
                 // Helper functions
                 $($helper)*
 
-                // Main logic
-                ($logic)(expr, context)
+                // Adapter: closure works with &Expr, we wrap result in Arc
+                ($logic)(expr.as_ref(), context).map(std::sync::Arc::new)
             }
         }
     };
@@ -157,15 +168,15 @@ macro_rules! rule_with_helpers {
                 $applies_to
             }
 
-            fn apply(&self, expr: &Expr, context: &RuleContext) -> Option<Expr> {
+            fn apply(&self, expr: &std::sync::Arc<Expr>, context: &RuleContext) -> Option<std::sync::Arc<Expr>> {
                 // Suppress unused variable warning when context isn't used
                 let _ = context;
 
                 // Helper functions
                 $($helper)*
 
-                // Main logic
-                ($logic)(expr, context)
+                // Adapter: closure works with &Expr, we wrap result in Arc
+                ($logic)(expr.as_ref(), context).map(std::sync::Arc::new)
             }
         }
     };
@@ -182,22 +193,24 @@ pub enum ExprKind {
     Mul,
     Div,
     Pow,
-    Function, // Any function call
+    Function,   // Any function call
+    Derivative, // Partial derivative expression
 }
 
 impl ExprKind {
     /// Get the kind of an expression (cheap O(1) operation)
     #[inline]
     pub fn of(expr: &Expr) -> Self {
-        match expr {
-            Expr::Number(_) => ExprKind::Number,
-            Expr::Symbol(_) => ExprKind::Symbol,
-            Expr::Add(_, _) => ExprKind::Add,
-            Expr::Sub(_, _) => ExprKind::Sub,
-            Expr::Mul(_, _) => ExprKind::Mul,
-            Expr::Div(_, _) => ExprKind::Div,
-            Expr::Pow(_, _) => ExprKind::Pow,
-            Expr::FunctionCall { .. } => ExprKind::Function,
+        match &expr.kind {
+            AstKind::Number(_) => ExprKind::Number,
+            AstKind::Symbol(_) => ExprKind::Symbol,
+            AstKind::Add(_, _) => ExprKind::Add,
+            AstKind::Sub(_, _) => ExprKind::Sub,
+            AstKind::Mul(_, _) => ExprKind::Mul,
+            AstKind::Div(_, _) => ExprKind::Div,
+            AstKind::Pow(_, _) => ExprKind::Pow,
+            AstKind::FunctionCall { .. } => ExprKind::Function,
+            AstKind::Derivative { .. } => ExprKind::Derivative,
         }
     }
 }
@@ -225,10 +238,13 @@ pub trait Rule {
             ExprKind::Div,
             ExprKind::Pow,
             ExprKind::Function,
+            ExprKind::Derivative,
         ]
     }
 
-    fn apply(&self, expr: &Expr, context: &RuleContext) -> Option<Expr>;
+    /// Apply this rule to an expression. Returns Some(new_expr) if transformation applied.
+    /// Takes &Arc<Expr> for efficient sub-expression cloning (Arc::clone is cheap).
+    fn apply(&self, expr: &Arc<Expr>, context: &RuleContext) -> Option<Arc<Expr>>;
 }
 
 /// Categories of simplification rules
@@ -249,12 +265,13 @@ pub enum RuleCategory {
 /// - 1-39: Canonicalization rules (sort terms, normalize display form)
 ///
 /// Context passed to rules during application
+/// Uses Arc<HashSet> for cheap cloning (context is cloned per-node)
 #[derive(Clone, Debug, Default)]
 pub struct RuleContext {
     pub depth: usize,
     pub parent: Option<Expr>,
-    pub variables: HashSet<String>,
-    pub fixed_vars: HashSet<String>, // User-specified fixed variables (constants)
+    pub variables: Arc<HashSet<String>>,
+    pub fixed_vars: Arc<HashSet<String>>, // User-specified fixed variables (constants)
     pub domain_safe: bool,
 }
 
@@ -275,12 +292,12 @@ impl RuleContext {
     }
 
     pub fn with_variables(mut self, variables: HashSet<String>) -> Self {
-        self.variables = variables;
+        self.variables = Arc::new(variables);
         self
     }
 
     pub fn with_fixed_vars(mut self, fixed_vars: HashSet<String>) -> Self {
-        self.fixed_vars = fixed_vars;
+        self.fixed_vars = Arc::new(fixed_vars);
         self
     }
 }
@@ -305,9 +322,9 @@ pub(crate) mod hyperbolic;
 
 /// Rule Registry for dynamic loading and dependency management
 pub(crate) struct RuleRegistry {
-    pub(crate) rules: Vec<Rc<dyn Rule>>,
+    pub(crate) rules: Vec<Arc<dyn Rule + Send + Sync>>,
     /// Rules indexed by expression kind for fast lookup
-    rules_by_kind: HashMap<ExprKind, Vec<Rc<dyn Rule>>>,
+    rules_by_kind: HashMap<ExprKind, Vec<Arc<dyn Rule + Send + Sync>>>,
 }
 
 impl RuleRegistry {
@@ -366,6 +383,7 @@ impl RuleRegistry {
             ExprKind::Div,
             ExprKind::Pow,
             ExprKind::Function,
+            ExprKind::Derivative,
         ] {
             self.rules_by_kind.insert(kind, Vec::new());
         }
@@ -382,7 +400,7 @@ impl RuleRegistry {
 
     /// Get only rules that apply to a specific expression kind
     #[inline]
-    pub fn get_rules_for_kind(&self, kind: ExprKind) -> &[Rc<dyn Rule>] {
+    pub fn get_rules_for_kind(&self, kind: ExprKind) -> &[Arc<dyn Rule + Send + Sync>] {
         self.rules_by_kind
             .get(&kind)
             .map(|v| v.as_slice())

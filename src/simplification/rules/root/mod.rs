@@ -1,6 +1,6 @@
-use crate::ast::Expr;
+use crate::ast::{Expr, ExprKind as AstKind};
 use crate::simplification::rules::{ExprKind, Rule, RuleCategory, RuleContext};
-use std::rc::Rc;
+use std::sync::Arc; // May still be needed if not fully removed by helpers
 
 rule!(
     SqrtPowerRule,
@@ -9,33 +9,30 @@ rule!(
     Root,
     &[ExprKind::Function],
     |expr: &Expr, _context: &RuleContext| {
-        if let Expr::FunctionCall { name, args } = expr
+        if let AstKind::FunctionCall { name, args } = &expr.kind
             && name == "sqrt"
             && args.len() == 1
-            && let Expr::Pow(base, exp) = &args[0]
+            && let AstKind::Pow(base, exp) = &args[0].kind
         {
             // Special case: sqrt(x^2) should always return abs(x)
-            if let Expr::Number(n) = &**exp
+            if let AstKind::Number(n) = &exp.kind
                 && *n == 2.0
             {
                 // sqrt(x^2) = |x|
-                return Some(Expr::FunctionCall {
-                    name: "abs".to_string(),
-                    args: vec![(**base).clone()],
-                });
+                return Some(Expr::func("abs", base.as_ref().clone()));
             }
 
             // Create new exponent: exp / 2
-            let new_exp = Expr::Div(exp.clone(), Rc::new(Expr::Number(2.0)));
+            let new_exp = Expr::div_expr(exp.as_ref().clone(), Expr::number(2.0));
 
             // Simplify the division immediately
-            let simplified_exp = match &new_exp {
-                Expr::Div(u, v) => {
-                    if let (Expr::Number(a), Expr::Number(b)) = (&**u, &**v) {
+            let simplified_exp = match &new_exp.kind {
+                AstKind::Div(u, v) => {
+                    if let (AstKind::Number(a), AstKind::Number(b)) = (&u.kind, &v.kind) {
                         if *b != 0.0 {
                             let result = a / b;
                             if (result - result.round()).abs() < 1e-10 {
-                                Expr::Number(result.round())
+                                Expr::number(result.round())
                             } else {
                                 new_exp
                             }
@@ -50,11 +47,11 @@ rule!(
             };
 
             // If exponent simplified to 1, return base directly
-            if matches!(simplified_exp, Expr::Number(n) if n == 1.0) {
-                return Some((**base).clone());
+            if matches!(&simplified_exp.kind, AstKind::Number(n) if *n == 1.0) {
+                return Some(base.as_ref().clone());
             }
 
-            let result = Expr::Pow(base.clone(), Rc::new(simplified_exp.clone()));
+            let result = Expr::pow(base.as_ref().clone(), simplified_exp.clone());
 
             return Some(result);
         }
@@ -69,22 +66,22 @@ rule!(
     Root,
     &[ExprKind::Function],
     |expr: &Expr, _context: &RuleContext| {
-        if let Expr::FunctionCall { name, args } = expr
+        if let AstKind::FunctionCall { name, args } = &expr.kind
             && name == "cbrt"
             && args.len() == 1
-            && let Expr::Pow(base, exp) = &args[0]
+            && let AstKind::Pow(base, exp) = &args[0].kind
         {
             // Create new exponent: exp / 3
-            let new_exp = Expr::Div(exp.clone(), Rc::new(Expr::Number(3.0)));
+            let new_exp = Expr::div_expr(exp.as_ref().clone(), Expr::number(3.0));
 
             // Simplify the division immediately
-            let simplified_exp = match &new_exp {
-                Expr::Div(u, v) => {
-                    if let (Expr::Number(a), Expr::Number(b)) = (&**u, &**v) {
+            let simplified_exp = match &new_exp.kind {
+                AstKind::Div(u, v) => {
+                    if let (AstKind::Number(a), AstKind::Number(b)) = (&u.kind, &v.kind) {
                         if *b != 0.0 {
                             let result = a / b;
                             if (result - result.round()).abs() < 1e-10 {
-                                Expr::Number(result.round())
+                                Expr::number(result.round())
                             } else {
                                 new_exp
                             }
@@ -99,71 +96,71 @@ rule!(
             };
 
             // If exponent simplified to 1, return base directly
-            if matches!(simplified_exp, Expr::Number(n) if n == 1.0) {
-                return Some((**base).clone());
+            if matches!(&simplified_exp.kind, AstKind::Number(n) if *n == 1.0) {
+                return Some(base.as_ref().clone());
             }
 
-            return Some(Expr::Pow(base.clone(), Rc::new(simplified_exp)));
+            return Some(Expr::pow(base.as_ref().clone(), simplified_exp));
         }
         None
     }
 );
 
 rule!(SqrtMulRule, "sqrt_mul", 56, Root, &[ExprKind::Mul], alters_domain: true, |expr: &Expr, _context: &RuleContext| {
-    if let Expr::Mul(u, v) = expr {
+    if let AstKind::Mul(u, v) = &expr.kind {
         // Check for sqrt(a) * sqrt(b)
         if let (
-            Expr::FunctionCall {
+            AstKind::FunctionCall {
                 name: u_name,
                 args: u_args,
             },
-            Expr::FunctionCall {
+            AstKind::FunctionCall {
                 name: v_name,
                 args: v_args,
             },
-        ) = (&**u, &**v)
+        ) = (&u.kind, &v.kind)
             && u_name == "sqrt"
             && v_name == "sqrt"
             && u_args.len() == 1
             && v_args.len() == 1
         {
-            return Some(Expr::FunctionCall {
-                name: "sqrt".to_string(),
-                args: vec![Expr::Mul(
-                    Rc::new(u_args[0].clone()),
-                    Rc::new(v_args[0].clone()),
-                )],
-            });
+            return Some(Expr::func(
+                "sqrt",
+                Expr::mul_expr(
+                    u_args[0].clone(),
+                    v_args[0].clone(),
+                ),
+            ));
         }
     }
     None
 });
 
 rule!(SqrtDivRule, "sqrt_div", 56, Root, &[ExprKind::Div], alters_domain: true, |expr: &Expr, _context: &RuleContext| {
-    if let Expr::Div(u, v) = expr {
+    if let AstKind::Div(u, v) = &expr.kind {
         // Check for sqrt(a) / sqrt(b)
         if let (
-            Expr::FunctionCall {
+            AstKind::FunctionCall {
                 name: u_name,
                 args: u_args,
             },
-            Expr::FunctionCall {
+            AstKind::FunctionCall {
                 name: v_name,
                 args: v_args,
             },
-        ) = (&**u, &**v)
+        ) = (&u.kind, &v.kind)
             && u_name == "sqrt"
             && v_name == "sqrt"
             && u_args.len() == 1
             && v_args.len() == 1
         {
-            return Some(Expr::FunctionCall {
-                name: "sqrt".to_string(),
-                args: vec![Expr::Div(
-                    Rc::new(u_args[0].clone()),
-                    Rc::new(v_args[0].clone()),
-                )],
-            });
+            return Some(Expr::func(
+                "sqrt",
+                Expr::div_expr(
+                    u_args[0].clone(),
+                    v_args[0].clone(),
+                ),
+            ));
         }
     }
     None
@@ -176,26 +173,20 @@ rule!(
     Root,
     &[ExprKind::Function],
     |expr: &Expr, _context: &RuleContext| {
-        if let Expr::FunctionCall { name, args } = expr
+        if let AstKind::FunctionCall { name, args } = &expr.kind
             && args.len() == 1
         {
             match name.as_str() {
                 "sqrt" => {
-                    return Some(Expr::Pow(
-                        Rc::new(args[0].clone()),
-                        Rc::new(Expr::Div(
-                            Rc::new(Expr::Number(1.0)),
-                            Rc::new(Expr::Number(2.0)),
-                        )),
+                    return Some(Expr::pow(
+                        args[0].clone(),
+                        Expr::div_expr(Expr::number(1.0), Expr::number(2.0)),
                     ));
                 }
                 "cbrt" => {
-                    return Some(Expr::Pow(
-                        Rc::new(args[0].clone()),
-                        Rc::new(Expr::Div(
-                            Rc::new(Expr::Number(1.0)),
-                            Rc::new(Expr::Number(3.0)),
-                        )),
+                    return Some(Expr::pow(
+                        args[0].clone(),
+                        Expr::div_expr(Expr::number(1.0), Expr::number(3.0)),
                     ));
                 }
                 _ => {}
@@ -214,19 +205,19 @@ rule!(
     |expr: &Expr, _context: &RuleContext| {
         // sqrt(a * x^2) → |x| * sqrt(a)
         // sqrt(x^2 * a) → |x| * sqrt(a)
-        if let Expr::FunctionCall { name, args } = expr
+        if let AstKind::FunctionCall { name, args } = &expr.kind
             && name == "sqrt"
             && args.len() == 1
-            && let Expr::Mul(u, v) = &args[0]
+            && let AstKind::Mul(u, v) = &args[0].kind
         {
             // Check if either factor is a square (x^2)
-            let (square_base, other) = if let Expr::Pow(base, exp) = &**u
-                && let Expr::Number(n) = &**exp
+            let (square_base, other) = if let AstKind::Pow(base, exp) = &u.kind
+                && let AstKind::Number(n) = &exp.kind
                 && *n == 2.0
             {
                 (Some(base), v)
-            } else if let Expr::Pow(base, exp) = &**v
-                && let Expr::Number(n) = &**exp
+            } else if let AstKind::Pow(base, exp) = &v.kind
+                && let AstKind::Number(n) = &exp.kind
                 && *n == 2.0
             {
                 (Some(base), u)
@@ -236,15 +227,9 @@ rule!(
 
             if let Some(base) = square_base {
                 // sqrt(other * base^2) = |base| * sqrt(other)
-                let abs_base = Expr::FunctionCall {
-                    name: "abs".to_string(),
-                    args: vec![(**base).clone()],
-                };
-                let sqrt_other = Expr::FunctionCall {
-                    name: "sqrt".to_string(),
-                    args: vec![(**other).clone()],
-                };
-                return Some(Expr::Mul(Rc::new(abs_base), Rc::new(sqrt_other)));
+                let abs_base = Expr::func("abs", base.as_ref().clone());
+                let sqrt_other = Expr::func("sqrt", other.as_ref().clone());
+                return Some(Expr::mul_expr(abs_base, sqrt_other));
             }
         }
         None
@@ -252,13 +237,13 @@ rule!(
 );
 
 /// Get all root simplification rules in priority order
-pub(crate) fn get_root_rules() -> Vec<Rc<dyn Rule>> {
+pub(crate) fn get_root_rules() -> Vec<Arc<dyn Rule + Send + Sync>> {
     vec![
-        Rc::new(SqrtPowerRule),
-        Rc::new(SqrtExtractSquareRule),
-        Rc::new(CbrtPowerRule),
-        Rc::new(SqrtMulRule),
-        Rc::new(SqrtDivRule),
-        Rc::new(NormalizeRootsRule),
+        Arc::new(SqrtPowerRule),
+        Arc::new(SqrtExtractSquareRule),
+        Arc::new(CbrtPowerRule),
+        Arc::new(SqrtMulRule),
+        Arc::new(SqrtDivRule),
+        Arc::new(NormalizeRootsRule),
     ]
 }

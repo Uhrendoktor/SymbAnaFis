@@ -1,4 +1,4 @@
-use crate::Expr;
+use crate::{Expr, ExprKind};
 
 /// Common pattern matching utilities for simplification rules
 pub(crate) mod common {
@@ -7,11 +7,11 @@ pub(crate) mod common {
     /// Extract coefficient and base from a multiplication term
     /// Returns (coefficient, base) where base is normalized
     pub fn extract_coefficient(expr: &Expr) -> (f64, Expr) {
-        match expr {
-            Expr::Number(n) => (*n, Expr::Number(1.0)),
-            Expr::Mul(coeff, base) => {
-                if let Expr::Number(n) = **coeff {
-                    (n, base.as_ref().clone())
+        match &expr.kind {
+            ExprKind::Number(n) => (*n, Expr::number(1.0)),
+            ExprKind::Mul(coeff, base) => {
+                if let ExprKind::Number(n) = &coeff.kind {
+                    (*n, base.as_ref().clone())
                 } else {
                     (1.0, expr.clone())
                 }
@@ -27,7 +27,7 @@ pub(crate) mod trigonometric {
 
     /// Extract function name and argument if expression is a trig function
     pub fn get_trig_function(expr: &Expr) -> Option<(&str, Expr)> {
-        if let Expr::FunctionCall { name, args } = expr {
+        if let ExprKind::FunctionCall { name, args } = &expr.kind {
             if args.len() == 1 {
                 match name.as_str() {
                     "sin" | "cos" | "tan" | "cot" | "sec" | "csc" => {

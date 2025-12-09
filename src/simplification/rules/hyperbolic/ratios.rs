@@ -1,4 +1,4 @@
-use crate::ast::Expr;
+use crate::ast::{Expr, ExprKind as AstKind};
 use crate::simplification::rules::{ExprKind, Rule, RuleCategory, RuleContext};
 
 rule!(
@@ -8,25 +8,22 @@ rule!(
     Hyperbolic,
     &[ExprKind::Div],
     |expr: &Expr, _context: &RuleContext| {
-        if let Expr::Div(num, den) = expr
-            && let Expr::FunctionCall {
+        if let AstKind::Div(num, den) = &expr.kind
+            && let AstKind::FunctionCall {
                 name: num_name,
                 args: num_args,
-            } = &**num
-            && let Expr::FunctionCall {
+            } = &num.kind
+            && let AstKind::FunctionCall {
                 name: den_name,
                 args: den_args,
-            } = &**den
+            } = &den.kind
             && num_name == "sinh"
             && den_name == "cosh"
             && num_args.len() == 1
             && den_args.len() == 1
             && num_args[0] == den_args[0]
         {
-            return Some(Expr::FunctionCall {
-                name: "tanh".to_string(),
-                args: vec![num_args[0].clone()],
-            });
+            return Some(Expr::func("tanh", num_args[0].clone()));
         }
         None
     }
@@ -39,25 +36,22 @@ rule!(
     Hyperbolic,
     &[ExprKind::Div],
     |expr: &Expr, _context: &RuleContext| {
-        if let Expr::Div(num, den) = expr
-            && let Expr::FunctionCall {
+        if let AstKind::Div(num, den) = &expr.kind
+            && let AstKind::FunctionCall {
                 name: num_name,
                 args: num_args,
-            } = &**num
-            && let Expr::FunctionCall {
+            } = &num.kind
+            && let AstKind::FunctionCall {
                 name: den_name,
                 args: den_args,
-            } = &**den
+            } = &den.kind
             && num_name == "cosh"
             && den_name == "sinh"
             && num_args.len() == 1
             && den_args.len() == 1
             && num_args[0] == den_args[0]
         {
-            return Some(Expr::FunctionCall {
-                name: "coth".to_string(),
-                args: vec![num_args[0].clone()],
-            });
+            return Some(Expr::func("coth", num_args[0].clone()));
         }
         None
     }
@@ -70,17 +64,14 @@ rule!(
     Hyperbolic,
     &[ExprKind::Div],
     |expr: &Expr, _context: &RuleContext| {
-        if let Expr::Div(num, den) = expr
-            && let Expr::Number(n) = &**num
+        if let AstKind::Div(num, den) = &expr.kind
+            && let AstKind::Number(n) = &num.kind
             && (*n - 1.0).abs() < 1e-10
-            && let Expr::FunctionCall { name, args } = &**den
+            && let AstKind::FunctionCall { name, args } = &den.kind
             && name == "cosh"
             && args.len() == 1
         {
-            return Some(Expr::FunctionCall {
-                name: "sech".to_string(),
-                args: args.clone(),
-            });
+            return Some(Expr::func_multi("sech", args.clone()));
         }
         None
     }
@@ -93,17 +84,14 @@ rule!(
     Hyperbolic,
     &[ExprKind::Div],
     |expr: &Expr, _context: &RuleContext| {
-        if let Expr::Div(num, den) = expr
-            && let Expr::Number(n) = &**num
+        if let AstKind::Div(num, den) = &expr.kind
+            && let AstKind::Number(n) = &num.kind
             && (*n - 1.0).abs() < 1e-10
-            && let Expr::FunctionCall { name, args } = &**den
+            && let AstKind::FunctionCall { name, args } = &den.kind
             && name == "sinh"
             && args.len() == 1
         {
-            return Some(Expr::FunctionCall {
-                name: "csch".to_string(),
-                args: args.clone(),
-            });
+            return Some(Expr::func_multi("csch", args.clone()));
         }
         None
     }
@@ -116,17 +104,14 @@ rule!(
     Hyperbolic,
     &[ExprKind::Div],
     |expr: &Expr, _context: &RuleContext| {
-        if let Expr::Div(num, den) = expr
-            && let Expr::Number(n) = &**num
+        if let AstKind::Div(num, den) = &expr.kind
+            && let AstKind::Number(n) = &num.kind
             && (*n - 1.0).abs() < 1e-10
-            && let Expr::FunctionCall { name, args } = &**den
+            && let AstKind::FunctionCall { name, args } = &den.kind
             && name == "tanh"
             && args.len() == 1
         {
-            return Some(Expr::FunctionCall {
-                name: "coth".to_string(),
-                args: args.clone(),
-            });
+            return Some(Expr::func_multi("coth", args.clone()));
         }
         None
     }

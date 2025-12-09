@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use crate::ast::Expr;
+    use crate::ast::ExprKind;
     use crate::parse;
     use crate::simplification::simplify_expr;
     use std::collections::HashSet;
@@ -15,7 +15,7 @@ mod tests {
         println!("AST: {:?}", expr);
 
         // We can also check the exponent specifically
-        if let Expr::Pow(_, exp) = &expr {
+        if let ExprKind::Pow(_, exp) = &expr.kind {
             println!("Exponent AST: {:?}", exp);
             let simplified_exp = simplify_expr(exp.as_ref().clone(), HashSet::new());
             println!("Simplified Exponent: {:?}", simplified_exp);

@@ -27,7 +27,7 @@ fn bench_parsing(c: &mut Criterion) {
     group.finish();
 }
 
-// Benchmark differentiation on pre-parsed AST (derive method)
+// Benchmark differentiation on pre-parsed AST (raw derive only, no simplification)
 fn bench_diff_ast(c: &mut Criterion) {
     let mut group = c.benchmark_group("diff_ast_only");
     let empty: HashSet<String> = HashSet::new();
@@ -39,30 +39,69 @@ fn bench_diff_ast(c: &mut Criterion) {
     let nested = parse("sin(cos(tan(x)))", &empty, &empty).unwrap();
 
     group.bench_function("diff_ast_poly", |b| {
-        b.iter(|| {
-            let expr = black_box(&poly);
-            expr.derive("x", &empty)
-        })
+        b.iter(|| black_box(poly.clone()).derive_raw("x"))
     });
 
     group.bench_function("diff_ast_trig", |b| {
-        b.iter(|| {
-            let expr = black_box(&trig);
-            expr.derive("x", &empty)
-        })
+        b.iter(|| black_box(trig.clone()).derive_raw("x"))
     });
 
     group.bench_function("diff_ast_complex", |b| {
-        b.iter(|| {
-            let expr = black_box(&complex);
-            expr.derive("x", &empty)
-        })
+        b.iter(|| black_box(complex.clone()).derive_raw("x"))
     });
 
     group.bench_function("diff_ast_nested", |b| {
+        b.iter(|| black_box(nested.clone()).derive_raw("x"))
+    });
+
+    group.finish();
+}
+
+// Benchmark differentiation with caching
+fn bench_diff_cached(c: &mut Criterion) {
+    let mut group = c.benchmark_group("diff_cached");
+    let empty: HashSet<String> = HashSet::new();
+
+    // Pre-parse expressions
+    let poly = parse("x^3 + 2*x^2 + x", &empty, &empty).unwrap();
+    let trig = parse("sin(x) * cos(x)", &empty, &empty).unwrap();
+    let complex = parse("x^2 * sin(x) * exp(x)", &empty, &empty).unwrap();
+    let nested = parse("sin(cos(tan(x)))", &empty, &empty).unwrap();
+    // Pathological cases for repeated subexpressions
+    let repeated = parse("(x+1)*(x+1)*(x+1)*(x+1)", &empty, &empty).unwrap();
+
+    group.bench_function("diff_cached_poly", |b| {
         b.iter(|| {
-            let expr = black_box(&nested);
-            expr.derive("x", &empty)
+            let mut cache = std::collections::HashMap::new();
+            black_box(poly.clone()).derive_cached("x", &mut cache)
+        })
+    });
+
+    group.bench_function("diff_cached_trig", |b| {
+        b.iter(|| {
+            let mut cache = std::collections::HashMap::new();
+            black_box(trig.clone()).derive_cached("x", &mut cache)
+        })
+    });
+
+    group.bench_function("diff_cached_complex", |b| {
+        b.iter(|| {
+            let mut cache = std::collections::HashMap::new();
+            black_box(complex.clone()).derive_cached("x", &mut cache)
+        })
+    });
+
+    group.bench_function("diff_cached_nested", |b| {
+        b.iter(|| {
+            let mut cache = std::collections::HashMap::new();
+            black_box(nested.clone()).derive_cached("x", &mut cache)
+        })
+    });
+
+    group.bench_function("diff_cached_repeated", |b| {
+        b.iter(|| {
+            let mut cache = std::collections::HashMap::new();
+            black_box(repeated.clone()).derive_cached("x", &mut cache)
         })
     });
 
@@ -283,6 +322,7 @@ criterion_group!(
     benches,
     bench_parsing,
     bench_diff_ast,
+    bench_diff_cached,
     bench_simplify_ast,
     bench_differentiation,
     bench_simplification,

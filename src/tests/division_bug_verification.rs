@@ -1,21 +1,21 @@
 #[cfg(test)]
 mod division_bug_tests {
-    use crate::{Expr, simplification::simplify_expr};
+    use crate::{Expr, ExprKind, simplification::simplify_expr};
     use std::collections::HashSet;
-    use std::rc::Rc;
+    use std::sync::Arc;
     #[test]
     fn verify_display_parens() {
         // Test 1: A / (C * R^2) - should have parentheses
-        let expr = Expr::Div(
-            Rc::new(Expr::Symbol("A".to_string())),
-            Rc::new(Expr::Mul(
-                Rc::new(Expr::Symbol("C".to_string())),
-                Rc::new(Expr::Pow(
-                    Rc::new(Expr::Symbol("R".to_string())),
-                    Rc::new(Expr::Number(2.0)),
-                )),
-            )),
-        );
+        let expr = Expr::new(ExprKind::Div(
+            Arc::new(Expr::symbol("A".to_string())),
+            Arc::new(Expr::new(ExprKind::Mul(
+                Arc::new(Expr::symbol("C".to_string())),
+                Arc::new(Expr::new(ExprKind::Pow(
+                    Arc::new(Expr::symbol("R".to_string())),
+                    Arc::new(Expr::number(2.0)),
+                ))),
+            ))),
+        ));
         let display = format!("{}", expr);
         println!("Display: {}", display);
         assert_eq!(
@@ -28,25 +28,25 @@ mod division_bug_tests {
     #[test]
     fn verify_simplification_cancellation() {
         // Test 2: (-C * R * V0) / (C * R^2) should simplify to -V0 / R
-        let expr = Expr::Div(
-            Rc::new(Expr::Mul(
-                Rc::new(Expr::Mul(
-                    Rc::new(Expr::Mul(
-                        Rc::new(Expr::Number(-1.0)),
-                        Rc::new(Expr::Symbol("C".to_string())),
-                    )),
-                    Rc::new(Expr::Symbol("R".to_string())),
-                )),
-                Rc::new(Expr::Symbol("V0".to_string())),
-            )),
-            Rc::new(Expr::Mul(
-                Rc::new(Expr::Symbol("C".to_string())),
-                Rc::new(Expr::Pow(
-                    Rc::new(Expr::Symbol("R".to_string())),
-                    Rc::new(Expr::Number(2.0)),
-                )),
-            )),
-        );
+        let expr = Expr::new(ExprKind::Div(
+            Arc::new(Expr::new(ExprKind::Mul(
+                Arc::new(Expr::new(ExprKind::Mul(
+                    Arc::new(Expr::new(ExprKind::Mul(
+                        Arc::new(Expr::number(-1.0)),
+                        Arc::new(Expr::symbol("C".to_string())),
+                    ))),
+                    Arc::new(Expr::symbol("R".to_string())),
+                ))),
+                Arc::new(Expr::symbol("V0".to_string())),
+            ))),
+            Arc::new(Expr::new(ExprKind::Mul(
+                Arc::new(Expr::symbol("C".to_string())),
+                Arc::new(Expr::new(ExprKind::Pow(
+                    Arc::new(Expr::symbol("R".to_string())),
+                    Arc::new(Expr::number(2.0)),
+                ))),
+            ))),
+        ));
 
         println!("Original:   {}", expr);
         let simplified = simplify_expr(expr, HashSet::new());

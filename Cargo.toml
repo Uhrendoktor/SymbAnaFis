@@ -1,6 +1,6 @@
 [package]
 name = "symb_anafis"
-version = "0.2.5"
+version = "0.3.0-devtest-plsreportbugs"
 edition = "2024"
 authors = ["CokieMiner"]
 description = "Fast symbolic differentiation library for Rust"
@@ -14,14 +14,20 @@ name = "symb_anafis"
 crate-type = ["rlib", "cdylib"]
 
 [dependencies]
+num-traits = "0.2.19"
 pyo3 = { version = "0.27.2", features = ["extension-module"], optional = true }
+rayon = { version = "1.10", optional = true }
 
 [dev-dependencies]
-criterion = "0.8.0"
+criterion = "0.8.1"
+quickcheck = "1.0"
+quickcheck_macros = "1.0"
+rand = "0.9.2"
 
 [features]
 default = []
 python = ["pyo3"]
+parallel = ["rayon"]
 
 [[bench]]
 name = "benchmark"

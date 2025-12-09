@@ -1,6 +1,7 @@
 use crate::Expr;
+use crate::ExprKind as AstKind;
 use crate::simplification::rules::{ExprKind, Rule, RuleCategory, RuleContext};
-use std::rc::Rc;
+use std::sync::Arc;
 
 // ===== Identity Rules (Priority 100) =====
 
@@ -11,11 +12,11 @@ rule!(
     Numeric,
     &[ExprKind::Add],
     |expr: &Expr, _context: &RuleContext| {
-        if let Expr::Add(u, v) = expr {
-            if matches!(**u, Expr::Number(n) if n == 0.0) {
+        if let AstKind::Add(u, v) = &expr.kind {
+            if matches!(&u.kind, AstKind::Number(n) if *n == 0.0) {
                 return Some((**v).clone());
             }
-            if matches!(**v, Expr::Number(n) if n == 0.0) {
+            if matches!(&v.kind, AstKind::Number(n) if *n == 0.0) {
                 return Some((**u).clone());
             }
         }
@@ -30,8 +31,8 @@ rule!(
     Numeric,
     &[ExprKind::Sub],
     |expr: &Expr, _context: &RuleContext| {
-        if let Expr::Sub(u, v) = expr
-            && matches!(**v, Expr::Number(n) if n == 0.0)
+        if let AstKind::Sub(u, v) = &expr.kind
+            && matches!(&v.kind, AstKind::Number(n) if *n == 0.0)
         {
             return Some((**u).clone());
         }
@@ -46,12 +47,12 @@ rule!(
     Numeric,
     &[ExprKind::Mul],
     |expr: &Expr, _context: &RuleContext| {
-        if let Expr::Mul(u, v) = expr {
-            if matches!(**u, Expr::Number(n) if n == 0.0) {
-                return Some(Expr::Number(0.0));
+        if let AstKind::Mul(u, v) = &expr.kind {
+            if matches!(&u.kind, AstKind::Number(n) if *n == 0.0) {
+                return Some(Expr::number(0.0));
             }
-            if matches!(**v, Expr::Number(n) if n == 0.0) {
-                return Some(Expr::Number(0.0));
+            if matches!(&v.kind, AstKind::Number(n) if *n == 0.0) {
+                return Some(Expr::number(0.0));
             }
         }
         None
@@ -65,11 +66,11 @@ rule!(
     Numeric,
     &[ExprKind::Mul],
     |expr: &Expr, _context: &RuleContext| {
-        if let Expr::Mul(u, v) = expr {
-            if matches!(**u, Expr::Number(n) if n == 1.0) {
+        if let AstKind::Mul(u, v) = &expr.kind {
+            if matches!(&u.kind, AstKind::Number(n) if *n == 1.0) {
                 return Some((**v).clone());
             }
-            if matches!(**v, Expr::Number(n) if n == 1.0) {
+            if matches!(&v.kind, AstKind::Number(n) if *n == 1.0) {
                 return Some((**u).clone());
             }
         }
@@ -84,8 +85,8 @@ rule!(
     Numeric,
     &[ExprKind::Div],
     |expr: &Expr, _context: &RuleContext| {
-        if let Expr::Div(u, v) = expr
-            && matches!(**v, Expr::Number(n) if n == 1.0)
+        if let AstKind::Div(u, v) = &expr.kind
+            && matches!(&v.kind, AstKind::Number(n) if *n == 1.0)
         {
             return Some((**u).clone());
         }
@@ -100,10 +101,10 @@ rule!(
     Numeric,
     &[ExprKind::Div],
     |expr: &Expr, _context: &RuleContext| {
-        if let Expr::Div(_u, _v) = expr
-            && matches!(**_u, Expr::Number(n) if n == 0.0)
+        if let AstKind::Div(u, _v) = &expr.kind
+            && matches!(&u.kind, AstKind::Number(n) if *n == 0.0)
         {
-            return Some(Expr::Number(0.0));
+            return Some(Expr::number(0.0));
         }
         None
     }
@@ -116,10 +117,10 @@ rule!(
     Numeric,
     &[ExprKind::Pow],
     |expr: &Expr, _context: &RuleContext| {
-        if let Expr::Pow(_u, v) = expr
-            && matches!(**v, Expr::Number(n) if n == 0.0)
+        if let AstKind::Pow(_u, v) = &expr.kind
+            && matches!(&v.kind, AstKind::Number(n) if *n == 0.0)
         {
-            return Some(Expr::Number(1.0));
+            return Some(Expr::number(1.0));
         }
         None
     }
@@ -132,8 +133,8 @@ rule!(
     Numeric,
     &[ExprKind::Pow],
     |expr: &Expr, _context: &RuleContext| {
-        if let Expr::Pow(u, v) = expr
-            && matches!(**v, Expr::Number(n) if n == 1.0)
+        if let AstKind::Pow(u, v) = &expr.kind
+            && matches!(&v.kind, AstKind::Number(n) if *n == 1.0)
         {
             return Some((**u).clone());
         }
@@ -148,10 +149,10 @@ rule!(
     Numeric,
     &[ExprKind::Pow],
     |expr: &Expr, _context: &RuleContext| {
-        if let Expr::Pow(_u, _v) = expr
-            && matches!(**_u, Expr::Number(n) if n == 0.0)
+        if let AstKind::Pow(u, _v) = &expr.kind
+            && matches!(&u.kind, AstKind::Number(n) if *n == 0.0)
         {
-            return Some(Expr::Number(0.0));
+            return Some(Expr::number(0.0));
         }
         None
     }
@@ -164,10 +165,10 @@ rule!(
     Numeric,
     &[ExprKind::Pow],
     |expr: &Expr, _context: &RuleContext| {
-        if let Expr::Pow(_u, _v) = expr
-            && matches!(**_u, Expr::Number(n) if n == 1.0)
+        if let AstKind::Pow(u, _v) = &expr.kind
+            && matches!(&u.kind, AstKind::Number(n) if *n == 1.0)
         {
-            return Some(Expr::Number(1.0));
+            return Some(Expr::number(1.0));
         }
         None
     }
@@ -182,37 +183,37 @@ rule!(
     Numeric,
     &[ExprKind::Div],
     |expr: &Expr, _context: &RuleContext| {
-        if let Expr::Div(num, den) = expr {
+        if let AstKind::Div(num, den) = &expr.kind {
             // Check if denominator is negative number
-            if let Expr::Number(d) = **den
-                && d < 0.0
+            if let AstKind::Number(d) = &den.kind
+                && *d < 0.0
             {
                 // x / -y -> -x / y
-                return Some(Expr::Div(
-                    Rc::new(Expr::Mul(Rc::new(Expr::Number(-1.0)), num.clone())),
-                    Rc::new(Expr::Number(-d)),
+                return Some(Expr::div_expr(
+                    Expr::mul_expr(Expr::number(-1.0), num.as_ref().clone()),
+                    Expr::number(-*d),
                 ));
             }
 
             // Check if denominator is (-1 * something)
-            if let Expr::Mul(c, rest) = &**den
-                && matches!(**c, Expr::Number(n) if n == -1.0)
+            if let AstKind::Mul(c, rest) = &den.kind
+                && matches!(&c.kind, AstKind::Number(n) if *n == -1.0)
             {
                 // x / (-1 * y) -> -x / y
-                return Some(Expr::Div(
-                    Rc::new(Expr::Mul(Rc::new(Expr::Number(-1.0)), num.clone())),
-                    rest.clone(),
+                return Some(Expr::div_expr(
+                    Expr::mul_expr(Expr::number(-1.0), num.as_ref().clone()),
+                    rest.as_ref().clone(),
                 ));
             }
 
             // Check if denominator is (something * -1)
-            if let Expr::Mul(rest, c) = &**den
-                && matches!(**c, Expr::Number(n) if n == -1.0)
+            if let AstKind::Mul(rest, c) = &den.kind
+                && matches!(&c.kind, AstKind::Number(n) if *n == -1.0)
             {
                 // x / (y * -1) -> -x / y
-                return Some(Expr::Div(
-                    Rc::new(Expr::Mul(Rc::new(Expr::Number(-1.0)), num.clone())),
-                    rest.clone(),
+                return Some(Expr::div_expr(
+                    Expr::mul_expr(Expr::number(-1.0), num.as_ref().clone()),
+                    rest.as_ref().clone(),
                 ));
             }
         }
@@ -235,88 +236,92 @@ rule!(
         ExprKind::Pow
     ],
     |expr: &Expr, _context: &RuleContext| {
-        match expr {
-            Expr::Add(u, v) => {
-                if let (Expr::Number(a), Expr::Number(b)) = (&**u, &**v) {
+        match &expr.kind {
+            AstKind::Add(u, v) => {
+                if let (AstKind::Number(a), AstKind::Number(b)) = (&u.kind, &v.kind) {
                     let result = a + b;
                     if !result.is_nan() && !result.is_infinite() {
-                        return Some(Expr::Number(result));
+                        return Some(Expr::number(result));
                     }
                 }
                 // Handle Div(Number, Number) + Number
-                if let (Expr::Div(num, den), Expr::Number(b)) = (&**u, &**v)
-                    && let (Expr::Number(num_val), Expr::Number(den_val)) = (&**num, &**den)
+                if let (AstKind::Div(num, den), AstKind::Number(b)) = (&u.kind, &v.kind)
+                    && let (AstKind::Number(num_val), AstKind::Number(den_val)) =
+                        (&num.kind, &den.kind)
                     && *den_val != 0.0
                 {
                     let new_num = num_val + b * den_val;
                     let result = new_num / den_val;
                     if (result - result.round()).abs() < 1e-10 {
-                        return Some(Expr::Number(result.round()));
+                        return Some(Expr::number(result.round()));
                     }
-                    return Some(Expr::Div(
-                        Rc::new(Expr::Number(new_num)),
-                        Rc::new(Expr::Number(*den_val)),
+                    return Some(Expr::div_expr(
+                        Expr::number(new_num),
+                        Expr::number(*den_val),
                     ));
                 }
                 // Handle Number + Div(Number, Number)
-                if let (Expr::Number(a), Expr::Div(num, den)) = (&**u, &**v)
-                    && let (Expr::Number(num_val), Expr::Number(den_val)) = (&**num, &**den)
+                if let (AstKind::Number(a), AstKind::Div(num, den)) = (&u.kind, &v.kind)
+                    && let (AstKind::Number(num_val), AstKind::Number(den_val)) =
+                        (&num.kind, &den.kind)
                     && *den_val != 0.0
                 {
                     let new_num = a * den_val + num_val;
                     let result = new_num / den_val;
                     if (result - result.round()).abs() < 1e-10 {
-                        return Some(Expr::Number(result.round()));
+                        return Some(Expr::number(result.round()));
                     }
-                    return Some(Expr::Div(
-                        Rc::new(Expr::Number(new_num)),
-                        Rc::new(Expr::Number(*den_val)),
+                    return Some(Expr::div_expr(
+                        Expr::number(new_num),
+                        Expr::number(*den_val),
                     ));
                 }
             }
-            Expr::Sub(u, v) => {
-                if let (Expr::Number(a), Expr::Number(b)) = (&**u, &**v) {
+            AstKind::Sub(u, v) => {
+                if let (AstKind::Number(a), AstKind::Number(b)) = (&u.kind, &v.kind) {
                     let result = a - b;
                     if !result.is_nan() && !result.is_infinite() {
-                        return Some(Expr::Number(result));
+                        return Some(Expr::number(result));
                     }
                 }
                 // Handle Div(Number, Number) - Number
-                if let (Expr::Div(num, den), Expr::Number(b)) = (&**u, &**v)
-                    && let (Expr::Number(num_val), Expr::Number(den_val)) = (&**num, &**den)
+                if let (AstKind::Div(num, den), AstKind::Number(b)) = (&u.kind, &v.kind)
+                    && let (AstKind::Number(num_val), AstKind::Number(den_val)) =
+                        (&num.kind, &den.kind)
                     && *den_val != 0.0
                 {
                     let new_num = num_val - b * den_val;
                     let result = new_num / den_val;
                     if (result - result.round()).abs() < 1e-10 {
-                        return Some(Expr::Number(result.round()));
+                        return Some(Expr::number(result.round()));
                     }
-                    return Some(Expr::Div(
-                        Rc::new(Expr::Number(new_num)),
-                        Rc::new(Expr::Number(*den_val)),
+                    return Some(Expr::div_expr(
+                        Expr::number(new_num),
+                        Expr::number(*den_val),
                     ));
                 }
                 // Handle Number - Div(Number, Number)
-                if let (Expr::Number(a), Expr::Div(num, den)) = (&**u, &**v)
-                    && let (Expr::Number(num_val), Expr::Number(den_val)) = (&**num, &**den)
+                if let (AstKind::Number(a), AstKind::Div(num, den)) = (&u.kind, &v.kind)
+                    && let (AstKind::Number(num_val), AstKind::Number(den_val)) =
+                        (&num.kind, &den.kind)
                     && *den_val != 0.0
                 {
                     let new_num = a * den_val - num_val;
                     let result = new_num / den_val;
                     if (result - result.round()).abs() < 1e-10 {
-                        return Some(Expr::Number(result.round()));
+                        return Some(Expr::number(result.round()));
                     }
-                    return Some(Expr::Div(
-                        Rc::new(Expr::Number(new_num)),
-                        Rc::new(Expr::Number(*den_val)),
+                    return Some(Expr::div_expr(
+                        Expr::number(new_num),
+                        Expr::number(*den_val),
                     ));
                 }
             }
-            Expr::Mul(u, v) => {
-                if let (Expr::Number(a), Expr::Number(b)) = (&**u, &**v) {
+            AstKind::Mul(u, v) => {
+                if let (AstKind::Number(a), AstKind::Number(b)) = (&u.kind, &v.kind) {
                     let result = a * b;
                     if !result.is_nan() && !result.is_infinite() {
-                        return Some(Expr::Number(result));
+                        return Some(Expr::number(result));
                     }
                 }
                 // Flatten and combine multiple numbers
@@ -325,7 +330,7 @@ rule!(
                 let mut non_numbers: Vec<Expr> = Vec::new();
 
                 for factor in &factors {
-                    if let Expr::Number(n) = factor {
+                    if let AstKind::Number(n) = &factor.kind {
                         numbers.push(*n);
                     } else {
                         non_numbers.push(factor.clone());
@@ -335,56 +340,56 @@ rule!(
                 if numbers.len() >= 2 {
                     let combined: f64 = numbers.iter().product();
                     if !combined.is_nan() && !combined.is_infinite() {
-                        let mut result_factors = vec![Expr::Number(combined)];
+                        let mut result_factors = vec![Expr::number(combined)];
                         result_factors.extend(non_numbers);
                         return Some(crate::simplification::helpers::rebuild_mul(result_factors));
                     }
                 }
 
                 // Mul(Number, Div(Number, Number))
-                if let (Expr::Number(a), Expr::Div(b, c)) = (&**u, &**v)
-                    && let (Expr::Number(b_val), Expr::Number(c_val)) = (&**b, &**c)
+                if let (AstKind::Number(a), AstKind::Div(b, c)) = (&u.kind, &v.kind)
+                    && let (AstKind::Number(b_val), AstKind::Number(c_val)) = (&b.kind, &c.kind)
                     && *c_val != 0.0
                 {
                     let result = (a * b_val) / c_val;
                     if (result - result.round()).abs() < 1e-10 {
-                        return Some(Expr::Number(result.round()));
+                        return Some(Expr::number(result.round()));
                     }
-                    return Some(Expr::Div(
-                        Rc::new(Expr::Number(a * b_val)),
-                        Rc::new(Expr::Number(*c_val)),
+                    return Some(Expr::div_expr(
+                        Expr::number(a * b_val),
+                        Expr::number(*c_val),
                     ));
                 }
                 // Mul(Div(Number, Number), Number)
-                if let (Expr::Div(b, c), Expr::Number(a)) = (&**u, &**v)
-                    && let (Expr::Number(b_val), Expr::Number(c_val)) = (&**b, &**c)
+                if let (AstKind::Div(b, c), AstKind::Number(a)) = (&u.kind, &v.kind)
+                    && let (AstKind::Number(b_val), AstKind::Number(c_val)) = (&b.kind, &c.kind)
                     && *c_val != 0.0
                 {
                     let result = (a * b_val) / c_val;
                     if (result - result.round()).abs() < 1e-10 {
-                        return Some(Expr::Number(result.round()));
+                        return Some(Expr::number(result.round()));
                     }
-                    return Some(Expr::Div(
-                        Rc::new(Expr::Number(a * b_val)),
-                        Rc::new(Expr::Number(*c_val)),
+                    return Some(Expr::div_expr(
+                        Expr::number(a * b_val),
+                        Expr::number(*c_val),
                     ));
                 }
             }
-            Expr::Div(u, v) => {
-                if let (Expr::Number(a), Expr::Number(b)) = (&**u, &**v)
+            AstKind::Div(u, v) => {
+                if let (AstKind::Number(a), AstKind::Number(b)) = (&u.kind, &v.kind)
                     && *b != 0.0
                 {
                     let result = a / b;
                     if (result - result.round()).abs() < 1e-10 {
-                        return Some(Expr::Number(result.round()));
+                        return Some(Expr::number(result.round()));
                     }
                 }
             }
-            Expr::Pow(u, v) => {
-                if let (Expr::Number(a), Expr::Number(b)) = (&**u, &**v) {
+            AstKind::Pow(u, v) => {
+                if let (AstKind::Number(a), AstKind::Number(b)) = (&u.kind, &v.kind) {
                     let result = a.powf(*b);
                     if !result.is_nan() && !result.is_infinite() {
-                        return Some(Expr::Number(result));
+                        return Some(Expr::number(result));
                     }
                 }
             }
@@ -406,8 +411,8 @@ rule_with_helpers!(FractionSimplifyRule, "fraction_simplify", 80, Numeric, &[Exp
         }
     },
     |expr: &Expr, _context: &RuleContext| {
-        if let Expr::Div(u, v) = expr
-            && let (Expr::Number(a), Expr::Number(b)) = (&**u, &**v)
+        if let AstKind::Div(u, v) = &expr.kind
+            && let (AstKind::Number(a), AstKind::Number(b)) = (&u.kind, &v.kind)
             && *b != 0.0
         {
             let is_int_a = a.fract() == 0.0;
@@ -415,16 +420,16 @@ rule_with_helpers!(FractionSimplifyRule, "fraction_simplify", 80, Numeric, &[Exp
 
             if is_int_a && is_int_b {
                 if a % b == 0.0 {
-                    return Some(Expr::Number(a / b));
+                    return Some(Expr::number(a / b));
                 } else {
                     let a_int = *a as i64;
                     let b_int = *b as i64;
                     let common = gcd(a_int.abs(), b_int.abs());
 
                     if common > 1 {
-                        return Some(Expr::Div(
-                            Rc::new(Expr::Number((a_int / common) as f64)),
-                            Rc::new(Expr::Number((b_int / common) as f64)),
+                        return Some(Expr::div_expr(
+                            Expr::number((a_int / common) as f64),
+                            Expr::number((b_int / common) as f64),
                         ));
                     }
                 }
@@ -435,20 +440,20 @@ rule_with_helpers!(FractionSimplifyRule, "fraction_simplify", 80, Numeric, &[Exp
 );
 
 /// Get all numeric rules in priority order
-pub(crate) fn get_numeric_rules() -> Vec<Rc<dyn Rule>> {
+pub(crate) fn get_numeric_rules() -> Vec<Arc<dyn Rule + Send + Sync>> {
     vec![
-        Rc::new(AddZeroRule),
-        Rc::new(SubZeroRule),
-        Rc::new(MulZeroRule),
-        Rc::new(MulOneRule),
-        Rc::new(DivOneRule),
-        Rc::new(ZeroDivRule),
-        Rc::new(PowZeroRule),
-        Rc::new(PowOneRule),
-        Rc::new(ZeroPowRule),
-        Rc::new(OnePowRule),
-        Rc::new(NormalizeSignDivRule),
-        Rc::new(ConstantFoldRule),
-        Rc::new(FractionSimplifyRule),
+        Arc::new(AddZeroRule),
+        Arc::new(SubZeroRule),
+        Arc::new(MulZeroRule),
+        Arc::new(MulOneRule),
+        Arc::new(DivOneRule),
+        Arc::new(ZeroDivRule),
+        Arc::new(PowZeroRule),
+        Arc::new(PowOneRule),
+        Arc::new(ZeroPowRule),
+        Arc::new(OnePowRule),
+        Arc::new(NormalizeSignDivRule),
+        Arc::new(ConstantFoldRule),
+        Arc::new(FractionSimplifyRule),
     ]
 }

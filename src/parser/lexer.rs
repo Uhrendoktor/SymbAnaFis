@@ -1,8 +1,36 @@
 // Lexer implementation - two-pass context-aware tokenization
+//
+// ROBUSTNESS IMPROVEMENTS (2024):
+// ================================
+// This lexer has been refactored to improve maintainability and robustness:
+//
+// 1. Number Parsing: Simplified to rely on f64::parse() for validation
+//    - Removed redundant manual sign handling in scientific notation
+//    - Cleaner character class checking (digits, '.', 'e', 'E', '+', '-')
+//
+// 2. Derivative Notation: Extracted into dedicated scan_derivative_notation()
+//    - Better isolation of complex parenthesis-balancing logic
+//    - Improved error messages for malformed derivative expressions
+//    - More testable and maintainable code structure
+//
+// 3. Sequence Resolution: Documented priority order and tradeoffs
+//    - Implicit multiplication (e.g., "xsin(y)" → "x * sin(y)") is heuristic-based
+//    - Users can disambiguate by using explicit operators or declaring fixed_vars
+//
 use crate::DiffError;
 use crate::parser::tokens::{Operator, Token};
 use std::collections::HashSet;
 
+// DESIGN NOTE: BUILTINS vs Operator enum
+// ======================================
+// This list duplicates function names from the Operator enum in tokens.rs.
+// This is INTENTIONAL because they serve different purposes:
+// - BUILTINS: String matching during lexical analysis (fast lookup for tokenization)
+// - Operator: Type-safe representation after tokenization
+//
+// Keeping them separate allows the lexer to work with raw strings without needing
+// to know about the Operator type's internal structure. If you add a new function,
+// add it to BOTH this list AND the Operator enum in tokens.rs.
 const BUILTINS: &[&str] = &[
     "sin",
     "sen",
@@ -40,6 +68,11 @@ const BUILTINS: &[&str] = &[
     "sinc",
     "abs",
     "sign",
+    "sgn",
+    "signum",
+    "floor",
+    "ceil",
+    "round",
     "erf",
     "erfc",
     "gamma",
@@ -48,17 +81,41 @@ const BUILTINS: &[&str] = &[
     "tetragamma",
     "polygamma",
     "beta",
+    "zeta",
     "besselj",
     "bessely",
     "besseli",
     "besselk",
-    "LambertW",
-    "Ynm",
+    "lambertw",
+    "ynm",
     "assoc_legendre",
     "hermite",
     "elliptic_e",
     "elliptic_k",
+    "zeta_deriv",
 ];
+
+use std::sync::OnceLock;
+
+/// Static HashSet for O(1) builtin function lookup
+/// Initialized once on first access
+static BUILTINS_SET: OnceLock<HashSet<&'static str>> = OnceLock::new();
+
+fn get_builtins_set() -> &'static HashSet<&'static str> {
+    BUILTINS_SET.get_or_init(|| BUILTINS.iter().copied().collect())
+}
+
+/// Check if a string is a builtin function name (O(1) lookup)
+fn is_builtin(name: &str) -> bool {
+    get_builtins_set().contains(name)
+}
+
+/// Check if a character is a valid identifier continuation character
+/// Following Rust-like identifier rules: alphanumeric or underscore
+#[inline]
+fn is_identifier_continue(c: char) -> bool {
+    c.is_alphanumeric() || c == '_'
+}
 
 /// Balance parentheses in the input string
 pub(crate) fn balance_parentheses(input: &str) -> String {
@@ -96,19 +153,33 @@ pub(crate) fn balance_parentheses(input: &str) -> String {
     }
 }
 
-/// Parse a number with locale support
-/// Supports: 3.14, 3,14, ,5, 5,, 1e10, 2.5e-3
+/// Parse a number string to f64
+/// Supports: integers (3), decimals (3.14), scientific notation (1e10, 2.5e-3)
+///
+/// **Locale Support**: Only dot (.) is supported as decimal separator.
+/// Comma-based decimals (e.g., "3,14" in some locales) are NOT supported.
+/// This is intentional to avoid ambiguity with function argument separators.
+///
+/// For international/locale-aware parsing, preprocess input to normalize
+/// decimal separators before calling this function.
 fn parse_number(s: &str) -> Result<f64, DiffError> {
     // Check for multiple decimal separators
     let dot_count = s.chars().filter(|&c| c == '.').count();
 
     if dot_count > 1 {
-        return Err(DiffError::InvalidNumber(s.to_string()));
+        return Err(DiffError::invalid_number(format!(
+            "'{}' (multiple decimal points found)",
+            s
+        )));
     }
 
     // Parse with f64 (handles scientific notation automatically)
-    s.parse::<f64>()
-        .map_err(|_| DiffError::InvalidNumber(s.to_string()))
+    s.parse::<f64>().map_err(|_| {
+        DiffError::invalid_number(format!(
+            "'{}' (use dot as decimal separator, e.g., '3.14' not '3,14')",
+            s
+        ))
+    })
 }
 
 /// Raw token before symbol resolution
@@ -123,53 +194,126 @@ enum RawToken {
     Comma,
 }
 
-/// Pass 1: Scan characters and create raw tokens
-fn scan_characters(input: &str) -> Result<Vec<RawToken>, DiffError> {
-    let mut tokens = Vec::new();
-    let mut chars = input.chars().peekable();
+/// Helper: Scan derivative notation (∂...) with balanced parentheses
+/// Returns the complete derivative string (including the leading ∂)
+///
+/// This handles complex derivative notation like: ∂_f(x+y)/∂_x
+/// by tracking parenthesis depth to ensure balanced expressions.
+fn scan_derivative_notation(
+    chars: &mut std::iter::Peekable<std::str::Chars>,
+) -> Result<String, DiffError> {
+    let mut seq = String::new();
+    let mut depth = 0;
 
-    while let Some(&ch) = chars.peek() {
-        match ch {
-            // Skip whitespace
-            ' ' | '\t' | '\n' | '\r' => {
-                chars.next();
+    // chars is already positioned at '∂', consume it
+    // chars is already positioned at '∂', consume it
+    if chars.peek() == Some(&'∂') {
+        seq.push(chars.next().unwrap());
+    }
+
+    while let Some(&next_c) = chars.peek() {
+        // Decision logic based on CURRENT depth
+        let accept = if depth > 0 {
+            // Inside parens, accept everything except unmatched closing
+            true
+        } else {
+            // Top level: accept specific chars for derivative notation
+            next_c.is_alphanumeric()
+                || next_c == '_'
+                || next_c == '∂'
+                || next_c == '^'
+                || next_c == '/'
+                || next_c == '('
+                || next_c == ')'
+                || next_c == ','
+        };
+
+        if !accept {
+            break;
+        }
+
+        seq.push(next_c);
+        chars.next(); // Consume only if accepted
+
+        // Update depth AFTER consuming
+        match next_c {
+            '(' => depth += 1,
+            ')' => {
+                if depth > 0 {
+                    depth -= 1;
+                } else {
+                    // Unmatched closing paren at top level - stop here
+                    break;
+                }
             }
+            _ => {}
+        }
+    }
 
+    // Basic validation: derivative notation should contain more than just '∂'
+    if seq.len() <= 1 {
+        return Err(DiffError::invalid_token(format!(
+            "Incomplete derivative notation: {}",
+            seq
+        )));
+    }
+
+    Ok(seq)
+}
+
+/// Pass 1: Scan characters and create raw tokens
+/// Now tracks byte positions for better error reporting
+fn scan_characters(input: &str) -> Result<Vec<RawToken>, DiffError> {
+    // Estimate capacity: rough heuristic (input.len() / 2) to minimize reallocations
+    let mut tokens = Vec::with_capacity(input.len() / 2);
+    let bytes = input.as_bytes();
+    let mut pos = 0; // Current byte position
+
+    while pos < bytes.len() {
+        let ch = bytes[pos] as char;
+
+        // Skip whitespace (handle UTF-8 properly for whitespace)
+        if ch.is_ascii_whitespace() {
+            pos += 1;
+            continue;
+        }
+
+        match ch {
             // Parentheses and Comma
             '(' => {
                 tokens.push(RawToken::LeftParen);
-                chars.next();
+                pos += 1;
             }
             ')' => {
                 tokens.push(RawToken::RightParen);
-                chars.next();
+                pos += 1;
             }
             ',' => {
                 tokens.push(RawToken::Comma);
-                chars.next();
+                pos += 1;
             }
 
             // Single-char operators
             '+' => {
                 tokens.push(RawToken::Operator('+'));
-                chars.next();
+                pos += 1;
             }
 
             '-' => {
                 tokens.push(RawToken::Operator('-'));
-                chars.next();
+                pos += 1;
             }
 
             '/' => {
                 tokens.push(RawToken::Operator('/'));
-                chars.next();
+                pos += 1;
             }
 
             // Multiplication or power (**)
             '*' => {
-                chars.next();
-                if chars.peek() == Some(&'*') {
-                    chars.next();
+                pos += 1;
+                if pos < bytes.len() && bytes[pos] == b'*' {
+                    pos += 1;
                     tokens.push(RawToken::Operator('^')); // Treat ** as ^
                 } else {
                     tokens.push(RawToken::Operator('*'));
@@ -179,58 +323,85 @@ fn scan_characters(input: &str) -> Result<Vec<RawToken>, DiffError> {
             // Power
             '^' => {
                 tokens.push(RawToken::Operator('^'));
-                chars.next();
+                pos += 1;
             }
 
-            // Numbers
+            // Numbers and scientific notation
             '0'..='9' | '.' => {
+                let start_pos = pos;
                 let mut num_str = String::new();
-                while let Some(&c) = chars.peek() {
-                    if c.is_ascii_digit() || c == '.' || c == 'e' || c == 'E' {
-                        num_str.push(c);
-                        chars.next();
+                let mut has_exponent = false;
 
-                        // Handle scientific notation sign
-                        if (c == 'e' || c == 'E')
-                            && (chars.peek() == Some(&'+') || chars.peek() == Some(&'-'))
-                        {
-                            num_str.push(chars.next().unwrap());
+                while pos < bytes.len() {
+                    let c = bytes[pos] as char;
+                    // Simple character class check - let f64::parse handle validation
+                    match c {
+                        '0'..='9' | '.' => {
+                            num_str.push(c);
+                            pos += 1;
                         }
-                    } else {
-                        break;
+                        'e' | 'E' if !has_exponent => {
+                            has_exponent = true;
+                            num_str.push(c);
+                            pos += 1;
+                            // Handle optional sign after exponent
+                            if pos < bytes.len() && (bytes[pos] == b'+' || bytes[pos] == b'-') {
+                                num_str.push(bytes[pos] as char);
+                                pos += 1;
+                            }
+                        }
+                        _ => break,
                     }
                 }
-                let num = parse_number(&num_str)?;
-                tokens.push(RawToken::Number(num));
+
+                match parse_number(&num_str) {
+                    Ok(n) => tokens.push(RawToken::Number(n)),
+                    Err(_) => {
+                        return Err(DiffError::InvalidNumber {
+                            value: num_str,
+                            span: Some(crate::Span::new(start_pos, pos)),
+                        });
+                    }
+                }
             }
 
-            // Alphabetic sequences (Unicode-aware) and derivative symbol
-            c if c.is_alphabetic() || c == '_' || c == '∂' => {
+            // Unicode derivatives (∂)
+            _ if input[pos..].starts_with('∂') => {
+                let _start_pos = pos;
+                let mut remaining_chars = input[pos..].chars().peekable();
+                let deriv_str = scan_derivative_notation(&mut remaining_chars)?;
+                pos += deriv_str.len(); // Advance pos by the byte length of the derivative string
+                tokens.push(RawToken::Derivative(deriv_str));
+            }
+
+            // Unicode pi (π) - use remaining string for UTF-8 safety
+            _ if input[pos..].starts_with('π') => {
+                tokens.push(RawToken::Sequence("pi".to_string()));
+                pos += 'π'.len_utf8();
+            }
+
+            // Identifier sequences
+            'a'..='z' | 'A'..='Z' | '_' => {
+                let _start_pos = pos;
                 let mut seq = String::new();
-                while let Some(&c) = chars.peek() {
-                    if c.is_alphanumeric()
-                        || c == '_'
-                        || c == '∂'
-                        || (seq.starts_with('∂')
-                            && (c == '^' || c == '/' || c == '(' || c == ')' || c == ','))
-                    {
+                while pos < bytes.len() {
+                    let c = bytes[pos] as char;
+                    if c.is_ascii_alphanumeric() || c == '_' {
                         seq.push(c);
-                        chars.next();
+                        pos += 1;
                     } else {
                         break;
                     }
                 }
-
-                // Check if this is derivative notation
-                if seq.starts_with('∂') {
-                    tokens.push(RawToken::Derivative(seq));
-                } else {
-                    tokens.push(RawToken::Sequence(seq));
-                }
+                tokens.push(RawToken::Sequence(seq));
             }
 
             _ => {
-                return Err(DiffError::InvalidToken(ch.to_string()));
+                // For invalid tokens, include position information
+                return Err(DiffError::InvalidToken {
+                    token: ch.to_string(),
+                    span: Some(crate::Span::new(pos, pos + 1)),
+                });
             }
         }
     }
@@ -245,7 +416,8 @@ pub(crate) fn lex(
     custom_functions: &HashSet<String>,
 ) -> Result<Vec<Token>, DiffError> {
     let raw_tokens = scan_characters(input)?;
-    let mut tokens = Vec::new();
+    // Optimization: Pre-allocate capacity roughly matching raw tokens count
+    let mut tokens = Vec::with_capacity(raw_tokens.len());
 
     for i in 0..raw_tokens.len() {
         match &raw_tokens[i] {
@@ -261,15 +433,17 @@ pub(crate) fn lex(
                     '*' => Operator::Mul,
                     '/' => Operator::Div,
                     '^' => Operator::Pow,
-                    _ => return Err(DiffError::InvalidToken(c.to_string())),
+                    _ => return Err(DiffError::invalid_token(c.to_string())),
                 };
                 tokens.push(Token::Operator(op));
             }
 
-            RawToken::Derivative(deriv_str) => match parse_derivative_notation(deriv_str) {
-                Ok(deriv_token) => tokens.push(deriv_token),
-                Err(_) => return Err(DiffError::InvalidToken(deriv_str.to_string())),
-            },
+            RawToken::Derivative(deriv_str) => {
+                match parse_derivative_notation(deriv_str, fixed_vars, custom_functions) {
+                    Ok(deriv_token) => tokens.push(deriv_token),
+                    Err(_) => return Err(DiffError::invalid_token(deriv_str.to_string())),
+                }
+            }
 
             RawToken::Sequence(seq) => {
                 let next_is_paren =
@@ -280,23 +454,28 @@ pub(crate) fn lex(
         }
     }
 
-    // Special case: empty parens () → Number(1.0)
-    let mut i = 0;
-    while i < tokens.len() {
-        if i + 1 < tokens.len()
-            && matches!(tokens[i], Token::LeftParen)
-            && matches!(tokens[i + 1], Token::RightParen)
-        {
-            // Replace () with 1.0
-            tokens.splice(i..=i + 1, vec![Token::Number(1.0)]);
-        }
-        i += 1;
-    }
-
     Ok(tokens)
 }
 
 /// Resolve a sequence into tokens based on context
+///
+/// This function implements a priority-based disambiguation strategy for
+/// identifier sequences that may contain implicit multiplication.
+///
+/// **Priority Order:**
+/// 1. Exact match in `fixed_vars` (user-declared multi-char variables)
+/// 2. Known mathematical constants (pi, e)
+/// 3. Built-in functions when followed by `(`
+/// 4. Custom functions when followed by `(`
+/// 5. Suffix scan for built-ins (e.g., "xsin" → "x", "sin" if followed by `(`)
+/// 6. Prefix scan for fixed variables
+/// 7. Character-by-character split (final fallback)
+///
+/// **Design Tradeoff:**
+/// The suffix/prefix scanning enables natural notation like `xsin(y)` → `x * sin(y)`,
+/// but introduces potential ambiguity. Users can resolve ambiguity by:
+/// - Declaring multi-char variables in `fixed_vars`
+/// - Using explicit multiplication: `x*sin(y)`
 fn resolve_sequence(
     seq: &str,
     fixed_vars: &HashSet<String>,
@@ -314,7 +493,8 @@ fn resolve_sequence(
     }
 
     // Priority 2: Check if it's a built-in function followed by (
-    if BUILTINS.contains(&seq)
+    // Uses O(1) HashSet lookup via is_builtin()
+    if is_builtin(seq)
         && next_is_paren
         && let Some(op) = Operator::parse_str(seq)
     {
@@ -327,43 +507,60 @@ fn resolve_sequence(
     }
 
     // Priority 4: Scan for built-in functions as substrings (if followed by paren)
+    // Optimized: Search using length-sorted builtins to avoid O(n^2) scan
     if next_is_paren {
-        for i in 0..seq.len() {
-            for builtin in BUILTINS {
-                if seq[i..].starts_with(builtin) && i + builtin.len() == seq.len() {
-                    // Found builtin at position i, going to end of sequence
-                    let before = &seq[0..i];
-                    let mut tokens = Vec::new();
+        // Use LazyLock for thread-safe, one-time initialization (cleaner than OnceLock)
+        static BUILTINS_SORTED: std::sync::LazyLock<Vec<&'static str>> =
+            std::sync::LazyLock::new(|| {
+                let mut b = BUILTINS.to_vec();
+                b.sort_by_key(|b| std::cmp::Reverse(b.len())); // Descending length
+                b
+            });
 
-                    // Recursively resolve the part before
-                    if !before.is_empty() {
-                        tokens.extend(resolve_sequence(
-                            before,
-                            fixed_vars,
-                            custom_functions,
-                            false,
-                        ));
-                    }
+        // Check suffixes first (e.g. "xsin" -> "x", "sin")
+        for builtin in BUILTINS_SORTED.iter() {
+            if seq.ends_with(builtin) && seq.len() > builtin.len() {
+                // Found builtin at the end
+                let split_idx = seq.len() - builtin.len();
+                let before = &seq[0..split_idx];
 
-                    // Add the built-in function
-                    if let Some(op) = Operator::parse_str(builtin) {
-                        tokens.push(Token::Operator(op));
-                    }
+                let mut tokens = Vec::with_capacity(2);
 
-                    return tokens;
+                // Recursively resolve the part before
+                tokens.extend(resolve_sequence(
+                    before,
+                    fixed_vars,
+                    custom_functions,
+                    false,
+                ));
+
+                // Add the built-in function
+                if let Some(op) = Operator::parse_str(builtin) {
+                    tokens.push(Token::Operator(op));
                 }
+
+                return tokens;
             }
         }
     }
 
-    // Priority 5 (FALLBACK): Check if it's a pure alphabetic sequence (variable)
-    if seq.chars().all(|c| c.is_alphabetic() || c == '_') {
+    // Priority 5 (FALLBACK): Check if it's a valid identifier sequence
+    // Unicode-aware: uses is_identifier_continue which accepts alphabetic + '_'
+    if seq.chars().all(is_identifier_continue) {
         // Check if any prefix is a fixed variable
-        for i in 1..=seq.len() {
-            let prefix = &seq[0..i];
+        // Use char_indices for Unicode-safe slicing
+        let char_boundaries: Vec<usize> = seq.char_indices().map(|(i, _)| i).collect();
+        for (char_idx, _byte_idx) in char_boundaries.iter().enumerate() {
+            // Include end of string as a valid slice point
+            let end_byte = if char_idx + 1 < char_boundaries.len() {
+                char_boundaries[char_idx + 1]
+            } else {
+                seq.len()
+            };
+            let prefix = &seq[0..end_byte];
             if fixed_vars.contains(prefix) {
                 // Found a fixed variable prefix, split here
-                let rest = &seq[i..];
+                let rest = &seq[end_byte..];
                 let mut tokens = vec![Token::Identifier(prefix.to_string())];
                 if !rest.is_empty() {
                     // Recursively resolve the rest
@@ -371,7 +568,7 @@ fn resolve_sequence(
                         rest,
                         fixed_vars,
                         custom_functions,
-                        next_is_paren && i == seq.len(), // Only pass next_is_paren if this is the last part
+                        next_is_paren && end_byte == seq.len(),
                     ));
                 }
                 return tokens;
@@ -379,6 +576,7 @@ fn resolve_sequence(
         }
 
         // No fixed variable prefix found, treat as single identifier
+        // This preserves multi-character Unicode identifiers like "αβ" or "θ₁"
         return vec![Token::Identifier(seq.to_string())];
     }
 
@@ -389,65 +587,114 @@ fn resolve_sequence(
 }
 
 /// Parse derivative notation like ∂^1_f(x)/∂_x^1
-fn parse_derivative_notation(s: &str) -> Result<Token, DiffError> {
+///
+/// **Safety**: Validates format before recursively lexing arguments to prevent
+/// infinite recursion on malformed input.
+fn parse_derivative_notation(
+    s: &str,
+    fixed_vars: &HashSet<String>,
+    custom_functions: &HashSet<String>,
+) -> Result<Token, DiffError> {
     // Format: ∂^order_func(args)/∂_var^order
-    if !s.starts_with("∂^") || !s.contains("/∂_") {
-        return Err(DiffError::InvalidToken(s.to_string()));
+    if !s.starts_with("∂") || !s.contains("/∂_") {
+        return Err(DiffError::invalid_token(format!(
+            "Invalid derivative notation '{}': must start with '∂' and contain '/∂_'",
+            s
+        )));
     }
 
     let parts: Vec<&str> = s.split("/∂_").collect();
     if parts.len() != 2 {
-        return Err(DiffError::InvalidToken(s.to_string()));
+        return Err(DiffError::invalid_token(format!(
+            "Invalid derivative notation '{}': expected exactly one '/∂_' separator, found {}",
+            s,
+            parts.len() - 1
+        )));
     }
 
-    let left = parts[0]; // ∂^order_func(args)
-    let right = parts[1]; // var^order
+    let left = parts[0]; // ∂^order_func(args) or ∂_func(args)
+    let right = parts[1]; // var^order or var
 
-    // Parse order from right side
+    // Parse left side
+    let left_parts: Vec<&str> = left.split('_').collect();
+    if left_parts.len() < 2 {
+        return Err(DiffError::invalid_token(format!(
+            "Invalid derivative notation '{}': left side must contain underscore separator",
+            s
+        )));
+    }
+
+    // Parse order from left (defaults to 1 if not specified)
+    // e.g., "∂^n" -> n, "∂" -> 1
+    let order_str = if left_parts[0].starts_with("∂^") {
+        &left_parts[0][3..] // Skip "∂^"
+    } else if left_parts[0] == "∂" {
+        "1"
+    } else {
+        return Err(DiffError::invalid_token(format!(
+            "Invalid derivative notation '{}': expected '∂' or '∂^order'",
+            s
+        )));
+    };
+
+    let order = order_str.parse::<u32>().map_err(|_| {
+        DiffError::invalid_token(format!(
+            "Invalid derivative notation '{}': order '{}' is not a valid number",
+            s, order_str
+        ))
+    })?;
+
+    // Safety check: prevent unreasonably high derivative orders
+    if order > 100 {
+        return Err(DiffError::invalid_token(format!(
+            "Invalid derivative notation '{}': order {} exceeds maximum (100)",
+            s, order
+        )));
+    }
+
+    // Parse function name and args
+    // left_parts[1] is "func(args)" or "func"
+    let func_str = left_parts[1];
+    let (func_name, args_tokens) = if let Some(open_paren) = func_str.find('(') {
+        if func_str.ends_with(')') {
+            let name = func_str[..open_paren].to_string();
+            let args_body = &func_str[open_paren + 1..func_str.len() - 1];
+
+            // Safety: prevent infinite recursion on malformed nested derivatives
+            // Check if we're about to recursively parse another derivative
+            if args_body.contains("∂") && args_body.contains("/∂_") {
+                // This is likely a nested derivative - limit recursion depth
+                // by ensuring the args don't contain another full derivative notation
+                let nested_depth = args_body.matches("/∂_").count();
+                if nested_depth > 3 {
+                    return Err(DiffError::invalid_token(format!(
+                        "Invalid derivative notation '{}': nested derivative depth exceeds limit",
+                        s
+                    )));
+                }
+            }
+
+            // Recursively lex the arguments
+            let tokens = lex(args_body, fixed_vars, custom_functions)?;
+            (name, tokens)
+        } else {
+            return Err(DiffError::invalid_token(format!(
+                "Invalid derivative notation '{}': unmatched parentheses in function arguments",
+                s
+            )));
+        }
+    } else {
+        (func_str.to_string(), Vec::new())
+    };
+
+    // Parse right side: var^order or var
     let right_parts: Vec<&str> = right.split('^').collect();
-    if right_parts.len() != 2 {
-        return Err(DiffError::InvalidToken(s.to_string()));
-    }
-
-    let order: u32 = right_parts[1]
-        .parse()
-        .map_err(|_| DiffError::InvalidToken(s.to_string()))?;
     let var = right_parts[0].to_string();
-
-    // Parse function and args from left side
-    if !left.starts_with("∂^") {
-        return Err(DiffError::InvalidToken(s.to_string()));
-    }
-
-    // Convert to chars for safe indexing
-    let left_chars: Vec<char> = left.chars().collect();
-
-    // Find the position of '_'
-    let underscore_pos = left_chars.iter().position(|&c| c == '_');
-    if underscore_pos.is_none() {
-        return Err(DiffError::InvalidToken(s.to_string()));
-    }
-
-    let underscore_pos = underscore_pos.unwrap();
-
-    // Extract order string: from after "∂^" (position 2) to before '_'
-    let order_chars = &left_chars[2..underscore_pos];
-    let order_str: String = order_chars.iter().collect();
-    let expected_order: u32 = order_str
-        .parse()
-        .map_err(|_| DiffError::InvalidToken(s.to_string()))?;
-    if expected_order != order {
-        return Err(DiffError::InvalidToken(s.to_string()));
-    }
-
-    // Extract function and args: from after '_' to end
-    let func_chars = &left_chars[underscore_pos + 1..];
-    let func_and_args: String = func_chars.iter().collect();
 
     Ok(Token::Derivative {
         order,
-        func: func_and_args,
-        args: "".to_string(), // For now, we'll store the full func(args) string
+        func: func_name,
+        args: args_tokens,
         var,
     })
 }
@@ -455,6 +702,7 @@ fn parse_derivative_notation(s: &str) -> Result<Token, DiffError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::HashSet;
 
     #[test]
     fn test_balance_parentheses() {
@@ -470,6 +718,71 @@ mod tests {
         assert_eq!(parse_number("1e10").unwrap(), 1e10);
         assert_eq!(parse_number("2.5e-3").unwrap(), 0.0025);
         assert!(parse_number("3.14.15").is_err());
+    }
+
+    #[test]
+    fn test_scan_derivative_complex() {
+        // Test explicitly the scanning of complex derivative string
+        let input = "∂_f(x+y)/∂_x";
+        let tokens = scan_characters(input).unwrap();
+        assert_eq!(tokens.len(), 1);
+        if let RawToken::Derivative(s) = &tokens[0] {
+            assert_eq!(s, "∂_f(x+y)/∂_x");
+        } else {
+            panic!("Expected Derivative token, got {:?}", tokens[0]);
+        }
+    }
+
+    #[test]
+    fn test_scan_derivative_nested_parens() {
+        // Test derivative with deeply nested parentheses
+        let input = "∂_f((x+y)*(z-w))/∂_x";
+        let tokens = scan_characters(input).unwrap();
+        assert_eq!(tokens.len(), 1);
+        if let RawToken::Derivative(s) = &tokens[0] {
+            assert_eq!(s, "∂_f((x+y)*(z-w))/∂_x");
+        } else {
+            panic!("Expected Derivative token, got {:?}", tokens[0]);
+        }
+    }
+
+    #[test]
+    fn test_number_scientific_notation() {
+        // Test various scientific notation formats
+        let test_cases = vec![
+            ("1e10", 1e10),
+            ("2.5e-3", 2.5e-3),
+            ("3.14e+2", 314.0),
+            ("1E10", 1e10),
+            ("2.5E-3", 2.5e-3),
+        ];
+
+        for (input, expected) in test_cases {
+            let tokens = scan_characters(input).unwrap();
+            assert_eq!(tokens.len(), 1);
+            if let RawToken::Number(n) = tokens[0] {
+                assert!(
+                    (n - expected).abs() < 1e-10,
+                    "Failed for {}: expected {}, got {}",
+                    input,
+                    expected,
+                    n
+                );
+            } else {
+                panic!("Expected Number token for {}", input);
+            }
+        }
+    }
+
+    #[test]
+    fn test_number_edge_cases() {
+        // Test that edge cases are handled correctly
+        // A lone dot without digits should fail validation in parse_number
+        assert!(scan_characters(".").is_err() || parse_number(".").is_err());
+
+        // Leading sign should NOT be part of number token
+        let tokens = scan_characters("-123").unwrap();
+        assert_eq!(tokens.len(), 2); // Operator(-) and Number(123)
     }
 
     #[test]
@@ -508,7 +821,59 @@ mod tests {
         let custom_funcs = HashSet::new();
 
         let tokens = lex("()", &fixed_vars, &custom_funcs).unwrap();
+        assert_eq!(tokens.len(), 2);
+        assert!(matches!(tokens[0], Token::LeftParen));
+        assert!(matches!(tokens[1], Token::RightParen));
+    }
+
+    #[test]
+    fn test_unicode_identifiers() {
+        // Test that multi-char Unicode identifiers work correctly
+        let fixed_vars = HashSet::new();
+        let custom_funcs = HashSet::new();
+
+        // Greek letters
+        let tokens = lex("αβ", &fixed_vars, &custom_funcs).unwrap();
         assert_eq!(tokens.len(), 1);
-        assert!(matches!(tokens[0], Token::Number(1.0)));
+        if let Token::Identifier(s) = &tokens[0] {
+            assert_eq!(s, "αβ"); // Should be treated as single identifier
+        } else {
+            panic!("Expected Identifier token");
+        }
+
+        // Greek letter with subscript (if using Unicode subscripts)
+        let tokens = lex("θ₁", &fixed_vars, &custom_funcs).unwrap();
+        assert_eq!(tokens.len(), 1);
+        if let Token::Identifier(s) = &tokens[0] {
+            assert_eq!(s, "θ₁");
+        } else {
+            panic!("Expected Identifier token");
+        }
+    }
+
+    #[test]
+    fn test_identifier_rules() {
+        assert!(is_identifier_continue('x'));
+        assert!(is_identifier_continue('1'));
+        assert!(is_identifier_continue('_'));
+        assert!(is_identifier_continue('β'));
+    }
+
+    #[test]
+    fn test_derivative_validation() {
+        let fixed_vars = HashSet::new();
+        let custom_funcs = HashSet::new();
+
+        // Test invalid derivative order
+        let result = parse_derivative_notation("∂^999999_f(x)/∂_x", &fixed_vars, &custom_funcs);
+        assert!(result.is_err());
+
+        // Test malformed derivative
+        let result = parse_derivative_notation(
+            "∂_f(x", // Missing closing paren and /∂_x
+            &fixed_vars,
+            &custom_funcs,
+        );
+        assert!(result.is_err());
     }
 }

@@ -1,8 +1,15 @@
 use super::rules::{ExprKind, RuleContext, RuleRegistry};
-use crate::Expr;
+use crate::{Expr, ExprKind as AstKind};
 use std::collections::{HashMap, HashSet};
-use std::rc::Rc;
+use std::sync::Arc;
 use std::sync::OnceLock;
+use std::time::{Duration, Instant};
+
+/// Efficiently extract owned Expr from Arc - avoids clone if reference count is 1
+#[inline]
+fn unwrap_or_clone(rc: Arc<Expr>) -> Expr {
+    Arc::try_unwrap(rc).unwrap_or_else(|rc| (*rc).clone())
+}
 
 /// Check if tracing is enabled via environment variable (cached)
 fn trace_enabled() -> bool {
@@ -14,12 +21,23 @@ fn trace_enabled() -> bool {
     })
 }
 
+/// Global rule registry singleton - built once, reused across all simplifications
+fn global_registry() -> &'static RuleRegistry {
+    static REGISTRY: OnceLock<RuleRegistry> = OnceLock::new();
+    REGISTRY.get_or_init(|| {
+        let mut registry = RuleRegistry::new();
+        registry.load_all_rules();
+        registry.order_by_dependencies();
+        registry
+    })
+}
+
 /// Main simplification engine with rule-based architecture
 pub(crate) struct Simplifier {
-    registry: RuleRegistry,
-    rule_caches: HashMap<String, HashMap<Expr, Option<Expr>>>, // Per-rule memoization with content-based keys
+    rule_caches: HashMap<String, HashMap<u64, Option<Arc<Expr>>>>, // Per-rule memoization with Arc for cheap cloning
     max_iterations: usize,
     max_depth: usize,
+    timeout: Option<Duration>, // Wall-clock timeout to prevent hangs
     context: RuleContext,
     domain_safe: bool,
 }
@@ -32,15 +50,12 @@ impl Default for Simplifier {
 
 impl Simplifier {
     pub fn new() -> Self {
-        let mut registry = RuleRegistry::new();
-        registry.load_all_rules();
-        registry.order_by_dependencies();
-
+        // Use global registry instead of rebuilding each time
         Self {
-            registry,
             rule_caches: HashMap::new(),
             max_iterations: 1000,
             max_depth: 50,
+            timeout: None, // No timeout by default
             context: RuleContext::default(),
             domain_safe: false,
         }
@@ -73,11 +88,21 @@ impl Simplifier {
 
     /// Main simplification entry point
     pub fn simplify(&mut self, expr: Expr) -> Expr {
-        let mut current = Rc::new(expr);
+        let mut current = Arc::new(expr);
         let mut iterations = 0;
+        // Use normalized expressions for cycle detection (handles Sub vs Add(-1*x) equivalence)
         let mut seen_expressions: HashSet<Expr> = HashSet::new();
+        let start_time = Instant::now();
 
         loop {
+            // Check timeout first
+            if let Some(timeout) = self.timeout
+                && start_time.elapsed() > timeout
+            {
+                eprintln!("Warning: Simplification timed out after {:?}", timeout);
+                break;
+            }
+
             if iterations >= self.max_iterations {
                 eprintln!(
                     "Warning: Simplification exceeded maximum iterations ({})",
@@ -117,76 +142,93 @@ impl Simplifier {
             iterations += 1;
         }
 
-        (*current).clone()
+        // Unwrap Arc if we're the only holder, otherwise clone
+        Arc::try_unwrap(current).unwrap_or_else(|rc| (*rc).clone())
     }
 
     /// Apply rules bottom-up through the expression tree
-    fn apply_rules_bottom_up(&mut self, expr: Rc<Expr>, depth: usize) -> Rc<Expr> {
+    fn apply_rules_bottom_up(&mut self, expr: Arc<Expr>, depth: usize) -> Arc<Expr> {
         if depth > self.max_depth {
             return expr;
         }
 
-        match expr.as_ref() {
-            Expr::Add(u, v) => {
+        match &expr.kind {
+            AstKind::Add(u, v) => {
                 let u_simplified = self.apply_rules_bottom_up(u.clone(), depth + 1);
                 let v_simplified = self.apply_rules_bottom_up(v.clone(), depth + 1);
 
                 // Only create new node if children actually changed
-                if Rc::ptr_eq(&u_simplified, u) && Rc::ptr_eq(&v_simplified, v) {
+                if Arc::ptr_eq(&u_simplified, u) && Arc::ptr_eq(&v_simplified, v) {
                     self.apply_rules_to_node(expr, depth)
                 } else {
-                    let new_expr = Rc::new(Expr::Add(u_simplified, v_simplified));
+                    // Use unwrap_or_clone for efficient extraction
+                    let new_expr = Arc::new(Expr::add_expr(
+                        unwrap_or_clone(u_simplified),
+                        unwrap_or_clone(v_simplified),
+                    ));
                     self.apply_rules_to_node(new_expr, depth)
                 }
             }
-            Expr::Sub(u, v) => {
+            AstKind::Sub(u, v) => {
                 let u_simplified = self.apply_rules_bottom_up(u.clone(), depth + 1);
                 let v_simplified = self.apply_rules_bottom_up(v.clone(), depth + 1);
 
-                if Rc::ptr_eq(&u_simplified, u) && Rc::ptr_eq(&v_simplified, v) {
+                if Arc::ptr_eq(&u_simplified, u) && Arc::ptr_eq(&v_simplified, v) {
                     self.apply_rules_to_node(expr, depth)
                 } else {
-                    let new_expr = Rc::new(Expr::Sub(u_simplified, v_simplified));
+                    let new_expr = Arc::new(Expr::sub_expr(
+                        unwrap_or_clone(u_simplified),
+                        unwrap_or_clone(v_simplified),
+                    ));
                     self.apply_rules_to_node(new_expr, depth)
                 }
             }
-            Expr::Mul(u, v) => {
+            AstKind::Mul(u, v) => {
                 let u_simplified = self.apply_rules_bottom_up(u.clone(), depth + 1);
                 let v_simplified = self.apply_rules_bottom_up(v.clone(), depth + 1);
 
-                if Rc::ptr_eq(&u_simplified, u) && Rc::ptr_eq(&v_simplified, v) {
+                if Arc::ptr_eq(&u_simplified, u) && Arc::ptr_eq(&v_simplified, v) {
                     self.apply_rules_to_node(expr, depth)
                 } else {
-                    let new_expr = Rc::new(Expr::Mul(u_simplified, v_simplified));
+                    let new_expr = Arc::new(Expr::mul_expr(
+                        unwrap_or_clone(u_simplified),
+                        unwrap_or_clone(v_simplified),
+                    ));
                     self.apply_rules_to_node(new_expr, depth)
                 }
             }
-            Expr::Div(u, v) => {
+            AstKind::Div(u, v) => {
                 let u_simplified = self.apply_rules_bottom_up(u.clone(), depth + 1);
                 let v_simplified = self.apply_rules_bottom_up(v.clone(), depth + 1);
 
-                if Rc::ptr_eq(&u_simplified, u) && Rc::ptr_eq(&v_simplified, v) {
+                if Arc::ptr_eq(&u_simplified, u) && Arc::ptr_eq(&v_simplified, v) {
                     self.apply_rules_to_node(expr, depth)
                 } else {
-                    let new_expr = Rc::new(Expr::Div(u_simplified, v_simplified));
+                    let new_expr = Arc::new(Expr::div_expr(
+                        unwrap_or_clone(u_simplified),
+                        unwrap_or_clone(v_simplified),
+                    ));
                     self.apply_rules_to_node(new_expr, depth)
                 }
             }
-            Expr::Pow(u, v) => {
+            AstKind::Pow(u, v) => {
                 let u_simplified = self.apply_rules_bottom_up(u.clone(), depth + 1);
                 let v_simplified = self.apply_rules_bottom_up(v.clone(), depth + 1);
 
-                if Rc::ptr_eq(&u_simplified, u) && Rc::ptr_eq(&v_simplified, v) {
+                if Arc::ptr_eq(&u_simplified, u) && Arc::ptr_eq(&v_simplified, v) {
                     self.apply_rules_to_node(expr, depth)
                 } else {
-                    let new_expr = Rc::new(Expr::Pow(u_simplified, v_simplified));
+                    let new_expr = Arc::new(Expr::pow(
+                        unwrap_or_clone(u_simplified),
+                        unwrap_or_clone(v_simplified),
+                    ));
                     self.apply_rules_to_node(new_expr, depth)
                 }
             }
-            Expr::FunctionCall { name, args } => {
-                let args_simplified: Vec<Rc<Expr>> = args
+            AstKind::FunctionCall { name, args } => {
+                let args_simplified: Vec<Arc<Expr>> = args
                     .iter()
-                    .map(|arg| self.apply_rules_bottom_up(Rc::new(arg.clone()), depth + 1))
+                    .map(|arg| self.apply_rules_bottom_up(Arc::new(arg.clone()), depth + 1))
                     .collect();
 
                 // Check if any arg changed
@@ -198,13 +240,10 @@ impl Simplifier {
                 if !changed {
                     self.apply_rules_to_node(expr, depth)
                 } else {
-                    let new_expr = Rc::new(Expr::FunctionCall {
+                    let new_expr = Arc::new(Expr::new(AstKind::FunctionCall {
                         name: name.clone(),
-                        args: args_simplified
-                            .into_iter()
-                            .map(|rc| (*rc).clone())
-                            .collect(),
-                    });
+                        args: args_simplified.into_iter().map(unwrap_or_clone).collect(),
+                    }));
                     self.apply_rules_to_node(new_expr, depth)
                 }
             }
@@ -213,7 +252,7 @@ impl Simplifier {
     }
 
     /// Apply all applicable rules to a single node in dependency order
-    fn apply_rules_to_node(&mut self, mut current: Rc<Expr>, depth: usize) -> Rc<Expr> {
+    fn apply_rules_to_node(&mut self, mut current: Arc<Expr>, depth: usize) -> Arc<Expr> {
         let mut context = self
             .context
             .clone()
@@ -222,7 +261,7 @@ impl Simplifier {
 
         // Get the expression kind once and only check rules that apply to it
         let kind = ExprKind::of(current.as_ref());
-        let applicable_rules = self.registry.get_rules_for_kind(kind);
+        let applicable_rules = global_registry().get_rules_for_kind(kind);
 
         for rule in applicable_rules {
             if context.domain_safe && rule.alters_domain() {
@@ -231,32 +270,33 @@ impl Simplifier {
 
             let rule_name = rule.name();
 
-            // Check per-rule cache using content-based key
-            let cache_key = current.as_ref().clone();
+            // Check per-rule cache using expression ID as key (fast)
+            let cache_key = current.id;
             if let Some(cache) = self.rule_caches.get(rule_name)
                 && let Some(cached_result) = cache.get(&cache_key)
             {
                 if let Some(new_expr) = cached_result {
-                    current = Rc::new(new_expr.clone());
+                    current = Arc::clone(new_expr); // Cheap Arc clone!
                     continue;
                 } else {
                     continue; // Cached as "no change"
                 }
             }
 
-            // Apply rule
-            let original = current.as_ref().clone();
-            if let Some(new_expr) = rule.apply(current.as_ref(), &context) {
+            // Apply rule - pass &Arc<Expr>, get Option<Arc<Expr>>
+            let original_id = current.id;
+            if let Some(new_expr) = rule.apply(&current, &context) {
                 if trace_enabled() {
                     eprintln!("[TRACE] {} : {} => {}", rule_name, current, new_expr);
                 }
-                current = Rc::new(new_expr.clone());
 
-                // Cache the transformation
+                // Cache the transformation - Arc clone is cheap!
                 self.rule_caches
                     .entry(rule_name.to_string())
                     .or_default()
-                    .insert(original, Some(new_expr));
+                    .insert(original_id, Some(Arc::clone(&new_expr)));
+
+                current = new_expr;
 
                 context = context.with_parent(current.as_ref().clone());
             } else {
@@ -264,7 +304,7 @@ impl Simplifier {
                 self.rule_caches
                     .entry(rule_name.to_string())
                     .or_default()
-                    .insert(original, None);
+                    .insert(original_id, None);
             }
         }
 

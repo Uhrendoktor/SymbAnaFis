@@ -1,19 +1,19 @@
 #[cfg(test)]
 mod tests {
-    use crate::Expr;
+    use crate::{Expr, ExprKind};
     use std::collections::HashSet;
-    use std::rc::Rc;
+    use std::sync::Arc;
     #[test]
     fn test_division_precedence_mul() {
         // a / (b * c) should be displayed as "a / (b * c)"
         // If displayed as "a / b * c", it means (a / b) * c which is wrong.
-        let expr = Expr::Div(
-            Rc::new(Expr::Symbol("a".to_string())),
-            Rc::new(Expr::Mul(
-                Rc::new(Expr::Symbol("b".to_string())),
-                Rc::new(Expr::Symbol("c".to_string())),
-            )),
-        );
+        let expr = Expr::new(ExprKind::Div(
+            Arc::new(Expr::symbol("a".to_string())),
+            Arc::new(Expr::new(ExprKind::Mul(
+                Arc::new(Expr::symbol("b".to_string())),
+                Arc::new(Expr::symbol("c".to_string())),
+            ))),
+        ));
         let display = format!("{}", expr);
         println!("Display: {}", display);
         assert_eq!(display, "a/(b*c)");
@@ -22,13 +22,13 @@ mod tests {
     #[test]
     fn test_division_precedence_div() {
         // a / (b / c) should be displayed as "a / (b / c)"
-        let expr = Expr::Div(
-            Rc::new(Expr::Symbol("a".to_string())),
-            Rc::new(Expr::Div(
-                Rc::new(Expr::Symbol("b".to_string())),
-                Rc::new(Expr::Symbol("c".to_string())),
-            )),
-        );
+        let expr = Expr::new(ExprKind::Div(
+            Arc::new(Expr::symbol("a".to_string())),
+            Arc::new(Expr::new(ExprKind::Div(
+                Arc::new(Expr::symbol("b".to_string())),
+                Arc::new(Expr::symbol("c".to_string())),
+            ))),
+        ));
         let display = format!("{}", expr);
         println!("Display: {}", display);
         assert_eq!(display, "a/(b/c)");
@@ -43,25 +43,25 @@ mod tests {
 
         // Let's construct the expression that might be causing issues
         // Div(Mul(-C*R*V0, exp), Mul(C, R^2))
-        let expr = Expr::Div(
-            Rc::new(Expr::Mul(
-                Rc::new(Expr::Mul(
-                    Rc::new(Expr::Mul(
-                        Rc::new(Expr::Number(-1.0)),
-                        Rc::new(Expr::Symbol("C".to_string())),
-                    )),
-                    Rc::new(Expr::Symbol("R".to_string())),
-                )),
-                Rc::new(Expr::Symbol("V0".to_string())),
-            )),
-            Rc::new(Expr::Mul(
-                Rc::new(Expr::Symbol("C".to_string())),
-                Rc::new(Expr::Pow(
-                    Rc::new(Expr::Symbol("R".to_string())),
-                    Rc::new(Expr::Number(2.0)),
-                )),
-            )),
-        );
+        let expr = Expr::new(ExprKind::Div(
+            Arc::new(Expr::new(ExprKind::Mul(
+                Arc::new(Expr::new(ExprKind::Mul(
+                    Arc::new(Expr::new(ExprKind::Mul(
+                        Arc::new(Expr::number(-1.0)),
+                        Arc::new(Expr::symbol("C".to_string())),
+                    ))),
+                    Arc::new(Expr::symbol("R".to_string())),
+                ))),
+                Arc::new(Expr::symbol("V0".to_string())),
+            ))),
+            Arc::new(Expr::new(ExprKind::Mul(
+                Arc::new(Expr::symbol("C".to_string())),
+                Arc::new(Expr::new(ExprKind::Pow(
+                    Arc::new(Expr::symbol("R".to_string())),
+                    Arc::new(Expr::number(2.0)),
+                ))),
+            ))),
+        ));
 
         println!("Original: {}", expr);
         let simplified = simplify_expr(expr.clone(), HashSet::new());
@@ -71,33 +71,33 @@ mod tests {
         // Should be -V0 / R (ignoring exp for now as it's just a factor)
         // Actually the test case above doesn't include exp, let's add it to be precise
 
-        let exp_term = Expr::FunctionCall {
+        let exp_term = Expr::new(ExprKind::FunctionCall {
             name: "exp".to_string(),
-            args: vec![Expr::Symbol("t".to_string())], // Simplified arg
-        };
+            args: vec![Expr::symbol("t".to_string())], // Simplified arg
+        });
 
-        let expr_full = Expr::Div(
-            Rc::new(Expr::Mul(
-                Rc::new(Expr::Mul(
-                    Rc::new(Expr::Mul(
-                        Rc::new(Expr::Mul(
-                            Rc::new(Expr::Number(-1.0)),
-                            Rc::new(Expr::Symbol("C".to_string())),
-                        )),
-                        Rc::new(Expr::Symbol("R".to_string())),
-                    )),
-                    Rc::new(Expr::Symbol("V0".to_string())),
-                )),
-                Rc::new(exp_term.clone()),
-            )),
-            Rc::new(Expr::Mul(
-                Rc::new(Expr::Symbol("C".to_string())),
-                Rc::new(Expr::Pow(
-                    Rc::new(Expr::Symbol("R".to_string())),
-                    Rc::new(Expr::Number(2.0)),
-                )),
-            )),
-        );
+        let expr_full = Expr::new(ExprKind::Div(
+            Arc::new(Expr::new(ExprKind::Mul(
+                Arc::new(Expr::new(ExprKind::Mul(
+                    Arc::new(Expr::new(ExprKind::Mul(
+                        Arc::new(Expr::new(ExprKind::Mul(
+                            Arc::new(Expr::number(-1.0)),
+                            Arc::new(Expr::symbol("C".to_string())),
+                        ))),
+                        Arc::new(Expr::symbol("R".to_string())),
+                    ))),
+                    Arc::new(Expr::symbol("V0".to_string())),
+                ))),
+                Arc::new(exp_term.clone()),
+            ))),
+            Arc::new(Expr::new(ExprKind::Mul(
+                Arc::new(Expr::symbol("C".to_string())),
+                Arc::new(Expr::new(ExprKind::Pow(
+                    Arc::new(Expr::symbol("R".to_string())),
+                    Arc::new(Expr::number(2.0)),
+                ))),
+            ))),
+        ));
 
         println!("Full Original: {}", expr_full);
         let simplified_full = simplify_expr(expr_full, HashSet::new());
@@ -116,16 +116,16 @@ mod tests {
     #[test]
     fn test_display_rc_denominator() {
         // A / (C * R^2)
-        let expr = Expr::Div(
-            Rc::new(Expr::Symbol("A".to_string())),
-            Rc::new(Expr::Mul(
-                Rc::new(Expr::Symbol("C".to_string())),
-                Rc::new(Expr::Pow(
-                    Rc::new(Expr::Symbol("R".to_string())),
-                    Rc::new(Expr::Number(2.0)),
-                )),
-            )),
-        );
+        let expr = Expr::new(ExprKind::Div(
+            Arc::new(Expr::symbol("A".to_string())),
+            Arc::new(Expr::new(ExprKind::Mul(
+                Arc::new(Expr::symbol("C".to_string())),
+                Arc::new(Expr::new(ExprKind::Pow(
+                    Arc::new(Expr::symbol("R".to_string())),
+                    Arc::new(Expr::number(2.0)),
+                ))),
+            ))),
+        ));
         let display = format!("{}", expr);
         println!("Display: {}", display);
         assert_eq!(display, "A/(C*R^2)");

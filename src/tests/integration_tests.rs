@@ -101,9 +101,8 @@ fn test_scientific_notation() {
 
 #[test]
 fn test_empty_parens() {
-    let result = diff("x*()".to_string(), "x".to_string(), None, None).unwrap();
-    // x * 1 → derivative is 1
-    assert_eq!(result, "1");
+    // () should be an error
+    assert!(diff("x*()".to_string(), "x".to_string(), None, None).is_err());
 }
 
 #[test]

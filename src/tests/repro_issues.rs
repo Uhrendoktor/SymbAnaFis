@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod tests {
-    use crate::Expr;
     use crate::simplify;
-    use std::rc::Rc;
+    use crate::{Expr, ExprKind};
+    use std::sync::Arc;
     #[test]
     fn test_fraction_cancellation_product_base() {
         // (C * R) / (C * R)^2 -> 1 / (C * R)
@@ -32,15 +32,21 @@ mod tests {
 
     #[test]
     fn test_sqrt_product_div_product() {
-        let a = Expr::Symbol("a".to_string());
-        let b = Expr::Symbol("b".to_string());
-        let expr = Expr::Div(
-            Rc::new(Expr::FunctionCall {
+        let a = Expr::symbol("a".to_string());
+        let b = Expr::symbol("b".to_string());
+        let expr = Expr::new(ExprKind::Div(
+            Arc::new(Expr::new(ExprKind::FunctionCall {
                 name: "sqrt".to_string(),
-                args: vec![Expr::Mul(Rc::new(a.clone()), Rc::new(b.clone()))],
-            }),
-            Rc::new(Expr::Mul(Rc::new(a.clone()), Rc::new(b.clone()))),
-        );
+                args: vec![Expr::new(ExprKind::Mul(
+                    Arc::new(a.clone()),
+                    Arc::new(b.clone()),
+                ))],
+            })),
+            Arc::new(Expr::new(ExprKind::Mul(
+                Arc::new(a.clone()),
+                Arc::new(b.clone()),
+            ))),
+        ));
 
         let simplified =
             crate::simplification::simplify_expr(expr, std::collections::HashSet::new());
@@ -57,31 +63,31 @@ mod tests {
     #[test]
     fn test_heat_flux_simplification() {
         // sqrt(alpha) * sqrt(t) / (alpha * t * sqrt(pi))
-        let alpha = Expr::Symbol("alpha".to_string());
-        let t = Expr::Symbol("t".to_string());
-        let pi = Expr::Symbol("pi".to_string());
+        let alpha = Expr::symbol("alpha".to_string());
+        let t = Expr::symbol("t".to_string());
+        let pi = Expr::symbol("pi".to_string());
 
-        let num = Expr::Mul(
-            Rc::new(Expr::FunctionCall {
+        let num = Expr::new(ExprKind::Mul(
+            Arc::new(Expr::new(ExprKind::FunctionCall {
                 name: "sqrt".to_string(),
                 args: vec![alpha.clone()],
-            }),
-            Rc::new(Expr::FunctionCall {
+            })),
+            Arc::new(Expr::new(ExprKind::FunctionCall {
                 name: "sqrt".to_string(),
                 args: vec![t.clone()],
-            }),
-        );
-        let den = Expr::Mul(
-            Rc::new(alpha.clone()),
-            Rc::new(Expr::Mul(
-                Rc::new(t.clone()),
-                Rc::new(Expr::FunctionCall {
+            })),
+        ));
+        let den = Expr::new(ExprKind::Mul(
+            Arc::new(alpha.clone()),
+            Arc::new(Expr::new(ExprKind::Mul(
+                Arc::new(t.clone()),
+                Arc::new(Expr::new(ExprKind::FunctionCall {
                     name: "sqrt".to_string(),
                     args: vec![pi.clone()],
-                }),
-            )),
-        );
-        let expr = Expr::Div(Rc::new(num), Rc::new(den));
+                })),
+            ))),
+        ));
+        let expr = Expr::new(ExprKind::Div(Arc::new(num), Arc::new(den)));
 
         let simplified =
             crate::simplification::simplify_expr(expr, std::collections::HashSet::new());

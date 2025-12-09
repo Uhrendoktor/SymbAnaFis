@@ -1,6 +1,5 @@
-use crate::Expr;
 use crate::simplification::rules::{ExprKind, Rule, RuleCategory, RuleContext};
-use std::rc::Rc;
+use crate::{Expr, ExprKind as AstKind};
 
 rule!(
     MulDivCombinationRule,
@@ -9,19 +8,19 @@ rule!(
     Algebraic,
     &[ExprKind::Mul],
     |expr: &Expr, _context: &RuleContext| {
-        if let Expr::Mul(a, b) = expr {
+        if let AstKind::Mul(a, b) = &expr.kind {
             // Case 1: a * (b / c) -> (a * b) / c
-            if let Expr::Div(num, den) = &**b {
-                return Some(Expr::Div(
-                    Rc::new(Expr::Mul(a.clone(), num.clone())),
-                    den.clone(),
+            if let AstKind::Div(num, den) = &b.kind {
+                return Some(Expr::div_expr(
+                    Expr::mul_expr(a.as_ref().clone(), num.as_ref().clone()),
+                    den.as_ref().clone(),
                 ));
             }
             // Case 2: (a/b) * c -> (a*c)/b
-            if let Expr::Div(num, den) = &**a {
-                return Some(Expr::Div(
-                    Rc::new(Expr::Mul(num.clone(), b.clone())),
-                    den.clone(),
+            if let AstKind::Div(num, den) = &a.kind {
+                return Some(Expr::div_expr(
+                    Expr::mul_expr(num.as_ref().clone(), b.as_ref().clone()),
+                    den.as_ref().clone(),
                 ));
             }
         }
@@ -37,8 +36,8 @@ rule!(
     &[ExprKind::Add],
     |expr: &Expr, _context: &RuleContext| {
         // Only handle Add - don't touch Sub (preserve subtraction form)
-        let terms = match expr {
-            Expr::Add(_, _) => crate::simplification::helpers::flatten_add(expr),
+        let terms = match &expr.kind {
+            AstKind::Add(_, _) => crate::simplification::helpers::flatten_add(expr),
             _ => return None,
         };
 
@@ -66,26 +65,26 @@ rule!(
                 // Drop zero terms
             } else if coeff == 1.0 {
                 result.push(base);
-            } else if let Expr::Number(n) = &base {
+            } else if let AstKind::Number(n) = &base.kind {
                 if *n == 1.0 {
-                    result.push(Expr::Number(coeff));
+                    result.push(Expr::number(coeff));
                 } else {
-                    result.push(Expr::Mul(Rc::new(Expr::Number(coeff)), Rc::new(base)));
+                    result.push(Expr::mul_expr(Expr::number(coeff), base));
                 }
             } else {
-                result.push(Expr::Mul(Rc::new(Expr::Number(coeff)), Rc::new(base)));
+                result.push(Expr::mul_expr(Expr::number(coeff), base));
             }
         }
 
         if result.is_empty() {
-            return Some(Expr::Number(0.0));
+            return Some(Expr::number(0.0));
         }
 
         // Sort terms for canonical ordering
         result.sort_by(crate::simplification::helpers::compare_expr);
 
         let new_expr = crate::simplification::helpers::rebuild_add(result);
-        if new_expr != *expr {
+        if new_expr.id != expr.id && new_expr != *expr {
             return Some(new_expr);
         }
         None
@@ -110,18 +109,18 @@ rule!(
             std::collections::HashMap::new();
 
         for factor in &factors {
-            match factor {
-                Expr::Pow(base, exp) => {
+            match &factor.kind {
+                AstKind::Pow(base, exp) => {
                     factor_groups
-                        .entry((**base).clone())
+                        .entry(base.as_ref().clone())
                         .or_default()
-                        .push((**exp).clone());
+                        .push(exp.as_ref().clone());
                 }
-                other => {
+                _ => {
                     factor_groups
-                        .entry(other.clone())
+                        .entry(factor.clone())
                         .or_default()
-                        .push(Expr::Number(1.0));
+                        .push(Expr::number(1.0));
                 }
             }
         }
@@ -130,18 +129,18 @@ rule!(
         let mut combined_factors = Vec::new();
         for (base, exponents) in factor_groups {
             if exponents.len() == 1 {
-                if exponents[0] == Expr::Number(1.0) {
+                if exponents[0] == Expr::number(1.0) {
                     combined_factors.push(base);
                 } else {
-                    combined_factors.push(Expr::Pow(Rc::new(base), Rc::new(exponents[0].clone())));
+                    combined_factors.push(Expr::pow(base, exponents[0].clone()));
                 }
             } else {
                 // Sum all exponents
                 let mut total_exp = exponents[0].clone();
                 for exp in &exponents[1..] {
-                    total_exp = Expr::Add(Rc::new(total_exp), Rc::new(exp.clone()));
+                    total_exp = Expr::add_expr(total_exp, exp.clone());
                 }
-                combined_factors.push(Expr::Pow(Rc::new(base), Rc::new(total_exp)));
+                combined_factors.push(Expr::pow(base, total_exp));
             }
         }
 
@@ -157,24 +156,24 @@ rule!(
 
 // Helper: Extract factor and addends from a * (b + c + ...) or (b + c + ...) * a
 fn extract_product_with_sum(expr: &Expr) -> Option<(Expr, Vec<Expr>)> {
-    if let Expr::Mul(a, b) = expr {
+    if let AstKind::Mul(a, b) = &expr.kind {
         // Check if b is an Add
-        if matches!(&**b, Expr::Add(_, _)) {
+        if matches!(b.kind, AstKind::Add(_, _)) {
             let addends = crate::simplification::helpers::flatten_add(b);
-            return Some(((**a).clone(), addends));
+            return Some((a.as_ref().clone(), addends));
         }
         // Check if a is an Add
-        if matches!(&**a, Expr::Add(_, _)) {
+        if matches!(a.kind, AstKind::Add(_, _)) {
             let addends = crate::simplification::helpers::flatten_add(a);
-            return Some(((**b).clone(), addends));
+            return Some((b.as_ref().clone(), addends));
         }
         // Check nested: (a * b) * (c + d) or a * (b * (c + d))
         if let Some((inner_factor, addends)) = extract_product_with_sum(b) {
-            let combined_factor = Expr::Mul(a.clone(), Rc::new(inner_factor));
+            let combined_factor = Expr::mul_expr(a.as_ref().clone(), inner_factor);
             return Some((combined_factor, addends));
         }
         if let Some((inner_factor, addends)) = extract_product_with_sum(a) {
-            let combined_factor = Expr::Mul(Rc::new(inner_factor), b.clone());
+            let combined_factor = Expr::mul_expr(inner_factor, b.as_ref().clone());
             return Some((combined_factor, addends));
         }
     }
@@ -182,25 +181,29 @@ fn extract_product_with_sum(expr: &Expr) -> Option<(Expr, Vec<Expr>)> {
 }
 
 // Helper: Check if expression contains a variable (not just numbers)
+// Helper: Check if expression contains a variable (not just numbers)
 fn contains_variable(expr: &Expr) -> bool {
-    match expr {
-        Expr::Symbol(_) => true,
-        Expr::Number(_) => false,
-        Expr::Mul(a, b) | Expr::Add(a, b) | Expr::Sub(a, b) | Expr::Div(a, b) | Expr::Pow(a, b) => {
-            contains_variable(a) || contains_variable(b)
-        }
-        Expr::FunctionCall { args, .. } => args.iter().any(contains_variable),
+    match &expr.kind {
+        AstKind::Symbol(_) => true,
+        AstKind::Number(_) => false,
+        AstKind::Mul(a, b)
+        | AstKind::Add(a, b)
+        | AstKind::Sub(a, b)
+        | AstKind::Div(a, b)
+        | AstKind::Pow(a, b) => contains_variable(a) || contains_variable(b),
+        AstKind::FunctionCall { args, .. } => args.iter().any(contains_variable),
+        AstKind::Derivative { inner, .. } => contains_variable(inner),
     }
 }
 
 // Helper: Extract base and numeric exponent from an expression
 // x -> (x, 1.0), x^n -> (x, n)
 fn extract_base_and_exp(expr: &Expr) -> Option<(Expr, f64)> {
-    match expr {
-        Expr::Symbol(_) => Some((expr.clone(), 1.0)),
-        Expr::Pow(base, exp) => {
-            if let Expr::Number(n) = &**exp {
-                Some(((**base).clone(), *n))
+    match &expr.kind {
+        AstKind::Symbol(_) => Some((expr.clone(), 1.0)),
+        AstKind::Pow(base, exp) => {
+            if let AstKind::Number(n) = &exp.kind {
+                Some((base.as_ref().clone(), *n))
             } else {
                 None // Non-numeric exponent, can't combine
             }
@@ -221,12 +224,12 @@ fn combine_var_parts(a: Expr, b: Expr) -> Expr {
             if (total_exp - 1.0).abs() < 1e-10 {
                 return base_a;
             }
-            return Expr::Pow(Rc::new(base_a), Rc::new(Expr::Number(total_exp)));
+            return Expr::pow(base_a, Expr::number(total_exp));
         }
     }
 
     // Default: just multiply
-    Expr::Mul(Rc::new(a), Rc::new(b))
+    Expr::mul_expr(a, b)
 }
 
 // Helper: Distribute a factor over addends and build canonical terms
@@ -241,9 +244,9 @@ fn distribute_factor(factor: &Expr, addends: &[Expr]) -> Vec<Expr> {
             let total_coeff = factor_coeff * addend_coeff;
 
             // Combine variable parts, converting x*x to x^2 etc.
-            let combined_var = if matches!(&factor_var, Expr::Number(n) if *n == 1.0) {
+            let combined_var = if matches!(factor_var.kind, AstKind::Number(n) if n == 1.0) {
                 addend_var
-            } else if matches!(&addend_var, Expr::Number(n) if *n == 1.0) {
+            } else if matches!(addend_var.kind, AstKind::Number(n) if n == 1.0) {
                 factor_var
             } else {
                 combine_var_parts(factor_var, addend_var)
@@ -253,7 +256,7 @@ fn distribute_factor(factor: &Expr, addends: &[Expr]) -> Vec<Expr> {
             if (total_coeff - 1.0).abs() < 1e-10 {
                 combined_var
             } else {
-                Expr::Mul(Rc::new(Expr::Number(total_coeff)), Rc::new(combined_var))
+                Expr::mul_expr(Expr::number(total_coeff), combined_var)
             }
         })
         .collect()
@@ -352,10 +355,7 @@ rule!(
                 if (total_coeff - 1.0).abs() < 1e-10 {
                     combined_terms.push(base_term);
                 } else {
-                    combined_terms.push(Expr::Mul(
-                        Rc::new(Expr::Number(total_coeff)),
-                        Rc::new(base_term),
-                    ));
+                    combined_terms.push(Expr::mul_expr(Expr::number(total_coeff), base_term));
                 }
             }
         }
@@ -375,10 +375,10 @@ rule!(
     Algebraic,
     &[ExprKind::Mul],
     |expr: &Expr, _context: &RuleContext| {
-        if let Expr::Mul(a, b) = expr {
+        if let AstKind::Mul(a, b) = &expr.kind {
             // Check if multiplying by -1
-            let is_neg_one_a = matches!(&**a, Expr::Number(n) if (*n + 1.0).abs() < 1e-10);
-            let is_neg_one_b = matches!(&**b, Expr::Number(n) if (*n + 1.0).abs() < 1e-10);
+            let is_neg_one_a = matches!(a.kind, AstKind::Number(n) if (n + 1.0).abs() < 1e-10);
+            let is_neg_one_b = matches!(b.kind, AstKind::Number(n) if (n + 1.0).abs() < 1e-10);
 
             let (neg_pos, inner) = if is_neg_one_a {
                 (true, &**b)
@@ -390,14 +390,14 @@ rule!(
 
             if neg_pos {
                 // -1 * (A - B) -> B - A
-                if let Expr::Sub(x, y) = inner {
-                    return Some(Expr::Sub(y.clone(), x.clone()));
+                if let AstKind::Sub(x, y) = &inner.kind {
+                    return Some(Expr::sub_expr(y.as_ref().clone(), x.as_ref().clone()));
                 }
                 // -1 * (A + B) -> -A - B = -A + (-B)
-                if let Expr::Add(x, y) = inner {
-                    return Some(Expr::Sub(
-                        Rc::new(Expr::Mul(Rc::new(Expr::Number(-1.0)), x.clone())),
-                        y.clone(),
+                if let AstKind::Add(x, y) = &inner.kind {
+                    return Some(Expr::sub_expr(
+                        Expr::mul_expr(Expr::number(-1.0), x.as_ref().clone()),
+                        y.as_ref().clone(),
                     ));
                 }
             }

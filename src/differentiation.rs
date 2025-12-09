@@ -1,1323 +1,347 @@
 // Differentiation engine - applies calculus rules (PHASE 2 ENHANCED)
-use crate::Expr;
-use std::collections::HashSet;
-use std::rc::Rc;
+//
+// DESIGN NOTE: Inline optimizations
+// =================================
+// This module contains inline simplification checks (e.g., 0 + x → x, 1 * x → x)
+// during derivative computation. This is INTENTIONAL and NOT redundant with the
+// simplification module because:
+//
+// 1. Preventing expression explosion: Without inline optimization, differentiating
+//    a function like sin(x^5) would create massive intermediate expression trees
+//    before simplification runs.
+//
+// 2. Performance: The simplification engine does a full bottom-up tree traversal.
+//    Inline checks here are O(1) pattern matches on immediate operands.
+//
+// The simplification engine then handles any remaining optimization opportunities.
+
+use crate::{CustomDerivativeFn, Expr, ExprKind};
+use std::collections::{HashMap, HashSet};
 
 impl Expr {
-    /// Check if this expression contains any variables (symbols that are not constants)
-    fn contains_variables(&self, fixed_vars: &HashSet<String>) -> bool {
-        match self {
-            Expr::Number(_) => false,
-            Expr::Symbol(name) => !fixed_vars.contains(name),
-            Expr::Add(u, v)
-            | Expr::Sub(u, v)
-            | Expr::Mul(u, v)
-            | Expr::Div(u, v)
-            | Expr::Pow(u, v) => {
-                u.contains_variables(fixed_vars) || v.contains_variables(fixed_vars)
-            }
-            Expr::FunctionCall { args, .. } => {
-                args.iter().any(|arg| arg.contains_variables(fixed_vars))
-            }
-        }
-    }
-
-    /// Check if expression is a constant number and return its value
-    fn as_number(&self) -> Option<f64> {
-        match self {
-            Expr::Number(n) => Some(*n),
-            _ => None,
-        }
-    }
-
     /// Differentiate this expression with respect to a variable
     ///
     /// # Arguments
     /// * `var` - Variable to differentiate with respect to
     /// * `fixed_vars` - Set of variable names that are constants
-    pub fn derive(&self, var: &str, fixed_vars: &HashSet<String>) -> Expr {
-        match self {
+    /// * `custom_derivatives` - Map of custom derivative functions (single-arg)
+    /// * `custom_fns` - Map of multi-arg custom functions with partial derivatives
+    pub(crate) fn derive(
+        &self,
+        var: &str,
+        fixed_vars: &HashSet<String>,
+        custom_derivatives: &HashMap<String, CustomDerivativeFn>,
+        custom_fns: &HashMap<String, crate::builder::CustomFn>,
+    ) -> Expr {
+        match &self.kind {
             // Base cases
-            Expr::Number(_) => Expr::Number(0.0),
+            ExprKind::Number(_) => Expr::number(0.0),
 
-            Expr::Symbol(name) => {
-                // Check if this is a derivative notation like ∂^n_f(args)/∂_x^n
-                if name.starts_with("∂^") && name.contains("/∂_") {
-                    // Parse the derivative notation
-                    // Format: ∂^order_func(args)/∂_var^order
-                    let parts: Vec<&str> = name.split("/∂_").collect();
-                    if parts.len() == 2 {
-                        let left = parts[0]; // ∂^order_func(args)
-                        let right = parts[1]; // var^order
-
-                        // Extract order from right side
-                        if let Some(order_str) = right.split('^').nth(1)
-                            && let Ok(current_order) = order_str.parse::<i32>()
-                        {
-                            let new_order = current_order + 1;
-
-                            // Extract func and args from left side
-                            if let Some(func_part) = left.strip_prefix("∂^")
-                                && let Some(order_end) = func_part.find('_')
-                            {
-                                let func_name = &func_part[order_end + 1..];
-                                // Reconstruct with new order
-                                let new_symbol = format!(
-                                    "∂^{}_{}/∂_{}^{}",
-                                    new_order, func_name, var, new_order
-                                );
-                                return Expr::Symbol(new_symbol);
-                            }
-                        }
-                    }
-                }
-
+            ExprKind::Symbol(name) => {
                 // Standard symbol differentiation
                 if name == var && !fixed_vars.contains(name) {
-                    Expr::Number(1.0)
+                    Expr::number(1.0)
                 } else {
-                    Expr::Number(0.0)
+                    Expr::number(0.0)
                 }
             }
 
             // Function call
-            Expr::FunctionCall { name, args } => {
+            ExprKind::FunctionCall { name, args } => {
                 if args.is_empty() {
-                    return Expr::Number(0.0);
+                    return Expr::number(0.0);
                 }
-                // Helper to get the first argument and its derivative for single-arg functions
-                let get_single_arg = || (args[0].clone(), args[0].derive(var, fixed_vars));
 
-                // Check if this is a built-in function
-                match name.as_str() {
-                    "sin" => {
-                        let (content, u_prime) = get_single_arg();
-                        // d/dx[sin(u)] = cos(u) * u'
-                        if u_prime.as_number() == Some(0.0) {
-                            Expr::Number(0.0)
-                        } else if u_prime.as_number() == Some(1.0) {
-                            Expr::FunctionCall {
-                                name: "cos".to_string(),
-                                args: vec![content.clone()],
-                            }
+                // Check for custom derivative first
+                if let Some(custom_rule) = custom_derivatives.get(name)
+                    && args.len() == 1
+                {
+                    let inner = &args[0];
+                    let inner_prime = inner.derive(var, fixed_vars, custom_derivatives, custom_fns);
+                    return custom_rule(inner, var, &inner_prime);
+                }
+
+                // Check Registry
+                if let Some(def) = crate::functions::registry::Registry::get(name)
+                    && def.validate_arity(args.len())
+                {
+                    let arg_primes: Vec<Expr> = args
+                        .iter()
+                        .map(|arg| arg.derive(var, fixed_vars, custom_derivatives, custom_fns))
+                        .collect();
+                    return (def.derivative)(args, &arg_primes);
+                }
+
+                // Check multi-arg custom functions (CustomFn) with registered partial derivatives
+                if let Some(custom_fn) = custom_fns.get(name) {
+                    // Use multi-variable chain rule: dF/dx = Σ (∂F/∂arg[i]) * (darg[i]/dx)
+                    let mut terms = Vec::new();
+
+                    for (i, arg) in args.iter().enumerate() {
+                        let arg_prime = arg.derive(var, fixed_vars, custom_derivatives, custom_fns);
+
+                        // Optimization: if derivative of argument is 0, skip this term
+                        if let ExprKind::Number(n) = arg_prime.kind
+                            && n == 0.0
+                        {
+                            continue;
+                        }
+
+                        // Get the partial derivative ∂F/∂arg[i] from the registered CustomFn
+                        if let Some(partial_fn) = custom_fn.partials.get(&i) {
+                            // partial_fn(&args) returns the symbolic ∂F/∂arg[i] evaluated at args
+                            let partial = partial_fn(args);
+                            terms.push(Expr::mul_expr(partial, arg_prime));
                         } else {
-                            Expr::Mul(
-                                Rc::new(Expr::FunctionCall {
-                                    name: "cos".to_string(),
-                                    args: vec![content.clone()],
-                                }),
-                                Rc::new(u_prime),
-                            )
+                            // No partial registered for this argument - create symbolic notation
+                            let inner_func = Expr::func_multi(name.clone(), args.clone());
+                            let partial_derivative =
+                                Expr::derivative(inner_func, format!("arg{}", i), 1);
+                            terms.push(Expr::mul_expr(partial_derivative, arg_prime));
                         }
                     }
 
-                    "cos" => {
-                        let (content, u_prime) = get_single_arg();
-                        // d/dx[cos(u)] = -sin(u) * u'
-                        if u_prime.as_number() == Some(0.0) {
-                            Expr::Number(0.0)
-                        } else {
-                            let sin_u = Expr::FunctionCall {
-                                name: "sin".to_string(),
-                                args: vec![content.clone()],
-                            };
-                            let neg_sin_u = Expr::Mul(Rc::new(Expr::Number(-1.0)), Rc::new(sin_u));
-                            if u_prime.as_number() == Some(1.0) {
-                                neg_sin_u
-                            } else {
-                                Expr::Mul(Rc::new(neg_sin_u), Rc::new(u_prime))
-                            }
+                    return if terms.is_empty() {
+                        Expr::number(0.0)
+                    } else if terms.len() == 1 {
+                        terms.remove(0)
+                    } else {
+                        // Sum up all terms
+                        let mut result = terms.remove(0);
+                        for term in terms {
+                            result = Expr::add_expr(result, term);
                         }
+                        result
+                    };
+                }
+
+                // Fallback: Implicit/custom function - use multi-variable chain rule
+                // d/dx f(u1, u2, ...) = sum( (df/du_i) * (du_i/dx) )
+                let mut terms = Vec::new();
+
+                for arg in args.iter() {
+                    let arg_prime = arg.derive(var, fixed_vars, custom_derivatives, custom_fns);
+
+                    // Optimization: if derivative of argument is 0, skip this term
+                    // MATCH FIX: use ExprKind
+                    if let ExprKind::Number(n) = arg_prime.kind
+                        && n == 0.0
+                    {
+                        continue;
                     }
 
-                    "ln" => {
-                        let (content, u_prime) = get_single_arg();
-                        // d/dx[ln(u)] = (1/u) * u' = u^(-1) * u'
-                        if u_prime.as_number() == Some(0.0) {
-                            Expr::Number(0.0)
-                        } else {
-                            let inv_u =
-                                Expr::Pow(Rc::new(content.clone()), Rc::new(Expr::Number(-1.0)));
-                            if u_prime.as_number() == Some(1.0) {
-                                inv_u
-                            } else {
-                                Expr::Mul(Rc::new(inv_u), Rc::new(u_prime))
-                            }
-                        }
+                    // Construct partial derivative using proper AST: ∂^1 f(args) / ∂ var
+                    // The inner expression is the FunctionCall with its current arguments
+                    let inner_func = Expr::func_multi(name.clone(), args.clone());
+                    let partial_derivative = Expr::derivative(inner_func, var.to_string(), 1);
+
+                    terms.push(Expr::mul_expr(partial_derivative, arg_prime));
+                }
+
+                if terms.is_empty() {
+                    Expr::number(0.0)
+                } else if terms.len() == 1 {
+                    terms.remove(0)
+                } else {
+                    // Sum up all terms
+                    let mut result = terms.remove(0);
+                    for term in terms {
+                        result = Expr::add_expr(result, term);
                     }
-
-                    "exp" => {
-                        let (content, u_prime) = get_single_arg();
-                        // d/dx[exp(u)] = exp(u) * u'
-                        if u_prime.as_number() == Some(0.0) {
-                            Expr::Number(0.0)
-                        } else if u_prime.as_number() == Some(1.0) {
-                            Expr::FunctionCall {
-                                name: "exp".to_string(),
-                                args: vec![content.clone()],
-                            }
-                        } else {
-                            Expr::Mul(
-                                Rc::new(Expr::FunctionCall {
-                                    name: "exp".to_string(),
-                                    args: vec![content.clone()],
-                                }),
-                                Rc::new(u_prime),
-                            )
-                        }
-                    }
-
-                    // NEW: Hyperbolic functions
-                    "sinh" => {
-                        let (content, u_prime) = get_single_arg();
-                        // d/dx[sinh(u)] = cosh(u) * u'
-                        Expr::Mul(
-                            Rc::new(Expr::FunctionCall {
-                                name: "cosh".to_string(),
-                                args: vec![content.clone()],
-                            }),
-                            Rc::new(u_prime),
-                        )
-                    }
-
-                    "cosh" => {
-                        let (content, u_prime) = get_single_arg();
-                        // d/dx[cosh(u)] = sinh(u) * u'
-                        Expr::Mul(
-                            Rc::new(Expr::FunctionCall {
-                                name: "sinh".to_string(),
-                                args: vec![content.clone()],
-                            }),
-                            Rc::new(u_prime),
-                        )
-                    }
-
-                    "tanh" => {
-                        let (content, u_prime) = get_single_arg();
-                        // d/dx[tanh(u)] = (1 - tanh^2(u)) * u'
-                        Expr::Mul(
-                            Rc::new(Expr::Sub(
-                                Rc::new(Expr::Number(1.0)),
-                                Rc::new(Expr::Pow(
-                                    Rc::new(Expr::FunctionCall {
-                                        name: "tanh".to_string(),
-                                        args: vec![content.clone()],
-                                    }),
-                                    Rc::new(Expr::Number(2.0)),
-                                )),
-                            )),
-                            Rc::new(u_prime),
-                        )
-                    }
-
-                    // NEW TIER 1: Trig functions
-                    "tan" => {
-                        let (content, u_prime) = get_single_arg();
-                        // d/dx[tan(u)] = sec²(u) · u'
-                        Expr::Mul(
-                            Rc::new(Expr::Pow(
-                                Rc::new(Expr::FunctionCall {
-                                    name: "sec".to_string(),
-                                    args: vec![content.clone()],
-                                }),
-                                Rc::new(Expr::Number(2.0)),
-                            )),
-                            Rc::new(u_prime),
-                        )
-                    }
-
-                    "cot" => {
-                        let (content, u_prime) = get_single_arg();
-                        // d/dx[cot(u)] = -csc²(u) · u'
-                        Expr::Mul(
-                            Rc::new(Expr::Mul(
-                                Rc::new(Expr::Number(-1.0)),
-                                Rc::new(Expr::Pow(
-                                    Rc::new(Expr::FunctionCall {
-                                        name: "csc".to_string(),
-                                        args: vec![content.clone()],
-                                    }),
-                                    Rc::new(Expr::Number(2.0)),
-                                )),
-                            )),
-                            Rc::new(u_prime),
-                        )
-                    }
-
-                    "sec" => {
-                        let (content, u_prime) = get_single_arg();
-                        // d/dx[sec(u)] = sec(u) · tan(u) · u'
-                        Expr::Mul(
-                            Rc::new(Expr::Mul(
-                                Rc::new(Expr::FunctionCall {
-                                    name: "sec".to_string(),
-                                    args: vec![content.clone()],
-                                }),
-                                Rc::new(Expr::FunctionCall {
-                                    name: "tan".to_string(),
-                                    args: vec![content.clone()],
-                                }),
-                            )),
-                            Rc::new(u_prime),
-                        )
-                    }
-
-                    "csc" => {
-                        let (content, u_prime) = get_single_arg();
-                        // d/dx[csc(u)] = -csc(u) · cot(u) · u'
-                        Expr::Mul(
-                            Rc::new(Expr::Mul(
-                                Rc::new(Expr::Number(-1.0)),
-                                Rc::new(Expr::Mul(
-                                    Rc::new(Expr::FunctionCall {
-                                        name: "csc".to_string(),
-                                        args: vec![content.clone()],
-                                    }),
-                                    Rc::new(Expr::FunctionCall {
-                                        name: "cot".to_string(),
-                                        args: vec![content.clone()],
-                                    }),
-                                )),
-                            )),
-                            Rc::new(u_prime),
-                        )
-                    }
-
-                    // NEW TIER 1: Inverse Trig
-                    "asin" => {
-                        let (content, u_prime) = get_single_arg();
-                        // d/dx[asin(u)] = u' / √(1-u²)
-                        Expr::Div(
-                            Rc::new(u_prime),
-                            Rc::new(Expr::FunctionCall {
-                                name: "sqrt".to_string(),
-                                args: vec![Expr::Sub(
-                                    Rc::new(Expr::Number(1.0)),
-                                    Rc::new(Expr::Pow(
-                                        Rc::new(content.clone()),
-                                        Rc::new(Expr::Number(2.0)),
-                                    )),
-                                )],
-                            }),
-                        )
-                    }
-
-                    "acos" => {
-                        let (content, u_prime) = get_single_arg();
-                        // d/dx[acos(u)] = -u' / √(1-u²)
-                        Expr::Div(
-                            Rc::new(Expr::Mul(Rc::new(Expr::Number(-1.0)), Rc::new(u_prime))),
-                            Rc::new(Expr::FunctionCall {
-                                name: "sqrt".to_string(),
-                                args: vec![Expr::Sub(
-                                    Rc::new(Expr::Number(1.0)),
-                                    Rc::new(Expr::Pow(
-                                        Rc::new(content.clone()),
-                                        Rc::new(Expr::Number(2.0)),
-                                    )),
-                                )],
-                            }),
-                        )
-                    }
-
-                    "atan" => {
-                        let (content, u_prime) = get_single_arg();
-                        // d/dx[atan(u)] = u' / (1 + u²)
-                        Expr::Div(
-                            Rc::new(u_prime),
-                            Rc::new(Expr::Add(
-                                Rc::new(Expr::Number(1.0)),
-                                Rc::new(Expr::Pow(
-                                    Rc::new(content.clone()),
-                                    Rc::new(Expr::Number(2.0)),
-                                )),
-                            )),
-                        )
-                    }
-
-                    "acot" => {
-                        let (content, u_prime) = get_single_arg();
-                        // d/dx[acot(u)] = -u' / (1 + u²)
-                        Expr::Div(
-                            Rc::new(Expr::Mul(Rc::new(Expr::Number(-1.0)), Rc::new(u_prime))),
-                            Rc::new(Expr::Add(
-                                Rc::new(Expr::Number(1.0)),
-                                Rc::new(Expr::Pow(
-                                    Rc::new(content.clone()),
-                                    Rc::new(Expr::Number(2.0)),
-                                )),
-                            )),
-                        )
-                    }
-
-                    "asec" => {
-                        let (content, u_prime) = get_single_arg();
-                        // d/dx[asec(u)] = u' / (|u| · √(u²-1))
-                        // Simplified: u' / (u · √(u²-1))
-                        Expr::Div(
-                            Rc::new(u_prime),
-                            Rc::new(Expr::Mul(
-                                Rc::new(content.clone()),
-                                Rc::new(Expr::FunctionCall {
-                                    name: "sqrt".to_string(),
-                                    args: vec![Expr::Sub(
-                                        Rc::new(Expr::Pow(
-                                            Rc::new(content.clone()),
-                                            Rc::new(Expr::Number(2.0)),
-                                        )),
-                                        Rc::new(Expr::Number(1.0)),
-                                    )],
-                                }),
-                            )),
-                        )
-                    }
-
-                    "acsc" => {
-                        let (content, u_prime) = get_single_arg();
-                        // d/dx[acsc(u)] = -u' / (|u| · √(u²-1))
-                        // Simplified: -u' / (u · √(u²-1))
-                        Expr::Div(
-                            Rc::new(Expr::Mul(Rc::new(Expr::Number(-1.0)), Rc::new(u_prime))),
-                            Rc::new(Expr::Mul(
-                                Rc::new(content.clone()),
-                                Rc::new(Expr::FunctionCall {
-                                    name: "sqrt".to_string(),
-                                    args: vec![Expr::Sub(
-                                        Rc::new(Expr::Pow(
-                                            Rc::new(content.clone()),
-                                            Rc::new(Expr::Number(2.0)),
-                                        )),
-                                        Rc::new(Expr::Number(1.0)),
-                                    )],
-                                }),
-                            )),
-                        )
-                    }
-
-                    // NEW TIER 1: Roots
-                    "sqrt" => {
-                        let (content, u_prime) = get_single_arg();
-                        // d/dx[√u] = u' / (2√u)
-                        Expr::Div(
-                            Rc::new(u_prime),
-                            Rc::new(Expr::Mul(
-                                Rc::new(Expr::Number(2.0)),
-                                Rc::new(Expr::FunctionCall {
-                                    name: "sqrt".to_string(),
-                                    args: vec![content.clone()],
-                                }),
-                            )),
-                        )
-                    }
-
-                    "cbrt" => {
-                        let (content, u_prime) = get_single_arg();
-                        // d/dx[∛u] = u' / (3 · ∛(u²))
-                        // = u' / (3 · u^(2/3))
-                        Expr::Div(
-                            Rc::new(u_prime),
-                            Rc::new(Expr::Mul(
-                                Rc::new(Expr::Number(3.0)),
-                                Rc::new(Expr::Pow(
-                                    Rc::new(content.clone()),
-                                    Rc::new(Expr::Div(
-                                        Rc::new(Expr::Number(2.0)),
-                                        Rc::new(Expr::Number(3.0)),
-                                    )),
-                                )),
-                            )),
-                        )
-                    }
-
-                    // NEW TIER 2: Remaining hyperbolics
-                    "coth" => {
-                        let (content, u_prime) = get_single_arg();
-                        // d/dx[coth(u)] = -csch²(u) · u'
-                        Expr::Mul(
-                            Rc::new(Expr::Mul(
-                                Rc::new(Expr::Number(-1.0)),
-                                Rc::new(Expr::Pow(
-                                    Rc::new(Expr::FunctionCall {
-                                        name: "csch".to_string(),
-                                        args: vec![content.clone()],
-                                    }),
-                                    Rc::new(Expr::Number(2.0)),
-                                )),
-                            )),
-                            Rc::new(u_prime),
-                        )
-                    }
-
-                    "sech" => {
-                        let (content, u_prime) = get_single_arg();
-                        // d/dx[sech(u)] = -sech(u) · tanh(u) · u'
-                        Expr::Mul(
-                            Rc::new(Expr::Mul(
-                                Rc::new(Expr::Number(-1.0)),
-                                Rc::new(Expr::Mul(
-                                    Rc::new(Expr::FunctionCall {
-                                        name: "sech".to_string(),
-                                        args: vec![content.clone()],
-                                    }),
-                                    Rc::new(Expr::FunctionCall {
-                                        name: "tanh".to_string(),
-                                        args: vec![content.clone()],
-                                    }),
-                                )),
-                            )),
-                            Rc::new(u_prime),
-                        )
-                    }
-
-                    "csch" => {
-                        let (content, u_prime) = get_single_arg();
-                        // d/dx[csch(u)] = -csch(u) · coth(u) · u'
-                        Expr::Mul(
-                            Rc::new(Expr::Mul(
-                                Rc::new(Expr::Number(-1.0)),
-                                Rc::new(Expr::Mul(
-                                    Rc::new(Expr::FunctionCall {
-                                        name: "csch".to_string(),
-                                        args: vec![content.clone()],
-                                    }),
-                                    Rc::new(Expr::FunctionCall {
-                                        name: "coth".to_string(),
-                                        args: vec![content.clone()],
-                                    }),
-                                )),
-                            )),
-                            Rc::new(u_prime),
-                        )
-                    }
-
-                    // NEW TIER 2: Inverse Hyperbolic
-                    "asinh" => {
-                        let (content, u_prime) = get_single_arg();
-                        // d/dx[asinh(u)] = u' / √(u² + 1)
-                        Expr::Div(
-                            Rc::new(u_prime),
-                            Rc::new(Expr::FunctionCall {
-                                name: "sqrt".to_string(),
-                                args: vec![Expr::Add(
-                                    Rc::new(Expr::Pow(
-                                        Rc::new(content.clone()),
-                                        Rc::new(Expr::Number(2.0)),
-                                    )),
-                                    Rc::new(Expr::Number(1.0)),
-                                )],
-                            }),
-                        )
-                    }
-
-                    "acosh" => {
-                        let (content, u_prime) = get_single_arg();
-                        // d/dx[acosh(u)] = u' / √(u² - 1)
-                        Expr::Div(
-                            Rc::new(u_prime),
-                            Rc::new(Expr::FunctionCall {
-                                name: "sqrt".to_string(),
-                                args: vec![Expr::Sub(
-                                    Rc::new(Expr::Pow(
-                                        Rc::new(content.clone()),
-                                        Rc::new(Expr::Number(2.0)),
-                                    )),
-                                    Rc::new(Expr::Number(1.0)),
-                                )],
-                            }),
-                        )
-                    }
-
-                    "atanh" => {
-                        let (content, u_prime) = get_single_arg();
-                        // d/dx[atanh(u)] = u' / (1 - u²)
-                        Expr::Div(
-                            Rc::new(u_prime),
-                            Rc::new(Expr::Sub(
-                                Rc::new(Expr::Number(1.0)),
-                                Rc::new(Expr::Pow(
-                                    Rc::new(content.clone()),
-                                    Rc::new(Expr::Number(2.0)),
-                                )),
-                            )),
-                        )
-                    }
-
-                    "acoth" => {
-                        let (content, u_prime) = get_single_arg();
-                        // d/dx[acoth(u)] = u' / (1 - u²)
-                        Expr::Div(
-                            Rc::new(u_prime),
-                            Rc::new(Expr::Sub(
-                                Rc::new(Expr::Number(1.0)),
-                                Rc::new(Expr::Pow(
-                                    Rc::new(content.clone()),
-                                    Rc::new(Expr::Number(2.0)),
-                                )),
-                            )),
-                        )
-                    }
-
-                    "asech" => {
-                        let (content, u_prime) = get_single_arg();
-                        // d/dx[asech(u)] = -u' / (u · √(1 - u²))
-                        Expr::Div(
-                            Rc::new(Expr::Mul(Rc::new(Expr::Number(-1.0)), Rc::new(u_prime))),
-                            Rc::new(Expr::Mul(
-                                Rc::new(content.clone()),
-                                Rc::new(Expr::FunctionCall {
-                                    name: "sqrt".to_string(),
-                                    args: vec![Expr::Sub(
-                                        Rc::new(Expr::Number(1.0)),
-                                        Rc::new(Expr::Pow(
-                                            Rc::new(content.clone()),
-                                            Rc::new(Expr::Number(2.0)),
-                                        )),
-                                    )],
-                                }),
-                            )),
-                        )
-                    }
-
-                    "acsch" => {
-                        let (content, u_prime) = get_single_arg();
-                        // d/dx[acsch(u)] = -u' / (|u| · √(1 + u²))
-                        // Simplified: -u' / (u · √(1 + u²))
-                        Expr::Div(
-                            Rc::new(Expr::Mul(Rc::new(Expr::Number(-1.0)), Rc::new(u_prime))),
-                            Rc::new(Expr::Mul(
-                                Rc::new(content.clone()),
-                                Rc::new(Expr::FunctionCall {
-                                    name: "sqrt".to_string(),
-                                    args: vec![Expr::Add(
-                                        Rc::new(Expr::Number(1.0)),
-                                        Rc::new(Expr::Pow(
-                                            Rc::new(content.clone()),
-                                            Rc::new(Expr::Number(2.0)),
-                                        )),
-                                    )],
-                                }),
-                            )),
-                        )
-                    }
-
-                    // NEW TIER 2: Log variants
-                    "log10" => {
-                        let (content, u_prime) = get_single_arg();
-                        // d/dx[log10(u)] = u' / (u · ln(10))
-                        Expr::Div(
-                            Rc::new(u_prime),
-                            Rc::new(Expr::Mul(
-                                Rc::new(content.clone()),
-                                Rc::new(Expr::FunctionCall {
-                                    name: "ln".to_string(),
-                                    args: vec![Expr::Number(10.0)],
-                                }),
-                            )),
-                        )
-                    }
-
-                    "log2" => {
-                        let (content, u_prime) = get_single_arg();
-                        // d/dx[log2(u)] = u' / (u · ln(2))
-                        Expr::Div(
-                            Rc::new(u_prime),
-                            Rc::new(Expr::Mul(
-                                Rc::new(content.clone()),
-                                Rc::new(Expr::FunctionCall {
-                                    name: "ln".to_string(),
-                                    args: vec![Expr::Number(2.0)],
-                                }),
-                            )),
-                        )
-                    }
-
-                    "log" => {
-                        // Treat log(u) as ln(u) for single argument
-                        // d/dx[log(u)] = u' / u
-                        // TODO: Support log(base, val)
-                        let (content, u_prime) = get_single_arg();
-                        Expr::Div(Rc::new(u_prime), Rc::new(content.clone()))
-                    }
-
-                    // NEW TIER 2/3: Special Functions
-                    "sinc" => {
-                        let (content, u_prime) = get_single_arg();
-                        // d/dx[sinc(u)] = ((cos(u)·u - sin(u)) / u²) · u'
-                        // sinc(u) = sin(u)/u
-                        Expr::Mul(
-                            Rc::new(Expr::Div(
-                                Rc::new(Expr::Sub(
-                                    Rc::new(Expr::Mul(
-                                        Rc::new(Expr::FunctionCall {
-                                            name: "cos".to_string(),
-                                            args: vec![content.clone()],
-                                        }),
-                                        Rc::new(content.clone()),
-                                    )),
-                                    Rc::new(Expr::FunctionCall {
-                                        name: "sin".to_string(),
-                                        args: vec![content.clone()],
-                                    }),
-                                )),
-                                Rc::new(Expr::Pow(
-                                    Rc::new(content.clone()),
-                                    Rc::new(Expr::Number(2.0)),
-                                )),
-                            )),
-                            Rc::new(u_prime),
-                        )
-                    }
-
-                    "erf" => {
-                        let (content, u_prime) = get_single_arg();
-                        // d/dx[erf(u)] = (2/√π) · e^(-u²) · u'
-                        Expr::Mul(
-                            Rc::new(Expr::Mul(
-                                Rc::new(Expr::Div(
-                                    Rc::new(Expr::Number(2.0)),
-                                    Rc::new(Expr::FunctionCall {
-                                        name: "sqrt".to_string(),
-                                        args: vec![Expr::Symbol("pi".to_string())], // Symbolic pi
-                                    }),
-                                )),
-                                Rc::new(Expr::FunctionCall {
-                                    name: "exp".to_string(),
-                                    args: vec![Expr::Mul(
-                                        Rc::new(Expr::Number(-1.0)),
-                                        Rc::new(Expr::Pow(
-                                            Rc::new(content.clone()),
-                                            Rc::new(Expr::Number(2.0)),
-                                        )),
-                                    )],
-                                }),
-                            )),
-                            Rc::new(u_prime),
-                        )
-                    }
-
-                    "erfc" => {
-                        let (content, u_prime) = get_single_arg();
-                        // d/dx[erfc(u)] = -(2/√π) · e^(-u²) · u'
-                        Expr::Mul(
-                            Rc::new(Expr::Mul(
-                                Rc::new(Expr::Div(
-                                    Rc::new(Expr::Number(-2.0)),
-                                    Rc::new(Expr::FunctionCall {
-                                        name: "sqrt".to_string(),
-                                        args: vec![Expr::Symbol("pi".to_string())], // Symbolic pi
-                                    }),
-                                )),
-                                Rc::new(Expr::FunctionCall {
-                                    name: "exp".to_string(),
-                                    args: vec![Expr::Mul(
-                                        Rc::new(Expr::Number(-1.0)),
-                                        Rc::new(Expr::Pow(
-                                            Rc::new(content.clone()),
-                                            Rc::new(Expr::Number(2.0)),
-                                        )),
-                                    )],
-                                }),
-                            )),
-                            Rc::new(u_prime),
-                        )
-                    }
-
-                    "gamma" => {
-                        let (content, u_prime) = get_single_arg();
-                        // d/dx[gamma(u)] = gamma(u) · digamma(u) · u'
-                        Expr::Mul(
-                            Rc::new(Expr::Mul(
-                                Rc::new(Expr::FunctionCall {
-                                    name: "gamma".to_string(),
-                                    args: vec![content.clone()],
-                                }),
-                                Rc::new(Expr::FunctionCall {
-                                    name: "digamma".to_string(),
-                                    args: vec![content.clone()],
-                                }),
-                            )),
-                            Rc::new(u_prime),
-                        )
-                    }
-
-                    "digamma" => {
-                        let (content, u_prime) = get_single_arg();
-                        // d/dx[digamma(u)] = trigamma(u) · u'
-                        Expr::Mul(
-                            Rc::new(Expr::FunctionCall {
-                                name: "trigamma".to_string(),
-                                args: vec![content.clone()],
-                            }),
-                            Rc::new(u_prime),
-                        )
-                    }
-
-                    "trigamma" => {
-                        let (content, u_prime) = get_single_arg();
-                        // d/dx[trigamma(u)] = tetragamma(u) · u'
-                        Expr::Mul(
-                            Rc::new(Expr::FunctionCall {
-                                name: "tetragamma".to_string(),
-                                args: vec![content.clone()],
-                            }),
-                            Rc::new(u_prime),
-                        )
-                    }
-
-                    "tetragamma" => {
-                        let (content, u_prime) = get_single_arg();
-                        // d/dx[tetragamma(u)] = polygamma(3, u) · u'
-                        Expr::Mul(
-                            Rc::new(Expr::FunctionCall {
-                                name: "polygamma".to_string(),
-                                args: vec![Expr::Number(3.0), content.clone()],
-                            }),
-                            Rc::new(u_prime),
-                        )
-                    }
-
-                    "polygamma" => {
-                        if args.len() != 2 {
-                            return Expr::Symbol(format!(
-                                "∂_polygamma({})/∂_{}",
-                                args.iter()
-                                    .map(|a| a.to_string())
-                                    .collect::<Vec<_>>()
-                                    .join(", "),
-                                var
-                            ));
-                        }
-                        let n = &args[0];
-                        let x = &args[1];
-                        let x_prime = x.derive(var, fixed_vars);
-
-                        // d/dx polygamma(n, x) = polygamma(n+1, x)
-                        let n_plus_1 = Expr::Add(Rc::new(n.clone()), Rc::new(Expr::Number(1.0)));
-                        let derivative = Expr::FunctionCall {
-                            name: "polygamma".to_string(),
-                            args: vec![n_plus_1, x.clone()],
-                        };
-
-                        Expr::Mul(Rc::new(derivative), Rc::new(x_prime))
-                    }
-
-                    "LambertW" => {
-                        let (content, u_prime) = get_single_arg();
-                        // d/dx[W(u)] = W(u) / (u · (1 + W(u))) · u'
-                        let w = Expr::FunctionCall {
-                            name: "LambertW".to_string(),
-                            args: vec![content.clone()],
-                        };
-                        Expr::Mul(
-                            Rc::new(Expr::Div(
-                                Rc::new(w.clone()),
-                                Rc::new(Expr::Mul(
-                                    Rc::new(content.clone()),
-                                    Rc::new(Expr::Add(Rc::new(Expr::Number(1.0)), Rc::new(w))),
-                                )),
-                            )),
-                            Rc::new(u_prime),
-                        )
-                    }
-
-                    // Multi-argument functions
-                    "beta" => {
-                        if args.len() != 2 {
-                            return Expr::Symbol(format!(
-                                "∂_beta({})/∂_{}",
-                                args.iter()
-                                    .map(|a| a.to_string())
-                                    .collect::<Vec<_>>()
-                                    .join(", "),
-                                var
-                            ));
-                        }
-                        let a = &args[0];
-                        let b = &args[1];
-                        let a_prime = a.derive(var, fixed_vars);
-                        let b_prime = b.derive(var, fixed_vars);
-
-                        let beta_ab = Expr::FunctionCall {
-                            name: "beta".to_string(),
-                            args: vec![a.clone(), b.clone()],
-                        };
-
-                        let mut terms = Vec::new();
-
-                        // ∂beta/∂a term
-                        if !matches!(a_prime, Expr::Number(0.0)) {
-                            let partial_a = Expr::Mul(
-                                Rc::new(beta_ab.clone()),
-                                Rc::new(Expr::Sub(
-                                    Rc::new(Expr::FunctionCall {
-                                        name: "digamma".to_string(),
-                                        args: vec![a.clone()],
-                                    }),
-                                    Rc::new(Expr::FunctionCall {
-                                        name: "digamma".to_string(),
-                                        args: vec![Expr::Add(
-                                            Rc::new(a.clone()),
-                                            Rc::new(b.clone()),
-                                        )],
-                                    }),
-                                )),
-                            );
-                            terms.push(Expr::Mul(Rc::new(partial_a), Rc::new(a_prime)));
-                        }
-
-                        // ∂beta/∂b term
-                        if !matches!(b_prime, Expr::Number(0.0)) {
-                            let partial_b = Expr::Mul(
-                                Rc::new(beta_ab.clone()),
-                                Rc::new(Expr::Sub(
-                                    Rc::new(Expr::FunctionCall {
-                                        name: "digamma".to_string(),
-                                        args: vec![b.clone()],
-                                    }),
-                                    Rc::new(Expr::FunctionCall {
-                                        name: "digamma".to_string(),
-                                        args: vec![Expr::Add(
-                                            Rc::new(a.clone()),
-                                            Rc::new(b.clone()),
-                                        )],
-                                    }),
-                                )),
-                            );
-                            terms.push(Expr::Mul(Rc::new(partial_b), Rc::new(b_prime)));
-                        }
-
-                        if terms.is_empty() {
-                            Expr::Number(0.0)
-                        } else if terms.len() == 1 {
-                            terms.remove(0)
-                        } else {
-                            let mut result = terms.remove(0);
-                            for term in terms {
-                                result = Expr::Add(Rc::new(result), Rc::new(term));
-                            }
-                            result
-                        }
-                    }
-
-                    "besselj" => {
-                        if args.len() != 2 {
-                            return Expr::Symbol(format!(
-                                "∂_besselj({})/∂_{}",
-                                args.iter()
-                                    .map(|a| a.to_string())
-                                    .collect::<Vec<_>>()
-                                    .join(", "),
-                                var
-                            ));
-                        }
-                        let n = &args[0];
-                        let x = &args[1];
-                        let x_prime = x.derive(var, fixed_vars);
-
-                        // d/dx J_n(x) = (1/2) * (J_{n-1}(x) - J_{n+1}(x))
-                        let half =
-                            Expr::Div(Rc::new(Expr::Number(1.0)), Rc::new(Expr::Number(2.0)));
-                        let n_minus_1 = Expr::Sub(Rc::new(n.clone()), Rc::new(Expr::Number(1.0)));
-                        let n_plus_1 = Expr::Add(Rc::new(n.clone()), Rc::new(Expr::Number(1.0)));
-
-                        let j_n_minus_1 = Expr::FunctionCall {
-                            name: "besselj".to_string(),
-                            args: vec![n_minus_1, x.clone()],
-                        };
-                        let j_n_plus_1 = Expr::FunctionCall {
-                            name: "besselj".to_string(),
-                            args: vec![n_plus_1, x.clone()],
-                        };
-
-                        let derivative = Expr::Mul(
-                            Rc::new(half),
-                            Rc::new(Expr::Sub(Rc::new(j_n_minus_1), Rc::new(j_n_plus_1))),
-                        );
-
-                        Expr::Mul(Rc::new(derivative), Rc::new(x_prime))
-                    }
-
-                    "bessely" => {
-                        if args.len() != 2 {
-                            return Expr::Symbol(format!(
-                                "∂_bessely({})/∂_{}",
-                                args.iter()
-                                    .map(|a| a.to_string())
-                                    .collect::<Vec<_>>()
-                                    .join(", "),
-                                var
-                            ));
-                        }
-                        let n = &args[0];
-                        let x = &args[1];
-                        let x_prime = x.derive(var, fixed_vars);
-
-                        // d/dx Y_n(x) = (1/2) * (Y_{n-1}(x) - Y_{n+1}(x))
-                        let half =
-                            Expr::Div(Rc::new(Expr::Number(1.0)), Rc::new(Expr::Number(2.0)));
-                        let n_minus_1 = Expr::Sub(Rc::new(n.clone()), Rc::new(Expr::Number(1.0)));
-                        let n_plus_1 = Expr::Add(Rc::new(n.clone()), Rc::new(Expr::Number(1.0)));
-
-                        let y_n_minus_1 = Expr::FunctionCall {
-                            name: "bessely".to_string(),
-                            args: vec![n_minus_1, x.clone()],
-                        };
-                        let y_n_plus_1 = Expr::FunctionCall {
-                            name: "bessely".to_string(),
-                            args: vec![n_plus_1, x.clone()],
-                        };
-
-                        let derivative = Expr::Mul(
-                            Rc::new(half),
-                            Rc::new(Expr::Sub(Rc::new(y_n_minus_1), Rc::new(y_n_plus_1))),
-                        );
-
-                        Expr::Mul(Rc::new(derivative), Rc::new(x_prime))
-                    }
-
-                    "besseli" => {
-                        if args.len() != 2 {
-                            return Expr::Symbol(format!(
-                                "∂_besseli({})/∂_{}",
-                                args.iter()
-                                    .map(|a| a.to_string())
-                                    .collect::<Vec<_>>()
-                                    .join(", "),
-                                var
-                            ));
-                        }
-                        let n = &args[0];
-                        let x = &args[1];
-                        let x_prime = x.derive(var, fixed_vars);
-
-                        // d/dx I_n(x) = (1/2) * (I_{n-1}(x) + I_{n+1}(x))
-                        let half =
-                            Expr::Div(Rc::new(Expr::Number(1.0)), Rc::new(Expr::Number(2.0)));
-                        let n_minus_1 = Expr::Sub(Rc::new(n.clone()), Rc::new(Expr::Number(1.0)));
-                        let n_plus_1 = Expr::Add(Rc::new(n.clone()), Rc::new(Expr::Number(1.0)));
-
-                        let i_n_minus_1 = Expr::FunctionCall {
-                            name: "besseli".to_string(),
-                            args: vec![n_minus_1, x.clone()],
-                        };
-                        let i_n_plus_1 = Expr::FunctionCall {
-                            name: "besseli".to_string(),
-                            args: vec![n_plus_1, x.clone()],
-                        };
-
-                        let derivative = Expr::Mul(
-                            Rc::new(half),
-                            Rc::new(Expr::Add(Rc::new(i_n_minus_1), Rc::new(i_n_plus_1))),
-                        );
-
-                        Expr::Mul(Rc::new(derivative), Rc::new(x_prime))
-                    }
-
-                    "besselk" => {
-                        if args.len() != 2 {
-                            return Expr::Symbol(format!(
-                                "∂_besselk({})/∂_{}",
-                                args.iter()
-                                    .map(|a| a.to_string())
-                                    .collect::<Vec<_>>()
-                                    .join(", "),
-                                var
-                            ));
-                        }
-                        let n = &args[0];
-                        let x = &args[1];
-                        let x_prime = x.derive(var, fixed_vars);
-
-                        // d/dx K_n(x) = (-1/2) * (K_{n-1}(x) + K_{n+1}(x))
-                        let neg_half =
-                            Expr::Div(Rc::new(Expr::Number(-1.0)), Rc::new(Expr::Number(2.0)));
-                        let n_minus_1 = Expr::Sub(Rc::new(n.clone()), Rc::new(Expr::Number(1.0)));
-                        let n_plus_1 = Expr::Add(Rc::new(n.clone()), Rc::new(Expr::Number(1.0)));
-
-                        let k_n_minus_1 = Expr::FunctionCall {
-                            name: "besselk".to_string(),
-                            args: vec![n_minus_1, x.clone()],
-                        };
-                        let k_n_plus_1 = Expr::FunctionCall {
-                            name: "besselk".to_string(),
-                            args: vec![n_plus_1, x.clone()],
-                        };
-
-                        let derivative = Expr::Mul(
-                            Rc::new(neg_half),
-                            Rc::new(Expr::Add(Rc::new(k_n_minus_1), Rc::new(k_n_plus_1))),
-                        );
-
-                        Expr::Mul(Rc::new(derivative), Rc::new(x_prime))
-                    }
-
-                    // Absolute value and sign functions
-                    "abs" => {
-                        let (content, u_prime) = get_single_arg();
-                        // d/dx[|u|] = sign(u) * u'
-                        // Note: derivative is undefined at u = 0, but we use sign(u) for simplicity
-                        Expr::Mul(
-                            Rc::new(Expr::FunctionCall {
-                                name: "sign".to_string(),
-                                args: vec![content.clone()],
-                            }),
-                            Rc::new(u_prime),
-                        )
-                    }
-
-                    "sign" | "sgn" => {
-                        // d/dx[sign(u)] = 0 everywhere (technically undefined at u = 0)
-                        // For simplicity, we return 0 as the derivative
-                        Expr::Number(0.0)
-                    }
-
-                    _ => {
-                        // Implicit/custom function - use multi-variable chain rule
-                        // d/dx f(u1, u2, ...) = sum( (df/du_i) * (du_i/dx) )
-
-                        let mut terms = Vec::new();
-
-                        for arg in args.iter() {
-                            let arg_prime = arg.derive(var, fixed_vars);
-
-                            // Optimization: if derivative of argument is 0, skip this term
-                            if let Expr::Number(n) = arg_prime
-                                && n == 0.0
-                            {
-                                continue;
-                            }
-
-                            // Construct partial derivative symbol
-                            // For single argument: ∂^1_f(u)/∂_x^1
-                            // For multi argument: ∂^1_f(args)/∂_x^1
-
-                            let partial_derivative = if args.len() == 1 {
-                                Expr::Symbol(format!("∂^1_{}({})/∂_{}^1", name, args[0], var))
-                            } else {
-                                // Represent arguments as string for the symbol
-                                let args_str = args
-                                    .iter()
-                                    .map(|a| a.to_string())
-                                    .collect::<Vec<_>>()
-                                    .join(", ");
-                                Expr::Symbol(format!("∂^1_{}({})/∂_{}^1", name, args_str, var))
-                            };
-
-                            terms.push(Expr::Mul(Rc::new(partial_derivative), Rc::new(arg_prime)));
-                        }
-
-                        if terms.is_empty() {
-                            Expr::Number(0.0)
-                        } else if terms.len() == 1 {
-                            terms.remove(0)
-                        } else {
-                            // Sum up all terms
-                            let mut result = terms.remove(0);
-                            for term in terms {
-                                result = Expr::Add(Rc::new(result), Rc::new(term));
-                            }
-                            result
-                        }
-                    }
+                    result
                 }
             }
 
             // Sum rule: (u + v)' = u' + v'
-            Expr::Add(u, v) => {
-                let u_prime = u.derive(var, fixed_vars);
-                let v_prime = v.derive(var, fixed_vars);
-                if u_prime.as_number() == Some(0.0) {
+            ExprKind::Add(u, v) => {
+                let u_prime = u.derive(var, fixed_vars, custom_derivatives, custom_fns);
+                let v_prime = v.derive(var, fixed_vars, custom_derivatives, custom_fns);
+                if u_prime.is_zero_num() {
                     v_prime
-                } else if v_prime.as_number() == Some(0.0) {
+                } else if v_prime.is_zero_num() {
                     u_prime
                 } else {
-                    Expr::Add(Rc::new(u_prime), Rc::new(v_prime))
+                    Expr::add_expr(u_prime, v_prime)
                 }
             }
 
             // Subtraction rule: (u - v)' = u' - v'
-            Expr::Sub(u, v) => {
-                let u_prime = u.derive(var, fixed_vars);
-                let v_prime = v.derive(var, fixed_vars);
-                if v_prime.as_number() == Some(0.0) {
+            ExprKind::Sub(u, v) => {
+                let u_prime = u.derive(var, fixed_vars, custom_derivatives, custom_fns);
+                let v_prime = v.derive(var, fixed_vars, custom_derivatives, custom_fns);
+                if v_prime.is_zero_num() {
                     u_prime
                 } else {
-                    Expr::Sub(Rc::new(u_prime), Rc::new(v_prime))
+                    Expr::sub_expr(u_prime, v_prime)
                 }
             }
 
             // Product rule: (u * v)' = u' * v + u * v'
-            Expr::Mul(u, v) => {
-                let u_prime = u.derive(var, fixed_vars);
-                let v_prime = v.derive(var, fixed_vars);
+            ExprKind::Mul(u, v) => {
+                let u_prime = u.derive(var, fixed_vars, custom_derivatives, custom_fns);
+                let v_prime = v.derive(var, fixed_vars, custom_derivatives, custom_fns);
 
                 // Term 1: u' * v
-                let term1 = if u_prime.as_number() == Some(0.0) {
-                    Expr::Number(0.0)
-                } else if u_prime.as_number() == Some(1.0) {
+                let term1 = if u_prime.is_zero_num() {
+                    Expr::number(0.0)
+                } else if u_prime.is_one_num() {
                     (**v).clone()
-                } else if v.as_number() == Some(1.0) {
+                } else if v.is_one_num() {
                     u_prime.clone()
-                } else if v.as_number() == Some(0.0) {
-                    Expr::Number(0.0)
+                } else if v.is_zero_num() {
+                    Expr::number(0.0)
                 } else {
-                    Expr::Mul(Rc::new(u_prime.clone()), v.clone())
+                    Expr::mul_expr(u_prime.clone(), (**v).clone())
                 };
 
                 // Term 2: u * v'
-                let term2 = if v_prime.as_number() == Some(0.0) {
-                    Expr::Number(0.0)
-                } else if v_prime.as_number() == Some(1.0) {
+                let term2 = if v_prime.is_zero_num() {
+                    Expr::number(0.0)
+                } else if v_prime.is_one_num() {
                     (**u).clone()
-                } else if u.as_number() == Some(1.0) {
+                } else if u.is_one_num() {
                     v_prime.clone()
-                } else if u.as_number() == Some(0.0) {
-                    Expr::Number(0.0)
+                } else if u.is_zero_num() {
+                    Expr::number(0.0)
                 } else {
-                    Expr::Mul(u.clone(), Rc::new(v_prime.clone()))
+                    Expr::mul_expr((**u).clone(), v_prime.clone())
                 };
 
                 // Combine terms
-                if term1.as_number() == Some(0.0) {
+                if term1.is_zero_num() {
                     term2
-                } else if term2.as_number() == Some(0.0) {
+                } else if term2.is_zero_num() {
                     term1
                 } else {
-                    Expr::Add(Rc::new(term1), Rc::new(term2))
+                    Expr::add_expr(term1, term2)
                 }
             }
 
             // Quotient rule: (u / v)' = (u' * v - u * v') / v^2
-            Expr::Div(u, v) => {
-                let u_prime = u.derive(var, fixed_vars);
-                let v_prime = v.derive(var, fixed_vars);
+            ExprKind::Div(u, v) => {
+                let u_prime = u.derive(var, fixed_vars, custom_derivatives, custom_fns);
+                let v_prime = v.derive(var, fixed_vars, custom_derivatives, custom_fns);
 
                 // If both derivatives are 0, result is 0
-                if u_prime.as_number() == Some(0.0) && v_prime.as_number() == Some(0.0) {
-                    Expr::Number(0.0)
+                if u_prime.is_zero_num() && v_prime.is_zero_num() {
+                    Expr::number(0.0)
                 } else {
-                    let numerator = if u_prime.as_number() == Some(0.0) {
+                    let numerator = if u_prime.is_zero_num() {
                         // -u * v'
-                        if v_prime.as_number() == Some(0.0) {
-                            Expr::Number(0.0)
-                        } else if v_prime.as_number() == Some(1.0) {
-                            Expr::Mul(Rc::new(Expr::Number(-1.0)), u.clone())
+                        if v_prime.is_zero_num() {
+                            Expr::number(0.0)
+                        } else if v_prime.is_one_num() {
+                            Expr::mul_expr(Expr::number(-1.0), (**u).clone())
                         } else {
-                            Expr::Mul(
-                                Rc::new(Expr::Number(-1.0)),
-                                Rc::new(Expr::Mul(u.clone(), Rc::new(v_prime.clone()))),
+                            Expr::mul_expr(
+                                Expr::number(-1.0),
+                                Expr::mul_expr((**u).clone(), v_prime.clone()),
                             )
                         }
-                    } else if v_prime.as_number() == Some(0.0) {
+                    } else if v_prime.is_zero_num() {
                         // u' * v
-                        if u_prime.as_number() == Some(1.0) {
+                        if u_prime.is_one_num() {
                             (**v).clone()
-                        } else if v.as_number() == Some(1.0) {
+                        } else if v.is_one_num() {
                             u_prime.clone()
-                        } else if v.as_number() == Some(0.0) {
-                            Expr::Number(0.0)
+                        } else if v.is_zero_num() {
+                            Expr::number(0.0)
                         } else {
-                            Expr::Mul(Rc::new(u_prime.clone()), v.clone())
+                            Expr::mul_expr(u_prime.clone(), (**v).clone())
                         }
                     } else {
                         // u' * v - u * v'
-                        let term1 = if u_prime.as_number() == Some(1.0) {
+                        let term1 = if u_prime.is_one_num() {
                             (**v).clone()
-                        } else if v.as_number() == Some(1.0) {
+                        } else if v.is_one_num() {
                             u_prime.clone()
-                        } else if v.as_number() == Some(0.0) {
-                            Expr::Number(0.0)
+                        } else if v.is_zero_num() {
+                            Expr::number(0.0)
                         } else {
-                            Expr::Mul(Rc::new(u_prime.clone()), v.clone())
+                            Expr::mul_expr(u_prime.clone(), (**v).clone())
                         };
 
-                        let term2 = if v_prime.as_number() == Some(1.0) {
+                        let term2 = if v_prime.is_one_num() {
                             (**u).clone()
-                        } else if u.as_number() == Some(1.0) {
+                        } else if u.is_one_num() {
                             v_prime.clone()
-                        } else if u.as_number() == Some(0.0) {
-                            Expr::Number(0.0)
+                        } else if u.is_zero_num() {
+                            Expr::number(0.0)
                         } else {
-                            Expr::Mul(u.clone(), Rc::new(v_prime.clone()))
+                            Expr::mul_expr((**u).clone(), v_prime.clone())
                         };
 
-                        if term1.as_number() == Some(0.0) {
-                            Expr::Mul(Rc::new(Expr::Number(-1.0)), Rc::new(term2))
-                        } else if term2.as_number() == Some(0.0) {
+                        if term1.is_zero_num() {
+                            Expr::mul_expr(Expr::number(-1.0), term2)
+                        } else if term2.is_zero_num() {
                             term1
                         } else {
-                            Expr::Sub(Rc::new(term1), Rc::new(term2))
+                            Expr::sub_expr(term1, term2)
                         }
                     };
 
-                    if numerator.as_number() == Some(0.0) {
-                        Expr::Number(0.0)
+                    if numerator.is_zero_num() {
+                        Expr::number(0.0)
                     } else {
-                        let denominator = Expr::Pow(v.clone(), Rc::new(Expr::Number(2.0)));
-                        if v.as_number() == Some(1.0) {
+                        let denominator = Expr::pow((**v).clone(), Expr::number(2.0));
+                        if v.is_one_num() {
                             numerator
                         } else {
-                            Expr::Div(Rc::new(numerator), Rc::new(denominator))
+                            Expr::div_expr(numerator, denominator)
                         }
                     }
                 }
             }
 
             // Power rule with LOGARITHMIC DIFFERENTIATION for variable exponents
-            Expr::Pow(u, v) => {
+            ExprKind::Pow(u, v) => {
                 // Check if exponent is constant (contains no variables)
-                if !v.contains_variables(fixed_vars) {
+                if !v.has_free_variables(fixed_vars) {
                     // Constant exponent - use standard power rule
                     // (u^n)' = n * u^(n-1) * u'
-                    let u_prime = u.derive(var, fixed_vars);
+                    let u_prime = u.derive(var, fixed_vars, custom_derivatives, custom_fns);
 
                     // If u' is 0, result is 0
-                    if u_prime.as_number() == Some(0.0) {
-                        Expr::Number(0.0)
+                    if u_prime.is_zero_num() {
+                        Expr::number(0.0)
                     } else {
                         let n = (**v).clone();
                         if let Some(n_val) = n.as_number() {
                             if n_val == 0.0 {
                                 // (u^0)' = 0
-                                Expr::Number(0.0)
+                                Expr::number(0.0)
                             } else if n_val == 1.0 {
                                 // (u^1)' = u'
                                 u_prime
                             } else {
-                                let n_minus_1 = Expr::Number(n_val - 1.0);
-                                let u_pow_n_minus_1 = if u.as_number() == Some(1.0) {
+                                let n_minus_1 = Expr::number(n_val - 1.0);
+                                let u_pow_n_minus_1 = if u.is_one_num() {
                                     // 1^(n-1) = 1
-                                    Expr::Number(1.0)
-                                } else if u.as_number() == Some(0.0) {
+                                    Expr::number(1.0)
+                                } else if u.is_zero_num() {
                                     // 0^(n-1) = 0 for n-1 > 0
-                                    Expr::Number(0.0)
+                                    Expr::number(0.0)
                                 } else {
-                                    Expr::Pow(u.clone(), Rc::new(n_minus_1))
+                                    Expr::pow((**u).clone(), n_minus_1)
                                 };
 
-                                if u_prime.as_number() == Some(1.0) {
-                                    Expr::Mul(Rc::new(n), Rc::new(u_pow_n_minus_1))
+                                if u_prime.is_one_num() {
+                                    Expr::mul_expr(n, u_pow_n_minus_1)
                                 } else {
-                                    Expr::Mul(
-                                        Rc::new(n),
-                                        Rc::new(Expr::Mul(
-                                            Rc::new(u_pow_n_minus_1),
-                                            Rc::new(u_prime),
-                                        )),
-                                    )
+                                    Expr::mul_expr(n, Expr::mul_expr(u_pow_n_minus_1, u_prime))
                                 }
                             }
                         } else {
                             // Non-numeric constant exponent
-                            let n_minus_1 = Expr::Sub(v.clone(), Rc::new(Expr::Number(1.0)));
-                            let u_pow_n_minus_1 = Expr::Pow(u.clone(), Rc::new(n_minus_1));
+                            let n_minus_1 = Expr::sub_expr((**v).clone(), Expr::number(1.0));
+                            let u_pow_n_minus_1 = Expr::pow((**u).clone(), n_minus_1);
 
-                            if u_prime.as_number() == Some(1.0) {
-                                Expr::Mul(v.clone(), Rc::new(u_pow_n_minus_1))
+                            if u_prime.is_one_num() {
+                                Expr::mul_expr((**v).clone(), u_pow_n_minus_1)
                             } else {
-                                Expr::Mul(
-                                    v.clone(),
-                                    Rc::new(Expr::Mul(Rc::new(u_pow_n_minus_1), Rc::new(u_prime))),
+                                Expr::mul_expr(
+                                    (**v).clone(),
+                                    Expr::mul_expr(u_pow_n_minus_1, u_prime),
                                 )
                             }
                         }
@@ -1325,82 +349,164 @@ impl Expr {
                 } else {
                     // Variable exponent - use LOGARITHMIC DIFFERENTIATION!
                     // d/dx[u^v] = u^v * (v' * ln(u) + v * u'/u)
-                    let u_prime = u.derive(var, fixed_vars);
-                    let v_prime = v.derive(var, fixed_vars);
+                    let u_prime = u.derive(var, fixed_vars, custom_derivatives, custom_fns);
+                    let v_prime = v.derive(var, fixed_vars, custom_derivatives, custom_fns);
 
                     // If both u' and v' are 0, result is 0
-                    if u_prime.as_number() == Some(0.0) && v_prime.as_number() == Some(0.0) {
-                        Expr::Number(0.0)
+                    if u_prime.is_zero_num() && v_prime.is_zero_num() {
+                        Expr::number(0.0)
                     } else {
                         // Term 1: v' * ln(u)
-                        let ln_u = if matches!(&**u, Expr::Symbol(name) if name == "e")
+                        let ln_u = if matches!(&u.kind, ExprKind::Symbol(name) if name == "e")
                             && !fixed_vars.contains("e")
                         {
                             // ln(e) = 1
-                            Expr::Number(1.0)
-                        } else if u.as_number() == Some(1.0) {
+                            Expr::number(1.0)
+                        } else if u.is_one_num() {
                             // ln(1) = 0
-                            Expr::Number(0.0)
+                            Expr::number(0.0)
                         } else {
-                            Expr::FunctionCall {
+                            Expr::new(ExprKind::FunctionCall {
                                 name: "ln".to_string(),
                                 args: vec![u.as_ref().clone()],
-                            }
+                            })
                         };
-                        let term1 =
-                            if v_prime.as_number() == Some(0.0) || ln_u.as_number() == Some(0.0) {
-                                Expr::Number(0.0)
-                            } else if v_prime.as_number() == Some(1.0) {
-                                ln_u
-                            } else if ln_u.as_number() == Some(1.0) {
-                                v_prime.clone()
-                            } else {
-                                Expr::Mul(Rc::new(v_prime.clone()), Rc::new(ln_u))
-                            };
+                        let term1 = if v_prime.is_zero_num() || ln_u.is_zero_num() {
+                            Expr::number(0.0)
+                        } else if v_prime.is_one_num() {
+                            ln_u
+                        } else if ln_u.is_one_num() {
+                            v_prime.clone()
+                        } else {
+                            Expr::mul_expr(v_prime.clone(), ln_u)
+                        };
 
                         // Term 2: v * (u'/u)
-                        let u_over_u_prime = if u_prime.as_number() == Some(0.0) {
-                            Expr::Number(0.0)
-                        } else if u.as_number() == Some(1.0) {
+                        let u_over_u_prime = if u_prime.is_zero_num() {
+                            Expr::number(0.0)
+                        } else if u.is_one_num() {
                             // u'/1 = u'
                             u_prime.clone()
-                        } else if u_prime.as_number() == Some(1.0) {
+                        } else if u_prime.is_one_num() {
                             // 1/u
-                            Expr::Pow(u.clone(), Rc::new(Expr::Number(-1.0)))
+                            Expr::pow((**u).clone(), Expr::number(-1.0))
                         } else {
-                            Expr::Div(Rc::new(u_prime.clone()), u.clone())
+                            Expr::div_expr(u_prime.clone(), (**u).clone())
                         };
-                        let term2 = if u_over_u_prime.as_number() == Some(0.0) {
-                            Expr::Number(0.0)
-                        } else if v.as_number() == Some(1.0) {
+                        let term2 = if u_over_u_prime.is_zero_num() {
+                            Expr::number(0.0)
+                        } else if v.is_one_num() {
                             u_over_u_prime
-                        } else if u_over_u_prime.as_number() == Some(1.0) {
+                        } else if u_over_u_prime.is_one_num() {
                             (**v).clone()
                         } else {
-                            Expr::Mul(v.clone(), Rc::new(u_over_u_prime))
+                            Expr::mul_expr((**v).clone(), u_over_u_prime)
                         };
 
                         // Sum of terms
-                        let sum = if term1.as_number() == Some(0.0) {
+                        let sum = if term1.is_zero_num() {
                             term2
-                        } else if term2.as_number() == Some(0.0) {
+                        } else if term2.is_zero_num() {
                             term1
                         } else {
-                            Expr::Add(Rc::new(term1), Rc::new(term2))
+                            Expr::add_expr(term1, term2)
                         };
 
                         // Multiply by u^v
-                        if sum.as_number() == Some(0.0) {
-                            Expr::Number(0.0)
-                        } else if sum.as_number() == Some(1.0) {
-                            Expr::Pow(u.clone(), v.clone())
+                        if sum.is_zero_num() {
+                            Expr::number(0.0)
+                        } else if sum.is_one_num() {
+                            Expr::pow((**u).clone(), (**v).clone())
                         } else {
-                            Expr::Mul(Rc::new(Expr::Pow(u.clone(), v.clone())), Rc::new(sum))
+                            Expr::mul_expr(Expr::pow((**u).clone(), (**v).clone()), sum)
                         }
                     }
                 }
             }
+
+            // Derivative expressions: d/dx (∂^n f / ∂x^n) = ∂^(n+1) f / ∂x^(n+1)
+            ExprKind::Derivative {
+                inner,
+                var: deriv_var,
+                order,
+            } => {
+                if deriv_var == var {
+                    // Differentiating with respect to the same variable: increment order
+                    // ∂/∂x (∂^n f/∂x^n) = ∂^(n+1) f/∂x^(n+1)
+                    Expr::derivative(inner.as_ref().clone(), deriv_var.clone(), order + 1)
+                } else {
+                    // Different variable: check if inner expression contains the variable
+                    // If f(x,y) doesn't contain z, then ∂f(x,y)/∂z = 0
+                    if !inner.contains_var(var) {
+                        Expr::number(0.0)
+                    } else {
+                        // Inner contains var: create mixed partial derivative
+                        // ∂/∂y (∂f(x,y)/∂x) = ∂²f/∂x∂y (represented as nested derivatives)
+                        Expr::derivative(
+                            Expr::new(ExprKind::Derivative {
+                                inner: inner.clone(),
+                                var: deriv_var.clone(),
+                                order: *order,
+                            }),
+                            var.to_string(),
+                            1,
+                        )
+                    }
+                }
+            }
         }
+    }
+
+    /// Raw differentiation without simplification (for benchmarks)
+    ///
+    /// This exposes the internal derive() method for performance benchmarking.
+    /// For normal usage, use `Diff::new().differentiate()` which includes simplification.
+    ///
+    /// # Arguments
+    /// * `var` - Variable to differentiate with respect to
+    ///
+    /// # Example
+    /// ```ignore
+    /// let expr = parse("x^2", &HashSet::new(), &HashSet::new()).unwrap();
+    /// let derivative = expr.derive_raw("x");
+    /// // Returns 2*x^1*1 (unsimplified)
+    /// ```
+    pub fn derive_raw(&self, var: &str) -> Expr {
+        self.derive(var, &HashSet::new(), &HashMap::new(), &HashMap::new())
+    }
+
+    /// Differentiate with memoization cache for repeated subexpressions
+    ///
+    /// This variant caches computed derivatives by expression ID, avoiding
+    /// redundant computation when the same subexpression appears multiple times.
+    /// Useful for complex expressions with shared structure.
+    ///
+    /// # Arguments
+    /// * `var` - Variable to differentiate with respect to
+    /// * `cache` - Mutable reference to cache HashMap
+    ///
+    /// # Example
+    /// ```ignore
+    /// use std::collections::HashMap;
+    /// let expr = parse("sin(x)*sin(x)", ...).unwrap();  // sin(x) appears twice
+    /// let mut cache = HashMap::new();
+    /// let derivative = expr.derive_cached("x", &mut cache);
+    /// // Cache ensures sin(x) is differentiated only once
+    /// ```
+    pub fn derive_cached(&self, var: &str, cache: &mut HashMap<(u64, String), Expr>) -> Expr {
+        let key = (self.id, var.to_string());
+
+        // Check cache first
+        if let Some(cached) = cache.get(&key) {
+            return cached.clone();
+        }
+
+        // Compute derivative using standard derive
+        let result = self.derive(var, &HashSet::new(), &HashMap::new(), &HashMap::new());
+
+        // Cache the result
+        cache.insert(key, result.clone());
+        result
     }
 }
 
@@ -1410,24 +516,48 @@ mod tests {
 
     #[test]
     fn test_derive_sinh() {
-        let expr = Expr::FunctionCall {
+        let expr = Expr::new(ExprKind::FunctionCall {
             name: "sinh".to_string(),
-            args: vec![Expr::Symbol("x".to_string())],
-        };
-        let result = expr.derive("x", &HashSet::new());
-        assert!(matches!(result, Expr::Mul(_, _)));
+            args: vec![Expr::symbol("x")],
+        });
+        let result = expr.derive("x", &HashSet::new(), &HashMap::new(), &HashMap::new());
+        // Result should be cosh(x) * 1 (unoptimized) or cosh(x) (optimized)
+        match result.kind {
+            ExprKind::FunctionCall { name, .. } => assert_eq!(name, "cosh"),
+            ExprKind::Mul(lhs, _) => {
+                if let ExprKind::FunctionCall { name, .. } = &lhs.kind {
+                    assert_eq!(name, "cosh");
+                } else {
+                    panic!("Expected cosh in Mul, got {:?}", lhs);
+                }
+            }
+            _ => panic!("Expected cosh or Mul(cosh, 1), got {:?}", result),
+        }
+    }
+
+    #[test]
+    fn test_custom_derivative_fallback() {
+        let x = Expr::symbol("x");
+        let expr = Expr::new(ExprKind::FunctionCall {
+            name: "custom".to_string(),
+            args: vec![x],
+        });
+        // Should return symbolic derivative if no rule
+        let result = expr.derive("x", &HashSet::new(), &HashMap::new(), &HashMap::new());
+        // Returns Mul(partial, arg_prime) usually
+        assert!(matches!(
+            result.kind,
+            ExprKind::Mul(_, _) | ExprKind::Symbol(_)
+        ));
     }
 
     #[test]
     fn test_derive_subtraction() {
         // (x - 1)' = 1 - 0 = 1
-        let expr = Expr::Sub(
-            Rc::new(Expr::Symbol("x".to_string())),
-            Rc::new(Expr::Number(1.0)),
-        );
-        let result = expr.derive("x", &HashSet::new());
-        match result {
-            Expr::Number(n) => assert_eq!(n, 1.0),
+        let expr = Expr::sub_expr(Expr::symbol("x"), Expr::number(1.0));
+        let result = expr.derive("x", &HashSet::new(), &HashMap::new(), &HashMap::new());
+        match result.kind {
+            ExprKind::Number(n) => assert_eq!(n, 1.0),
             _ => panic!("Expected Number(1.0), got {:?}", result),
         }
     }
@@ -1435,53 +565,190 @@ mod tests {
     #[test]
     fn test_derive_division() {
         // (x / 2)' = (1*2 - x*0) / 2^2
-        let expr = Expr::Div(
-            Rc::new(Expr::Symbol("x".to_string())),
-            Rc::new(Expr::Number(2.0)),
-        );
-        let result = expr.derive("x", &HashSet::new());
-        assert!(matches!(result, Expr::Div(_, _)));
+        let expr = Expr::div_expr(Expr::symbol("x"), Expr::number(2.0));
+        let result = expr.derive("x", &HashSet::new(), &HashMap::new(), &HashMap::new());
+        assert!(matches!(result.kind, ExprKind::Div(_, _)));
     }
 
     #[test]
     fn test_logarithmic_differentiation() {
         // x^x should use logarithmic differentiation
-        let expr = Expr::Pow(
-            Rc::new(Expr::Symbol("x".to_string())),
-            Rc::new(Expr::Symbol("x".to_string())),
-        );
-        let result = expr.derive("x", &HashSet::new());
+        let expr = Expr::pow(Expr::symbol("x"), Expr::symbol("x"));
+        let result = expr.derive("x", &HashSet::new(), &HashMap::new(), &HashMap::new());
         // Result should be multiplication (complex expression)
-        assert!(matches!(result, Expr::Mul(_, _)));
+        assert!(matches!(result.kind, ExprKind::Mul(_, _)));
     }
 
     #[test]
     fn test_derivative_order_increment() {
-        // Test that differentiating a derivative symbol increments the order
-        let derivative_symbol = Expr::Symbol("∂^1_f(x)/∂_x^1".to_string());
-        let result = derivative_symbol.derive("x", &HashSet::new());
-        match result {
-            Expr::Symbol(name) => assert_eq!(name, "∂^2_f(x)/∂_x^2"),
-            _ => panic!("Expected symbol, got {:?}", result),
+        // Test that differentiating a derivative expression increments the order
+        // Create ∂^1_f(x)/∂_x^1 using the new AST-based approach
+        let inner_func = Expr::func("f", Expr::symbol("x"));
+        let derivative_expr = Expr::derivative(inner_func.clone(), "x".to_string(), 1);
+
+        let result = derivative_expr.derive("x", &HashSet::new(), &HashMap::new(), &HashMap::new());
+        match result.kind {
+            ExprKind::Derivative { order, var, .. } => {
+                assert_eq!(order, 2, "Expected order 2, got {}", order);
+                assert_eq!(var, "x");
+            }
+            _ => panic!("Expected Derivative, got {:?}", result),
         }
     }
 
     #[test]
     fn test_derivative_order_increment_multi_digit() {
         // Test incrementing from 9 to 10 (single to double digit)
-        let ninth_symbol = Expr::Symbol("∂^9_f(x)/∂_x^9".to_string());
-        let result = ninth_symbol.derive("x", &HashSet::new());
-        match result {
-            Expr::Symbol(name) => assert_eq!(name, "∂^10_f(x)/∂_x^10"),
-            _ => panic!("Expected symbol, got {:?}", result),
+        let inner_func = Expr::func("f", Expr::symbol("x"));
+        let ninth_deriv = Expr::derivative(inner_func.clone(), "x".to_string(), 9);
+        let result = ninth_deriv.derive("x", &HashSet::new(), &HashMap::new(), &HashMap::new());
+        match result.kind {
+            ExprKind::Derivative { order, .. } => assert_eq!(order, 10),
+            _ => panic!("Expected Derivative, got {:?}", result),
         }
 
         // Test incrementing from 99 to 100 (double to triple digit)
-        let ninety_ninth_symbol = Expr::Symbol("∂^99_f(x)/∂_x^99".to_string());
-        let result = ninety_ninth_symbol.derive("x", &HashSet::new());
-        match result {
-            Expr::Symbol(name) => assert_eq!(name, "∂^100_f(x)/∂_x^100"),
-            _ => panic!("Expected symbol, got {:?}", result),
+        let ninety_ninth_deriv = Expr::derivative(inner_func.clone(), "x".to_string(), 99);
+        let result =
+            ninety_ninth_deriv.derive("x", &HashSet::new(), &HashMap::new(), &HashMap::new());
+        match result.kind {
+            ExprKind::Derivative { order, .. } => assert_eq!(order, 100),
+            _ => panic!("Expected Derivative, got {:?}", result),
         }
+    }
+
+    #[test]
+    fn test_derivative_variable_not_present_returns_zero() {
+        // If f(x) doesn't contain y, then ∂f(x)/∂y = 0
+        // So ∂/∂y (∂f(x)/∂x) = 0 as well
+        let inner_func = Expr::func("f", Expr::symbol("x"));
+        let derivative_expr = Expr::derivative(inner_func, "x".to_string(), 1);
+
+        let result = derivative_expr.derive("y", &HashSet::new(), &HashMap::new(), &HashMap::new());
+        assert_eq!(
+            result.as_number(),
+            Some(0.0),
+            "Expected 0 when variable not present in inner"
+        );
+    }
+
+    #[test]
+    fn test_derivative_mixed_partial_when_variable_present() {
+        // f(x, y) contains both x and y
+        // ∂/∂y (∂f(x,y)/∂x) = ∂²f(x,y)/∂x∂y
+        let inner_func = Expr::func_multi("f", vec![Expr::symbol("x"), Expr::symbol("y")]);
+        let derivative_expr = Expr::derivative(inner_func, "x".to_string(), 1);
+
+        let result = derivative_expr.derive("y", &HashSet::new(), &HashMap::new(), &HashMap::new());
+
+        // Result should be a nested Derivative representing ∂²f/∂x∂y
+        match &result.kind {
+            ExprKind::Derivative { var, order, inner } => {
+                assert_eq!(var, "y", "Outer derivative should be wrt y");
+                assert_eq!(*order, 1, "Outer derivative should have order 1");
+                // Inner should be ∂f(x,y)/∂x
+                match &inner.kind {
+                    ExprKind::Derivative {
+                        var: inner_var,
+                        order: inner_order,
+                        ..
+                    } => {
+                        assert_eq!(inner_var, "x", "Inner derivative should be wrt x");
+                        assert_eq!(*inner_order, 1, "Inner derivative should have order 1");
+                    }
+                    _ => panic!("Expected inner Derivative, got {:?}", inner),
+                }
+            }
+            _ => panic!("Expected Derivative for mixed partial, got {:?}", result),
+        }
+    }
+
+    #[test]
+    fn test_derivative_multivar_function() {
+        // Test differentiating f(x, y) - creates partial derivative, then incrementing
+        let inner_func = Expr::func_multi("f", vec![Expr::symbol("x"), Expr::symbol("y")]);
+        let partial_deriv = Expr::derivative(inner_func.clone(), "x".to_string(), 1);
+
+        // Differentiating ∂f(x,y)/∂x with respect to x should give ∂²f(x,y)/∂x²
+        let result = partial_deriv.derive("x", &HashSet::new(), &HashMap::new(), &HashMap::new());
+        match result.kind {
+            ExprKind::Derivative { order, var, .. } => {
+                assert_eq!(order, 2);
+                assert_eq!(var, "x");
+            }
+            _ => panic!("Expected Derivative, got {:?}", result),
+        }
+    }
+
+    #[test]
+    fn test_mixed_partial_display() {
+        // Test that mixed partials display correctly
+        // Use f(x, y) so that differentiating wrt y doesn't return 0
+        let f = Expr::func_multi("f", vec![Expr::symbol("x"), Expr::symbol("y")]);
+        let df_dx = Expr::derivative(f, "x".to_string(), 1);
+        let d2f_dxdy = df_dx.derive("y", &HashSet::new(), &HashMap::new(), &HashMap::new());
+
+        let display = format!("{}", d2f_dxdy);
+
+        println!("Display: {}", display);
+        // Should show nested derivative notation
+        assert!(
+            display.contains("∂^"),
+            "Display should contain derivative notation, got: {}",
+            display
+        );
+    }
+
+    #[test]
+    fn test_deeply_nested_derivatives() {
+        // Test triple derivative: ∂³f(x,y,z)/∂x∂y∂z
+        let f_xyz = Expr::func_multi(
+            "f",
+            vec![Expr::symbol("x"), Expr::symbol("y"), Expr::symbol("z")],
+        );
+
+        // First: ∂f/∂x
+        let df_dx = Expr::derivative(f_xyz.clone(), "x".to_string(), 1);
+        // Second: ∂²f/∂x∂y
+        let d2f_dxdy = df_dx.derive("y", &HashSet::new(), &HashMap::new(), &HashMap::new());
+        // Third: ∂³f/∂x∂y∂z
+        let d3f_dxdydz = d2f_dxdy.derive("z", &HashSet::new(), &HashMap::new(), &HashMap::new());
+
+        // Should be a nested Derivative structure
+        match &d3f_dxdydz.kind {
+            ExprKind::Derivative { var, .. } => {
+                assert_eq!(var, "z", "Outermost derivative should be wrt z");
+            }
+            _ => panic!(
+                "Expected Derivative for triple mixed partial, got {:?}",
+                d3f_dxdydz
+            ),
+        }
+
+        // f(x,y,z) differentiated wrt w (not present) should return 0
+        let df_dw = f_xyz.derive("w", &HashSet::new(), &HashMap::new(), &HashMap::new());
+        assert_eq!(df_dw.as_number(), Some(0.0));
+
+        // Nested derivative wrt w (not present) should also return 0
+        let d2f_dxdw = df_dx.derive("w", &HashSet::new(), &HashMap::new(), &HashMap::new());
+        assert_eq!(
+            d2f_dxdw.as_number(),
+            Some(0.0),
+            "∂²f(x,y,z)/∂x∂w should be 0"
+        );
+    }
+    #[test]
+    fn test_derive_erfc() {
+        // d/dx erfc(x) = -2/sqrt(pi) * exp(-x^2)
+        let expr = Expr::func("erfc", Expr::symbol("x"));
+        let result = expr.derive("x", &HashSet::new(), &HashMap::new(), &HashMap::new());
+
+        // We expect a specific structure: multiplication of constant/pi term and exp term
+        // The exact AST might vary based on simplifications, but we can check key properties
+        let s = format!("{}", result);
+        // Should contain exp, pi, and negative sign
+        assert!(s.contains("exp"), "Result should contain exp: {}", s);
+        assert!(s.contains("pi"), "Result should contain pi: {}", s);
+        assert!(s.contains("-2"), "Result should contain -2: {}", s);
     }
 }

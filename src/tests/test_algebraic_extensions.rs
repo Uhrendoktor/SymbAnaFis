@@ -1,42 +1,42 @@
 #[cfg(test)]
 mod tests {
-    use crate::{Expr, simplification::simplify_expr};
+    use crate::{Expr, ExprKind, simplification::simplify_expr};
     use std::collections::HashSet;
-    use std::rc::Rc;
+    use std::sync::Arc;
 
     // Rule 1: Pull Out Common Factors
     #[test]
     fn test_factor_common_terms() {
         // x*y + x*z -> x*(y+z)
-        let expr = Expr::Add(
-            Rc::new(Expr::Mul(
-                Rc::new(Expr::Symbol("x".to_string())),
-                Rc::new(Expr::Symbol("y".to_string())),
-            )),
-            Rc::new(Expr::Mul(
-                Rc::new(Expr::Symbol("x".to_string())),
-                Rc::new(Expr::Symbol("z".to_string())),
-            )),
-        );
+        let expr = Expr::new(ExprKind::Add(
+            Arc::new(Expr::new(ExprKind::Mul(
+                Arc::new(Expr::symbol("x".to_string())),
+                Arc::new(Expr::symbol("y".to_string())),
+            ))),
+            Arc::new(Expr::new(ExprKind::Mul(
+                Arc::new(Expr::symbol("x".to_string())),
+                Arc::new(Expr::symbol("z".to_string())),
+            ))),
+        ));
         let simplified = simplify_expr(expr, HashSet::new());
         // Expected: x * (y + z) or (y + z) * x (both are valid after canonicalization)
         // Note: The order of factors and terms might depend on canonicalization
-        if let Expr::Mul(a, b) = simplified {
+        if let ExprKind::Mul(a, b) = &simplified.kind {
             // Check if it's x * (y+z) or (y+z) * x
-            let (x_part, sum_part) = if matches!(&*a, Expr::Symbol(s) if s == "x") {
-                (&*a, &*b)
-            } else if matches!(&*b, Expr::Symbol(s) if s == "x") {
-                (&*b, &*a)
+            let (x_part, sum_part) = if matches!(a.kind, ExprKind::Symbol(ref s) if s == "x") {
+                (a, b)
+            } else if matches!(b.kind, ExprKind::Symbol(ref s) if s == "x") {
+                (b, a)
             } else {
                 panic!("Expected one factor to be x, got {:?}", (a, b));
             };
 
-            assert_eq!(x_part, &Expr::Symbol("x".to_string()));
-            if let Expr::Add(c, d) = sum_part {
+            assert_eq!(**x_part, Expr::symbol("x".to_string()));
+            if let ExprKind::Add(c, d) = &sum_part.kind {
                 let is_yz =
-                    **c == Expr::Symbol("y".to_string()) && **d == Expr::Symbol("z".to_string());
+                    **c == Expr::symbol("y".to_string()) && **d == Expr::symbol("z".to_string());
                 let is_zy =
-                    **c == Expr::Symbol("z".to_string()) && **d == Expr::Symbol("y".to_string());
+                    **c == Expr::symbol("z".to_string()) && **d == Expr::symbol("y".to_string());
                 assert!(
                     is_yz || is_zy,
                     "Expected (y+z) or (z+y), got {:?}",
@@ -54,37 +54,43 @@ mod tests {
     fn test_factor_exponentials() {
         // e^x * sin(x) + e^x * cos(x) -> e^x * (sin(x) + cos(x))
         // Note: exp(x) gets converted to e^x during simplification
-        let ex = Expr::Pow(
-            Rc::new(Expr::Symbol("e".to_string())),
-            Rc::new(Expr::Symbol("x".to_string())),
-        );
-        let sinx = Expr::FunctionCall {
+        let ex = Expr::new(ExprKind::Pow(
+            Arc::new(Expr::symbol("e".to_string())),
+            Arc::new(Expr::symbol("x".to_string())),
+        ));
+        let sinx = Expr::new(ExprKind::FunctionCall {
             name: "sin".to_string(),
-            args: vec![Expr::Symbol("x".to_string())],
-        };
-        let cosx = Expr::FunctionCall {
+            args: vec![Expr::symbol("x".to_string())],
+        });
+        let cosx = Expr::new(ExprKind::FunctionCall {
             name: "cos".to_string(),
-            args: vec![Expr::Symbol("x".to_string())],
-        };
+            args: vec![Expr::symbol("x".to_string())],
+        });
 
-        let expr = Expr::Add(
-            Rc::new(Expr::Mul(Rc::new(ex.clone()), Rc::new(sinx.clone()))),
-            Rc::new(Expr::Mul(Rc::new(ex.clone()), Rc::new(cosx.clone()))),
-        );
+        let expr = Expr::new(ExprKind::Add(
+            Arc::new(Expr::new(ExprKind::Mul(
+                Arc::new(ex.clone()),
+                Arc::new(sinx.clone()),
+            ))),
+            Arc::new(Expr::new(ExprKind::Mul(
+                Arc::new(ex.clone()),
+                Arc::new(cosx.clone()),
+            ))),
+        ));
 
         let simplified = simplify_expr(expr, HashSet::new());
         // Expected: e^x * (sin(x) + cos(x)) or (sin(x) + cos(x)) * e^x
-        if let Expr::Mul(a, b) = simplified {
-            let (exp_part, sum_part) = if *a == ex {
+        if let ExprKind::Mul(a, b) = &simplified.kind {
+            let (exp_part, sum_part) = if **a == ex {
                 (a, b)
-            } else if *b == ex {
+            } else if **b == ex {
                 (b, a)
             } else {
                 panic!("Expected e^x as a factor, got Mul({:?}, {:?})", a, b);
             };
 
-            assert_eq!(*exp_part, ex);
-            if let Expr::Add(c, d) = sum_part.as_ref() {
+            assert_eq!(**exp_part, ex);
+            if let ExprKind::Add(c, d) = &sum_part.kind {
                 // Check for sin(x) + cos(x)
                 let has_sin = c.as_ref() == &sinx || d.as_ref() == &sinx;
                 let has_cos = c.as_ref() == &cosx || d.as_ref() == &cosx;
@@ -101,25 +107,25 @@ mod tests {
     #[test]
     fn test_combine_common_denominator() {
         // A/C + B/C -> (A+B)/C
-        let expr = Expr::Add(
-            Rc::new(Expr::Div(
-                Rc::new(Expr::Symbol("A".to_string())),
-                Rc::new(Expr::Symbol("C".to_string())),
-            )),
-            Rc::new(Expr::Div(
-                Rc::new(Expr::Symbol("B".to_string())),
-                Rc::new(Expr::Symbol("C".to_string())),
-            )),
-        );
+        let expr = Expr::new(ExprKind::Add(
+            Arc::new(Expr::new(ExprKind::Div(
+                Arc::new(Expr::symbol("A".to_string())),
+                Arc::new(Expr::symbol("C".to_string())),
+            ))),
+            Arc::new(Expr::new(ExprKind::Div(
+                Arc::new(Expr::symbol("B".to_string())),
+                Arc::new(Expr::symbol("C".to_string())),
+            ))),
+        ));
         let simplified = simplify_expr(expr, HashSet::new());
         // Expected: (A+B)/C
-        if let Expr::Div(num, den) = simplified {
-            assert_eq!(*den, Expr::Symbol("C".to_string()));
-            if let Expr::Add(a, b) = num.as_ref() {
-                let is_ab = a.as_ref() == &Expr::Symbol("A".to_string())
-                    && b.as_ref() == &Expr::Symbol("B".to_string());
-                let is_ba = a.as_ref() == &Expr::Symbol("B".to_string())
-                    && b.as_ref() == &Expr::Symbol("A".to_string());
+        if let ExprKind::Div(num, den) = &simplified.kind {
+            assert_eq!(**den, Expr::symbol("C".to_string()));
+            if let ExprKind::Add(a, b) = &num.kind {
+                let is_ab = a.as_ref() == &Expr::symbol("A".to_string())
+                    && b.as_ref() == &Expr::symbol("B".to_string());
+                let is_ba = a.as_ref() == &Expr::symbol("B".to_string())
+                    && b.as_ref() == &Expr::symbol("A".to_string());
                 assert!(is_ab || is_ba, "Expected A+B");
             } else {
                 panic!("Expected Add in numerator");
@@ -134,13 +140,13 @@ mod tests {
     fn test_distribute_negation_sub() {
         // -(A - B) -> B - A
         // Represented as -1 * (A - B)
-        let expr = Expr::Mul(
-            Rc::new(Expr::Number(-1.0)),
-            Rc::new(Expr::Sub(
-                Rc::new(Expr::Symbol("A".to_string())),
-                Rc::new(Expr::Symbol("B".to_string())),
-            )),
-        );
+        let expr = Expr::new(ExprKind::Mul(
+            Arc::new(Expr::number(-1.0)),
+            Arc::new(Expr::new(ExprKind::Sub(
+                Arc::new(Expr::symbol("A".to_string())),
+                Arc::new(Expr::symbol("B".to_string())),
+            ))),
+        ));
         let simplified = simplify_expr(expr, HashSet::new());
         // Expected: B - A or B + (-A), which should display as B - A
         let display = format!("{}", simplified);
@@ -154,16 +160,16 @@ mod tests {
     #[test]
     fn test_distribute_negation_add() {
         // -1 * (A + (-1)*B) -> B - A
-        let expr = Expr::Mul(
-            Rc::new(Expr::Number(-1.0)),
-            Rc::new(Expr::Add(
-                Rc::new(Expr::Symbol("A".to_string())),
-                Rc::new(Expr::Mul(
-                    Rc::new(Expr::Number(-1.0)),
-                    Rc::new(Expr::Symbol("B".to_string())),
-                )),
-            )),
-        );
+        let expr = Expr::new(ExprKind::Mul(
+            Arc::new(Expr::number(-1.0)),
+            Arc::new(Expr::new(ExprKind::Add(
+                Arc::new(Expr::symbol("A".to_string())),
+                Arc::new(Expr::new(ExprKind::Mul(
+                    Arc::new(Expr::number(-1.0)),
+                    Arc::new(Expr::symbol("B".to_string())),
+                ))),
+            ))),
+        ));
         let simplified = simplify_expr(expr, HashSet::new());
         let display = format!("{}", simplified);
         assert!(
@@ -176,20 +182,20 @@ mod tests {
     #[test]
     fn test_neg_div_neg() {
         // -A / -B -> A / B
-        let expr = Expr::Div(
-            Rc::new(Expr::Mul(
-                Rc::new(Expr::Number(-1.0)),
-                Rc::new(Expr::Symbol("A".to_string())),
-            )),
-            Rc::new(Expr::Mul(
-                Rc::new(Expr::Number(-1.0)),
-                Rc::new(Expr::Symbol("B".to_string())),
-            )),
-        );
+        let expr = Expr::new(ExprKind::Div(
+            Arc::new(Expr::new(ExprKind::Mul(
+                Arc::new(Expr::number(-1.0)),
+                Arc::new(Expr::symbol("A".to_string())),
+            ))),
+            Arc::new(Expr::new(ExprKind::Mul(
+                Arc::new(Expr::number(-1.0)),
+                Arc::new(Expr::symbol("B".to_string())),
+            ))),
+        ));
         let simplified = simplify_expr(expr, HashSet::new());
-        if let Expr::Div(num, den) = simplified {
-            assert_eq!(*num, Expr::Symbol("A".to_string()));
-            assert_eq!(*den, Expr::Symbol("B".to_string()));
+        if let ExprKind::Div(num, den) = &simplified.kind {
+            assert_eq!(**num, Expr::symbol("A".to_string()));
+            assert_eq!(**den, Expr::symbol("B".to_string()));
         } else {
             panic!("Expected Div(A, B)");
         }
@@ -199,21 +205,21 @@ mod tests {
     #[test]
     fn test_absorb_constant_pow() {
         // 2 * 2^x -> 2^(x+1)
-        let expr = Expr::Mul(
-            Rc::new(Expr::Number(2.0)),
-            Rc::new(Expr::Pow(
-                Rc::new(Expr::Number(2.0)),
-                Rc::new(Expr::Symbol("x".to_string())),
-            )),
-        );
+        let expr = Expr::new(ExprKind::Mul(
+            Arc::new(Expr::number(2.0)),
+            Arc::new(Expr::new(ExprKind::Pow(
+                Arc::new(Expr::number(2.0)),
+                Arc::new(Expr::symbol("x".to_string())),
+            ))),
+        ));
         let simplified = simplify_expr(expr, HashSet::new());
-        if let Expr::Pow(base, exp) = simplified {
-            assert_eq!(*base, Expr::Number(2.0));
-            if let Expr::Add(a, b) = exp.as_ref() {
+        if let ExprKind::Pow(base, exp) = &simplified.kind {
+            assert_eq!(**base, Expr::number(2.0));
+            if let ExprKind::Add(a, b) = &exp.kind {
                 // x + 1
-                let has_x = a.as_ref() == &Expr::Symbol("x".to_string())
-                    || b.as_ref() == &Expr::Symbol("x".to_string());
-                let has_1 = a.as_ref() == &Expr::Number(1.0) || b.as_ref() == &Expr::Number(1.0);
+                let has_x = a.as_ref() == &Expr::symbol("x".to_string())
+                    || b.as_ref() == &Expr::symbol("x".to_string());
+                let has_1 = a.as_ref() == &Expr::number(1.0) || b.as_ref() == &Expr::number(1.0);
                 assert!(has_x && has_1, "Expected x+1");
             } else {
                 panic!("Expected Add in exponent");
@@ -226,39 +232,42 @@ mod tests {
     fn test_factor_mixed_terms() {
         // e^x + sin(x)*e^x -> e^x * (1 + sin(x))
         // Note: exp(x) gets converted to e^x during simplification
-        let ex = Expr::Pow(
-            Rc::new(Expr::Symbol("e".to_string())),
-            Rc::new(Expr::Symbol("x".to_string())),
-        );
-        let sinx = Expr::FunctionCall {
+        let ex = Expr::new(ExprKind::Pow(
+            Arc::new(Expr::symbol("e".to_string())),
+            Arc::new(Expr::symbol("x".to_string())),
+        ));
+        let sinx = Expr::new(ExprKind::FunctionCall {
             name: "sin".to_string(),
-            args: vec![Expr::Symbol("x".to_string())],
-        };
+            args: vec![Expr::symbol("x".to_string())],
+        });
 
         // e^x + sin(x) * e^x
-        let expr = Expr::Add(
-            Rc::new(ex.clone()),
-            Rc::new(Expr::Mul(Rc::new(sinx.clone()), Rc::new(ex.clone()))),
-        );
+        let expr = Expr::new(ExprKind::Add(
+            Arc::new(ex.clone()),
+            Arc::new(Expr::new(ExprKind::Mul(
+                Arc::new(sinx.clone()),
+                Arc::new(ex.clone()),
+            ))),
+        ));
 
         let simplified = simplify_expr(expr, HashSet::new());
 
         // Expected: e^x * (1 + sin(x)) or (1 + sin(x)) * e^x
-        if let Expr::Mul(a, b) = simplified {
+        if let ExprKind::Mul(a, b) = &simplified.kind {
             // One part should be e^x
-            let (factor, other) = if *a == ex {
+            let (factor, other) = if **a == ex {
                 (a, b)
-            } else if *b == ex {
+            } else if **b == ex {
                 (b, a)
             } else {
                 panic!("Expected e^x as a factor");
             };
 
-            assert_eq!(*factor, ex);
+            assert_eq!(**factor, ex);
 
             // The other part should be 1 + sin(x)
-            if let Expr::Add(u, v) = other.as_ref() {
-                let has_1 = u.as_ref() == &Expr::Number(1.0) || v.as_ref() == &Expr::Number(1.0);
+            if let ExprKind::Add(u, v) = &other.kind {
+                let has_1 = u.as_ref() == &Expr::number(1.0) || v.as_ref() == &Expr::number(1.0);
                 let has_sin = u.as_ref() == &sinx || v.as_ref() == &sinx;
                 assert!(has_1 && has_sin, "Expected 1 + sin(x)");
             } else {

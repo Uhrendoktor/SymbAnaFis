@@ -1,5 +1,4 @@
-use crate::ast::Expr;
-use std::rc::Rc;
+use crate::ast::{Expr, ExprKind as AstKind};
 
 // ============================================================================
 // SHARED HELPER FUNCTIONS FOR HYPERBOLIC PATTERN MATCHING
@@ -25,8 +24,8 @@ impl ExpTerm {
         }
 
         // Reciprocal form: 1/e^x or 1/exp(x)
-        if let Expr::Div(num, den) = expr
-            && let Expr::Number(n) = &**num
+        if let AstKind::Div(num, den) = &expr.kind
+            && let AstKind::Number(n) = &num.kind
             && *n == 1.0
             && let Some(arg) = Self::get_direct_exp_arg(den)
         {
@@ -41,16 +40,16 @@ impl ExpTerm {
 
     /// Get the argument from e^x or exp(x) directly (not handling 1/e^x)
     pub fn get_direct_exp_arg(expr: &Expr) -> Option<Expr> {
-        match expr {
-            Expr::Pow(base, exp) => {
-                if let Expr::Symbol(b) = &**base
+        match &expr.kind {
+            AstKind::Pow(base, exp) => {
+                if let AstKind::Symbol(b) = &base.kind
                     && b == "e"
                 {
                     return Some((**exp).clone());
                 }
                 None
             }
-            Expr::FunctionCall { name, args } => {
+            AstKind::FunctionCall { name, args } => {
                 if name == "exp" && args.len() == 1 {
                     return Some(args[0].clone());
                 }
@@ -68,14 +67,14 @@ impl ExpTerm {
     /// Check if two arguments are negations of each other: arg1 = -arg2
     pub fn args_are_negations(arg1: &Expr, arg2: &Expr) -> bool {
         // Check if arg1 = -1 * arg2
-        if let Expr::Mul(lhs, rhs) = arg1 {
-            if let Expr::Number(n) = &**lhs
+        if let AstKind::Mul(lhs, rhs) = &arg1.kind {
+            if let AstKind::Number(n) = &lhs.kind
                 && *n == -1.0
                 && **rhs == *arg2
             {
                 return true;
             }
-            if let Expr::Number(n) = &**rhs
+            if let AstKind::Number(n) = &rhs.kind
                 && *n == -1.0
                 && **lhs == *arg2
             {
@@ -83,14 +82,14 @@ impl ExpTerm {
             }
         }
         // Check if arg2 = -1 * arg1
-        if let Expr::Mul(lhs, rhs) = arg2 {
-            if let Expr::Number(n) = &**lhs
+        if let AstKind::Mul(lhs, rhs) = &arg2.kind {
+            if let AstKind::Number(n) = &lhs.kind
                 && *n == -1.0
                 && **rhs == *arg1
             {
                 return true;
             }
-            if let Expr::Number(n) = &**rhs
+            if let AstKind::Number(n) = &rhs.kind
                 && *n == -1.0
                 && **lhs == *arg1
             {
@@ -103,19 +102,19 @@ impl ExpTerm {
     /// Create the negation of an expression: x -> -1 * x
     pub fn negate(expr: &Expr) -> Expr {
         // If it's already a negation, return the inner part
-        if let Expr::Mul(lhs, rhs) = expr {
-            if let Expr::Number(n) = &**lhs
+        if let AstKind::Mul(lhs, rhs) = &expr.kind {
+            if let AstKind::Number(n) = &lhs.kind
                 && *n == -1.0
             {
                 return (**rhs).clone();
             }
-            if let Expr::Number(n) = &**rhs
+            if let AstKind::Number(n) = &rhs.kind
                 && *n == -1.0
             {
                 return (**lhs).clone();
             }
         }
-        Expr::Mul(Rc::new(Expr::Number(-1.0)), Rc::new(expr.clone()))
+        Expr::mul_expr(Expr::number(-1.0), expr.clone())
     }
 }
 
@@ -155,13 +154,13 @@ pub(crate) fn match_sinh_pattern_sub(u: &Expr, v: &Expr) -> Option<Expr> {
 /// If expr is -x (i.e., Mul(-1, x)), return x
 /// Otherwise return expr as-is
 pub(crate) fn get_positive_form(expr: &Expr) -> Expr {
-    if let Expr::Mul(lhs, rhs) = expr {
-        if let Expr::Number(n) = &**lhs
+    if let AstKind::Mul(lhs, rhs) = &expr.kind {
+        if let AstKind::Number(n) = &lhs.kind
             && *n == -1.0
         {
             return (**rhs).clone();
         }
-        if let Expr::Number(n) = &**rhs
+        if let AstKind::Number(n) = &rhs.kind
             && *n == -1.0
         {
             return (**lhs).clone();
@@ -177,12 +176,12 @@ pub(crate) fn match_alt_cosh_pattern(numerator: &Expr, denominator: &Expr) -> Op
     let x = match_two_times_exp(denominator)?;
 
     // Numerator must be e^(2x) + 1
-    if let Expr::Add(u, v) = numerator {
+    if let AstKind::Add(u, v) = &numerator.kind {
         // Check for e^(2x) + 1 or 1 + e^(2x)
-        let (exp_term, _) = if matches!(&**v, Expr::Number(n) if *n == 1.0) {
-            (u.as_ref(), v.as_ref())
-        } else if matches!(&**u, Expr::Number(n) if *n == 1.0) {
-            (v.as_ref(), u.as_ref())
+        let (exp_term, _) = if matches!(&v.kind, AstKind::Number(n) if *n == 1.0) {
+            (u, v)
+        } else if matches!(&u.kind, AstKind::Number(n) if *n == 1.0) {
+            (v, u)
         } else {
             return None;
         };
@@ -204,9 +203,9 @@ pub(crate) fn match_alt_sinh_pattern(numerator: &Expr, denominator: &Expr) -> Op
     let x = match_two_times_exp(denominator)?;
 
     // Numerator must be e^(2x) - 1
-    if let Expr::Sub(u, v) = numerator {
+    if let AstKind::Sub(u, v) = &numerator.kind {
         // Check for e^(2x) - 1
-        if matches!(&**v, Expr::Number(n) if *n == 1.0)
+        if matches!(&v.kind, AstKind::Number(n) if *n == 1.0)
             && let Some(exp_arg) = ExpTerm::get_direct_exp_arg(u)
             && is_double_of(&exp_arg, &x)
         {
@@ -219,15 +218,15 @@ pub(crate) fn match_alt_sinh_pattern(numerator: &Expr, denominator: &Expr) -> Op
 /// Match pattern: 2 * e^x or e^x * 2
 /// Returns the argument x if pattern matches
 pub(crate) fn match_two_times_exp(expr: &Expr) -> Option<Expr> {
-    if let Expr::Mul(lhs, rhs) = expr {
+    if let AstKind::Mul(lhs, rhs) = &expr.kind {
         // 2 * e^x
-        if let Expr::Number(n) = &**lhs
+        if let AstKind::Number(n) = &lhs.kind
             && *n == 2.0
         {
             return ExpTerm::get_direct_exp_arg(rhs);
         }
         // e^x * 2
-        if let Expr::Number(n) = &**rhs
+        if let AstKind::Number(n) = &rhs.kind
             && *n == 2.0
         {
             return ExpTerm::get_direct_exp_arg(lhs);
@@ -238,14 +237,14 @@ pub(crate) fn match_two_times_exp(expr: &Expr) -> Option<Expr> {
 
 /// Check if expr = 2 * other (i.e., expr is double of other)
 pub(crate) fn is_double_of(expr: &Expr, other: &Expr) -> bool {
-    if let Expr::Mul(lhs, rhs) = expr {
-        if let Expr::Number(n) = &**lhs
+    if let AstKind::Mul(lhs, rhs) = &expr.kind {
+        if let AstKind::Number(n) = &lhs.kind
             && *n == 2.0
             && **rhs == *other
         {
             return true;
         }
-        if let Expr::Number(n) = &**rhs
+        if let AstKind::Number(n) = &rhs.kind
             && *n == 2.0
             && **lhs == *other
         {
@@ -263,12 +262,12 @@ pub(crate) fn match_alt_sech_pattern(numerator: &Expr, denominator: &Expr) -> Op
     let x = match_two_times_exp(numerator)?;
 
     // Denominator must be e^(2x) + 1
-    if let Expr::Add(u, v) = denominator {
+    if let AstKind::Add(u, v) = &denominator.kind {
         // Check for e^(2x) + 1 or 1 + e^(2x)
-        let exp_term = if matches!(&**v, Expr::Number(n) if *n == 1.0) {
-            u.as_ref()
-        } else if matches!(&**u, Expr::Number(n) if *n == 1.0) {
-            v.as_ref()
+        let exp_term = if matches!(&v.kind, AstKind::Number(n) if *n == 1.0) {
+            u
+        } else if matches!(&u.kind, AstKind::Number(n) if *n == 1.0) {
+            v
         } else {
             return None;
         };
@@ -287,7 +286,7 @@ pub(crate) fn match_alt_sech_pattern(numerator: &Expr, denominator: &Expr) -> Op
 /// Returns Some(x) if pattern matches
 pub(crate) fn match_e2x_minus_1_factored(expr: &Expr) -> Option<Expr> {
     // Pattern: (e^x - 1/e^x) * e^x or e^x * (e^x - 1/e^x)
-    if let Expr::Mul(lhs, rhs) = expr {
+    if let AstKind::Mul(lhs, rhs) = &expr.kind {
         // Check both orderings
         if let Some(x) = try_match_factored_sinh_times_exp(lhs, rhs) {
             return Some(x);
@@ -305,14 +304,14 @@ fn try_match_factored_sinh_times_exp(factor: &Expr, exp_part: &Expr) -> Option<E
     let x = ExpTerm::get_direct_exp_arg(exp_part)?;
 
     // factor should be (e^x - 1/e^x)
-    if let Expr::Sub(u, v) = factor {
+    if let AstKind::Sub(u, v) = &factor.kind {
         // u = e^x
         if let Some(arg_u) = ExpTerm::get_direct_exp_arg(u)
             && arg_u == x
         {
             // v = 1/e^x
-            if let Expr::Div(num, den) = &**v
-                && matches!(&**num, Expr::Number(n) if *n == 1.0)
+            if let AstKind::Div(num, den) = &v.kind
+                && matches!(&num.kind, AstKind::Number(n) if *n == 1.0)
                 && let Some(arg_v) = ExpTerm::get_direct_exp_arg(den)
                 && arg_v == x
             {
@@ -326,12 +325,12 @@ fn try_match_factored_sinh_times_exp(factor: &Expr, exp_part: &Expr) -> Option<E
 /// Match pattern: e^(2x) + 1 directly
 /// Returns Some(x) if pattern matches
 pub(crate) fn match_e2x_plus_1(expr: &Expr) -> Option<Expr> {
-    if let Expr::Add(u, v) = expr {
+    if let AstKind::Add(u, v) = &expr.kind {
         // Check for e^(2x) + 1 or 1 + e^(2x)
-        let (exp_term, _const_term) = if matches!(&**v, Expr::Number(n) if *n == 1.0) {
-            (u.as_ref(), v.as_ref())
-        } else if matches!(&**u, Expr::Number(n) if *n == 1.0) {
-            (v.as_ref(), u.as_ref())
+        let (exp_term, _const_term) = if matches!(&v.kind, AstKind::Number(n) if *n == 1.0) {
+            (u, v)
+        } else if matches!(&u.kind, AstKind::Number(n) if *n == 1.0) {
+            (v, u)
         } else {
             return None;
         };
@@ -339,14 +338,14 @@ pub(crate) fn match_e2x_plus_1(expr: &Expr) -> Option<Expr> {
         // Check exp_term = e^(2x)
         if let Some(exp_arg) = ExpTerm::get_direct_exp_arg(exp_term) {
             // exp_arg should be 2*x
-            if let Expr::Mul(lhs, rhs) = &exp_arg
-                && let Expr::Number(n) = &**lhs
+            if let AstKind::Mul(lhs, rhs) = &exp_arg.kind
+                && let AstKind::Number(n) = &lhs.kind
                 && *n == 2.0
             {
                 return Some((**rhs).clone());
             }
-            if let Expr::Mul(lhs, rhs) = &exp_arg
-                && let Expr::Number(n) = &**rhs
+            if let AstKind::Mul(lhs, rhs) = &exp_arg.kind
+                && let AstKind::Number(n) = &rhs.kind
                 && *n == 2.0
             {
                 return Some((**lhs).clone());
@@ -359,20 +358,20 @@ pub(crate) fn match_e2x_plus_1(expr: &Expr) -> Option<Expr> {
 /// Match pattern: e^(2x) - 1 directly (not factored form)
 /// Returns Some(x) if pattern matches
 pub(crate) fn match_e2x_minus_1_direct(expr: &Expr) -> Option<Expr> {
-    if let Expr::Sub(u, v) = expr {
+    if let AstKind::Sub(u, v) = &expr.kind {
         // Check for e^(2x) - 1
-        if matches!(&**v, Expr::Number(n) if *n == 1.0) {
+        if matches!(&v.kind, AstKind::Number(n) if *n == 1.0) {
             // Check u = e^(2x)
             if let Some(exp_arg) = ExpTerm::get_direct_exp_arg(u) {
                 // exp_arg should be 2*x
-                if let Expr::Mul(lhs, rhs) = &exp_arg
-                    && let Expr::Number(n) = &**lhs
+                if let AstKind::Mul(lhs, rhs) = &exp_arg.kind
+                    && let AstKind::Number(n) = &lhs.kind
                     && *n == 2.0
                 {
                     return Some((**rhs).clone());
                 }
-                if let Expr::Mul(lhs, rhs) = &exp_arg
-                    && let Expr::Number(n) = &**rhs
+                if let AstKind::Mul(lhs, rhs) = &exp_arg.kind
+                    && let AstKind::Number(n) = &rhs.kind
                     && *n == 2.0
                 {
                     return Some((**lhs).clone());
@@ -381,34 +380,34 @@ pub(crate) fn match_e2x_minus_1_direct(expr: &Expr) -> Option<Expr> {
         }
     }
     // Also check Add form where second term is -1: e^(2x) + (-1)
-    if let Expr::Add(u, v) = expr {
+    if let AstKind::Add(u, v) = &expr.kind {
         // Check for e^(2x) + (-1) (i.e., -1 as a number)
-        if matches!(&**v, Expr::Number(n) if *n == -1.0)
+        if matches!(&v.kind, AstKind::Number(n) if *n == -1.0)
             && let Some(exp_arg) = ExpTerm::get_direct_exp_arg(u)
-            && let Expr::Mul(lhs, rhs) = &exp_arg
+            && let AstKind::Mul(lhs, rhs) = &exp_arg.kind
         {
-            if let Expr::Number(n) = &**lhs
+            if let AstKind::Number(n) = &lhs.kind
                 && *n == 2.0
             {
                 return Some((**rhs).clone());
             }
-            if let Expr::Number(n) = &**rhs
+            if let AstKind::Number(n) = &rhs.kind
                 && *n == 2.0
             {
                 return Some((**lhs).clone());
             }
         }
         // Check (-1) + e^(2x)
-        if matches!(&**u, Expr::Number(n) if *n == -1.0)
+        if matches!(&u.kind, AstKind::Number(n) if *n == -1.0)
             && let Some(exp_arg) = ExpTerm::get_direct_exp_arg(v)
-            && let Expr::Mul(lhs, rhs) = &exp_arg
+            && let AstKind::Mul(lhs, rhs) = &exp_arg.kind
         {
-            if let Expr::Number(n) = &**lhs
+            if let AstKind::Number(n) = &lhs.kind
                 && *n == 2.0
             {
                 return Some((**rhs).clone());
             }
-            if let Expr::Number(n) = &**rhs
+            if let AstKind::Number(n) = &rhs.kind
                 && *n == 2.0
             {
                 return Some((**lhs).clone());
@@ -419,17 +418,17 @@ pub(crate) fn match_e2x_minus_1_direct(expr: &Expr) -> Option<Expr> {
 }
 
 /// Try to extract the inner expression from -1 * expr
-pub(crate) fn extract_negated_term(expr: &Expr) -> Option<&Expr> {
-    if let Expr::Mul(lhs, rhs) = expr {
-        if let Expr::Number(n) = &**lhs
+pub(crate) fn extract_negated_term(expr: &Expr) -> Option<Expr> {
+    if let AstKind::Mul(lhs, rhs) = &expr.kind {
+        if let AstKind::Number(n) = &lhs.kind
             && *n == -1.0
         {
-            return Some(rhs);
+            return Some((**rhs).clone());
         }
-        if let Expr::Number(n) = &**rhs
+        if let AstKind::Number(n) = &rhs.kind
             && *n == -1.0
         {
-            return Some(lhs);
+            return Some((**lhs).clone());
         }
     }
     None

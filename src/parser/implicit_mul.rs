@@ -65,6 +65,9 @@ pub(crate) fn insert_implicit_multiplication(
                 // ) * (
                 (Token::RightParen, Token::LeftParen) => true,
 
+                // ) * Function operator: (a) sin(x) → (a) * sin(x)
+                (Token::RightParen, Token::Operator(op)) if op.is_function() => true,
+
                 // Function operator * ( is NOT multiplication (it's function call)
                 (Token::Operator(op), Token::LeftParen) if op.is_function() => false,
 

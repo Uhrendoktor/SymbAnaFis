@@ -1,8 +1,7 @@
-use crate::ast::Expr;
+use crate::ast::{Expr, ExprKind as AstKind};
 use crate::simplification::helpers;
 use crate::simplification::patterns::trigonometric::get_trig_function;
 use crate::simplification::rules::{ExprKind, Rule, RuleCategory, RuleContext};
-use std::rc::Rc;
 
 rule!(
     CofunctionIdentityRule,
@@ -11,12 +10,12 @@ rule!(
     Trigonometric,
     &[ExprKind::Function],
     |expr: &Expr, _context: &RuleContext| {
-        if let Expr::FunctionCall { name, args } = expr
+        if let AstKind::FunctionCall { name, args } = &expr.kind
             && args.len() == 1
         {
-            if let Expr::Sub(lhs, rhs) = &args[0]
-                && ((if let Expr::Div(num, den) = &**lhs {
-                    helpers::is_pi(num) && matches!(**den, Expr::Number(n) if n == 2.0)
+            if let AstKind::Sub(lhs, rhs) = &args[0].kind
+                && ((if let AstKind::Div(num, den) = &lhs.kind {
+                    helpers::is_pi(num) && matches!(&den.kind, AstKind::Number(n) if *n == 2.0)
                 } else {
                     false
                 }) || helpers::approx_eq(
@@ -26,46 +25,28 @@ rule!(
             {
                 match name.as_str() {
                     "sin" => {
-                        return Some(Expr::FunctionCall {
-                            name: "cos".to_string(),
-                            args: vec![rhs.as_ref().clone()],
-                        });
+                        return Some(Expr::func("cos", rhs.as_ref().clone()));
                     }
                     "cos" => {
-                        return Some(Expr::FunctionCall {
-                            name: "sin".to_string(),
-                            args: vec![rhs.as_ref().clone()],
-                        });
+                        return Some(Expr::func("sin", rhs.as_ref().clone()));
                     }
                     "tan" => {
-                        return Some(Expr::FunctionCall {
-                            name: "cot".to_string(),
-                            args: vec![rhs.as_ref().clone()],
-                        });
+                        return Some(Expr::func("cot", rhs.as_ref().clone()));
                     }
                     "cot" => {
-                        return Some(Expr::FunctionCall {
-                            name: "tan".to_string(),
-                            args: vec![rhs.as_ref().clone()],
-                        });
+                        return Some(Expr::func("tan", rhs.as_ref().clone()));
                     }
                     "sec" => {
-                        return Some(Expr::FunctionCall {
-                            name: "csc".to_string(),
-                            args: vec![rhs.as_ref().clone()],
-                        });
+                        return Some(Expr::func("csc", rhs.as_ref().clone()));
                     }
                     "csc" => {
-                        return Some(Expr::FunctionCall {
-                            name: "sec".to_string(),
-                            args: vec![rhs.as_ref().clone()],
-                        });
+                        return Some(Expr::func("sec", rhs.as_ref().clone()));
                     }
                     _ => {}
                 }
             }
 
-            if let Expr::Add(u, v) = &args[0] {
+            if let AstKind::Add(u, v) = &args[0].kind {
                 let (_angle, other) = if helpers::approx_eq(
                     helpers::get_numeric_value(u),
                     std::f64::consts::PI / 2.0,
@@ -78,8 +59,9 @@ rule!(
                     (v, u)
                 } else {
                     let is_pi_div_2 = |e: &Expr| {
-                        if let Expr::Div(num, den) = e {
-                            helpers::is_pi(num) && matches!(**den, Expr::Number(n) if n == 2.0)
+                        if let AstKind::Div(num, den) = &e.kind {
+                            helpers::is_pi(num)
+                                && matches!(&den.kind, AstKind::Number(n) if *n == 2.0)
                         } else {
                             false
                         }
@@ -94,45 +76,27 @@ rule!(
                     }
                 };
 
-                if let Expr::Mul(c, x) = &**other
-                    && matches!(**c, Expr::Number(n) if n == -1.0)
+                if let AstKind::Mul(c, x) = &other.kind
+                    && matches!(&c.kind, AstKind::Number(n) if *n == -1.0)
                 {
                     match name.as_str() {
                         "sin" => {
-                            return Some(Expr::FunctionCall {
-                                name: "cos".to_string(),
-                                args: vec![x.as_ref().clone()],
-                            });
+                            return Some(Expr::func("cos", x.as_ref().clone()));
                         }
                         "cos" => {
-                            return Some(Expr::FunctionCall {
-                                name: "sin".to_string(),
-                                args: vec![x.as_ref().clone()],
-                            });
+                            return Some(Expr::func("sin", x.as_ref().clone()));
                         }
                         "tan" => {
-                            return Some(Expr::FunctionCall {
-                                name: "cot".to_string(),
-                                args: vec![x.as_ref().clone()],
-                            });
+                            return Some(Expr::func("cot", x.as_ref().clone()));
                         }
                         "cot" => {
-                            return Some(Expr::FunctionCall {
-                                name: "tan".to_string(),
-                                args: vec![x.as_ref().clone()],
-                            });
+                            return Some(Expr::func("tan", x.as_ref().clone()));
                         }
                         "sec" => {
-                            return Some(Expr::FunctionCall {
-                                name: "csc".to_string(),
-                                args: vec![x.as_ref().clone()],
-                            });
+                            return Some(Expr::func("csc", x.as_ref().clone()));
                         }
                         "csc" => {
-                            return Some(Expr::FunctionCall {
-                                name: "sec".to_string(),
-                                args: vec![x.as_ref().clone()],
-                            });
+                            return Some(Expr::func("sec", x.as_ref().clone()));
                         }
                         _ => {}
                     }
@@ -150,47 +114,32 @@ rule!(
     Trigonometric,
     &[ExprKind::Function],
     |expr: &Expr, _context: &RuleContext| {
-        if let Expr::FunctionCall { name, args } = expr
+        if let AstKind::FunctionCall { name, args } = &expr.kind
             && (name == "sin" || name == "cos")
             && args.len() == 1
         {
-            if let Expr::Add(lhs, rhs) = &args[0] {
+            if let AstKind::Add(lhs, rhs) = &args[0].kind {
                 if helpers::is_multiple_of_two_pi(rhs) {
-                    return Some(Expr::FunctionCall {
-                        name: name.clone(),
-                        args: vec![lhs.as_ref().clone()],
-                    });
+                    return Some(Expr::func(name.clone(), lhs.as_ref().clone()));
                 }
                 if helpers::is_multiple_of_two_pi(lhs) {
-                    return Some(Expr::FunctionCall {
-                        name: name.clone(),
-                        args: vec![rhs.as_ref().clone()],
-                    });
+                    return Some(Expr::func(name.clone(), rhs.as_ref().clone()));
                 }
             }
-            if let Expr::Sub(lhs, rhs) = &args[0] {
+            if let AstKind::Sub(lhs, rhs) = &args[0].kind {
                 if helpers::is_multiple_of_two_pi(rhs) {
-                    return Some(Expr::FunctionCall {
-                        name: name.clone(),
-                        args: vec![lhs.as_ref().clone()],
-                    });
+                    return Some(Expr::func(name.clone(), lhs.as_ref().clone()));
                 }
                 if helpers::is_multiple_of_two_pi(lhs) {
                     match name.as_str() {
                         "sin" => {
-                            return Some(Expr::Mul(
-                                Rc::new(Expr::Number(-1.0)),
-                                Rc::new(Expr::FunctionCall {
-                                    name: "sin".to_string(),
-                                    args: vec![rhs.as_ref().clone()],
-                                }),
+                            return Some(Expr::mul_expr(
+                                Expr::number(-1.0),
+                                Expr::func("sin", rhs.as_ref().clone()),
                             ));
                         }
                         "cos" => {
-                            return Some(Expr::FunctionCall {
-                                name: "cos".to_string(),
-                                args: vec![rhs.as_ref().clone()],
-                            });
+                            return Some(Expr::func("cos", rhs.as_ref().clone()));
                         }
                         _ => {}
                     }
@@ -208,33 +157,27 @@ rule!(
     Trigonometric,
     &[ExprKind::Function],
     |expr: &Expr, _context: &RuleContext| {
-        if let Expr::FunctionCall { name, args } = expr
+        if let AstKind::FunctionCall { name, args } = &expr.kind
             && (name == "sin" || name == "cos")
             && args.len() == 1
         {
-            if let Expr::Sub(lhs, rhs) = &args[0]
+            if let AstKind::Sub(lhs, rhs) = &args[0].kind
                 && helpers::is_pi(lhs)
             {
                 match name.as_str() {
                     "sin" => {
-                        return Some(Expr::FunctionCall {
-                            name: "sin".to_string(),
-                            args: vec![rhs.as_ref().clone()],
-                        });
+                        return Some(Expr::func("sin", rhs.as_ref().clone()));
                     }
                     "cos" => {
-                        return Some(Expr::Mul(
-                            Rc::new(Expr::Number(-1.0)),
-                            Rc::new(Expr::FunctionCall {
-                                name: "cos".to_string(),
-                                args: vec![rhs.as_ref().clone()],
-                            }),
+                        return Some(Expr::mul_expr(
+                            Expr::number(-1.0),
+                            Expr::func("cos", rhs.as_ref().clone()),
                         ));
                     }
                     _ => {}
                 }
             }
-            if let Expr::Add(u, v) = &args[0] {
+            if let AstKind::Add(u, v) = &args[0].kind {
                 let (_, other_term) = if helpers::is_pi(u) {
                     (u, v)
                 } else if helpers::is_pi(v) {
@@ -244,24 +187,18 @@ rule!(
                 };
 
                 let mut is_neg_x = false;
-                if let Expr::Mul(c, x) = &**other_term
-                    && matches!(**c, Expr::Number(n) if n == -1.0)
+                if let AstKind::Mul(c, x) = &other_term.kind
+                    && matches!(&c.kind, AstKind::Number(n) if *n == -1.0)
                 {
                     is_neg_x = true;
                     match name.as_str() {
                         "sin" => {
-                            return Some(Expr::FunctionCall {
-                                name: "sin".to_string(),
-                                args: vec![x.as_ref().clone()],
-                            });
+                            return Some(Expr::func("sin", x.as_ref().clone()));
                         }
                         "cos" => {
-                            return Some(Expr::Mul(
-                                Rc::new(Expr::Number(-1.0)),
-                                Rc::new(Expr::FunctionCall {
-                                    name: "cos".to_string(),
-                                    args: vec![x.as_ref().clone()],
-                                }),
+                            return Some(Expr::mul_expr(
+                                Expr::number(-1.0),
+                                Expr::func("cos", x.as_ref().clone()),
                             ));
                         }
                         _ => {}
@@ -271,12 +208,9 @@ rule!(
                 if !is_neg_x {
                     match name.as_str() {
                         "sin" | "cos" => {
-                            return Some(Expr::Mul(
-                                Rc::new(Expr::Number(-1.0)),
-                                Rc::new(Expr::FunctionCall {
-                                    name: name.clone(),
-                                    args: vec![other_term.as_ref().clone()],
-                                }),
+                            return Some(Expr::mul_expr(
+                                Expr::number(-1.0),
+                                Expr::func(name.clone(), other_term.as_ref().clone()),
                             ));
                         }
                         _ => {}
@@ -295,37 +229,31 @@ rule!(
     Trigonometric,
     &[ExprKind::Function],
     |expr: &Expr, _context: &RuleContext| {
-        if let Expr::FunctionCall { name, args } = expr
+        if let AstKind::FunctionCall { name, args } = &expr.kind
             && (name == "sin" || name == "cos")
             && args.len() == 1
         {
-            if let Expr::Sub(lhs, rhs) = &args[0]
+            if let AstKind::Sub(lhs, rhs) = &args[0].kind
                 && helpers::is_three_pi_over_two(lhs)
             {
                 match name.as_str() {
                     "sin" => {
-                        return Some(Expr::Mul(
-                            Rc::new(Expr::Number(-1.0)),
-                            Rc::new(Expr::FunctionCall {
-                                name: "cos".to_string(),
-                                args: vec![rhs.as_ref().clone()],
-                            }),
+                        return Some(Expr::mul_expr(
+                            Expr::number(-1.0),
+                            Expr::func("cos", rhs.as_ref().clone()),
                         ));
                     }
                     "cos" => {
-                        return Some(Expr::Mul(
-                            Rc::new(Expr::Number(-1.0)),
-                            Rc::new(Expr::FunctionCall {
-                                name: "sin".to_string(),
-                                args: vec![rhs.as_ref().clone()],
-                            }),
+                        return Some(Expr::mul_expr(
+                            Expr::number(-1.0),
+                            Expr::func("sin", rhs.as_ref().clone()),
                         ));
                     }
                     _ => {}
                 }
             }
 
-            if let Expr::Add(u, v) = &args[0] {
+            if let AstKind::Add(u, v) = &args[0].kind {
                 let (_angle, other) = if helpers::is_three_pi_over_two(u) {
                     (u, v)
                 } else if helpers::is_three_pi_over_two(v) {
@@ -334,26 +262,20 @@ rule!(
                     return None;
                 };
 
-                if let Expr::Mul(c, x) = &**other
-                    && matches!(**c, Expr::Number(n) if n == -1.0)
+                if let AstKind::Mul(c, x) = &other.kind
+                    && matches!(&c.kind, AstKind::Number(n) if *n == -1.0)
                 {
                     match name.as_str() {
                         "sin" => {
-                            return Some(Expr::Mul(
-                                Rc::new(Expr::Number(-1.0)),
-                                Rc::new(Expr::FunctionCall {
-                                    name: "cos".to_string(),
-                                    args: vec![x.as_ref().clone()],
-                                }),
+                            return Some(Expr::mul_expr(
+                                Expr::number(-1.0),
+                                Expr::func("cos", x.as_ref().clone()),
                             ));
                         }
                         "cos" => {
-                            return Some(Expr::Mul(
-                                Rc::new(Expr::Number(-1.0)),
-                                Rc::new(Expr::FunctionCall {
-                                    name: "sin".to_string(),
-                                    args: vec![x.as_ref().clone()],
-                                }),
+                            return Some(Expr::mul_expr(
+                                Expr::number(-1.0),
+                                Expr::func("sin", x.as_ref().clone()),
                             ));
                         }
                         _ => {}
@@ -373,25 +295,19 @@ rule!(
     &[ExprKind::Function],
     |expr: &Expr, _context: &RuleContext| {
         if let Some((name, arg)) = get_trig_function(expr)
-            && let Expr::Mul(coeff, inner) = &arg
-            && let Expr::Number(n) = **coeff
-            && n == -1.0
+            && let AstKind::Mul(coeff, inner) = &arg.kind
+            && let AstKind::Number(n) = &coeff.kind
+            && *n == -1.0
         {
             match name {
                 "sin" | "tan" => {
-                    return Some(Expr::Mul(
-                        Rc::new(Expr::Number(-1.0)),
-                        Rc::new(Expr::FunctionCall {
-                            name: name.to_string(),
-                            args: vec![inner.as_ref().clone()],
-                        }),
+                    return Some(Expr::mul_expr(
+                        Expr::number(-1.0),
+                        Expr::func(name.to_string(), inner.as_ref().clone()),
                     ));
                 }
                 "cos" | "sec" => {
-                    return Some(Expr::FunctionCall {
-                        name: name.to_string(),
-                        args: vec![inner.as_ref().clone()],
-                    });
+                    return Some(Expr::func(name.to_string(), inner.as_ref().clone()));
                 }
                 _ => {}
             }

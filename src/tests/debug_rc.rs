@@ -1,25 +1,25 @@
 #[test]
 fn debug_rc_derivative() {
-    use crate::{Expr, simplification::simplify_expr};
+    use crate::{Expr, ExprKind, simplification::simplify_expr};
     use std::collections::HashSet;
-    use std::rc::Rc;
+    use std::sync::Arc;
     // Simplified RC test
-    let rc = Expr::Mul(
-        Rc::new(Expr::Symbol("V0".to_string())),
-        Rc::new(Expr::FunctionCall {
+    let rc = Expr::new(ExprKind::Mul(
+        Arc::new(Expr::symbol("V0".to_string())),
+        Arc::new(Expr::new(ExprKind::FunctionCall {
             name: "exp".to_string(),
-            args: vec![Expr::Div(
-                Rc::new(Expr::Mul(
-                    Rc::new(Expr::Number(-1.0)),
-                    Rc::new(Expr::Symbol("t".to_string())),
-                )),
-                Rc::new(Expr::Mul(
-                    Rc::new(Expr::Symbol("R".to_string())),
-                    Rc::new(Expr::Symbol("C".to_string())),
-                )),
-            )],
-        }),
-    );
+            args: vec![Expr::new(ExprKind::Div(
+                Arc::new(Expr::new(ExprKind::Mul(
+                    Arc::new(Expr::number(-1.0)),
+                    Arc::new(Expr::symbol("t".to_string())),
+                ))),
+                Arc::new(Expr::new(ExprKind::Mul(
+                    Arc::new(Expr::symbol("R".to_string())),
+                    Arc::new(Expr::symbol("C".to_string())),
+                ))),
+            ))],
+        })),
+    ));
 
     eprintln!("===== RC CIRCUIT DERIVATIVE TEST =====");
     eprintln!("Original: {}", rc);
@@ -29,7 +29,12 @@ fn debug_rc_derivative() {
     fixed.insert("C".to_string());
     fixed.insert("V0".to_string());
 
-    let deriv = rc.derive("t", &fixed);
+    let deriv = rc.derive(
+        "t",
+        &fixed,
+        &std::collections::HashMap::new(),
+        &std::collections::HashMap::new(),
+    );
     eprintln!("Raw derivative: {}", deriv);
 
     let simplified = simplify_expr(deriv, fixed);

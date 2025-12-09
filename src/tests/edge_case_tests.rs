@@ -87,7 +87,9 @@ mod number_parsing {
 
 mod parentheses_edge_cases {
 
+    use crate::ExprKind;
     use crate::diff;
+    use std::collections::HashSet;
 
     #[test]
     fn test_unmatched_open_paren() {
@@ -109,31 +111,80 @@ mod parentheses_edge_cases {
         assert_eq!(result, "1");
     }
 
+    // Test for complex arguments
+    #[test]
+    fn test_complex_derivative_args() {
+        // Test parsing of ∂^1_f(x+y)/∂_x^1
+        // This requires the lexer to recursively lex "x+y" and proper AST construction
+        let fixed_vars = HashSet::new();
+        let custom_funcs = HashSet::new();
+        let expr = crate::parser::parse("∂_f(x+y)/∂_x", &fixed_vars, &custom_funcs).unwrap();
+        // Check structure: Derivative { inner: FunctionCall(f, args=[Add(x,y)]), var: x, order: 1 }
+        if let ExprKind::Derivative { inner, var, order } = expr.kind {
+            assert_eq!(var, "x");
+            assert_eq!(order, 1);
+            if let ExprKind::FunctionCall { name, args } = &inner.kind {
+                assert_eq!(name, "f");
+                assert_eq!(args.len(), 1);
+                // Verify arg is x+y
+                match &args[0].kind {
+                    ExprKind::Add(lhs, rhs) => {
+                        assert!(matches!(lhs.kind, ExprKind::Symbol(ref s) if s == "x"));
+                        assert!(matches!(rhs.kind, ExprKind::Symbol(ref s) if s == "y"));
+                    }
+                    _ => panic!("Expected Add expression for argument"),
+                }
+            } else {
+                panic!("Expected FunctionCall inside Derivative");
+            }
+        } else {
+            panic!("Expected Derivative expression");
+        }
+    }
+
+    #[test]
+    fn test_multi_arg_derivative() {
+        // Test parsing of ∂_f(x, y)/∂_x (function with 2 arguments)
+        let fixed_vars = HashSet::new();
+        let custom_funcs = HashSet::new();
+        let expr = crate::parser::parse("∂_f(x,y)/∂_x", &fixed_vars, &custom_funcs).unwrap();
+
+        if let ExprKind::Derivative { inner, .. } = expr.kind {
+            if let ExprKind::FunctionCall { name, args } = &inner.kind {
+                assert_eq!(name, "f");
+                assert_eq!(args.len(), 2);
+                // Verify args are x and y
+                assert!(matches!(args[0].kind, ExprKind::Symbol(ref s) if s == "x"));
+                assert!(matches!(args[1].kind, ExprKind::Symbol(ref s) if s == "y"));
+            } else {
+                panic!("Expected FunctionCall");
+            }
+        } else {
+            panic!("Expected Derivative");
+        }
+    }
+
     #[test]
     fn test_empty_parens() {
-        // () should be treated as 1
-        let result = diff("()".to_string(), "x".to_string(), None, None).unwrap();
-        assert_eq!(result, "0"); // d/dx(1) = 0
+        // () should be an error
+        assert!(diff("()".to_string(), "x".to_string(), None, None).is_err());
     }
 
     #[test]
     fn test_empty_parens_with_mul() {
-        // x*() = x*1 = x, derivative is 1
-        let result = diff("x*()".to_string(), "x".to_string(), None, None).unwrap();
-        assert_eq!(result, "1");
+        // x*() should be an error
+        assert!(diff("x*()".to_string(), "x".to_string(), None, None).is_err());
     }
 
     #[test]
     fn test_nested_empty_parens() {
-        let result = diff("(())".to_string(), "x".to_string(), None, None).unwrap();
-        assert_eq!(result, "0"); // () = 1, (()) = (1) = 1
+        assert!(diff("(())".to_string(), "x".to_string(), None, None).is_err());
     }
 
     #[test]
     fn test_wrong_order_parens() {
-        // )(x should be wrapped
-        let result = diff(")(x".to_string(), "x".to_string(), None, None).unwrap();
-        assert_eq!(result, "1");
+        // )(x is invalid
+        assert!(diff(")(x".to_string(), "x".to_string(), None, None).is_err());
     }
 }
 

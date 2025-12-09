@@ -1,8 +1,7 @@
-use crate::ast::Expr;
+use crate::ast::{Expr, ExprKind as AstKind};
 use crate::simplification::helpers;
 use crate::simplification::rules::{ExprKind, Rule, RuleCategory, RuleContext};
 use std::f64::consts::PI;
-use std::rc::Rc;
 
 rule!(
     SinZeroRule,
@@ -11,12 +10,12 @@ rule!(
     Trigonometric,
     &[ExprKind::Function],
     |expr: &Expr, _context: &RuleContext| {
-        if let Expr::FunctionCall { name, args } = expr
+        if let AstKind::FunctionCall { name, args } = &expr.kind
             && name == "sin"
             && args.len() == 1
-            && matches!(args[0], Expr::Number(n) if n == 0.0)
+            && matches!(&args[0].kind, AstKind::Number(n) if *n == 0.0)
         {
-            return Some(Expr::Number(0.0));
+            return Some(Expr::number(0.0));
         }
         None
     }
@@ -29,12 +28,12 @@ rule!(
     Trigonometric,
     &[ExprKind::Function],
     |expr: &Expr, _context: &RuleContext| {
-        if let Expr::FunctionCall { name, args } = expr
+        if let AstKind::FunctionCall { name, args } = &expr.kind
             && name == "cos"
             && args.len() == 1
-            && matches!(args[0], Expr::Number(n) if n == 0.0)
+            && matches!(&args[0].kind, AstKind::Number(n) if *n == 0.0)
         {
-            return Some(Expr::Number(1.0));
+            return Some(Expr::number(1.0));
         }
         None
     }
@@ -47,12 +46,12 @@ rule!(
     Trigonometric,
     &[ExprKind::Function],
     |expr: &Expr, _context: &RuleContext| {
-        if let Expr::FunctionCall { name, args } = expr
+        if let AstKind::FunctionCall { name, args } = &expr.kind
             && name == "tan"
             && args.len() == 1
-            && matches!(args[0], Expr::Number(n) if n == 0.0)
+            && matches!(&args[0].kind, AstKind::Number(n) if *n == 0.0)
         {
-            return Some(Expr::Number(0.0));
+            return Some(Expr::number(0.0));
         }
         None
     }
@@ -65,12 +64,12 @@ rule!(
     Trigonometric,
     &[ExprKind::Function],
     |expr: &Expr, _context: &RuleContext| {
-        if let Expr::FunctionCall { name, args } = expr
+        if let AstKind::FunctionCall { name, args } = &expr.kind
             && name == "sin"
             && args.len() == 1
             && helpers::is_pi(&args[0])
         {
-            return Some(Expr::Number(0.0));
+            return Some(Expr::number(0.0));
         }
         None
     }
@@ -83,12 +82,12 @@ rule!(
     Trigonometric,
     &[ExprKind::Function],
     |expr: &Expr, _context: &RuleContext| {
-        if let Expr::FunctionCall { name, args } = expr
+        if let AstKind::FunctionCall { name, args } = &expr.kind
             && name == "cos"
             && args.len() == 1
             && helpers::is_pi(&args[0])
         {
-            return Some(Expr::Number(-1.0));
+            return Some(Expr::number(-1.0));
         }
         None
     }
@@ -101,14 +100,14 @@ rule!(
     Trigonometric,
     &[ExprKind::Function],
     |expr: &Expr, _context: &RuleContext| {
-        if let Expr::FunctionCall { name, args } = expr
+        if let AstKind::FunctionCall { name, args } = &expr.kind
             && name == "sin"
             && args.len() == 1
-            && let Expr::Div(num, den) = &args[0]
+            && let AstKind::Div(num, den) = &args[0].kind
             && helpers::is_pi(num)
-            && matches!(**den, Expr::Number(n) if n == 2.0)
+            && matches!(&den.kind, AstKind::Number(n) if *n == 2.0)
         {
-            return Some(Expr::Number(1.0));
+            return Some(Expr::number(1.0));
         }
         None
     }
@@ -121,14 +120,14 @@ rule!(
     Trigonometric,
     &[ExprKind::Function],
     |expr: &Expr, _context: &RuleContext| {
-        if let Expr::FunctionCall { name, args } = expr
+        if let AstKind::FunctionCall { name, args } = &expr.kind
             && name == "cos"
             && args.len() == 1
-            && let Expr::Div(num, den) = &args[0]
+            && let AstKind::Div(num, den) = &args[0].kind
             && helpers::is_pi(num)
-            && matches!(**den, Expr::Number(n) if n == 2.0)
+            && matches!(&den.kind, AstKind::Number(n) if *n == 2.0)
         {
-            return Some(Expr::Number(0.0));
+            return Some(Expr::number(0.0));
         }
         None
     }
@@ -141,102 +140,84 @@ rule!(
     Trigonometric,
     &[ExprKind::Function],
     |expr: &Expr, _context: &RuleContext| {
-        if let Expr::FunctionCall { name, args } = expr
+        if let AstKind::FunctionCall { name, args } = &expr.kind
             && args.len() == 1
         {
             let arg = &args[0];
             let arg_val = helpers::get_numeric_value(arg);
-            let is_numeric_input = matches!(arg, Expr::Number(_));
+            let is_numeric_input = matches!(arg.kind, AstKind::Number(_));
 
             match name.as_str() {
                 "sin" => {
                     if helpers::approx_eq(arg_val, PI / 6.0)
-                        || (matches!(arg, Expr::Div(num, den) if helpers::is_pi(num) && matches!(**den, Expr::Number(n) if n == 6.0)))
+                        || (matches!(&arg.kind, AstKind::Div(num, den) if helpers::is_pi(num) && matches!(&den.kind, AstKind::Number(n) if *n == 6.0)))
                     {
                         return if is_numeric_input {
-                            Some(Expr::Number(0.5))
+                            Some(Expr::number(0.5))
                         } else {
-                            Some(Expr::Div(
-                                Rc::new(Expr::Number(1.0)),
-                                Rc::new(Expr::Number(2.0)),
-                            ))
+                            Some(Expr::div_expr(Expr::number(1.0), Expr::number(2.0)))
                         };
                     }
                     if helpers::approx_eq(arg_val, PI / 4.0)
-                        || (matches!(arg, Expr::Div(num, den) if helpers::is_pi(num) && matches!(**den, Expr::Number(n) if n == 4.0)))
+                        || (matches!(&arg.kind, AstKind::Div(num, den) if helpers::is_pi(num) && matches!(&den.kind, AstKind::Number(n) if *n == 4.0)))
                     {
                         return if is_numeric_input {
-                            Some(Expr::Number((2.0f64).sqrt() / 2.0))
+                            Some(Expr::number((2.0f64).sqrt() / 2.0))
                         } else {
-                            Some(Expr::Div(
-                                Rc::new(Expr::FunctionCall {
-                                    name: "sqrt".to_string(),
-                                    args: vec![Expr::Number(2.0)],
-                                }),
-                                Rc::new(Expr::Number(2.0)),
+                            Some(Expr::div_expr(
+                                Expr::func("sqrt", Expr::number(2.0)),
+                                Expr::number(2.0),
                             ))
                         };
                     }
                 }
                 "cos" => {
                     if helpers::approx_eq(arg_val, PI / 3.0)
-                        || (matches!(arg, Expr::Div(num, den) if helpers::is_pi(num) && matches!(**den, Expr::Number(n) if n == 3.0)))
+                        || (matches!(&arg.kind, AstKind::Div(num, den) if helpers::is_pi(num) && matches!(&den.kind, AstKind::Number(n) if *n == 3.0)))
                     {
                         return if is_numeric_input {
-                            Some(Expr::Number(0.5))
+                            Some(Expr::number(0.5))
                         } else {
-                            Some(Expr::Div(
-                                Rc::new(Expr::Number(1.0)),
-                                Rc::new(Expr::Number(2.0)),
-                            ))
+                            Some(Expr::div_expr(Expr::number(1.0), Expr::number(2.0)))
                         };
                     }
                     if helpers::approx_eq(arg_val, PI / 4.0)
-                        || (matches!(arg, Expr::Div(num, den) if helpers::is_pi(num) && matches!(**den, Expr::Number(n) if n == 4.0)))
+                        || (matches!(&arg.kind, AstKind::Div(num, den) if helpers::is_pi(num) && matches!(&den.kind, AstKind::Number(n) if *n == 4.0)))
                     {
                         return if is_numeric_input {
-                            Some(Expr::Number((2.0f64).sqrt() / 2.0))
+                            Some(Expr::number((2.0f64).sqrt() / 2.0))
                         } else {
-                            Some(Expr::Div(
-                                Rc::new(Expr::FunctionCall {
-                                    name: "sqrt".to_string(),
-                                    args: vec![Expr::Number(2.0)],
-                                }),
-                                Rc::new(Expr::Number(2.0)),
+                            Some(Expr::div_expr(
+                                Expr::func("sqrt", Expr::number(2.0)),
+                                Expr::number(2.0),
                             ))
                         };
                     }
                 }
                 "tan" => {
                     if helpers::approx_eq(arg_val, PI / 4.0)
-                        || (matches!(arg, Expr::Div(num, den) if helpers::is_pi(num) && matches!(**den, Expr::Number(n) if n == 4.0)))
+                        || (matches!(&arg.kind, AstKind::Div(num, den) if helpers::is_pi(num) && matches!(&den.kind, AstKind::Number(n) if *n == 4.0)))
                     {
-                        return Some(Expr::Number(1.0));
+                        return Some(Expr::number(1.0));
                     }
                     if helpers::approx_eq(arg_val, PI / 3.0)
-                        || (matches!(arg, Expr::Div(num, den) if helpers::is_pi(num) && matches!(**den, Expr::Number(n) if n == 3.0)))
+                        || (matches!(&arg.kind, AstKind::Div(num, den) if helpers::is_pi(num) && matches!(&den.kind, AstKind::Number(n) if *n == 3.0)))
                     {
                         return if is_numeric_input {
-                            Some(Expr::Number((3.0f64).sqrt()))
+                            Some(Expr::number((3.0f64).sqrt()))
                         } else {
-                            Some(Expr::FunctionCall {
-                                name: "sqrt".to_string(),
-                                args: vec![Expr::Number(3.0)],
-                            })
+                            Some(Expr::func("sqrt", Expr::number(3.0)))
                         };
                     }
                     if helpers::approx_eq(arg_val, PI / 6.0)
-                        || (matches!(arg, Expr::Div(num, den) if helpers::is_pi(num) && matches!(**den, Expr::Number(n) if n == 6.0)))
+                        || (matches!(&arg.kind, AstKind::Div(num, den) if helpers::is_pi(num) && matches!(&den.kind, AstKind::Number(n) if *n == 6.0)))
                     {
                         return if is_numeric_input {
-                            Some(Expr::Number(1.0 / (3.0f64).sqrt()))
+                            Some(Expr::number(1.0 / (3.0f64).sqrt()))
                         } else {
-                            Some(Expr::Div(
-                                Rc::new(Expr::FunctionCall {
-                                    name: "sqrt".to_string(),
-                                    args: vec![Expr::Number(3.0)],
-                                }),
-                                Rc::new(Expr::Number(3.0)),
+                            Some(Expr::div_expr(
+                                Expr::func("sqrt", Expr::number(3.0)),
+                                Expr::number(3.0),
                             ))
                         };
                     }

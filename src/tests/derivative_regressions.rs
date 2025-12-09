@@ -1,5 +1,5 @@
 use crate::parser::parse;
-use crate::{Expr, diff};
+use crate::{Expr, ExprKind, diff};
 use std::collections::HashSet;
 
 #[test]
@@ -47,10 +47,10 @@ fn test_orbital_denominator_squared() {
     let result_ast = parse(&result, &fixed_vars, &custom_functions).unwrap();
 
     // Expect derivative denominator to be (1 + e*cos(theta))^2
-    if let Expr::Div(_, denom) = result_ast {
-        if let Expr::Pow(base, exp) = &*denom {
+    if let ExprKind::Div(_, denom) = result_ast.kind {
+        if let ExprKind::Pow(base, exp) = &denom.kind {
             // base must be (1 + e*cos(theta)), exponent must be 2
-            assert_eq!(exp.as_ref().clone(), Expr::Number(2.0));
+            assert_eq!(exp.as_ref().clone(), Expr::number(2.0));
             let expected_base =
                 parse("e * cos(theta) + 1", &fixed_vars, &custom_functions).unwrap();
             assert_eq!(

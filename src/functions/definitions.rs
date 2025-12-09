@@ -1,0 +1,1126 @@
+use super::registry::FunctionDefinition;
+use super::{func, mul_opt, neg};
+use crate::Expr;
+
+/// Return all function definitions for populating the registry
+pub(crate) fn all_definitions() -> Vec<FunctionDefinition> {
+    vec![
+        // Trigonometric
+        FunctionDefinition {
+            name: "sin",
+            arity: 1..=1,
+            eval: |args| Some(args[0].sin()),
+            derivative: |args, arg_primes| {
+                // d/dx sin(u) = cos(u) * u'
+                let u = args[0].clone();
+                let u_prime = arg_primes[0].clone();
+                mul_opt(func("cos", u), u_prime)
+            },
+        },
+        FunctionDefinition {
+            name: "cos",
+            arity: 1..=1,
+            eval: |args| Some(args[0].cos()),
+            derivative: |args, arg_primes| {
+                // d/dx cos(u) = -sin(u) * u'
+                let u = args[0].clone();
+                let u_prime = arg_primes[0].clone();
+                mul_opt(neg(func("sin", u)), u_prime)
+            },
+        },
+        FunctionDefinition {
+            name: "tan",
+            arity: 1..=1,
+            eval: |args| Some(args[0].tan()),
+            derivative: |args, arg_primes| {
+                // d/dx tan(u) = sec^2(u) * u'
+                let u = args[0].clone();
+                let u_prime = arg_primes[0].clone();
+                mul_opt(Expr::pow(func("sec", u), Expr::number(2.0)), u_prime)
+            },
+        },
+        FunctionDefinition {
+            name: "cot",
+            arity: 1..=1,
+            eval: |args| Some(1.0 / args[0].tan()),
+            derivative: |args, arg_primes| {
+                // d/dx cot(u) = -csc^2(u) * u'
+                let u = args[0].clone();
+                let u_prime = arg_primes[0].clone();
+                mul_opt(neg(Expr::pow(func("csc", u), Expr::number(2.0))), u_prime)
+            },
+        },
+        FunctionDefinition {
+            name: "sec",
+            arity: 1..=1,
+            eval: |args| Some(1.0 / args[0].cos()),
+            derivative: |args, arg_primes| {
+                // d/dx sec(u) = sec(u)tan(u) * u'
+                let u = args[0].clone();
+                let u_prime = arg_primes[0].clone();
+                mul_opt(
+                    Expr::mul_expr(func("sec", u.clone()), func("tan", u)),
+                    u_prime,
+                )
+            },
+        },
+        FunctionDefinition {
+            name: "csc",
+            arity: 1..=1,
+            eval: |args| Some(1.0 / args[0].sin()),
+            derivative: |args, arg_primes| {
+                // d/dx csc(u) = -csc(u)cot(u) * u'
+                let u = args[0].clone();
+                let u_prime = arg_primes[0].clone();
+                mul_opt(
+                    neg(Expr::mul_expr(func("csc", u.clone()), func("cot", u))),
+                    u_prime,
+                )
+            },
+        },
+        // Inverse Trigonometric
+        FunctionDefinition {
+            name: "asin",
+            arity: 1..=1,
+            eval: |args| Some(args[0].asin()),
+            derivative: |args, arg_primes| {
+                // d/dx asin(u) = u' / sqrt(1 - u^2)
+                let u = args[0].clone();
+                let u_prime = arg_primes[0].clone();
+                mul_opt(
+                    Expr::div_expr(
+                        Expr::number(1.0),
+                        func(
+                            "sqrt",
+                            Expr::sub_expr(Expr::number(1.0), Expr::pow(u, Expr::number(2.0))),
+                        ),
+                    ),
+                    u_prime,
+                )
+            },
+        },
+        FunctionDefinition {
+            name: "acos",
+            arity: 1..=1,
+            eval: |args| Some(args[0].acos()),
+            derivative: |args, arg_primes| {
+                // d/dx acos(u) = -u' / sqrt(1 - u^2)
+                let u = args[0].clone();
+                let u_prime = arg_primes[0].clone();
+                mul_opt(
+                    Expr::div_expr(
+                        neg(u_prime),
+                        func(
+                            "sqrt",
+                            Expr::sub_expr(Expr::number(1.0), Expr::pow(u, Expr::number(2.0))),
+                        ),
+                    ),
+                    Expr::number(1.0),
+                )
+            },
+        },
+        FunctionDefinition {
+            name: "atan",
+            arity: 1..=1,
+            eval: |args| Some(args[0].atan()),
+            derivative: |args, arg_primes| {
+                // d/dx atan(u) = u' / (1 + u^2)
+                let u = args[0].clone();
+                let u_prime = arg_primes[0].clone();
+                mul_opt(
+                    Expr::div_expr(
+                        Expr::number(1.0),
+                        Expr::add_expr(Expr::number(1.0), Expr::pow(u, Expr::number(2.0))),
+                    ),
+                    u_prime,
+                )
+            },
+        },
+        FunctionDefinition {
+            name: "acot",
+            arity: 1..=1,
+            eval: |args| {
+                let x = args[0];
+                if x.abs() < 1e-15 {
+                    Some(std::f64::consts::PI / 2.0)
+                } else if x > 0.0 {
+                    Some((1.0 / x).atan())
+                } else {
+                    Some((1.0 / x).atan() + std::f64::consts::PI)
+                }
+            },
+            derivative: |args, arg_primes| {
+                // d/dx acot(u) = -u' / (1 + u^2)
+                let u = args[0].clone();
+                let u_prime = arg_primes[0].clone();
+                mul_opt(
+                    Expr::div_expr(
+                        neg(u_prime),
+                        Expr::add_expr(Expr::number(1.0), Expr::pow(u, Expr::number(2.0))),
+                    ),
+                    Expr::number(1.0),
+                )
+            },
+        },
+        FunctionDefinition {
+            name: "asec",
+            arity: 1..=1,
+            eval: |args| Some((1.0 / args[0]).acos()),
+            derivative: |args, arg_primes| {
+                // d/dx asec(u) = u' / (|u| * sqrt(u^2 - 1))
+                let u = args[0].clone();
+                let u_prime = arg_primes[0].clone();
+                mul_opt(
+                    Expr::div_expr(
+                        Expr::number(1.0),
+                        Expr::mul_expr(
+                            func("abs", u.clone()),
+                            func(
+                                "sqrt",
+                                Expr::sub_expr(Expr::pow(u, Expr::number(2.0)), Expr::number(1.0)),
+                            ),
+                        ),
+                    ),
+                    u_prime,
+                )
+            },
+        },
+        FunctionDefinition {
+            name: "acsc",
+            arity: 1..=1,
+            eval: |args| Some((1.0 / args[0]).asin()),
+            derivative: |args, arg_primes| {
+                // d/dx acsc(u) = -u' / (|u| * sqrt(u^2 - 1))
+                let u = args[0].clone();
+                let u_prime = arg_primes[0].clone();
+                mul_opt(
+                    Expr::div_expr(
+                        neg(u_prime),
+                        Expr::mul_expr(
+                            func("abs", u.clone()),
+                            func(
+                                "sqrt",
+                                Expr::sub_expr(Expr::pow(u, Expr::number(2.0)), Expr::number(1.0)),
+                            ),
+                        ),
+                    ),
+                    Expr::number(1.0),
+                )
+            },
+        },
+        // Hyperbolic
+        FunctionDefinition {
+            name: "sinh",
+            arity: 1..=1,
+            eval: |args| Some(args[0].sinh()),
+            derivative: |args, arg_primes| {
+                // d/dx sinh(u) = cosh(u) * u'
+                let u = args[0].clone();
+                let u_prime = arg_primes[0].clone();
+                mul_opt(func("cosh", u), u_prime)
+            },
+        },
+        FunctionDefinition {
+            name: "cosh",
+            arity: 1..=1,
+            eval: |args| Some(args[0].cosh()),
+            derivative: |args, arg_primes| {
+                // d/dx cosh(u) = sinh(u) * u'
+                let u = args[0].clone();
+                let u_prime = arg_primes[0].clone();
+                mul_opt(func("sinh", u), u_prime)
+            },
+        },
+        FunctionDefinition {
+            name: "tanh",
+            arity: 1..=1,
+            eval: |args| Some(args[0].tanh()),
+            derivative: |args, arg_primes| {
+                // d/dx tanh(u) = (1 - tanh^2(u)) * u'
+                let u = args[0].clone();
+                let u_prime = arg_primes[0].clone();
+                mul_opt(
+                    Expr::sub_expr(
+                        Expr::number(1.0),
+                        Expr::pow(func("tanh", u), Expr::number(2.0)),
+                    ),
+                    u_prime,
+                )
+            },
+        },
+        FunctionDefinition {
+            name: "coth",
+            arity: 1..=1,
+            eval: |args| Some(1.0 / args[0].tanh()),
+            derivative: |args, arg_primes| {
+                // d/dx coth(u) = -csch^2(u) * u'
+                let u = args[0].clone();
+                let u_prime = arg_primes[0].clone();
+                mul_opt(neg(Expr::pow(func("csch", u), Expr::number(2.0))), u_prime)
+            },
+        },
+        FunctionDefinition {
+            name: "sech",
+            arity: 1..=1,
+            eval: |args| Some(1.0 / args[0].cosh()),
+            derivative: |args, arg_primes| {
+                // d/dx sech(u) = -sech(u)tanh(u) * u'
+                let u = args[0].clone();
+                let u_prime = arg_primes[0].clone();
+                mul_opt(
+                    neg(Expr::mul_expr(func("sech", u.clone()), func("tanh", u))),
+                    u_prime,
+                )
+            },
+        },
+        FunctionDefinition {
+            name: "csch",
+            arity: 1..=1,
+            eval: |args| Some(1.0 / args[0].sinh()),
+            derivative: |args, arg_primes| {
+                // d/dx csch(u) = -csch(u)coth(u) * u'
+                let u = args[0].clone();
+                let u_prime = arg_primes[0].clone();
+                mul_opt(
+                    neg(Expr::mul_expr(func("csch", u.clone()), func("coth", u))),
+                    u_prime,
+                )
+            },
+        },
+        // Inverse Hyperbolic
+        FunctionDefinition {
+            name: "asinh",
+            arity: 1..=1,
+            eval: |args| Some(args[0].asinh()),
+            derivative: |args, arg_primes| {
+                // d/dx asinh(u) = u' / sqrt(u^2 + 1)
+                let u = args[0].clone();
+                let u_prime = arg_primes[0].clone();
+                mul_opt(
+                    Expr::div_expr(
+                        Expr::number(1.0),
+                        func(
+                            "sqrt",
+                            Expr::add_expr(Expr::pow(u, Expr::number(2.0)), Expr::number(1.0)),
+                        ),
+                    ),
+                    u_prime,
+                )
+            },
+        },
+        FunctionDefinition {
+            name: "acosh",
+            arity: 1..=1,
+            eval: |args| Some(args[0].acosh()),
+            derivative: |args, arg_primes| {
+                // d/dx acosh(u) = u' / sqrt(u^2 - 1)
+                let u = args[0].clone();
+                let u_prime = arg_primes[0].clone();
+                mul_opt(
+                    Expr::div_expr(
+                        Expr::number(1.0),
+                        func(
+                            "sqrt",
+                            Expr::sub_expr(Expr::pow(u, Expr::number(2.0)), Expr::number(1.0)),
+                        ),
+                    ),
+                    u_prime,
+                )
+            },
+        },
+        FunctionDefinition {
+            name: "atanh",
+            arity: 1..=1,
+            eval: |args| Some(args[0].atanh()),
+            derivative: |args, arg_primes| {
+                // d/dx atanh(u) = u' / (1 - u^2)
+                let u = args[0].clone();
+                let u_prime = arg_primes[0].clone();
+                mul_opt(
+                    Expr::div_expr(
+                        Expr::number(1.0),
+                        Expr::sub_expr(Expr::number(1.0), Expr::pow(u, Expr::number(2.0))),
+                    ),
+                    u_prime,
+                )
+            },
+        },
+        FunctionDefinition {
+            name: "acoth",
+            arity: 1..=1,
+            eval: |args| Some(0.5 * ((args[0] + 1.0) / (args[0] - 1.0)).ln()),
+            derivative: |args, arg_primes| {
+                // d/dx acoth(u) = u' / (1 - u^2)
+                let u = args[0].clone();
+                let u_prime = arg_primes[0].clone();
+                mul_opt(
+                    Expr::div_expr(
+                        Expr::number(1.0),
+                        Expr::sub_expr(Expr::number(1.0), Expr::pow(u, Expr::number(2.0))),
+                    ),
+                    u_prime,
+                )
+            },
+        },
+        FunctionDefinition {
+            name: "asech",
+            arity: 1..=1,
+            eval: |args| Some((1.0 / args[0]).acosh()),
+            derivative: |args, arg_primes| {
+                // d/dx asech(u) = -u' / (u * sqrt(1 - u^2))
+                let u = args[0].clone();
+                let u_prime = arg_primes[0].clone();
+                mul_opt(
+                    Expr::div_expr(
+                        neg(u_prime),
+                        Expr::mul_expr(
+                            u.clone(),
+                            func(
+                                "sqrt",
+                                Expr::sub_expr(Expr::number(1.0), Expr::pow(u, Expr::number(2.0))),
+                            ),
+                        ),
+                    ),
+                    Expr::number(1.0),
+                )
+            },
+        },
+        FunctionDefinition {
+            name: "acsch",
+            arity: 1..=1,
+            eval: |args| {
+                if args[0].abs() < 1e-15 {
+                    None
+                } else {
+                    Some((1.0 / args[0]).asinh())
+                }
+            },
+            derivative: |args, arg_primes| {
+                // d/dx acsch(u) = -u' / (|u| * sqrt(1 + u^2))
+                let u = args[0].clone();
+                let u_prime = arg_primes[0].clone();
+                mul_opt(
+                    Expr::div_expr(
+                        neg(u_prime),
+                        Expr::mul_expr(
+                            func("abs", u.clone()),
+                            func(
+                                "sqrt",
+                                Expr::add_expr(Expr::number(1.0), Expr::pow(u, Expr::number(2.0))),
+                            ),
+                        ),
+                    ),
+                    Expr::number(1.0),
+                )
+            },
+        },
+        // Roots / Exp / Log
+        FunctionDefinition {
+            name: "exp",
+            arity: 1..=1,
+            eval: |args| Some(args[0].exp()),
+            derivative: |args, arg_primes| {
+                // d/dx exp(u) = exp(u) * u'
+                let u = args[0].clone();
+                let u_prime = arg_primes[0].clone();
+                mul_opt(func("exp", u), u_prime)
+            },
+        },
+        FunctionDefinition {
+            name: "ln",
+            arity: 1..=1,
+            eval: |args| Some(args[0].ln()),
+            derivative: |args, arg_primes| {
+                // d/dx ln(u) = u' / u
+                let u = args[0].clone();
+                let u_prime = arg_primes[0].clone();
+                mul_opt(Expr::pow(u, Expr::number(-1.0)), u_prime)
+            },
+        },
+        FunctionDefinition {
+            name: "log",
+            arity: 1..=1,
+            eval: |args| Some(args[0].ln()),
+            derivative: |args, arg_primes| {
+                // d/dx log(u) = ln(u), so same as ln
+                let u = args[0].clone();
+                let u_prime = arg_primes[0].clone();
+                mul_opt(Expr::pow(u, Expr::number(-1.0)), u_prime)
+            },
+        },
+        FunctionDefinition {
+            name: "log10",
+            arity: 1..=1,
+            eval: |args| Some(args[0].log10()),
+            derivative: |args, arg_primes| {
+                // d/dx log10(u) = u' / (u * ln(10))
+                let u = args[0].clone();
+                let u_prime = arg_primes[0].clone();
+                mul_opt(
+                    Expr::div_expr(
+                        Expr::number(1.0),
+                        Expr::mul_expr(u, func("ln", Expr::number(10.0))),
+                    ),
+                    u_prime,
+                )
+            },
+        },
+        FunctionDefinition {
+            name: "log2",
+            arity: 1..=1,
+            eval: |args| Some(args[0].log2()),
+            derivative: |args, arg_primes| {
+                // d/dx log2(u) = u' / (u * ln(2))
+                let u = args[0].clone();
+                let u_prime = arg_primes[0].clone();
+                mul_opt(
+                    Expr::div_expr(
+                        Expr::number(1.0),
+                        Expr::mul_expr(u, func("ln", Expr::number(2.0))),
+                    ),
+                    u_prime,
+                )
+            },
+        },
+        FunctionDefinition {
+            name: "sqrt",
+            arity: 1..=1,
+            eval: |args| Some(args[0].sqrt()),
+            derivative: |args, arg_primes| {
+                // d/dx sqrt(u) = u' / (2 * sqrt(u))
+                let u = args[0].clone();
+                let u_prime = arg_primes[0].clone();
+                mul_opt(
+                    Expr::div_expr(
+                        Expr::number(1.0),
+                        Expr::mul_expr(Expr::number(2.0), func("sqrt", u)),
+                    ),
+                    u_prime,
+                )
+            },
+        },
+        FunctionDefinition {
+            name: "cbrt",
+            arity: 1..=1,
+            eval: |args| Some(args[0].cbrt()),
+            derivative: |args, arg_primes| {
+                // d/dx cbrt(u) = u' / (3 * u^(2/3))
+                let u = args[0].clone();
+                let u_prime = arg_primes[0].clone();
+                mul_opt(
+                    Expr::div_expr(
+                        Expr::number(1.0),
+                        Expr::mul_expr(
+                            Expr::number(3.0),
+                            Expr::pow(u, Expr::div_expr(Expr::number(2.0), Expr::number(3.0))),
+                        ),
+                    ),
+                    u_prime,
+                )
+            },
+        },
+        // Special Functions
+        FunctionDefinition {
+            name: "abs",
+            arity: 1..=1,
+            eval: |args| Some(args[0].abs()),
+            derivative: |args, arg_primes| {
+                // d/dx |u| = sign(u) * u'
+                let u = args[0].clone();
+                let u_prime = arg_primes[0].clone();
+                mul_opt(func("sign", u), u_prime)
+            },
+        },
+        FunctionDefinition {
+            name: "sign",
+            arity: 1..=1,
+            eval: |args| Some(args[0].signum()),
+            derivative: |_, _| {
+                // d/dx sign(u) = 0 almost everywhere
+                Expr::number(0.0)
+            },
+        },
+        FunctionDefinition {
+            name: "signum",
+            arity: 1..=1,
+            eval: |args| Some(args[0].signum()),
+            derivative: |_, _| {
+                // d/dx signum(u) = 0 almost everywhere
+                Expr::number(0.0)
+            },
+        },
+        FunctionDefinition {
+            name: "erf",
+            arity: 1..=1,
+            eval: |args| Some(crate::math::eval_erf(args[0])),
+            derivative: |args, arg_primes| {
+                // d/dx erf(u) = (2/sqrt(pi)) * exp(-u^2) * u'
+                let u = args[0].clone();
+                let u_prime = arg_primes[0].clone();
+                let pi = Expr::symbol("pi");
+                mul_opt(
+                    Expr::mul_expr(
+                        Expr::div_expr(Expr::number(2.0), func("sqrt", pi)),
+                        func("exp", neg(Expr::pow(u, Expr::number(2.0)))),
+                    ),
+                    u_prime,
+                )
+            },
+        },
+        FunctionDefinition {
+            name: "erfc",
+            arity: 1..=1,
+            eval: |args| Some(1.0 - crate::math::eval_erf(args[0])),
+            derivative: |args, arg_primes| {
+                // d/dx erfc(u) = -d/dx erf(u)
+                let u = args[0].clone();
+                let u_prime = arg_primes[0].clone();
+                let pi = Expr::symbol("pi");
+                mul_opt(
+                    Expr::mul_expr(
+                        Expr::div_expr(Expr::number(-2.0), func("sqrt", pi)),
+                        func("exp", neg(Expr::pow(u, Expr::number(2.0)))),
+                    ),
+                    u_prime,
+                )
+            },
+        },
+        FunctionDefinition {
+            name: "gamma",
+            arity: 1..=1,
+            eval: |args| crate::math::eval_gamma(args[0]),
+            derivative: |args, arg_primes| {
+                // d/dx gamma(u) = gamma(u) * psi(u) * u'
+                let u = args[0].clone();
+                let u_prime = arg_primes[0].clone();
+                mul_opt(
+                    Expr::mul_expr(func("gamma", u.clone()), func("digamma", u)),
+                    u_prime,
+                )
+            },
+        },
+        FunctionDefinition {
+            name: "digamma",
+            arity: 1..=1,
+            eval: |args| crate::math::eval_digamma(args[0]),
+            derivative: |args, arg_primes| {
+                let u = args[0].clone();
+                let u_prime = arg_primes[0].clone();
+                mul_opt(func("trigamma", u), u_prime)
+            },
+        },
+        FunctionDefinition {
+            name: "trigamma",
+            arity: 1..=1,
+            eval: |args| crate::math::eval_trigamma(args[0]),
+            derivative: |args, arg_primes| {
+                let u = args[0].clone();
+                let u_prime = arg_primes[0].clone();
+                mul_opt(func("tetragamma", u), u_prime)
+            },
+        },
+        FunctionDefinition {
+            name: "beta",
+            arity: 2..=2,
+            eval: |args| {
+                let a = args[0];
+                let b = args[1];
+                let ga = crate::math::eval_gamma(a)?;
+                let gb = crate::math::eval_gamma(b)?;
+                let gab = crate::math::eval_gamma(a + b)?;
+                Some(ga * gb / gab)
+            },
+            derivative: |args, arg_primes| {
+                // d/dx beta(a,b) = beta(a,b) * (psi(a) - psi(a+b)) * a' + beta(a,b) * (psi(b) - psi(a+b)) * b'
+                let a = args[0].clone();
+                let b = args[1].clone();
+                let a_prime = arg_primes[0].clone();
+                let b_prime = arg_primes[1].clone();
+
+                let beta_ab = Expr::func_multi("beta", vec![a.clone(), b.clone()]);
+                let psi_a_plus_b = func("digamma", Expr::add_expr(a.clone(), b.clone()));
+
+                let term_a = mul_opt(
+                    Expr::mul_expr(
+                        beta_ab.clone(),
+                        Expr::sub_expr(func("digamma", a.clone()), psi_a_plus_b.clone()),
+                    ),
+                    a_prime,
+                );
+
+                let term_b = mul_opt(
+                    Expr::mul_expr(
+                        beta_ab,
+                        Expr::sub_expr(func("digamma", b.clone()), psi_a_plus_b),
+                    ),
+                    b_prime,
+                );
+
+                Expr::add_expr(term_a, term_b)
+            },
+        },
+        FunctionDefinition {
+            name: "besselj",
+            arity: 2..=2,
+            eval: |args| crate::math::bessel_j(args[0].round() as i32, args[1]),
+            derivative: |args, arg_primes| {
+                let n = args[0].clone();
+                let x = args[1].clone();
+                let x_prime = arg_primes[1].clone();
+
+                let half = Expr::number(0.5);
+                let n_minus_1 = Expr::sub_expr(n.clone(), Expr::number(1.0));
+                let n_plus_1 = Expr::add_expr(n.clone(), Expr::number(1.0));
+
+                let j_prev = Expr::func_multi("besselj", vec![n_minus_1, x.clone()]);
+                let j_next = Expr::func_multi("besselj", vec![n_plus_1, x.clone()]);
+
+                mul_opt(
+                    Expr::mul_expr(half, Expr::sub_expr(j_prev, j_next)),
+                    x_prime,
+                )
+            },
+        },
+        FunctionDefinition {
+            name: "bessely",
+            arity: 2..=2,
+            eval: |args| crate::math::bessel_y(args[0].round() as i32, args[1]),
+            derivative: |args, arg_primes| {
+                // d/dx Y_n(x) = (1/2)(Y_{n-1} - Y_{n+1}) * x'
+                let n = args[0].clone();
+                let x = args[1].clone();
+                let x_prime = arg_primes[1].clone();
+
+                let half = Expr::number(0.5);
+                let n_minus_1 = Expr::sub_expr(n.clone(), Expr::number(1.0));
+                let n_plus_1 = Expr::add_expr(n.clone(), Expr::number(1.0));
+
+                let y_prev = Expr::func_multi("bessely", vec![n_minus_1, x.clone()]);
+                let y_next = Expr::func_multi("bessely", vec![n_plus_1, x.clone()]);
+
+                mul_opt(
+                    Expr::mul_expr(half, Expr::sub_expr(y_prev, y_next)),
+                    x_prime,
+                )
+            },
+        },
+        FunctionDefinition {
+            name: "besseli",
+            arity: 2..=2,
+            eval: |args| crate::math::bessel_i(args[0].round() as i32, args[1]),
+            derivative: |args, arg_primes| {
+                // d/dx I_n(x) = (1/2)(I_{n-1} + I_{n+1}) * x'
+                let n = args[0].clone();
+                let x = args[1].clone();
+                let x_prime = arg_primes[1].clone();
+
+                let half = Expr::number(0.5);
+                let n_minus_1 = Expr::sub_expr(n.clone(), Expr::number(1.0));
+                let n_plus_1 = Expr::add_expr(n.clone(), Expr::number(1.0));
+
+                let i_prev = Expr::func_multi("besseli", vec![n_minus_1, x.clone()]);
+                let i_next = Expr::func_multi("besseli", vec![n_plus_1, x.clone()]);
+
+                mul_opt(
+                    Expr::mul_expr(half, Expr::add_expr(i_prev, i_next)),
+                    x_prime,
+                )
+            },
+        },
+        FunctionDefinition {
+            name: "besselk",
+            arity: 2..=2,
+            eval: |args| crate::math::bessel_k(args[0].round() as i32, args[1]),
+            derivative: |args, arg_primes| {
+                // d/dx K_n(x) = (-1/2)(K_{n-1} + K_{n+1}) * x'
+                let n = args[0].clone();
+                let x = args[1].clone();
+                let x_prime = arg_primes[1].clone();
+
+                let neg_half = Expr::number(-0.5);
+                let n_minus_1 = Expr::sub_expr(n.clone(), Expr::number(1.0));
+                let n_plus_1 = Expr::add_expr(n.clone(), Expr::number(1.0));
+
+                let k_prev = Expr::func_multi("besselk", vec![n_minus_1, x.clone()]);
+                let k_next = Expr::func_multi("besselk", vec![n_plus_1, x.clone()]);
+
+                mul_opt(
+                    Expr::mul_expr(neg_half, Expr::add_expr(k_prev, k_next)),
+                    x_prime,
+                )
+            },
+        },
+        FunctionDefinition {
+            name: "polygamma",
+            arity: 2..=2,
+            eval: |args| crate::math::eval_polygamma(args[0].round() as i32, args[1]),
+            derivative: |args, arg_primes| {
+                // d/dx polygamma(n, x) = polygamma(n+1, x) * x'
+                let n = args[0].clone();
+                let x = args[1].clone();
+                let x_prime = arg_primes[1].clone();
+
+                let n_plus_1 = Expr::add_expr(n, Expr::number(1.0));
+                let derivative = Expr::func_multi("polygamma", vec![n_plus_1, x]);
+
+                mul_opt(derivative, x_prime)
+            },
+        },
+        FunctionDefinition {
+            name: "sinc",
+            arity: 1..=1,
+            eval: |args| {
+                let x = args[0];
+                if x.abs() < 1e-10 {
+                    Some(1.0 - x * x / 6.0 + x.powi(4) / 120.0)
+                } else {
+                    Some(x.sin() / x)
+                }
+            },
+            derivative: |args, arg_primes| {
+                // d/dx sinc(u) = (u*cos(u) - sin(u))/u^2 * u'
+                let u = args[0].clone();
+                let u_prime = arg_primes[0].clone();
+                let lhs = Expr::div_expr(
+                    Expr::sub_expr(
+                        Expr::mul_expr(func("cos", u.clone()), u.clone()),
+                        func("sin", u.clone()),
+                    ),
+                    Expr::pow(u, Expr::number(2.0)),
+                );
+                mul_opt(lhs, u_prime)
+            },
+        },
+        FunctionDefinition {
+            name: "LambertW",
+            arity: 1..=1,
+            eval: |args| crate::math::eval_lambert_w(args[0]),
+            derivative: |args, arg_primes| {
+                // d/dx W(u) = W(u) / (u(1+W(u))) * u'
+                let u = args[0].clone();
+                let u_prime = arg_primes[0].clone();
+                let w = func("LambertW", u.clone());
+                mul_opt(
+                    Expr::div_expr(
+                        w.clone(),
+                        Expr::mul_expr(u, Expr::add_expr(Expr::number(1.0), w)),
+                    ),
+                    u_prime,
+                )
+            },
+        },
+        // Rounding
+        FunctionDefinition {
+            name: "floor",
+            arity: 1..=1,
+            eval: |args| Some(args[0].floor()),
+            derivative: |_, _| Expr::number(0.0),
+        },
+        FunctionDefinition {
+            name: "ceil",
+            arity: 1..=1,
+            eval: |args| Some(args[0].ceil()),
+            derivative: |_, _| Expr::number(0.0),
+        },
+        FunctionDefinition {
+            name: "round",
+            arity: 1..=1,
+            eval: |args| Some(args[0].round()),
+            derivative: |_, _| Expr::number(0.0),
+        },
+        // Elliptic Integrals
+        FunctionDefinition {
+            name: "elliptic_k",
+            arity: 1..=1,
+            eval: |args| crate::math::eval_elliptic_k(args[0]),
+            derivative: |args, arg_primes| {
+                // d/dk K(k) = (E(k)/(k(1-k^2)) - K(k)/k) * k'
+                let k = args[0].clone();
+                let k_prime = arg_primes[0].clone();
+                let big_k = func("elliptic_k", k.clone());
+                let big_e = func("elliptic_e", k.clone());
+
+                // term1 = E(k) / (k * (1 - k^2))
+                let term1 = Expr::div_expr(
+                    big_e,
+                    Expr::mul_expr(
+                        k.clone(),
+                        Expr::sub_expr(Expr::number(1.0), Expr::pow(k.clone(), Expr::number(2.0))),
+                    ),
+                );
+                // term2 = K(k) / k
+                let term2 = Expr::div_expr(big_k, k);
+
+                mul_opt(Expr::sub_expr(term1, term2), k_prime)
+            },
+        },
+        FunctionDefinition {
+            name: "elliptic_e",
+            arity: 1..=1,
+            eval: |args| crate::math::eval_elliptic_e(args[0]),
+            derivative: |args, arg_primes| {
+                // d/dk E(k) = (E(k) - K(k)) / k * k'
+                let k = args[0].clone();
+                let k_prime = arg_primes[0].clone();
+                let big_k = func("elliptic_k", k.clone());
+                let big_e = func("elliptic_e", k.clone());
+
+                mul_opt(Expr::div_expr(Expr::sub_expr(big_e, big_k), k), k_prime)
+            },
+        },
+        // Other Special Functions
+        FunctionDefinition {
+            name: "zeta",
+            arity: 1..=1,
+            eval: |args| crate::math::eval_zeta_deriv(0, args[0]),
+            derivative: |args, arg_primes| {
+                // d/ds zeta(s) = zeta_deriv(1, s) * s'
+                let s = args[0].clone();
+                let s_prime = arg_primes[0].clone();
+                // We use "zeta_deriv" with order 1
+                let zp = Expr::func_multi("zeta_deriv", vec![Expr::number(1.0), s]);
+                mul_opt(zp, s_prime)
+            },
+        },
+        FunctionDefinition {
+            name: "zeta_deriv",
+            arity: 2..=2,
+            eval: |args| crate::math::eval_zeta_deriv(args[0].round() as i32, args[1]),
+            derivative: |args, arg_primes| {
+                // d/ds zeta_deriv(n, s) = zeta_deriv(n+1, s) * s'
+                // Assuming n is constant
+                let n = args[0].clone();
+                let s = args[1].clone();
+                let s_prime = arg_primes[1].clone();
+
+                let n_plus_1 = Expr::add_expr(n, Expr::number(1.0));
+                let next_deriv = Expr::func_multi("zeta_deriv", vec![n_plus_1, s]);
+
+                mul_opt(next_deriv, s_prime)
+            },
+        },
+        FunctionDefinition {
+            name: "hermite",
+            arity: 2..=2,
+            eval: |args| crate::math::eval_hermite(args[0].round() as i32, args[1]),
+            derivative: |args, arg_primes| {
+                // d/dx H_n(x) = 2n H_{n-1}(x) * x'
+                // We assume n is constant w.r.t differentiation variable
+                let n = args[0].clone();
+                let x = args[1].clone();
+                let x_prime = arg_primes[1].clone();
+
+                let two_n = Expr::mul_expr(Expr::number(2.0), n.clone());
+                let n_minus_1 = Expr::sub_expr(n, Expr::number(1.0));
+                let h_prev = Expr::func_multi("hermite", vec![n_minus_1, x]);
+
+                mul_opt(Expr::mul_expr(two_n, h_prev), x_prime)
+            },
+        },
+        FunctionDefinition {
+            name: "assoc_legendre",
+            arity: 3..=3,
+            eval: |args| {
+                crate::math::eval_assoc_legendre(
+                    args[0].round() as i32,
+                    args[1].round() as i32,
+                    args[2],
+                )
+            },
+            derivative: |args, arg_primes| {
+                // d/dx P_l^m(x) = (l*x*P_l^m(x) - (l+m)*P_{l-1}^m(x)) / (x^2 - 1) * x'
+                let l = args[0].clone();
+                let m = args[1].clone();
+                let x = args[2].clone();
+                let x_prime = arg_primes[2].clone();
+
+                let term1 = Expr::mul_expr(
+                    Expr::mul_expr(l.clone(), x.clone()),
+                    Expr::func_multi("assoc_legendre", vec![l.clone(), m.clone(), x.clone()]),
+                );
+
+                let l_plus_m = Expr::add_expr(l.clone(), m.clone());
+                let l_minus_1 = Expr::sub_expr(l.clone(), Expr::number(1.0));
+                let term2 = Expr::mul_expr(
+                    l_plus_m,
+                    Expr::func_multi("assoc_legendre", vec![l_minus_1, m.clone(), x.clone()]),
+                );
+
+                let numerator = Expr::sub_expr(term1, term2);
+                let denominator =
+                    Expr::sub_expr(Expr::pow(x.clone(), Expr::number(2.0)), Expr::number(1.0));
+
+                mul_opt(Expr::div_expr(numerator, denominator), x_prime)
+            },
+        },
+        FunctionDefinition {
+            name: "spherical_harmonic",
+            arity: 4..=4,
+            eval: |args| {
+                crate::math::eval_spherical_harmonic(
+                    args[0].round() as i32,
+                    args[1].round() as i32,
+                    args[2],
+                    args[3],
+                )
+            },
+            derivative: |args, arg_primes| {
+                let l = args[0].clone();
+                let m = args[1].clone();
+                let theta = args[2].clone();
+                let phi = args[3].clone();
+
+                let theta_prime = arg_primes[2].clone();
+                let phi_prime = arg_primes[3].clone();
+
+                // Y chain rule
+                let y_expr = Expr::func_multi(
+                    "spherical_harmonic",
+                    vec![l.clone(), m.clone(), theta.clone(), phi.clone()],
+                );
+
+                // 1. d/dpsi contribution: -m * tan(m*phi) * Y * phi'
+                let m_phi = Expr::mul_expr(m.clone(), phi.clone());
+                let term_phi_part = Expr::mul_expr(
+                    Expr::mul_expr(neg(m.clone()), func("tan", m_phi)),
+                    y_expr.clone(),
+                );
+                let term_phi = mul_opt(term_phi_part, phi_prime);
+
+                // 2. d/dtheta contribution:
+                // derived as: Y * [ l*cot(theta) - (l+m)/sin(theta) * (P_{l-1}/P) ] * theta'
+                let cos_theta = func("cos", theta.clone());
+                let sin_theta = func("sin", theta.clone());
+                let l_minus_1 = Expr::sub_expr(l.clone(), Expr::number(1.0));
+
+                let p_expr = Expr::func_multi(
+                    "assoc_legendre",
+                    vec![l.clone(), m.clone(), cos_theta.clone()],
+                );
+                let p_prev = Expr::func_multi(
+                    "assoc_legendre",
+                    vec![l_minus_1, m.clone(), cos_theta.clone()],
+                );
+
+                let term_a = Expr::mul_expr(
+                    y_expr.clone(),
+                    Expr::mul_expr(l.clone(), func("cot", theta.clone())),
+                );
+
+                let l_plus_m = Expr::add_expr(l.clone(), m.clone());
+                let term_b = Expr::mul_expr(
+                    Expr::div_expr(Expr::mul_expr(y_expr.clone(), l_plus_m), sin_theta),
+                    Expr::div_expr(p_prev, p_expr),
+                );
+
+                let term_theta = mul_opt(Expr::sub_expr(term_a, term_b), theta_prime);
+
+                Expr::add_expr(term_theta, term_phi)
+            },
+        },
+        // Aliases and Test Helpers
+        FunctionDefinition {
+            name: "lambertw",
+            arity: 1..=1,
+            eval: |args| crate::math::eval_lambert_w(args[0]),
+            derivative: |args, arg_primes| {
+                let u = args[0].clone();
+                let u_prime = arg_primes[0].clone();
+                let w = func("lambertw", u.clone());
+                mul_opt(
+                    Expr::div_expr(
+                        w.clone(),
+                        Expr::mul_expr(u, Expr::add_expr(Expr::number(1.0), w)),
+                    ),
+                    u_prime,
+                )
+            },
+        },
+        FunctionDefinition {
+            name: "tetragamma",
+            arity: 1..=1,
+            eval: |args| crate::math::eval_tetragamma(args[0]),
+            derivative: |args, arg_primes| {
+                let u = args[0].clone();
+                let u_prime = arg_primes[0].clone();
+                let deriv = Expr::func_multi("polygamma", vec![Expr::number(3.0), u]);
+                mul_opt(deriv, u_prime)
+            },
+        },
+        FunctionDefinition {
+            name: "ynm",
+            arity: 4..=4,
+            eval: |args| {
+                crate::math::eval_spherical_harmonic(
+                    args[0].round() as i32,
+                    args[1].round() as i32,
+                    args[2],
+                    args[3],
+                )
+            },
+            derivative: |args, arg_primes| {
+                let l = args[0].clone();
+                let m = args[1].clone();
+                let theta = args[2].clone();
+                let phi = args[3].clone();
+
+                let theta_prime = arg_primes[2].clone();
+                let phi_prime = arg_primes[3].clone();
+
+                let y_expr = Expr::func_multi(
+                    "ynm",
+                    vec![l.clone(), m.clone(), theta.clone(), phi.clone()],
+                );
+
+                // d/dphi
+                let m_phi = Expr::mul_expr(m.clone(), phi.clone());
+                let term_phi = mul_opt(
+                    Expr::mul_expr(
+                        Expr::mul_expr(neg(m.clone()), func("tan", m_phi)),
+                        y_expr.clone(),
+                    ),
+                    phi_prime,
+                );
+
+                // d/dtheta
+                let cos_theta = func("cos", theta.clone());
+                let sin_theta = func("sin", theta.clone());
+                let l_minus_1 = Expr::sub_expr(l.clone(), Expr::number(1.0));
+
+                let p_expr = Expr::func_multi(
+                    "assoc_legendre",
+                    vec![l.clone(), m.clone(), cos_theta.clone()],
+                );
+                let p_prev = Expr::func_multi(
+                    "assoc_legendre",
+                    vec![l_minus_1, m.clone(), cos_theta.clone()],
+                );
+
+                let term_a = Expr::mul_expr(
+                    y_expr.clone(),
+                    Expr::mul_expr(l.clone(), func("cot", theta.clone())),
+                );
+                let l_plus_m = Expr::add_expr(l.clone(), m.clone());
+                let term_b = Expr::mul_expr(
+                    Expr::div_expr(Expr::mul_expr(y_expr.clone(), l_plus_m), sin_theta),
+                    Expr::div_expr(p_prev, p_expr),
+                );
+
+                let term_theta = mul_opt(Expr::sub_expr(term_a, term_b), theta_prime);
+
+                Expr::add_expr(term_theta, term_phi)
+            },
+        },
+        FunctionDefinition {
+            name: "exp_polar",
+            arity: 1..=1,
+            eval: |args| Some(crate::math::eval_exp_polar(args[0])),
+            derivative: |args, arg_primes| {
+                let x = args[0].clone();
+                let x_prime = arg_primes[0].clone();
+                // d/dx exp_polar(x) = exp_polar(x)
+                mul_opt(func("exp_polar", x), x_prime)
+            },
+        },
+    ]
+}

@@ -1,8 +1,7 @@
-use crate::ast::Expr;
+use crate::ast::{Expr, ExprKind as AstKind};
 use crate::simplification::helpers;
 use crate::simplification::patterns::common::extract_coefficient;
 use crate::simplification::rules::{ExprKind, Rule, RuleCategory, RuleContext};
-use std::rc::Rc;
 
 rule!(
     TrigDoubleAngleRule,
@@ -11,24 +10,15 @@ rule!(
     Trigonometric,
     &[ExprKind::Function],
     |expr: &Expr, _context: &RuleContext| {
-        if let Expr::FunctionCall { name, args } = expr
+        if let AstKind::FunctionCall { name, args } = &expr.kind
             && name == "sin"
             && args.len() == 1
         {
             let (coeff, rest) = extract_coefficient(&args[0]);
             if coeff == 2.0 {
-                return Some(Expr::Mul(
-                    Rc::new(Expr::Number(2.0)),
-                    Rc::new(Expr::Mul(
-                        Rc::new(Expr::FunctionCall {
-                            name: "sin".to_string(),
-                            args: vec![rest.clone()],
-                        }),
-                        Rc::new(Expr::FunctionCall {
-                            name: "cos".to_string(),
-                            args: vec![rest],
-                        }),
-                    )),
+                return Some(Expr::mul_expr(
+                    Expr::number(2.0),
+                    Expr::mul_expr(Expr::func("sin", rest.clone()), Expr::func("cos", rest)),
                 ));
             }
         }
@@ -43,14 +33,14 @@ rule!(
     Trigonometric,
     &[ExprKind::Add, ExprKind::Sub],
     |expr: &Expr, _context: &RuleContext| {
-        let (pos, neg) = match expr {
-            Expr::Sub(u, v) => (u, v),
-            Expr::Add(u, v) => {
-                if let Expr::Mul(c, inner) = &**u {
-                    if matches!(**c, Expr::Number(n) if n == -1.0) {
+        let (pos, neg) = match &expr.kind {
+            AstKind::Sub(u, v) => (u, v),
+            AstKind::Add(u, v) => {
+                if let AstKind::Mul(c, inner) = &u.kind {
+                    if matches!(&c.kind, AstKind::Number(n) if *n == -1.0) {
                         (v, inner)
-                    } else if let Expr::Mul(c, inner) = &**v {
-                        if matches!(**c, Expr::Number(n) if n == -1.0) {
+                    } else if let AstKind::Mul(c, inner) = &v.kind {
+                        if matches!(&c.kind, AstKind::Number(n) if *n == -1.0) {
                             (u, inner)
                         } else {
                             return None;
@@ -58,8 +48,8 @@ rule!(
                     } else {
                         return None;
                     }
-                } else if let Expr::Mul(c, inner) = &**v {
-                    if matches!(**c, Expr::Number(n) if n == -1.0) {
+                } else if let AstKind::Mul(c, inner) = &v.kind {
+                    if matches!(&c.kind, AstKind::Number(n) if *n == -1.0) {
                         (u, inner)
                     } else {
                         return None;
@@ -75,22 +65,16 @@ rule!(
             && let Some(("sin", arg2)) = helpers::get_fn_pow_named(neg, 2.0)
             && arg1 == arg2
         {
-            return Some(Expr::FunctionCall {
-                name: "cos".to_string(),
-                args: vec![Expr::Mul(Rc::new(Expr::Number(2.0)), Rc::new(arg1))],
-            });
+            return Some(Expr::func("cos", Expr::mul_expr(Expr::number(2.0), arg1)));
         }
 
         if let Some(("sin", arg1)) = helpers::get_fn_pow_named(pos, 2.0)
             && let Some(("cos", arg2)) = helpers::get_fn_pow_named(neg, 2.0)
             && arg1 == arg2
         {
-            return Some(Expr::Mul(
-                Rc::new(Expr::Number(-1.0)),
-                Rc::new(Expr::FunctionCall {
-                    name: "cos".to_string(),
-                    args: vec![Expr::Mul(Rc::new(Expr::Number(2.0)), Rc::new(arg1))],
-                }),
+            return Some(Expr::mul_expr(
+                Expr::number(-1.0),
+                Expr::func("cos", Expr::mul_expr(Expr::number(2.0), arg1)),
             ));
         }
 
@@ -105,8 +89,8 @@ rule!(
     Trigonometric,
     &[ExprKind::Add, ExprKind::Sub],
     |expr: &Expr, _context: &RuleContext| {
-        match expr {
-            Expr::Add(u, v) => {
+        match &expr.kind {
+            AstKind::Add(u, v) => {
                 if let Some((x, y)) = helpers::get_product_fn_args(u, "sin", "cos")
                     .and_then(|(s1, c1)| {
                         helpers::get_product_fn_args(v, "sin", "cos")
@@ -120,13 +104,10 @@ rule!(
                         }
                     })
                 {
-                    return Some(Expr::FunctionCall {
-                        name: "sin".to_string(),
-                        args: vec![Expr::Add(Rc::new(x), Rc::new(y))],
-                    });
+                    return Some(Expr::func("sin", Expr::add_expr(x, y)));
                 }
             }
-            Expr::Sub(u, v) => {
+            AstKind::Sub(u, v) => {
                 if let Some((x, y)) = helpers::get_product_fn_args(u, "sin", "cos")
                     .and_then(|(s1, c1)| {
                         helpers::get_product_fn_args(v, "cos", "sin")
@@ -140,19 +121,13 @@ rule!(
                         }
                     })
                 {
-                    return Some(Expr::FunctionCall {
-                        name: "sin".to_string(),
-                        args: vec![Expr::Sub(Rc::new(x), Rc::new(y))],
-                    });
+                    return Some(Expr::func("sin", Expr::sub_expr(x, y)));
                 }
                 if let Some((cx, cy)) = helpers::get_product_fn_args(u, "cos", "cos")
                     && let Some((sx, sy)) = helpers::get_product_fn_args(v, "sin", "sin")
                     && ((cx == sx && cy == sy) || (cx == sy && cy == sx))
                 {
-                    return Some(Expr::FunctionCall {
-                        name: "cos".to_string(),
-                        args: vec![Expr::Add(Rc::new(cx), Rc::new(cy))],
-                    });
+                    return Some(Expr::func("cos", Expr::add_expr(cx, cy)));
                 }
             }
             _ => {}
@@ -162,11 +137,11 @@ rule!(
 );
 
 fn is_cos_minus_sin(expr: &Expr) -> bool {
-    if let Expr::Sub(a, b) = expr {
+    if let AstKind::Sub(a, b) = &expr.kind {
         is_cos(a) && is_sin(b)
-    } else if let Expr::Add(a, b) = expr {
-        if let Expr::Mul(left, right) = &**b {
-            if matches!(**left, Expr::Number(n) if n == -1.0) {
+    } else if let AstKind::Add(a, b) = &expr.kind {
+        if let AstKind::Mul(left, right) = &b.kind {
+            if matches!(&left.kind, AstKind::Number(n) if *n == -1.0) {
                 is_cos(a) && is_sin(right)
             } else {
                 false
@@ -180,7 +155,7 @@ fn is_cos_minus_sin(expr: &Expr) -> bool {
 }
 
 fn is_cos_plus_sin(expr: &Expr) -> bool {
-    if let Expr::Add(a, b) = expr {
+    if let AstKind::Add(a, b) = &expr.kind {
         is_cos(a) && is_sin(b)
     } else {
         false
@@ -188,23 +163,23 @@ fn is_cos_plus_sin(expr: &Expr) -> bool {
 }
 
 fn is_cos(expr: &Expr) -> bool {
-    matches!(expr, Expr::FunctionCall { name, args } if name == "cos" && args.len() == 1)
+    matches!(&expr.kind, AstKind::FunctionCall { name, args } if name == "cos" && args.len() == 1)
 }
 
 fn is_sin(expr: &Expr) -> bool {
-    matches!(expr, Expr::FunctionCall { name, args } if name == "sin" && args.len() == 1)
+    matches!(&expr.kind, AstKind::FunctionCall { name, args } if name == "sin" && args.len() == 1)
 }
 
 fn get_cos_arg(expr: &Expr) -> Option<Expr> {
-    if let Expr::FunctionCall { name, args } = expr {
+    if let AstKind::FunctionCall { name, args } = &expr.kind {
         if name == "cos" && args.len() == 1 {
             Some(args[0].clone())
         } else {
             None
         }
-    } else if let Expr::Add(a, _) = expr {
+    } else if let AstKind::Add(a, _) = &expr.kind {
         get_cos_arg(a)
-    } else if let Expr::Sub(a, _) = expr {
+    } else if let AstKind::Sub(a, _) = &expr.kind {
         get_cos_arg(a)
     } else {
         None
@@ -212,15 +187,15 @@ fn get_cos_arg(expr: &Expr) -> Option<Expr> {
 }
 
 fn get_sin_arg(expr: &Expr) -> Option<Expr> {
-    if let Expr::FunctionCall { name, args } = expr {
+    if let AstKind::FunctionCall { name, args } = &expr.kind {
         if name == "sin" && args.len() == 1 {
             Some(args[0].clone())
         } else {
             None
         }
-    } else if let Expr::Add(_, b) = expr {
-        if let Expr::Mul(left, right) = &**b {
-            if matches!(**left, Expr::Number(n) if n == -1.0) {
+    } else if let AstKind::Add(_, b) = &expr.kind {
+        if let AstKind::Mul(left, right) = &b.kind {
+            if matches!(&left.kind, AstKind::Number(n) if *n == -1.0) {
                 get_sin_arg(right)
             } else {
                 None
@@ -228,7 +203,7 @@ fn get_sin_arg(expr: &Expr) -> Option<Expr> {
         } else {
             get_sin_arg(b)
         }
-    } else if let Expr::Sub(_, b) = expr {
+    } else if let AstKind::Sub(_, b) = &expr.kind {
         get_sin_arg(b)
     } else {
         None
@@ -242,7 +217,7 @@ rule!(
     Trigonometric,
     &[ExprKind::Mul],
     |expr: &Expr, _context: &RuleContext| {
-        if let Expr::Mul(a, b) = expr {
+        if let AstKind::Mul(a, b) = &expr.kind {
             let (cos_minus_sin, cos_plus_sin) = if is_cos_minus_sin(a) && is_cos_plus_sin(b) {
                 (a, b)
             } else if is_cos_minus_sin(b) && is_cos_plus_sin(a) {
@@ -256,10 +231,7 @@ rule!(
                 && get_sin_arg(cos_minus_sin) == Some(arg.clone())
                 && get_sin_arg(cos_plus_sin) == Some(arg.clone())
             {
-                return Some(Expr::FunctionCall {
-                    name: "cos".to_string(),
-                    args: vec![Expr::Mul(Rc::new(Expr::Number(2.0)), Rc::new(arg))],
-                });
+                return Some(Expr::func("cos", Expr::mul_expr(Expr::number(2.0), arg)));
             }
         }
         None

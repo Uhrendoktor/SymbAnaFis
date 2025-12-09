@@ -1,6 +1,5 @@
-use crate::Expr;
 use crate::simplification::rules::{ExprKind, Rule, RuleCategory, RuleContext};
-use std::rc::Rc;
+use crate::{Expr, ExprKind as AstKind};
 
 rule!(
     AbsNumericRule,
@@ -9,12 +8,12 @@ rule!(
     Algebraic,
     &[ExprKind::Function],
     |expr: &Expr, _context: &RuleContext| {
-        if let Expr::FunctionCall { name, args } = expr
+        if let AstKind::FunctionCall { name, args } = &expr.kind
             && (name == "abs" || name == "Abs")
             && args.len() == 1
-            && let Expr::Number(n) = &args[0]
+            && let AstKind::Number(n) = &args[0].kind
         {
-            return Some(Expr::Number(n.abs()));
+            return Some(Expr::number(n.abs()));
         }
         None
     }
@@ -27,13 +26,13 @@ rule!(
     Algebraic,
     &[ExprKind::Function],
     |expr: &Expr, _context: &RuleContext| {
-        if let Expr::FunctionCall { name, args } = expr
+        if let AstKind::FunctionCall { name, args } = &expr.kind
             && (name == "abs" || name == "Abs")
             && args.len() == 1
-            && let Expr::FunctionCall {
+            && let AstKind::FunctionCall {
                 name: inner_name,
                 args: inner_args,
-            } = &args[0]
+            } = &args[0].kind
             && (inner_name == "abs" || inner_name == "Abs")
             && inner_args.len() == 1
         {
@@ -50,19 +49,19 @@ rule!(
     Algebraic,
     &[ExprKind::Function],
     |expr: &Expr, _context: &RuleContext| {
-        if let Expr::FunctionCall { name, args } = expr
+        if let AstKind::FunctionCall { name, args } = &expr.kind
             && (name == "abs" || name == "Abs")
             && args.len() == 1
         {
             // Check for -x (represented as Mul(-1, x))
-            if let Expr::Mul(a, b) = &args[0]
-                && let Expr::Number(n) = &**a
+            if let AstKind::Mul(a, b) = &args[0].kind
+                && let AstKind::Number(n) = &a.kind
                 && *n == -1.0
             {
-                return Some(Expr::FunctionCall {
+                return Some(Expr::new(AstKind::FunctionCall {
                     name: "abs".to_string(),
                     args: vec![(**b).clone()],
-                });
+                }));
             }
         }
         None
@@ -76,13 +75,13 @@ rule!(
     Algebraic,
     &[ExprKind::Function],
     |expr: &Expr, _context: &RuleContext| {
-        if let Expr::FunctionCall { name, args } = expr
+        if let AstKind::FunctionCall { name, args } = &expr.kind
             && (name == "abs" || name == "Abs")
             && args.len() == 1
         {
             // Check for x^(even number)
-            if let Expr::Pow(_, exp) = &args[0]
-                && let Expr::Number(n) = &**exp
+            if let AstKind::Pow(_, exp) = &args[0].kind
+                && let AstKind::Number(n) = &exp.kind
             {
                 // Check if exponent is a positive even integer
                 if *n > 0.0 && n.fract() == 0.0 && (*n as i64) % 2 == 0 {
@@ -102,15 +101,15 @@ rule!(
     &[ExprKind::Pow],
     |expr: &Expr, _context: &RuleContext| {
         // abs(x)^n where n is positive even integer -> x^n
-        if let Expr::Pow(base, exp) = expr
-            && let Expr::FunctionCall { name, args } = &**base
+        if let AstKind::Pow(base, exp) = &expr.kind
+            && let AstKind::FunctionCall { name, args } = &base.kind
             && (name == "abs" || name == "Abs")
             && args.len() == 1
-            && let Expr::Number(n) = &**exp
+            && let AstKind::Number(n) = &exp.kind
         {
             // Check if exponent is a positive even integer
             if *n > 0.0 && n.fract() == 0.0 && (*n as i64) % 2 == 0 {
-                return Some(Expr::Pow(Rc::new(args[0].clone()), exp.clone()));
+                return Some(Expr::pow(args[0].clone(), exp.as_ref().clone()));
             }
         }
         None
@@ -124,17 +123,17 @@ rule!(
     Algebraic,
     &[ExprKind::Function],
     |expr: &Expr, _context: &RuleContext| {
-        if let Expr::FunctionCall { name, args } = expr
+        if let AstKind::FunctionCall { name, args } = &expr.kind
             && (name == "sign" || name == "sgn")
             && args.len() == 1
-            && let Expr::Number(n) = &args[0]
+            && let AstKind::Number(n) = &args[0].kind
         {
             if *n > 0.0 {
-                return Some(Expr::Number(1.0));
+                return Some(Expr::number(1.0));
             } else if *n < 0.0 {
-                return Some(Expr::Number(-1.0));
+                return Some(Expr::number(-1.0));
             } else {
-                return Some(Expr::Number(0.0));
+                return Some(Expr::number(0.0));
             }
         }
         None
@@ -148,12 +147,12 @@ rule!(
     Algebraic,
     &[ExprKind::Function],
     |expr: &Expr, _context: &RuleContext| {
-        if let Expr::FunctionCall { name, args } = expr
+        if let AstKind::FunctionCall { name, args } = &expr.kind
             && (name == "sign" || name == "sgn")
             && args.len() == 1
-            && let Expr::FunctionCall {
+            && let AstKind::FunctionCall {
                 name: inner_name, ..
-            } = &args[0]
+            } = &args[0].kind
             && (inner_name == "sign" || inner_name == "sgn")
         {
             return Some(args[0].clone());
@@ -169,16 +168,16 @@ rule!(
     Algebraic,
     &[ExprKind::Function],
     |expr: &Expr, _context: &RuleContext| {
-        if let Expr::FunctionCall { name, args } = expr
+        if let AstKind::FunctionCall { name, args } = &expr.kind
             && (name == "sign" || name == "sgn")
             && args.len() == 1
-            && let Expr::FunctionCall {
+            && let AstKind::FunctionCall {
                 name: inner_name, ..
-            } = &args[0]
+            } = &args[0].kind
             && (inner_name == "abs" || inner_name == "Abs")
         {
             // sign(abs(x)) = 1 for x != 0
-            return Some(Expr::Number(1.0));
+            return Some(Expr::number(1.0));
         }
         None
     }
@@ -191,19 +190,19 @@ rule!(
     Algebraic,
     &[ExprKind::Mul],
     |expr: &Expr, _context: &RuleContext| {
-        if let Expr::Mul(a, b) = expr {
+        if let AstKind::Mul(a, b) = &expr.kind {
             // Check for abs(x) * sign(x) or sign(x) * abs(x)
             let check_pair = |left: &Expr, right: &Expr| -> Option<Expr> {
                 if let (
-                    Expr::FunctionCall {
+                    AstKind::FunctionCall {
                         name: name1,
                         args: args1,
                     },
-                    Expr::FunctionCall {
+                    AstKind::FunctionCall {
                         name: name2,
                         args: args2,
                     },
-                ) = (left, right)
+                ) = (&left.kind, &right.kind)
                     && (name1 == "abs" || name1 == "Abs")
                     && (name2 == "sign" || name2 == "sgn")
                     && args1.len() == 1

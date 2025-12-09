@@ -1,13 +1,13 @@
-use crate::ast::Expr;
+use crate::ast::{Expr, ExprKind as AstExprKind};
 use crate::simplification::rules::{ExprKind, Rule, RuleCategory, RuleContext};
 
 rule!(InverseTrigIdentityRule, "inverse_trig_identity", 90, Trigonometric, &[ExprKind::Function], alters_domain: true, |expr: &Expr, _context: &RuleContext| {
-    if let Expr::FunctionCall { name, args } = expr
+    if let AstExprKind::FunctionCall { name, args } = &expr.kind
         && args.len() == 1
-        && let Expr::FunctionCall {
+        && let AstExprKind::FunctionCall {
             name: inner_name,
             args: inner_args,
-        } = &args[0]
+        } = &args[0].kind
         && inner_args.len() == 1
     {
         let inner_arg = &inner_args[0];
@@ -22,12 +22,12 @@ rule!(InverseTrigIdentityRule, "inverse_trig_identity", 90, Trigonometric, &[Exp
 });
 
 rule!(InverseTrigCompositionRule, "inverse_trig_composition", 85, Trigonometric, &[ExprKind::Function], alters_domain: true, |expr: &Expr, _context: &RuleContext| {
-    if let Expr::FunctionCall { name, args } = expr
+    if let AstExprKind::FunctionCall { name, args } = &expr.kind
         && args.len() == 1
-        && let Expr::FunctionCall {
+        && let AstExprKind::FunctionCall {
             name: inner_name,
             args: inner_args,
-        } = &args[0]
+        } = &args[0].kind
         && inner_args.len() == 1
     {
         let inner_arg = &inner_args[0];

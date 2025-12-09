@@ -1,6 +1,6 @@
-use crate::ast::Expr;
+use crate::ast::{Expr, ExprKind as AstKind};
 use crate::simplification::rules::{ExprKind, Rule, RuleCategory, RuleContext};
-use std::rc::Rc;
+use std::sync::Arc;
 
 rule!(
     LnOneRule,
@@ -9,12 +9,12 @@ rule!(
     Exponential,
     &[ExprKind::Function],
     |expr: &Expr, _context: &RuleContext| {
-        if let Expr::FunctionCall { name, args } = expr
+        if let AstKind::FunctionCall { name, args } = &expr.kind
             && name == "ln"
             && args.len() == 1
-            && matches!(args[0], Expr::Number(n) if n == 1.0)
+            && matches!(&args[0].kind, AstKind::Number(n) if *n == 1.0)
         {
-            return Some(Expr::Number(0.0));
+            return Some(Expr::number(0.0));
         }
         None
     }
@@ -27,22 +27,22 @@ rule!(
     Exponential,
     &[ExprKind::Function],
     |expr: &Expr, context: &RuleContext| {
-        if let Expr::FunctionCall { name, args } = expr
+        if let AstKind::FunctionCall { name, args } = &expr.kind
             && name == "ln"
             && args.len() == 1
         {
             // Check for ln(exp(1))
-            if matches!(&args[0], Expr::FunctionCall { name: exp_name, args: exp_args }
-                       if exp_name == "exp" && exp_args.len() == 1 && matches!(exp_args[0], Expr::Number(n) if n == 1.0))
+            if matches!(&args[0].kind, AstKind::FunctionCall { name: exp_name, args: exp_args }
+                       if exp_name == "exp" && exp_args.len() == 1 && matches!(&exp_args[0].kind, AstKind::Number(n) if *n == 1.0))
             {
-                return Some(Expr::Number(1.0));
+                return Some(Expr::number(1.0));
             }
             // Check for ln(e) where e is a symbol (and not a user-defined variable)
-            if let Expr::Symbol(s) = &args[0]
+            if let AstKind::Symbol(s) = &args[0].kind
                 && s == "e"
                 && !context.fixed_vars.contains("e")
             {
-                return Some(Expr::Number(1.0));
+                return Some(Expr::number(1.0));
             }
         }
         None
@@ -56,25 +56,25 @@ rule!(
     Exponential,
     &[ExprKind::Function],
     |expr: &Expr, _context: &RuleContext| {
-        if let Expr::FunctionCall { name, args } = expr
+        if let AstKind::FunctionCall { name, args } = &expr.kind
             && name == "exp"
             && args.len() == 1
-            && matches!(args[0], Expr::Number(n) if n == 0.0)
+            && matches!(&args[0].kind, AstKind::Number(n) if *n == 0.0)
         {
-            return Some(Expr::Number(1.0));
+            return Some(Expr::number(1.0));
         }
         None
     }
 );
 
 rule!(ExpLnIdentityRule, "exp_ln_identity", 90, Exponential, &[ExprKind::Function], alters_domain: true, |expr: &Expr, _context: &RuleContext| {
-    if let Expr::FunctionCall { name, args } = expr
+    if let AstKind::FunctionCall { name, args } = &expr.kind
         && name == "exp"
         && args.len() == 1
-        && let Expr::FunctionCall {
+        && let AstKind::FunctionCall {
             name: inner_name,
             args: inner_args,
-        } = &args[0]
+        } = &args[0].kind
         && inner_name == "ln"
         && inner_args.len() == 1
     {
@@ -84,26 +84,26 @@ rule!(ExpLnIdentityRule, "exp_ln_identity", 90, Exponential, &[ExprKind::Functio
 });
 
 rule!(LnExpIdentityRule, "ln_exp_identity", 90, Exponential, &[ExprKind::Function], alters_domain: true, |expr: &Expr, _context: &RuleContext| {
-    if let Expr::FunctionCall { name, args } = expr
+    if let AstKind::FunctionCall { name, args } = &expr.kind
         && name == "ln"
         && args.len() == 1
     {
         // Check for ln(exp(x))
-        if let Expr::FunctionCall {
+        if let AstKind::FunctionCall {
             name: inner_name,
             args: inner_args,
-        } = &args[0]
+        } = &args[0].kind
             && inner_name == "exp"
             && inner_args.len() == 1
         {
             return Some(inner_args[0].clone());
         }
         // Check for ln(e^x)
-        if let Expr::Pow(base, exp) = &args[0]
-            && let Expr::Symbol(b) = &**base
+        if let AstKind::Pow(base, exp) = &args[0].kind
+            && let AstKind::Symbol(b) = &base.kind
             && b == "e"
         {
-            return Some(exp.as_ref().clone());
+            return Some((**exp).clone());
         }
     }
     None
@@ -116,50 +116,44 @@ rule!(
     Exponential,
     &[ExprKind::Function],
     |expr: &Expr, context: &RuleContext| {
-        if let Expr::FunctionCall { name, args } = expr
+        if let AstKind::FunctionCall { name, args } = &expr.kind
             && args.len() == 1
             && (name == "ln" || name == "log10" || name == "log2")
         {
             let content = &args[0];
             // log(x^n) = n * log(x)
-            if let Expr::Pow(base, exp) = content {
+            if let AstKind::Pow(base, exp) = &content.kind {
                 // Check if exponent is an even integer
-                if let Expr::Number(n) = &**exp {
+                if let AstKind::Number(n) = &exp.kind {
                     let is_even_int = n.fract() == 0.0 && (*n as i64) % 2 == 0;
                     let is_odd_int = n.fract() == 0.0 && (*n as i64) % 2 != 0;
 
                     if is_even_int && *n != 0.0 {
                         // ln(x^2) = 2*ln(|x|) - always correct for x ≠ 0
-                        return Some(Expr::Mul(
+                        return Some(Expr::new(AstKind::Mul(
                             exp.clone(),
-                            Rc::new(Expr::FunctionCall {
-                                name: name.clone(),
-                                args: vec![Expr::FunctionCall {
-                                    name: "abs".to_string(),
-                                    args: vec![(**base).clone()],
-                                }],
-                            }),
-                        ));
+                            Arc::new(Expr::func(
+                                name.clone(),
+                                Expr::func("abs", (**base).clone()),
+                            )),
+                        )));
                     } else if is_odd_int {
                         // ln(x^3) = 3*ln(x) - only valid for x > 0
                         // In domain-safe mode, skip unless base is known positive
                         if context.domain_safe {
                             // Check if base is known to be positive (exp, cosh, etc.)
-                            let is_positive = matches!(&**base,
-                                Expr::FunctionCall { name: fn_name, .. }
+                            let is_positive = matches!(&base.kind,
+                                AstKind::FunctionCall { name: fn_name, .. }
                                 if fn_name == "exp" || fn_name == "cosh"
                             );
                             if !is_positive {
                                 return None;
                             }
                         }
-                        return Some(Expr::Mul(
+                        return Some(Expr::new(AstKind::Mul(
                             exp.clone(),
-                            Rc::new(Expr::FunctionCall {
-                                name: name.clone(),
-                                args: vec![(**base).clone()],
-                            }),
-                        ));
+                            Arc::new(Expr::func(name.clone(), (**base).clone())),
+                        )));
                     }
                 }
 
@@ -170,31 +164,25 @@ rule!(
                     return None;
                 }
 
-                return Some(Expr::Mul(
+                return Some(Expr::new(AstKind::Mul(
                     exp.clone(),
-                    Rc::new(Expr::FunctionCall {
-                        name: name.clone(),
-                        args: vec![(**base).clone()],
-                    }),
-                ));
+                    Arc::new(Expr::func(name.clone(), (**base).clone())),
+                )));
             }
             // log(sqrt(x)) = 0.5 * log(x) - only for x > 0
-            if let Expr::FunctionCall {
+            if let AstKind::FunctionCall {
                 name: inner_name,
                 args: inner_args,
-            } = content
+            } = &content.kind
             {
                 if inner_name == "sqrt" && inner_args.len() == 1 {
                     // In domain-safe mode, skip unless we know x > 0
                     if context.domain_safe {
                         return None;
                     }
-                    return Some(Expr::Mul(
-                        Rc::new(Expr::Number(0.5)),
-                        Rc::new(Expr::FunctionCall {
-                            name: name.clone(),
-                            args: vec![inner_args[0].clone()],
-                        }),
+                    return Some(Expr::mul_expr(
+                        Expr::number(0.5),
+                        Expr::func(name.clone(), inner_args[0].clone()),
                     ));
                 }
                 // log(cbrt(x)) = (1/3) * log(x)
@@ -203,15 +191,9 @@ rule!(
                     if context.domain_safe {
                         return None;
                     }
-                    return Some(Expr::Mul(
-                        Rc::new(Expr::Div(
-                            Rc::new(Expr::Number(1.0)),
-                            Rc::new(Expr::Number(3.0)),
-                        )),
-                        Rc::new(Expr::FunctionCall {
-                            name: name.clone(),
-                            args: vec![inner_args[0].clone()],
-                        }),
+                    return Some(Expr::mul_expr(
+                        Expr::div_expr(Expr::number(1.0), Expr::number(3.0)),
+                        Expr::func(name.clone(), inner_args[0].clone()),
                     ));
                 }
             }
@@ -227,22 +209,22 @@ rule!(
     Exponential,
     &[ExprKind::Function],
     |expr: &Expr, _context: &RuleContext| {
-        if let Expr::FunctionCall { name, args } = expr
+        if let AstKind::FunctionCall { name, args } = &expr.kind
             && args.len() == 1
         {
             if name == "log10" {
-                if matches!(args[0], Expr::Number(n) if n == 1.0) {
-                    return Some(Expr::Number(0.0));
+                if matches!(&args[0].kind, AstKind::Number(n) if *n == 1.0) {
+                    return Some(Expr::number(0.0));
                 }
-                if matches!(args[0], Expr::Number(n) if n == 10.0) {
-                    return Some(Expr::Number(1.0));
+                if matches!(&args[0].kind, AstKind::Number(n) if *n == 10.0) {
+                    return Some(Expr::number(1.0));
                 }
             } else if name == "log2" {
-                if matches!(args[0], Expr::Number(n) if n == 1.0) {
-                    return Some(Expr::Number(0.0));
+                if matches!(&args[0].kind, AstKind::Number(n) if *n == 1.0) {
+                    return Some(Expr::number(0.0));
                 }
-                if matches!(args[0], Expr::Number(n) if n == 2.0) {
-                    return Some(Expr::Number(1.0));
+                if matches!(&args[0].kind, AstKind::Number(n) if *n == 2.0) {
+                    return Some(Expr::number(1.0));
                 }
             }
         }
@@ -257,14 +239,11 @@ rule!(
     Exponential,
     &[ExprKind::Function],
     |expr: &Expr, _context: &RuleContext| {
-        if let Expr::FunctionCall { name, args } = expr
+        if let AstKind::FunctionCall { name, args } = &expr.kind
             && name == "exp"
             && args.len() == 1
         {
-            return Some(Expr::Pow(
-                Rc::new(Expr::Symbol("e".to_string())),
-                Rc::new(args[0].clone()),
-            ));
+            return Some(Expr::pow(Expr::symbol("e"), args[0].clone()));
         }
         None
     }
@@ -272,7 +251,7 @@ rule!(
 
 /// Helper function to extract ln argument
 fn get_ln_arg(expr: &Expr) -> Option<Expr> {
-    if let Expr::FunctionCall { name, args } = expr
+    if let AstKind::FunctionCall { name, args } = &expr.kind
         && name == "ln"
         && args.len() == 1
     {
@@ -286,23 +265,23 @@ rule_with_helpers!(LogCombinationRule, "log_combination", 85, Exponential, &[Exp
         // Helper defined above
     },
     |expr: &Expr, _context: &RuleContext| {
-        match expr {
-            Expr::Add(u, v) => {
+        match &expr.kind {
+            AstKind::Add(u, v) => {
                 // ln(a) + ln(b) = ln(a * b)
                 if let (Some(arg1), Some(arg2)) = (get_ln_arg(u), get_ln_arg(v)) {
-                    return Some(Expr::FunctionCall {
-                        name: "ln".to_string(),
-                        args: vec![Expr::Mul(Rc::new(arg1), Rc::new(arg2))],
-                    });
+                    return Some(Expr::func(
+                        "ln",
+                        Expr::mul_expr(arg1, arg2),
+                    ));
                 }
             }
-            Expr::Sub(u, v) => {
+            AstKind::Sub(u, v) => {
                 // ln(a) - ln(b) = ln(a / b)
                 if let (Some(arg1), Some(arg2)) = (get_ln_arg(u), get_ln_arg(v)) {
-                    return Some(Expr::FunctionCall {
-                        name: "ln".to_string(),
-                        args: vec![Expr::Div(Rc::new(arg1), Rc::new(arg2))],
-                    });
+                    return Some(Expr::func(
+                        "ln",
+                        Expr::div_expr(arg1, arg2),
+                    ));
                 }
             }
             _ => {}
@@ -312,16 +291,16 @@ rule_with_helpers!(LogCombinationRule, "log_combination", 85, Exponential, &[Exp
 );
 
 /// Get all exponential/logarithmic rules in priority order
-pub(crate) fn get_exponential_rules() -> Vec<Rc<dyn Rule>> {
+pub(crate) fn get_exponential_rules() -> Vec<Arc<dyn Rule + Send + Sync>> {
     vec![
-        Rc::new(LnOneRule),
-        Rc::new(LnERule),
-        Rc::new(ExpZeroRule),
-        Rc::new(ExpToEPowRule),
-        Rc::new(ExpLnIdentityRule),
-        Rc::new(LnExpIdentityRule),
-        Rc::new(LogPowerRule),
-        Rc::new(LogBaseRules),
-        Rc::new(LogCombinationRule),
+        Arc::new(LnOneRule),
+        Arc::new(LnERule),
+        Arc::new(ExpZeroRule),
+        Arc::new(ExpToEPowRule),
+        Arc::new(ExpLnIdentityRule),
+        Arc::new(LnExpIdentityRule),
+        Arc::new(LogPowerRule),
+        Arc::new(LogBaseRules),
+        Arc::new(LogCombinationRule),
     ]
 }

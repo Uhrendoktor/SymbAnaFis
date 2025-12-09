@@ -8,53 +8,64 @@
 //! - Support for built-in functions (sin, cos, ln, exp)
 //! - Implicit function handling
 //! - Partial derivative notation
+//! - **Type-safe expression building** with operator overloading
+//! - **Builder pattern API** for differentiation and simplification
+//!
+//! # Usage Examples
+//!
+//! ## String-based API (original)
+//! ```ignore
+//! use symb_anafis::diff;
+//! let result = diff("x^2".to_string(), "x".to_string(), None, None).unwrap();
+//! assert_eq!(result, "2x");
+//! ```
+//!
+//! ## Type-safe API (new)
+//! ```ignore
+//! use symb_anafis::{sym, Diff};
+//! let x = sym("x");
+//! let expr = x.clone().pow(2.0) + x.sin();
+//! let derivative = Diff::new().differentiate(expr, "x").unwrap();
+//! ```
 
 mod ast;
+mod builder;
 mod differentiation;
 mod display;
 mod error;
+pub mod functions;
+mod helpers;
+pub(crate) mod math;
 mod parser;
 mod simplification;
+mod symbol;
+pub mod traits;
+pub mod visitor;
 
 #[cfg(feature = "python")]
 mod python;
+
+#[cfg(feature = "parallel")]
+pub mod parallel;
 
 #[cfg(test)]
 mod tests;
 
 // Re-export key types for easier usage
-pub use ast::Expr;
-pub use error::DiffError;
+pub use ast::{Expr, ExprKind};
+pub use builder::{CustomDerivativeFn, Diff, Simplify};
+pub use error::{DiffError, Span};
+pub use helpers::{
+    evaluate_str, gradient, gradient_str, hessian, hessian_str, jacobian, jacobian_str,
+};
 pub use parser::parse;
 pub use simplification::simplify_expr;
+pub use symbol::{Symbol, sym};
 
-use std::collections::HashSet;
-use std::env;
-
-/// Get the maximum allowed AST depth from environment variable or default
-fn max_depth() -> usize {
-    env::var("SYMB_ANAFIS_MAX_DEPTH")
-        .ok()
-        .and_then(|s| s.parse().ok())
-        .unwrap_or(100)
-}
-
-/// Get the maximum allowed AST node count from environment variable or default
-fn max_nodes() -> usize {
-    env::var("SYMB_ANAFIS_MAX_NODES")
-        .ok()
-        .and_then(|s| s.parse().ok())
-        .unwrap_or(10_000)
-}
-
-/// Get domain safety setting from environment variable or default (false)
-/// Set SYMB_ANAFIS_DOMAIN_SAFETY=true to skip domain-altering simplification rules
-fn domain_safety() -> bool {
-    env::var("SYMB_ANAFIS_DOMAIN_SAFETY")
-        .ok()
-        .map(|s| s.to_lowercase() == "true" || s == "1")
-        .unwrap_or(false)
-}
+/// Default maximum AST depth
+pub const DEFAULT_MAX_DEPTH: usize = 100;
+/// Default maximum AST node count
+pub const DEFAULT_MAX_NODES: usize = 10_000;
 
 /// Main API function for symbolic differentiation
 ///
@@ -69,14 +80,14 @@ fn domain_safety() -> bool {
 ///
 /// # Example
 /// ```ignore
-///
-/// let result = diff(
-///     "a * sin(x)".to_string(),
-///     "x".to_string(),
-///     Some(&["a".to_string()]),
-///     None
-/// );
+/// let result = diff("a * sin(x)".to_string(), "x".to_string(), Some(&["a".to_string()]), None);
 /// assert!(result.is_ok());
+/// ```
+///
+/// # Note
+/// For more control (domain_safe, max_depth, etc.), use the `Diff` builder:
+/// ```ignore
+/// Diff::new().domain_safe(true).diff_str("x^2", "x")
 /// ```
 pub fn diff(
     formula: String,
@@ -84,48 +95,22 @@ pub fn diff(
     fixed_vars: Option<&[String]>,
     custom_functions: Option<&[String]>,
 ) -> Result<String, DiffError> {
-    // Step 1: Convert to HashSets for O(1) lookups
-    let fixed_set: HashSet<String> = fixed_vars.unwrap_or(&[]).iter().cloned().collect();
+    let mut builder = Diff::new();
 
-    let custom_funcs: HashSet<String> = custom_functions.unwrap_or(&[]).iter().cloned().collect();
-
-    // Step 2: Validate parameters
-    if fixed_set.contains(&var_to_diff) {
-        return Err(DiffError::VariableInBothFixedAndDiff {
-            var: var_to_diff.clone(),
-        });
+    if let Some(vars) = fixed_vars {
+        builder = builder.fixed_vars_str(vars.iter().map(|s| s.as_str()));
     }
 
-    // Check for name collisions
-    for name in &fixed_set {
-        if custom_funcs.contains(name) {
-            return Err(DiffError::NameCollision { name: name.clone() });
+    if let Some(funcs) = custom_functions {
+        for f in funcs {
+            builder = builder.custom_fn(f);
         }
     }
 
-    // Step 3: Parse the formula into AST
-    let ast = parser::parse(&formula, &fixed_set, &custom_funcs)?;
-
-    // Step 4: Check safety limits
-    if ast.max_depth() > max_depth() {
-        return Err(DiffError::MaxDepthExceeded);
-    }
-    if ast.node_count() > max_nodes() {
-        return Err(DiffError::MaxNodesExceeded);
-    }
-
-    // Step 5: Differentiate
-    let derivative = ast.derive(&var_to_diff, &fixed_set);
-
-    // Step 6: Simplify with configured domain safety and fixed vars
-    let simplified = if domain_safety() {
-        simplification::simplify_domain_safe(derivative, fixed_set)
-    } else {
-        simplification::simplify_expr(derivative, fixed_set)
-    };
-
-    // Step 7: Convert to string
-    Ok(format!("{}", simplified))
+    builder
+        .max_depth(DEFAULT_MAX_DEPTH)
+        .max_nodes(DEFAULT_MAX_NODES)
+        .diff_str(&formula, &var_to_diff)
 }
 
 /// Simplify a mathematical expression
@@ -140,49 +125,34 @@ pub fn diff(
 ///
 /// # Example
 /// ```ignore
-/// let result = simplify_str(
-///     "x^2 + 2*x + 1".to_string(),
-///     None, // No fixed variables
-///     None  // No custom functions
-/// ).unwrap();
+/// let result = simplify("x^2 + 2*x + 1".to_string(), None, None).unwrap();
+/// println!("Simplified: {}", result);  // (x + 1)^2
+/// ```
 ///
-/// println!("Simplified: {}", result);
-/// // Output: (x + 1)^2
+/// # Note
+/// For more control (domain_safe, max_depth, etc.), use the `Simplify` builder:
+/// ```ignore
+/// Simplify::new().domain_safe(true).simplify_str("x^2 + 2*x + 1")
 /// ```
 pub fn simplify(
     formula: String,
     fixed_vars: Option<&[String]>,
     custom_functions: Option<&[String]>,
 ) -> Result<String, DiffError> {
-    // Step 1: Convert to HashSets for O(1) lookups
-    let fixed_set: HashSet<String> = fixed_vars.unwrap_or(&[]).iter().cloned().collect();
-    let custom_funcs: HashSet<String> = custom_functions.unwrap_or(&[]).iter().cloned().collect();
+    let mut builder = builder::Simplify::new();
 
-    // Check for name collisions
-    for name in &fixed_set {
-        if custom_funcs.contains(name) {
-            return Err(DiffError::NameCollision { name: name.clone() });
+    if let Some(vars) = fixed_vars {
+        builder = builder.fixed_vars_str(vars.iter().map(|s| s.as_str()));
+    }
+
+    if let Some(funcs) = custom_functions {
+        for f in funcs {
+            builder = builder.custom_fn(f);
         }
     }
 
-    // Step 2: Parse the formula into AST
-    let ast = parser::parse(&formula, &fixed_set, &custom_funcs)?;
-
-    // Step 3: Check safety limits
-    if ast.max_depth() > max_depth() {
-        return Err(DiffError::MaxDepthExceeded);
-    }
-    if ast.node_count() > max_nodes() {
-        return Err(DiffError::MaxNodesExceeded);
-    }
-
-    // Step 4: Simplify with configured domain safety and fixed vars
-    let simplified = if domain_safety() {
-        simplification::simplify_domain_safe(ast, fixed_set)
-    } else {
-        simplification::simplify_expr(ast, fixed_set)
-    };
-
-    // Step 5: Convert to string
-    Ok(format!("{}", simplified))
+    builder
+        .max_depth(DEFAULT_MAX_DEPTH)
+        .max_nodes(DEFAULT_MAX_NODES)
+        .simplify_str(&formula)
 }

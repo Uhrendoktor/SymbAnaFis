@@ -1,5 +1,5 @@
 use crate::simplification::rules::Rule;
-use std::rc::Rc;
+use std::sync::Arc;
 
 pub(crate) mod abs_sign;
 pub(crate) mod canonicalization;
@@ -12,67 +12,67 @@ pub(crate) mod identities;
 pub(crate) mod powers;
 
 /// Get all algebraic rules in priority order
-pub(crate) fn get_algebraic_rules() -> Vec<Rc<dyn Rule>> {
+pub(crate) fn get_algebraic_rules() -> Vec<Arc<dyn Rule + Send + Sync>> {
     vec![
         // Exponential/logarithmic identities
-        Rc::new(identities::ExpLnRule),
-        Rc::new(identities::LnExpRule),
-        Rc::new(identities::ExpMulLnRule),
-        Rc::new(identities::EPowLnRule),
-        Rc::new(identities::EPowMulLnRule),
+        Arc::new(identities::ExpLnRule),
+        Arc::new(identities::LnExpRule),
+        Arc::new(identities::ExpMulLnRule),
+        Arc::new(identities::EPowLnRule),
+        Arc::new(identities::EPowMulLnRule),
         // Power rules
-        Rc::new(powers::PowerZeroRule),
-        Rc::new(powers::PowerOneRule),
-        Rc::new(powers::PowerPowerRule),
-        Rc::new(powers::PowerMulRule),
-        Rc::new(powers::PowerDivRule),
-        Rc::new(powers::PowerCollectionRule),
-        Rc::new(powers::CommonExponentDivRule),
-        Rc::new(powers::CommonExponentMulRule),
-        Rc::new(powers::NegativeExponentToFractionRule),
-        Rc::new(powers::PowerOfQuotientRule), // (a/b)^n -> a^n / b^n
+        Arc::new(powers::PowerZeroRule),
+        Arc::new(powers::PowerOneRule),
+        Arc::new(powers::PowerPowerRule),
+        Arc::new(powers::PowerMulRule),
+        Arc::new(powers::PowerDivRule),
+        Arc::new(powers::PowerCollectionRule),
+        Arc::new(powers::CommonExponentDivRule),
+        Arc::new(powers::CommonExponentMulRule),
+        Arc::new(powers::NegativeExponentToFractionRule),
+        Arc::new(powers::PowerOfQuotientRule), // (a/b)^n -> a^n / b^n
         // Fraction rules
-        Rc::new(fractions::DivSelfRule),
-        Rc::new(fractions::DivDivRule),
-        Rc::new(fractions::CombineNestedFractionRule),
-        Rc::new(fractions::AddFractionRule),
-        Rc::new(fractions::FractionToEndRule),
+        Arc::new(fractions::DivSelfRule),
+        Arc::new(fractions::DivDivRule),
+        Arc::new(fractions::CombineNestedFractionRule),
+        Arc::new(fractions::AddFractionRule),
+        Arc::new(fractions::FractionToEndRule),
         // Absolute value and sign rules
-        Rc::new(abs_sign::AbsNumericRule),
-        Rc::new(abs_sign::SignNumericRule),
-        Rc::new(abs_sign::AbsAbsRule),
-        Rc::new(abs_sign::AbsNegRule),
-        Rc::new(abs_sign::AbsSquareRule),
-        Rc::new(abs_sign::AbsPowEvenRule),
-        Rc::new(abs_sign::SignSignRule),
-        Rc::new(abs_sign::SignAbsRule),
-        Rc::new(abs_sign::AbsSignMulRule),
+        Arc::new(abs_sign::AbsNumericRule),
+        Arc::new(abs_sign::SignNumericRule),
+        Arc::new(abs_sign::AbsAbsRule),
+        Arc::new(abs_sign::AbsNegRule),
+        Arc::new(abs_sign::AbsSquareRule),
+        Arc::new(abs_sign::AbsPowEvenRule),
+        Arc::new(abs_sign::SignSignRule),
+        Arc::new(abs_sign::SignAbsRule),
+        Arc::new(abs_sign::AbsSignMulRule),
         // Expansion rules
-        Rc::new(expansion::ExpandPowerForCancellationRule),
-        Rc::new(expansion::PowerExpansionRule),
-        Rc::new(expansion::PolynomialExpansionRule),
-        Rc::new(expansion::ExpandDifferenceOfSquaresProductRule),
+        Arc::new(expansion::ExpandPowerForCancellationRule),
+        Arc::new(expansion::PowerExpansionRule),
+        Arc::new(expansion::PolynomialExpansionRule),
+        Arc::new(expansion::ExpandDifferenceOfSquaresProductRule),
         // Factoring rules
-        Rc::new(factoring::FractionCancellationRule),
-        Rc::new(factoring::PerfectSquareRule),
-        Rc::new(factoring::FactorDifferenceOfSquaresRule),
-        Rc::new(factoring::PerfectCubeRule),
-        Rc::new(factoring::NumericGcdFactoringRule),
-        Rc::new(factoring::CommonTermFactoringRule),
-        Rc::new(factoring::CommonPowerFactoringRule),
+        Arc::new(factoring::FractionCancellationRule),
+        Arc::new(factoring::PerfectSquareRule),
+        Arc::new(factoring::FactorDifferenceOfSquaresRule),
+        Arc::new(factoring::PerfectCubeRule),
+        Arc::new(factoring::NumericGcdFactoringRule),
+        Arc::new(factoring::CommonTermFactoringRule),
+        Arc::new(factoring::CommonPowerFactoringRule),
         // Canonicalization rules
-        Rc::new(canonicalization::CanonicalizeRule),
-        Rc::new(canonicalization::CanonicalizeMultiplicationRule),
-        Rc::new(canonicalization::CanonicalizeAdditionRule),
-        Rc::new(canonicalization::CanonicalizeSubtractionRule),
-        Rc::new(canonicalization::NormalizeAddNegationRule),
-        Rc::new(canonicalization::SimplifyNegativeOneRule),
+        Arc::new(canonicalization::CanonicalizeRule),
+        Arc::new(canonicalization::CanonicalizeMultiplicationRule),
+        Arc::new(canonicalization::CanonicalizeAdditionRule),
+        Arc::new(canonicalization::CanonicalizeSubtractionRule),
+        Arc::new(canonicalization::NormalizeAddNegationRule),
+        Arc::new(canonicalization::SimplifyNegativeOneRule),
         // Combination rules
-        Rc::new(combination::MulDivCombinationRule),
-        Rc::new(combination::CombineTermsRule),
-        Rc::new(combination::CombineFactorsRule),
-        Rc::new(combination::CombineLikeTermsInAdditionRule),
-        Rc::new(combination::DistributeNegationRule),
+        Arc::new(combination::MulDivCombinationRule),
+        Arc::new(combination::CombineTermsRule),
+        Arc::new(combination::CombineFactorsRule),
+        Arc::new(combination::CombineLikeTermsInAdditionRule),
+        Arc::new(combination::DistributeNegationRule),
         // DistributeMulInNumeratorRule removed - conflicts with MulDivCombinationRule
     ]
 }
