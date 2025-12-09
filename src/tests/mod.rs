@@ -29,6 +29,7 @@ mod repro_issues;
 mod repro_simplification_v2;
 mod rust_api_tests;
 mod simplification_tests;
+mod stress_tests;
 mod test_abs_function;
 mod test_algebraic_extensions;
 mod test_exponential_canonical;

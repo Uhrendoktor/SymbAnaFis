@@ -20,6 +20,7 @@ rayon = { version = "1.10", optional = true }
 
 [dev-dependencies]
 criterion = "0.8.1"
+symbolica = "1.0.1"
 quickcheck = "1.0"
 quickcheck_macros = "1.0"
 rand = "0.9.2"
