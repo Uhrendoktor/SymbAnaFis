@@ -97,12 +97,7 @@ fn main() {
 
     println!("Example: Treating 'a' and 'b' as constants");
     let expr = "a * x^2 + b * x";
-    match diff(
-        expr.to_string(),
-        "x".to_string(),
-        Some(&["a".to_string(), "b".to_string()]),
-        None,
-    ) {
+    match diff(expr, "x", Some(&["a", "b"]), None) {
         Ok(result) => println!("  d/dx [{}] = {}", expr, result),
         Err(e) => println!("  Error: {}", e),
     }
@@ -111,17 +106,7 @@ fn main() {
 
     println!("Example: Multiple constants in complex expression");
     let expr = "a*x^3 + b*x^2 + c*x + d";
-    match diff(
-        expr.to_string(),
-        "x".to_string(),
-        Some(&[
-            "a".to_string(),
-            "b".to_string(),
-            "c".to_string(),
-            "d".to_string(),
-        ]),
-        None,
-    ) {
+    match diff(expr, "x", Some(&["a", "b", "c", "d"]), None) {
         Ok(result) => println!("  d/dx [{}] = {}", expr, result),
         Err(e) => println!("  Error: {}", e),
     }
@@ -130,24 +115,14 @@ fn main() {
 
     println!("Example: Chain of custom functions");
     let expr = "f(g(h(x)))";
-    match diff(
-        expr.to_string(),
-        "x".to_string(),
-        None,
-        Some(&["f".to_string(), "g".to_string(), "h".to_string()]),
-    ) {
+    match diff(expr, "x", None, Some(&["f", "g", "h"])) {
         Ok(result) => println!("  d/dx [{}] = {}", expr, result),
         Err(e) => println!("  Error: {}", e),
     }
 
     println!("\nExample: Product of custom functions");
     let expr = "f(x) * g(x) + h(x)^2";
-    match diff(
-        expr.to_string(),
-        "x".to_string(),
-        None,
-        Some(&["f".to_string(), "g".to_string(), "h".to_string()]),
-    ) {
+    match diff(expr, "x", None, Some(&["f", "g", "h"])) {
         Ok(result) => println!("  d/dx [{}] = {}", expr, result),
         Err(e) => println!("  Error: {}", e),
     }
@@ -156,36 +131,28 @@ fn main() {
 
     println!("Example: Complex Greek expressions");
     let expr = "(alpha^2 + beta^2)^gamma";
-    match simplify(
-        expr.to_string(),
-        Some(&["alpha".to_string(), "beta".to_string(), "gamma".to_string()]),
-        None,
-    ) {
+    match simplify(expr, Some(&["alpha", "beta", "gamma"]), None) {
         Ok(result) => println!("  {} → {}", expr, result),
         Err(e) => println!("  Error: {}", e),
     }
 
     println!("\nExample: Mixed symbols and operations");
     let expr = "sigma * tau + omega^2";
-    match simplify(
-        expr.to_string(),
-        Some(&["sigma".to_string(), "tau".to_string(), "omega".to_string()]),
-        None,
-    ) {
+    match simplify(expr, Some(&["sigma", "tau", "omega"]), None) {
         Ok(result) => println!("  {} → {}", expr, result),
         Err(e) => println!("  Error: {}", e),
     }
 }
 
 fn demo_diff(expr: &str, var: &str) {
-    match diff(expr.to_string(), var.to_string(), None, None) {
+    match diff(expr, var, None, None) {
         Ok(result) => println!("  d/d{} [{}] = {}", var, expr, result),
         Err(e) => println!("  d/d{} [{}] = Error: {}", var, expr, e),
     }
 }
 
 fn demo_simplify(expr: &str) {
-    match simplify(expr.to_string(), None, None) {
+    match simplify(expr, None, None) {
         Ok(result) => println!("  {} → {}", expr, result),
         Err(e) => println!("  {} → Error: {}", expr, e),
     }

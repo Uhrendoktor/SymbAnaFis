@@ -125,13 +125,13 @@ pub(crate) fn compare_expr(a: &Expr, b: &Expr) -> std::cmp::Ordering {
         // Lower type_priority = comes first in sorted order for polynomial terms
         match &e.kind {
             Number(_) => (100, 0.0, String::new()), // Constants come last
-            Symbol(s) => (50, -1.0, s.clone()), // Variables are degree 1, negative so they sort first
+            Symbol(s) => (50, -1.0, s.to_string()), // Variables are degree 1, negative so they sort first
             Pow(base, exp) => {
                 if let Symbol(s) = &base.kind {
                     if let Number(n) = &exp.kind {
-                        (10, -*n, s.clone()) // Negative exponent so higher powers sort first
+                        (10, -*n, s.to_string()) // Negative exponent so higher powers sort first
                     } else {
-                        (20, -999.0, s.clone()) // Symbolic exponent - treat as very high degree
+                        (20, -999.0, s.to_string()) // Symbolic exponent - treat as very high degree
                     }
                 } else {
                     (30, 0.0, String::new()) // Non-symbol base

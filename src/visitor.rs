@@ -51,7 +51,7 @@ pub fn walk_expr<V: ExprVisitor>(expr: &Expr, visitor: &mut V) {
             visitor.visit_number(*n);
         }
         ExprKind::Symbol(s) => {
-            visitor.visit_symbol(s);
+            visitor.visit_symbol(s.as_ref());
         }
         ExprKind::FunctionCall { name, args } => {
             if visitor.visit_function(name, args) {

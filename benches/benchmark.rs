@@ -143,91 +143,42 @@ fn bench_differentiation(c: &mut Criterion) {
 
     // Simple polynomial
     group.bench_function("poly_x^3+2x^2+x", |b| {
-        b.iter(|| {
-            diff(
-                black_box("x^3 + 2*x^2 + x".to_string()),
-                "x".to_string(),
-                None,
-                None,
-            )
-        })
+        b.iter(|| diff(black_box("x^3 + 2*x^2 + x"), "x", None, None))
     });
 
     // Trigonometric
     group.bench_function("trig_sin(x)*cos(x)", |b| {
-        b.iter(|| {
-            diff(
-                black_box("sin(x) * cos(x)".to_string()),
-                "x".to_string(),
-                None,
-                None,
-            )
-        })
+        b.iter(|| diff(black_box("sin(x) * cos(x)"), "x", None, None))
     });
 
     // Chain rule
     group.bench_function("chain_sin(x^2)", |b| {
-        b.iter(|| {
-            diff(
-                black_box("sin(x^2)".to_string()),
-                "x".to_string(),
-                None,
-                None,
-            )
-        })
+        b.iter(|| diff(black_box("sin(x^2)"), "x", None, None))
     });
 
     // Exponential
     group.bench_function("exp_e^(x^2)", |b| {
-        b.iter(|| {
-            diff(
-                black_box("exp(x^2)".to_string()),
-                "x".to_string(),
-                None,
-                None,
-            )
-        })
+        b.iter(|| diff(black_box("exp(x^2)"), "x", None, None))
     });
 
     // Complex expression
     group.bench_function("complex_x^2*sin(x)*exp(x)", |b| {
-        b.iter(|| {
-            diff(
-                black_box("x^2 * sin(x) * exp(x)".to_string()),
-                "x".to_string(),
-                None,
-                None,
-            )
-        })
+        b.iter(|| diff(black_box("x^2 * sin(x) * exp(x)"), "x", None, None))
     });
 
     // Quotient rule
     group.bench_function("quotient_(x^2+1)/(x-1)", |b| {
-        b.iter(|| {
-            diff(
-                black_box("(x^2 + 1) / (x - 1)".to_string()),
-                "x".to_string(),
-                None,
-                None,
-            )
-        })
+        b.iter(|| diff(black_box("(x^2 + 1) / (x - 1)"), "x", None, None))
     });
 
     // Nested functions
     group.bench_function("nested_sin(cos(tan(x)))", |b| {
-        b.iter(|| {
-            diff(
-                black_box("sin(cos(tan(x)))".to_string()),
-                "x".to_string(),
-                None,
-                None,
-            )
-        })
+        b.iter(|| diff(black_box("sin(cos(tan(x)))"), "x", None, None))
     });
 
     // Power rule with variable exponent
     group.bench_function("power_x^x", |b| {
-        b.iter(|| diff(black_box("x^x".to_string()), "x".to_string(), None, None))
+        b.iter(|| diff(black_box("x^x"), "x", None, None))
     });
 
     group.finish();
@@ -238,48 +189,42 @@ fn bench_simplification(c: &mut Criterion) {
 
     // Pythagorean identity
     group.bench_function("pythagorean_sin^2+cos^2", |b| {
-        b.iter(|| simplify(black_box("sin(x)^2 + cos(x)^2".to_string()), None, None))
+        b.iter(|| simplify(black_box("sin(x)^2 + cos(x)^2"), None, None))
     });
 
     // Perfect square
     group.bench_function("perfect_square_x^2+2x+1", |b| {
-        b.iter(|| simplify(black_box("x^2 + 2*x + 1".to_string()), None, None))
+        b.iter(|| simplify(black_box("x^2 + 2*x + 1"), None, None))
     });
 
     // Fraction cancellation
     group.bench_function("fraction_(x+1)^2/(x+1)", |b| {
-        b.iter(|| simplify(black_box("(x + 1)^2 / (x + 1)".to_string()), None, None))
+        b.iter(|| simplify(black_box("(x + 1)^2 / (x + 1)"), None, None))
     });
 
     // Exponential combination
     group.bench_function("exp_combine_e^x*e^y", |b| {
-        b.iter(|| simplify(black_box("exp(x) * exp(y)".to_string()), None, None))
+        b.iter(|| simplify(black_box("exp(x) * exp(y)"), None, None))
     });
 
     // Like terms
     group.bench_function("like_terms_2x+3x+x", |b| {
-        b.iter(|| simplify(black_box("2*x + 3*x + x".to_string()), None, None))
+        b.iter(|| simplify(black_box("2*x + 3*x + x"), None, None))
     });
 
     // Complex fraction addition
     group.bench_function("frac_add_(x^2+1)/(x^2-1)+1/(x+1)", |b| {
-        b.iter(|| {
-            simplify(
-                black_box("(x^2 + 1)/(x^2 - 1) + 1/(x + 1)".to_string()),
-                None,
-                None,
-            )
-        })
+        b.iter(|| simplify(black_box("(x^2 + 1)/(x^2 - 1) + 1/(x + 1)"), None, None))
     });
 
     // Hyperbolic from exponential
     group.bench_function("hyp_sinh_(e^x-e^-x)/2", |b| {
-        b.iter(|| simplify(black_box("(exp(x) - exp(-x)) / 2".to_string()), None, None))
+        b.iter(|| simplify(black_box("(exp(x) - exp(-x)) / 2"), None, None))
     });
 
     // Power simplification
     group.bench_function("power_x^2*x^3/x", |b| {
-        b.iter(|| simplify(black_box("x^2 * x^3 / x".to_string()), None, None))
+        b.iter(|| simplify(black_box("x^2 * x^3 / x"), None, None))
     });
 
     group.finish();
@@ -291,27 +236,15 @@ fn bench_combined(c: &mut Criterion) {
     // Differentiate and simplify
     group.bench_function("d/dx[sin(x)^2]_simplified", |b| {
         b.iter(|| {
-            let d = diff(
-                black_box("sin(x)^2".to_string()),
-                "x".to_string(),
-                None,
-                None,
-            )
-            .unwrap();
-            simplify(d, None, None)
+            let d = diff(black_box("sin(x)^2"), "x", None, None).unwrap();
+            simplify(&d, None, None)
         })
     });
 
     group.bench_function("d/dx[(x^2+1)/(x-1)]_simplified", |b| {
         b.iter(|| {
-            let d = diff(
-                black_box("(x^2 + 1) / (x - 1)".to_string()),
-                "x".to_string(),
-                None,
-                None,
-            )
-            .unwrap();
-            simplify(d, None, None)
+            let d = diff(black_box("(x^2 + 1) / (x - 1)"), "x", None, None).unwrap();
+            simplify(&d, None, None)
         })
     });
 

@@ -14,7 +14,7 @@
 //!     .differentiate(expr, &x)?;  // Now uses Symbol!
 //! ```
 
-use crate::{DiffError, Expr, Symbol, parser, simplification};
+use crate::{DiffError, Expr, Symbol, parser, simplification, sym};
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
@@ -114,7 +114,9 @@ impl Diff {
     /// Diff::new().fixed_var(&a)
     /// ```
     pub fn fixed_var(mut self, var: &Symbol) -> Self {
-        self.fixed_vars.insert(var.name().to_string());
+        if let Some(name) = var.name() {
+            self.fixed_vars.insert(name.to_string());
+        }
         self
     }
 
@@ -128,7 +130,9 @@ impl Diff {
     /// ```
     pub fn fixed_vars(mut self, vars: &[&Symbol]) -> Self {
         for v in vars {
-            self.fixed_vars.insert(v.name().to_string());
+            if let Some(name) = v.name() {
+                self.fixed_vars.insert(name.to_string());
+            }
         }
         self
     }
@@ -262,7 +266,8 @@ impl Diff {
     /// Diff::new().differentiate(expr, &x)
     /// ```
     pub fn differentiate(&self, expr: Expr, var: &Symbol) -> Result<Expr, DiffError> {
-        self.differentiate_by_name(expr, var.name())
+        let var_name = var.name().unwrap_or("");
+        self.differentiate_by_name(expr, var_name)
     }
 
     /// Differentiate an expression with respect to a variable name (internal API)
@@ -322,7 +327,7 @@ impl Diff {
         let ast = parser::parse(formula, &self.fixed_vars, &self.custom_functions)?;
 
         // Create a temporary Symbol for the variable
-        let var_sym = Symbol::new(var);
+        let var_sym = sym(var);
 
         // Differentiate
         let result = self.differentiate(ast, &var_sym)?;
@@ -374,7 +379,9 @@ impl Simplify {
     /// Simplify::new().fixed_var(&a)
     /// ```
     pub fn fixed_var(mut self, var: &Symbol) -> Self {
-        self.fixed_vars.insert(var.name().to_string());
+        if let Some(name) = var.name() {
+            self.fixed_vars.insert(name.to_string());
+        }
         self
     }
 
@@ -388,7 +395,9 @@ impl Simplify {
     /// ```
     pub fn fixed_vars(mut self, vars: &[&Symbol]) -> Self {
         for v in vars {
-            self.fixed_vars.insert(v.name().to_string());
+            if let Some(name) = v.name() {
+                self.fixed_vars.insert(name.to_string());
+            }
         }
         self
     }

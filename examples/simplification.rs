@@ -229,7 +229,7 @@ fn main() {
 }
 
 fn demo(expr: &str) {
-    match simplify(expr.to_string(), None, None) {
+    match simplify(expr, None, None) {
         Ok(result) => println!("  {:<35} → {}", expr, result),
         Err(e) => println!("  {:<35} → Error: {}", expr, e),
     }

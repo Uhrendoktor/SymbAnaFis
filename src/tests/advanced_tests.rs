@@ -253,12 +253,7 @@ mod real_world_expressions {
     #[test]
     fn test_quadratic_derivative() {
         // d/dx[ax^2 + bx + c] = 2ax + b
-        let result = diff(
-            "a*x^2 + b*x + c".to_string(),
-            "x".to_string(),
-            Some(&["a".to_string(), "b".to_string(), "c".to_string()]),
-            None,
-        );
+        let result = diff("a*x^2 + b*x + c", "x", Some(&["a", "b", "c"]), None);
         assert!(result.is_ok());
         let deriv = result.unwrap();
         assert!(deriv.contains("a") && deriv.contains("x") && deriv.contains("b"));
@@ -267,19 +262,14 @@ mod real_world_expressions {
     #[test]
     fn test_rational_function() {
         // d/dx[(x^2 + 1)/(x - 1)]
-        let result = diff("(x^2 + 1)/(x - 1)".to_string(), "x".to_string(), None, None);
+        let result = diff("(x^2 + 1)/(x - 1)", "x", None, None);
         assert!(result.is_ok());
     }
 
     #[test]
     fn test_exponential_growth() {
         // d/dx[a * exp(k*x)]
-        let result = diff(
-            "a*exp(k*x)".to_string(),
-            "x".to_string(),
-            Some(&["a".to_string(), "k".to_string()]),
-            None,
-        );
+        let result = diff("a*exp(k*x)", "x", Some(&["a", "k"]), None);
         assert!(result.is_ok());
         let deriv = result.unwrap();
         assert!(deriv.contains("exp") && deriv.contains("k"));
@@ -288,33 +278,28 @@ mod real_world_expressions {
     #[test]
     fn test_trig_identity_input() {
         // d/dx[sin(x)^2 + cos(x)^2] should work (even if not simplified to 0)
-        let result = diff(
-            "sin(x)^2 + cos(x)^2".to_string(),
-            "x".to_string(),
-            None,
-            None,
-        );
+        let result = diff("sin(x)^2 + cos(x)^2", "x", None, None);
         assert!(result.is_ok());
     }
 
     #[test]
     fn test_product_of_three() {
         // d/dx[x * sin(x) * exp(x)]
-        let result = diff("x*sin(x)*exp(x)".to_string(), "x".to_string(), None, None);
+        let result = diff("x*sin(x)*exp(x)", "x", None, None);
         assert!(result.is_ok());
     }
 
     #[test]
     fn test_chain_rule_triple() {
         // d/dx[sin(exp(ln(x)))]
-        let result = diff("sin(exp(ln(x)))".to_string(), "x".to_string(), None, None);
+        let result = diff("sin(exp(ln(x)))", "x", None, None);
         assert!(result.is_ok());
     }
 
     #[test]
     fn test_hyperbolic_combo() {
         // d/dx[sinh(x) * cosh(x)]
-        let result = diff("sinh(x)*cosh(x)".to_string(), "x".to_string(), None, None);
+        let result = diff("sinh(x)*cosh(x)", "x", None, None);
         assert!(result.is_ok());
         let deriv = result.unwrap();
         assert!(deriv.contains("sinh") || deriv.contains("cosh"));
@@ -323,12 +308,7 @@ mod real_world_expressions {
     #[test]
     fn test_implicit_with_division() {
         // d/dx[y(x)/x] where y is custom function
-        let result = diff(
-            "y(x)/x".to_string(),
-            "x".to_string(),
-            None,
-            Some(&["y".to_string()]),
-        );
+        let result = diff("y(x)/x", "x", None, Some(&["y"]));
         assert!(result.is_ok());
     }
 }
@@ -339,38 +319,20 @@ mod boundary_conditions {
 
     #[test]
     fn test_single_char_fixed_var() {
-        let result = diff(
-            "a".to_string(),
-            "x".to_string(),
-            Some(&["a".to_string()]),
-            None,
-        )
-        .unwrap();
+        let result = diff("a", "x", Some(&["a"]), None).unwrap();
         assert_eq!(result, "0");
     }
 
     #[test]
     fn test_unicode_identifier() {
         // Greek letters should work
-        let result = diff(
-            "α + β".to_string(),
-            "x".to_string(),
-            Some(&["α".to_string(), "β".to_string()]),
-            None,
-        )
-        .unwrap();
+        let result = diff("α + β", "x", Some(&["α", "β"]), None).unwrap();
         assert_eq!(result, "0");
     }
 
     #[test]
     fn test_underscore_in_name() {
-        let result = diff(
-            "var_1*x".to_string(),
-            "x".to_string(),
-            Some(&["var_1".to_string()]),
-            None,
-        )
-        .unwrap();
+        let result = diff("var_1*x", "x", Some(&["var_1"]), None).unwrap();
         assert!(result.contains("var_1"));
     }
 
@@ -381,7 +343,7 @@ mod boundary_conditions {
         for _ in 0..50 {
             formula = format!("({})", formula);
         }
-        let result = diff(formula, "x".to_string(), None, None);
+        let result = diff(&formula, "x", None, None);
         assert!(result.is_ok());
     }
 }

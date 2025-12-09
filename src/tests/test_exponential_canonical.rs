@@ -20,7 +20,7 @@ mod tests {
     #[test]
     fn test_exp_power_simplification() {
         // exp(b)^a → exp(a*b) - this rule is still valid
-        let result = simplify_string("exp(x)^2".to_string(), None, None).unwrap();
+        let result = simplify_string("exp(x)^2", None, None).unwrap();
 
         if let Ok(ast) = parse(&result, &HashSet::new(), &HashSet::new()) {
             match ast.kind {
@@ -30,8 +30,7 @@ mod tests {
                     // Should be exp(2*x) or exp(x*2)
                     if let ExprKind::Mul(a, b) = &args[0].kind {
                         let has_2 = **a == Expr::number(2.0) || **b == Expr::number(2.0);
-                        let has_x = **a == Expr::symbol("x".to_string())
-                            || **b == Expr::symbol("x".to_string());
+                        let has_x = **a == Expr::symbol("x") || **b == Expr::symbol("x");
                         assert!(has_2 && has_x, "Expected 2*x");
                     } else {
                         panic!("Expected Mul in exp argument, got {:?}", args[0]);

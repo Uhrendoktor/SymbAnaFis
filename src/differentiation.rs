@@ -39,7 +39,7 @@ impl Expr {
 
             ExprKind::Symbol(name) => {
                 // Standard symbol differentiation
-                if name == var && !fixed_vars.contains(name) {
+                if name == var && !fixed_vars.contains(name.as_ref()) {
                     Expr::number(1.0)
                 } else {
                     Expr::number(0.0)

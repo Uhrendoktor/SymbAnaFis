@@ -67,8 +67,6 @@ const BUILTINS: &[&str] = &[
     "cbrt",
     "sinc",
     "abs",
-    "sign",
-    "sgn",
     "signum",
     "floor",
     "ceil",

@@ -4,6 +4,8 @@ use std::ops::Deref;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
 
+use crate::symbol::{InternedSymbol, get_or_intern};
+
 /// Type alias for custom evaluation functions map (reduces type complexity)
 pub type CustomEvalMap =
     std::collections::HashMap<String, std::sync::Arc<dyn Fn(&[f64]) -> Option<f64> + Send + Sync>>;
@@ -51,7 +53,8 @@ pub enum ExprKind {
     Number(f64),
 
     /// Variable or constant symbol (e.g., "x", "a", "ax")
-    Symbol(String),
+    /// Uses InternedSymbol for O(1) equality comparisons
+    Symbol(InternedSymbol),
 
     /// Function call (built-in or custom)
     FunctionCall { name: String, args: Vec<Expr> },
@@ -140,8 +143,15 @@ impl Expr {
     }
 
     /// Create a symbol expression
-    pub fn symbol(s: impl Into<String>) -> Self {
-        Expr::new(ExprKind::Symbol(s.into()))
+    ///
+    /// The symbol name is automatically interned for O(1) comparisons.
+    pub fn symbol(s: impl AsRef<str>) -> Self {
+        Expr::new(ExprKind::Symbol(get_or_intern(s.as_ref())))
+    }
+
+    /// Create a symbol expression from an already-interned symbol
+    pub(crate) fn from_interned(interned: InternedSymbol) -> Self {
+        Expr::new(ExprKind::Symbol(interned))
     }
 
     /// Create an addition expression
@@ -288,7 +298,7 @@ impl Expr {
     pub fn has_free_variables(&self, excluded: &std::collections::HashSet<String>) -> bool {
         match &self.kind {
             ExprKind::Number(_) => false,
-            ExprKind::Symbol(name) => !excluded.contains(name),
+            ExprKind::Symbol(name) => !excluded.contains(name.as_ref()),
             ExprKind::Add(u, v)
             | ExprKind::Sub(u, v)
             | ExprKind::Mul(u, v)
@@ -315,7 +325,9 @@ impl Expr {
     fn collect_variables(&self, vars: &mut std::collections::HashSet<String>) {
         match &self.kind {
             ExprKind::Symbol(s) => {
-                vars.insert(s.clone());
+                if let Some(name) = s.name() {
+                    vars.insert(name.to_string());
+                }
             }
             ExprKind::FunctionCall { args, .. } => {
                 for arg in args {
@@ -343,7 +355,7 @@ impl Expr {
     pub fn deep_clone(&self) -> Expr {
         match &self.kind {
             ExprKind::Number(n) => Expr::number(*n),
-            ExprKind::Symbol(s) => Expr::symbol(s.clone()),
+            ExprKind::Symbol(s) => Expr::from_interned(s.clone()),
             ExprKind::FunctionCall { name, args } => Expr::new(ExprKind::FunctionCall {
                 name: name.clone(),
                 args: args.iter().map(|arg| arg.deep_clone()).collect(),
@@ -374,7 +386,7 @@ impl Expr {
     /// let derivative = expr.diff("x").unwrap();  // Returns 2x
     /// ```
     pub fn diff(&self, var: &str) -> Result<Expr, crate::DiffError> {
-        crate::Diff::new().differentiate(self.clone(), &crate::Symbol::new(var))
+        crate::Diff::new().differentiate(self.clone(), &crate::sym(var))
     }
 
     /// Simplify this expression (convenience wrapper)
@@ -528,11 +540,12 @@ impl Expr {
         match &self.kind {
             ExprKind::Number(n) => Expr::number(*n),
             ExprKind::Symbol(s) => {
-                if let Some(&val) = vars.get(s.as_str()) {
-                    Expr::number(val)
-                } else {
-                    self.clone()
+                if let Some(name) = s.name() {
+                    if let Some(&val) = vars.get(name) {
+                        return Expr::number(val);
+                    }
                 }
+                self.clone()
             }
             ExprKind::FunctionCall { name, args } => {
                 let eval_args: Vec<Expr> = args

@@ -60,7 +60,10 @@ pub use helpers::{
 };
 pub use parser::parse;
 pub use simplification::simplify_expr;
-pub use symbol::{Symbol, sym};
+pub use symbol::{
+    InternedSymbol, Symbol, SymbolError, clear_symbols, remove_symbol, sym, symb_get, symb_new,
+    symbol_exists,
+};
 
 /// Default maximum AST depth
 pub const DEFAULT_MAX_DEPTH: usize = 100;
@@ -80,7 +83,7 @@ pub const DEFAULT_MAX_NODES: usize = 10_000;
 ///
 /// # Example
 /// ```ignore
-/// let result = diff("a * sin(x)".to_string(), "x".to_string(), Some(&["a".to_string()]), None);
+/// let result = diff("a * sin(x)", "x", Some(&["a"]), None);
 /// assert!(result.is_ok());
 /// ```
 ///
@@ -90,27 +93,27 @@ pub const DEFAULT_MAX_NODES: usize = 10_000;
 /// Diff::new().domain_safe(true).diff_str("x^2", "x")
 /// ```
 pub fn diff(
-    formula: String,
-    var_to_diff: String,
-    fixed_vars: Option<&[String]>,
-    custom_functions: Option<&[String]>,
+    formula: &str,
+    var_to_diff: &str,
+    fixed_vars: Option<&[&str]>,
+    custom_functions: Option<&[&str]>,
 ) -> Result<String, DiffError> {
     let mut builder = Diff::new();
 
     if let Some(vars) = fixed_vars {
-        builder = builder.fixed_vars_str(vars.iter().map(|s| s.as_str()));
+        builder = builder.fixed_vars_str(vars.iter().copied());
     }
 
     if let Some(funcs) = custom_functions {
         for f in funcs {
-            builder = builder.custom_fn(f);
+            builder = builder.custom_fn(*f);
         }
     }
 
     builder
         .max_depth(DEFAULT_MAX_DEPTH)
         .max_nodes(DEFAULT_MAX_NODES)
-        .diff_str(&formula, &var_to_diff)
+        .diff_str(formula, var_to_diff)
 }
 
 /// Simplify a mathematical expression
@@ -125,7 +128,7 @@ pub fn diff(
 ///
 /// # Example
 /// ```ignore
-/// let result = simplify("x^2 + 2*x + 1".to_string(), None, None).unwrap();
+/// let result = simplify("x^2 + 2*x + 1", None, None).unwrap();
 /// println!("Simplified: {}", result);  // (x + 1)^2
 /// ```
 ///
@@ -135,24 +138,24 @@ pub fn diff(
 /// Simplify::new().domain_safe(true).simplify_str("x^2 + 2*x + 1")
 /// ```
 pub fn simplify(
-    formula: String,
-    fixed_vars: Option<&[String]>,
-    custom_functions: Option<&[String]>,
+    formula: &str,
+    fixed_vars: Option<&[&str]>,
+    custom_functions: Option<&[&str]>,
 ) -> Result<String, DiffError> {
     let mut builder = builder::Simplify::new();
 
     if let Some(vars) = fixed_vars {
-        builder = builder.fixed_vars_str(vars.iter().map(|s| s.as_str()));
+        builder = builder.fixed_vars_str(vars.iter().copied());
     }
 
     if let Some(funcs) = custom_functions {
         for f in funcs {
-            builder = builder.custom_fn(f);
+            builder = builder.custom_fn(*f);
         }
     }
 
     builder
         .max_depth(DEFAULT_MAX_DEPTH)
         .max_nodes(DEFAULT_MAX_NODES)
-        .simplify_str(&formula)
+        .simplify_str(formula)
 }

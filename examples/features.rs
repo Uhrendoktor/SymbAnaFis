@@ -11,15 +11,10 @@ fn main() {
     // ===================================
     println!("📌 CUSTOM FUNCTIONS\n");
 
-    let fixed_vars = vec!["alpha".to_string(), "beta".to_string()];
-    let custom_funcs = vec!["psi".to_string(), "phi".to_string()];
+    let fixed_vars = vec!["alpha", "beta"];
+    let custom_funcs = vec!["psi", "phi"];
     let expr = "alpha * psi(x) + beta * phi(x^2)";
-    match diff(
-        expr.to_string(),
-        "x".to_string(),
-        Some(&fixed_vars),
-        Some(&custom_funcs),
-    ) {
+    match diff(expr, "x", Some(&fixed_vars), Some(&custom_funcs)) {
         Ok(result) => println!("  d/dx [{}] = {}", expr, result),
         Err(e) => println!("  Error: {}", e),
     }
@@ -30,8 +25,8 @@ fn main() {
     println!("\n📌 IMPLICIT FUNCTIONS\n");
 
     let expr = "x * y(x)";
-    let custom_funcs = vec!["y".to_string()];
-    match diff(expr.to_string(), "x".to_string(), None, Some(&custom_funcs)) {
+    let custom_funcs = vec!["y"];
+    match diff(expr, "x", None, Some(&custom_funcs)) {
         Ok(result) => println!("  d/dx [{}] = {}", expr, result),
         Err(e) => println!("  Error: {}", e),
     }
@@ -49,7 +44,7 @@ fn main() {
     ];
 
     for expr in expressions {
-        match diff(expr.to_string(), "x".to_string(), None, None) {
+        match diff(expr, "x", None, None) {
             Ok(result) => println!("  d/dx [{}] = {}", expr, result),
             Err(e) => println!("  Error: {}", e),
         }
@@ -68,17 +63,17 @@ fn main() {
 
     println!("\nExample: Polynomial with constants");
     let expr = "(x + alpha)^2";
-    match symb_anafis::simplify(expr.to_string(), Some(&["alpha".to_string()]), None) {
+    match symb_anafis::simplify(expr, Some(&["alpha"]), None) {
         Ok(result) => println!("  {} → {}", expr, result),
         Err(e) => println!("  Error: {}", e),
     }
 
     println!("\nExample: Polynomial derivative and simplification");
     let expr = "(x + 1)^3";
-    match diff(expr.to_string(), "x".to_string(), None, None) {
+    match diff(expr, "x", None, None) {
         Ok(result) => {
             println!("  d/dx [{}] = {}", expr, result);
-            match symb_anafis::simplify(result, None, None) {
+            match symb_anafis::simplify(&result, None, None) {
                 Ok(simplified) => println!("  Simplified: {}", simplified),
                 Err(e) => println!("  Simplification error: {}", e),
             }
@@ -94,22 +89,12 @@ fn main() {
     println!("Example: Mixed partials");
     let expr = "x^2 * y + sin(x*y) + exp(x + y)";
     // ∂/∂x
-    match diff(
-        expr.to_string(),
-        "x".to_string(),
-        Some(&["y".to_string()]),
-        None,
-    ) {
+    match diff(expr, "x", Some(&["y"]), None) {
         Ok(result) => println!("  ∂/∂x [{}] = {}", expr, result),
         Err(e) => println!("  Error: {}", e),
     }
     // ∂/∂y
-    match diff(
-        expr.to_string(),
-        "y".to_string(),
-        Some(&["x".to_string()]),
-        None,
-    ) {
+    match diff(expr, "y", Some(&["x"]), None) {
         Ok(result) => println!("  ∂/∂y [{}] = {}", expr, result),
         Err(e) => println!("  Error: {}", e),
     }
@@ -121,27 +106,9 @@ fn main() {
 
     println!("Example: Gradient components");
     let f = "x^2 + y^2 + z^2";
-    let grad_x = diff(
-        f.to_string(),
-        "x".to_string(),
-        Some(&["y".to_string(), "z".to_string()]),
-        None,
-    )
-    .unwrap();
-    let grad_y = diff(
-        f.to_string(),
-        "y".to_string(),
-        Some(&["x".to_string(), "z".to_string()]),
-        None,
-    )
-    .unwrap();
-    let grad_z = diff(
-        f.to_string(),
-        "z".to_string(),
-        Some(&["x".to_string(), "y".to_string()]),
-        None,
-    )
-    .unwrap();
+    let grad_x = diff(f, "x", Some(&["y", "z"]), None).unwrap();
+    let grad_y = diff(f, "y", Some(&["x", "z"]), None).unwrap();
+    let grad_z = diff(f, "z", Some(&["x", "y"]), None).unwrap();
     println!("  ∇f = ({}, {}, {}) for f = {}", grad_x, grad_y, grad_z, f);
 
     // ===================================
@@ -151,27 +118,9 @@ fn main() {
 
     println!("Example: Divergence");
     let vector_field = "x*i + y*j + z*k"; // Simple radial field
-    let div_x = diff(
-        "x".to_string(),
-        "x".to_string(),
-        Some(&["y".to_string(), "z".to_string()]),
-        None,
-    )
-    .unwrap();
-    let div_y = diff(
-        "y".to_string(),
-        "y".to_string(),
-        Some(&["x".to_string(), "z".to_string()]),
-        None,
-    )
-    .unwrap();
-    let div_z = diff(
-        "z".to_string(),
-        "z".to_string(),
-        Some(&["x".to_string(), "y".to_string()]),
-        None,
-    )
-    .unwrap();
+    let div_x = diff("x", "x", Some(&["y", "z"]), None).unwrap();
+    let div_y = diff("y", "y", Some(&["x", "z"]), None).unwrap();
+    let div_z = diff("z", "z", Some(&["x", "y"]), None).unwrap();
     println!(
         "  ∇·F = {} + {} + {} for F = {}",
         div_x, div_y, div_z, vector_field
@@ -179,7 +128,7 @@ fn main() {
 }
 
 fn demo_simplify(expr: &str) {
-    match symb_anafis::simplify(expr.to_string(), None, None) {
+    match symb_anafis::simplify(expr, None, None) {
         Ok(result) => println!("  {} → {}", expr, result),
         Err(e) => println!("  {} → Error: {}", expr, e),
     }

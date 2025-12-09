@@ -111,5 +111,15 @@ For scientific computing tasks involving millions of expressions, SymbAnaFis off
 ## Hardware
 
 Benchmarks were run on a single machine to ensure fair comparison:
+
+**System Specs:**
+-   **CPU:** AMD Ryzen AI 7 350 w/ Radeon 860M
+-   **RAM:** 32 GB
+-   **OS:** Fedora 43 (Linux 6.17.9-300.fc43.x86_64)
+-   **Rust Version:** 1.90.0 (1159e78c4 2025-09-14)
+-   **Python Version:** 3.14.0
+
+**Methodology:**
 -   **Rust**: `cargo bench` (Criterion, 100 samples)
 -   **Python**: `timeit` (1000 iterations)
+

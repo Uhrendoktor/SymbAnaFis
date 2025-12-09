@@ -9,19 +9,19 @@ mod tests {
         // Should be: x^2 + 2x - 1 (after expanding 2x(x+1) = 2x^2 + 2x)
 
         let expr = "-x^2 + 2*x*(x + 1) - 1";
-        let result = simplify(expr.to_string(), None, None).unwrap();
+        let result = simplify(expr, None, None).unwrap();
         println!("Input: {}", expr);
         println!("Result: {}", result);
 
         // Expanded form
         let expanded = "-x^2 + 2*x^2 + 2*x - 1";
-        let result2 = simplify(expanded.to_string(), None, None).unwrap();
+        let result2 = simplify(expanded, None, None).unwrap();
         println!("\nExpanded input: {}", expanded);
         println!("Result: {}", result2);
 
         // Target form
         let target = "x^2 + 2*x - 1";
-        let result3 = simplify(target.to_string(), None, None).unwrap();
+        let result3 = simplify(target, None, None).unwrap();
         println!("\nTarget: {}", target);
         println!("Result: {}", result3);
     }

@@ -5,7 +5,7 @@ edition = "2024"
 authors = ["CokieMiner"]
 description = "Fast symbolic differentiation library for Rust"
 license = "MIT"
-repository = "https://github.com/CokieMiner/symb_anafis"
+repository = "https://github.com/CokieMiner/SymbAnaFis"
 keywords = ["symbolic", "differentiation", "calculus", "mathematics", "derivatives"]
 categories = ["mathematics", "science"]
 
@@ -32,4 +32,8 @@ parallel = ["rayon"]
 
 [[bench]]
 name = "benchmark"
+harness = false
+
+[[bench]]
+name = "symbolica_bench"
 harness = false

@@ -7,7 +7,7 @@ mod tests {
     fn test_fraction_cancellation_product_base() {
         // (C * R) / (C * R)^2 -> 1 / (C * R)
         let expr = "C * R / (C * R)^2";
-        let simplified = simplify(expr.to_string(), None, None).unwrap();
+        let simplified = simplify(expr, None, None).unwrap();
         println!("{} -> {}", expr, simplified);
         assert_eq!(simplified.to_string(), "1/(C*R)");
     }
@@ -16,7 +16,7 @@ mod tests {
     fn test_sqrt_div_self() {
         // sqrt(x) / x -> 1 / sqrt(x)
         let expr = "sqrt(x) / x";
-        let simplified = simplify(expr.to_string(), None, None).unwrap();
+        let simplified = simplify(expr, None, None).unwrap();
         println!("{} -> {}", expr, simplified);
         assert_eq!(simplified.to_string(), "1/sqrt(x)");
     }
@@ -25,7 +25,7 @@ mod tests {
     fn test_numeric_fraction_simplification() {
         // 2 * x / 4 -> x / 2
         let expr = "2 * x / 4";
-        let simplified = simplify(expr.to_string(), None, None).unwrap();
+        let simplified = simplify(expr, None, None).unwrap();
         println!("{} -> {}", expr, simplified);
         assert_eq!(simplified.to_string(), "x/2");
     }
@@ -112,7 +112,7 @@ mod tests {
     fn test_power_div_cancellation() {
         // (x - 1)^2 / (x - 1) should simplify to (x - 1)
         let expr = "(x - 1)^2 / (x - 1)";
-        let result = simplify(expr.to_string(), None, None).unwrap();
+        let result = simplify(expr, None, None).unwrap();
         println!("(x-1)^2 / (x-1) = {}", result);
         // Should be x - 1
         assert_eq!(result.to_string(), "x - 1");
@@ -122,7 +122,7 @@ mod tests {
     fn test_full_fraction_cancellation() {
         // (x - 1)^2 * (x + 1) / (x^2 - 1) should simplify to (x - 1)
         let expr = "(x - 1)^2 * (x + 1) / (x^2 - 1)";
-        let result = simplify(expr.to_string(), None, None).unwrap();
+        let result = simplify(expr, None, None).unwrap();
         println!("(x-1)^2 * (x+1) / (x^2-1) = {}", result);
         // Should be x - 1
         assert_eq!(result.to_string(), "x - 1");

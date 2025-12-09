@@ -231,7 +231,7 @@ mod algebraic_property_tests {
             }
 
             // Build x + 0
-            let result = simplify("x + 0".to_string(), None, None).unwrap();
+            let result = simplify("x + 0", None, None).unwrap();
 
             // After simplification, should evaluate to x
             let fixed = HashSet::new();
@@ -265,7 +265,7 @@ mod algebraic_property_tests {
                 return TestResult::discard();
             }
 
-            let result = simplify("x * 1".to_string(), None, None).unwrap();
+            let result = simplify("x * 1", None, None).unwrap();
             let fixed = HashSet::new();
             let custom = HashSet::new();
             let expr = parser::parse(&result, &fixed, &custom).unwrap();
@@ -290,7 +290,7 @@ mod algebraic_property_tests {
                 return TestResult::discard();
             }
 
-            let result = simplify("x * 0".to_string(), None, None).unwrap();
+            let result = simplify("x * 0", None, None).unwrap();
             let fixed = HashSet::new();
             let custom = HashSet::new();
             let expr = parser::parse(&result, &fixed, &custom).unwrap();
@@ -315,7 +315,7 @@ mod algebraic_property_tests {
                 return TestResult::discard();
             }
 
-            let result = simplify("x^1".to_string(), None, None).unwrap();
+            let result = simplify("x^1", None, None).unwrap();
             let fixed = HashSet::new();
             let custom = HashSet::new();
             let expr = parser::parse(&result, &fixed, &custom).unwrap();
@@ -340,7 +340,7 @@ mod algebraic_property_tests {
                 return TestResult::discard();
             }
 
-            let result = simplify("x^0".to_string(), None, None).unwrap();
+            let result = simplify("x^0", None, None).unwrap();
             let fixed = HashSet::new();
             let custom = HashSet::new();
             let expr = parser::parse(&result, &fixed, &custom).unwrap();
@@ -365,7 +365,7 @@ mod algebraic_property_tests {
                 return TestResult::discard();
             }
 
-            let result = simplify("x - x".to_string(), None, None).unwrap();
+            let result = simplify("x - x", None, None).unwrap();
             let fixed = HashSet::new();
             let custom = HashSet::new();
             let expr = parser::parse(&result, &fixed, &custom).unwrap();
@@ -390,7 +390,7 @@ mod algebraic_property_tests {
                 return TestResult::discard();
             }
 
-            let result = simplify("x / x".to_string(), None, None).unwrap();
+            let result = simplify("x / x", None, None).unwrap();
             let fixed = HashSet::new();
             let custom = HashSet::new();
             let expr = parser::parse(&result, &fixed, &custom).unwrap();
@@ -493,7 +493,7 @@ mod algebraic_property_tests {
             }
 
             let expr_str = format!("x^{}", n);
-            let derivative = diff(expr_str, "x".to_string(), None, None).unwrap();
+            let derivative = diff(&expr_str, "x", None, None).unwrap();
 
             let fixed = HashSet::new();
             let custom = HashSet::new();

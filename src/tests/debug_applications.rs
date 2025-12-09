@@ -53,17 +53,7 @@ mod tests {
         // Which is: T0 / sqrt(pi * alpha * t) * exp(-x^2 / (4 * alpha * t))
 
         let result = "T0 * 1 / sqrt(alpha) * exp(x^2 / (-4 * alpha * t)) * 1 / sqrt(t) / sqrt(pi)";
-        let simplified = simplify(
-            result.to_string(),
-            Some(&[
-                "T0".to_string(),
-                "alpha".to_string(),
-                "t".to_string(),
-                "x".to_string(),
-            ]),
-            None,
-        )
-        .unwrap();
+        let simplified = simplify(result, Some(&["T0", "alpha", "t", "x"]), None).unwrap();
 
         println!("Thermodynamics heat flux:");
         println!("Input:  {}", result);
@@ -73,22 +63,12 @@ mod tests {
 
         // Test intermediate steps
         let test1 = "1 / sqrt(alpha) * 1 / sqrt(t) / sqrt(pi)";
-        let simp1 = simplify(
-            test1.to_string(),
-            Some(&["alpha".to_string(), "t".to_string()]),
-            None,
-        )
-        .unwrap();
+        let simp1 = simplify(test1, Some(&["alpha", "t"]), None).unwrap();
         println!("Test1: {} => {}", test1, simp1);
         println!("Expected: 1 / sqrt(pi * alpha * t)");
 
         let test2 = "exp(x^2 / (-4 * alpha * t))";
-        let simp2 = simplify(
-            test2.to_string(),
-            Some(&["alpha".to_string(), "t".to_string(), "x".to_string()]),
-            None,
-        )
-        .unwrap();
+        let simp2 = simplify(test2, Some(&["alpha", "t", "x"]), None).unwrap();
         println!("Test2: {} => {}", test2, simp2);
         println!("Expected: exp(-x^2 / (4 * alpha * t))");
     }
@@ -100,12 +80,7 @@ mod tests {
         // Which is: -x * exp(-x^2 / (2 * sigma^2)) / (sigma^3 * sqrt(pi))
 
         let result = "-exp(x^2 / (-2 * sigma^2)) * x / (sqrt(pi) * sigma^3)";
-        let simplified = simplify(
-            result.to_string(),
-            Some(&["sigma".to_string(), "x".to_string()]),
-            None,
-        )
-        .unwrap();
+        let simplified = simplify(result, Some(&["sigma", "x"]), None).unwrap();
 
         println!("\nQuantum probability:");
         println!("Input:  {}", result);
@@ -120,12 +95,7 @@ mod tests {
 
         let result =
             "sqrt(2) * (x - mu) * exp((x - mu)^2 / (-2 * sigma^2)) * 1 / sqrt(pi) / (-2 * sigma^3)";
-        let simplified = simplify(
-            result.to_string(),
-            Some(&["sigma".to_string(), "x".to_string(), "mu".to_string()]),
-            None,
-        )
-        .unwrap();
+        let simplified = simplify(result, Some(&["sigma", "x", "mu"]), None).unwrap();
 
         println!("\nStatistics normal PDF:");
         println!("Input:  {}", result);
@@ -142,12 +112,7 @@ mod tests {
         // Which is: -t * v / (c^2 * sqrt(1 - v^2 / c^2))
 
         let result = "-t * v / (sqrt((c + v) * (1 - v / c) / c) * c^2)";
-        let simplified = simplify(
-            result.to_string(),
-            Some(&["t".to_string(), "v".to_string(), "c".to_string()]),
-            None,
-        )
-        .unwrap();
+        let simplified = simplify(result, Some(&["t", "v", "c"]), None).unwrap();
 
         println!("\nRelativity time dilation:");
         println!("Input:  {}", result);
@@ -156,23 +121,13 @@ mod tests {
 
         // Test the inner part
         let test1 = "sqrt((c + v) * (1 - v / c) / c)";
-        let simp1 = simplify(
-            test1.to_string(),
-            Some(&["c".to_string(), "v".to_string()]),
-            None,
-        )
-        .unwrap();
+        let simp1 = simplify(test1, Some(&["c", "v"]), None).unwrap();
         println!("Test inner: {} => {}", test1, simp1);
         println!("Expected: sqrt(1 - v^2 / c^2)");
 
         // Expand (c + v) * (1 - v/c)
         let test2 = "(c + v) * (1 - v / c)";
-        let simp2 = simplify(
-            test2.to_string(),
-            Some(&["c".to_string(), "v".to_string()]),
-            None,
-        )
-        .unwrap();
+        let simp2 = simplify(test2, Some(&["c", "v"]), None).unwrap();
         println!("Test expand: {} => {}", test2, simp2);
         println!("Expected: c^2 - v^2");
     }
@@ -184,12 +139,7 @@ mod tests {
         // Which is: a * ecc * (1 - ecc^2) * sin(theta) / (1 + ecc * cos(theta))^2
 
         let result = "(1 + ecc) * (1 - ecc) * a * ecc * sin(theta) / (ecc * cos(theta) + 1)^2";
-        let simplified = simplify(
-            result.to_string(),
-            Some(&["a".to_string(), "ecc".to_string(), "theta".to_string()]),
-            None,
-        )
-        .unwrap();
+        let simplified = simplify(result, Some(&["a", "ecc", "theta"]), None).unwrap();
 
         println!("\nAstrophysics orbital:");
         println!("Input:  {}", result);
@@ -198,7 +148,7 @@ mod tests {
 
         // Test (1 + ecc) * (1 - ecc)
         let test1 = "(1 + ecc) * (1 - ecc)";
-        let simp1 = simplify(test1.to_string(), Some(&["ecc".to_string()]), None).unwrap();
+        let simp1 = simplify(test1, Some(&["ecc"]), None).unwrap();
         println!("Test: {} => {}", test1, simp1);
         println!("Expected: 1 - ecc^2");
     }
@@ -209,12 +159,7 @@ mod tests {
         // Expected: -B0 * exp(-t / tau) / tau (negative)
 
         let result = "B0 * exp(-t / tau) / tau";
-        let simplified = simplify(
-            result.to_string(),
-            Some(&["B0".to_string(), "tau".to_string(), "t".to_string()]),
-            None,
-        )
-        .unwrap();
+        let simplified = simplify(result, Some(&["B0", "tau", "t"]), None).unwrap();
 
         println!("\nEMF (should already be negative in code):");
         println!("Input:  {}", result);
@@ -226,12 +171,7 @@ mod tests {
     fn test_division_of_roots() {
         // Test: 1 / sqrt(a) / sqrt(b) should become 1 / sqrt(a * b)
         let test = "1 / sqrt(a) / sqrt(b)";
-        let result = simplify(
-            test.to_string(),
-            Some(&["a".to_string(), "b".to_string()]),
-            None,
-        )
-        .unwrap();
+        let result = simplify(test, Some(&["a", "b"]), None).unwrap();
         println!("\nDivision of roots:");
         println!("Input:  {}", test);
         println!("Output: {}", result);
@@ -242,7 +182,7 @@ mod tests {
     fn test_difference_of_squares() {
         // Test: (1 + x) * (1 - x) should become 1 - x^2
         let test = "(1 + x) * (1 - x)";
-        let result = simplify(test.to_string(), Some(&["x".to_string()]), None).unwrap();
+        let result = simplify(test, Some(&["x"]), None).unwrap();
         println!("\nDifference of squares:");
         println!("Input:  {}", test);
         println!("Output: {}", result);
@@ -253,12 +193,7 @@ mod tests {
     fn test_negative_in_exponent() {
         // Test: exp(x / (-a)) should become exp(-x / a)
         let test = "exp(x / (-a))";
-        let result = simplify(
-            test.to_string(),
-            Some(&["x".to_string(), "a".to_string()]),
-            None,
-        )
-        .unwrap();
+        let result = simplify(test, Some(&["x", "a"]), None).unwrap();
         println!("\nNegative in exponent:");
         println!("Input:  {}", test);
         println!("Output: {}", result);

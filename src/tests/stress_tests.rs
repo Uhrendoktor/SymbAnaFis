@@ -16,12 +16,7 @@ use std::sync::Arc;
 fn test_diff_deeply_nested_chain_rule() {
     // sin(cos(tan(exp(ln(x^2)))))
     // This tests the chain rule applied 5 levels deep
-    let result = diff(
-        "sin(cos(tan(exp(ln(x^2)))))".to_string(),
-        "x".to_string(),
-        None,
-        None,
-    );
+    let result = diff("sin(cos(tan(exp(ln(x^2)))))", "x", None, None);
     assert!(result.is_ok(), "Deep chain rule failed: {:?}", result);
     let derivative = result.unwrap();
     assert!(!derivative.is_empty());
@@ -31,8 +26,8 @@ fn test_diff_deeply_nested_chain_rule() {
 fn test_diff_product_of_10_terms() {
     // x * x^2 * x^3 * x^4 * x^5 * sin(x) * cos(x) * exp(x) * ln(x) * sqrt(x)
     let result = diff(
-        "x * x^2 * x^3 * x^4 * x^5 * sin(x) * cos(x) * exp(x) * ln(x) * sqrt(x)".to_string(),
-        "x".to_string(),
+        "x * x^2 * x^3 * x^4 * x^5 * sin(x) * cos(x) * exp(x) * ln(x) * sqrt(x)",
+        "x",
         None,
         None,
     );
@@ -43,8 +38,8 @@ fn test_diff_product_of_10_terms() {
 fn test_diff_quotient_of_complex_expressions() {
     // (sin(x) * exp(x) + cos(x)) / (ln(x) * x^2 - tan(x))
     let result = diff(
-        "(sin(x) * exp(x) + cos(x)) / (ln(x) * x^2 - tan(x))".to_string(),
-        "x".to_string(),
+        "(sin(x) * exp(x) + cos(x)) / (ln(x) * x^2 - tan(x))",
+        "x",
         None,
         None,
     );
@@ -55,7 +50,7 @@ fn test_diff_quotient_of_complex_expressions() {
 fn test_diff_power_rule_extreme_exponents() {
     // x^100, x^0.001, x^(-100), x^x, x^(x^x)
     for expr in &["x^100", "x^0.001", "x^(-100)", "x^x", "x^(x^x)"] {
-        let result = diff(expr.to_string(), "x".to_string(), None, None);
+        let result = diff(expr, "x", None, None);
         assert!(
             result.is_ok(),
             "Power rule failed for {}: {:?}",
@@ -68,9 +63,9 @@ fn test_diff_power_rule_extreme_exponents() {
 #[test]
 fn test_diff_many_variables() {
     // Differentiate with respect to different variables
-    let expr = "x*y*z*w*u*v".to_string();
+    let expr = "x*y*z*w*u*v";
     for var in &["x", "y", "z", "w", "u", "v"] {
-        let result = diff(expr.clone(), var.to_string(), None, None);
+        let result = diff(expr, var, None, None);
         assert!(result.is_ok(), "Multi-var diff wrt {} failed", var);
     }
 }
@@ -78,12 +73,7 @@ fn test_diff_many_variables() {
 #[test]
 fn test_diff_special_functions_chain() {
     // gamma(digamma(x)) - extreme nesting of special functions
-    let result = diff(
-        "gamma(digamma(x + 1))".to_string(),
-        "x".to_string(),
-        None,
-        None,
-    );
+    let result = diff("gamma(digamma(x + 1))", "x", None, None);
     assert!(
         result.is_ok(),
         "Special function chain failed: {:?}",
@@ -101,7 +91,7 @@ fn test_diff_bessel_functions() {
         "besseli(2, x)",
         "besselk(1, x)",
     ] {
-        let result = diff(expr.to_string(), "x".to_string(), None, None);
+        let result = diff(expr, "x", None, None);
         assert!(
             result.is_ok(),
             "Bessel diff failed for {}: {:?}",
@@ -114,14 +104,14 @@ fn test_diff_bessel_functions() {
 #[test]
 fn test_diff_polygamma_chain() {
     // d/dx polygamma(2, x^2)
-    let result = diff("polygamma(2, x^2)".to_string(), "x".to_string(), None, None);
+    let result = diff("polygamma(2, x^2)", "x", None, None);
     assert!(result.is_ok(), "Polygamma diff failed: {:?}", result);
 }
 
 #[test]
 fn test_diff_zeta_function() {
     // d/ds zeta(s)
-    let result = diff("zeta(s)".to_string(), "s".to_string(), None, None);
+    let result = diff("zeta(s)", "s", None, None);
     assert!(result.is_ok(), "Zeta diff failed: {:?}", result);
     let deriv = result.unwrap();
     assert!(
@@ -133,14 +123,14 @@ fn test_diff_zeta_function() {
 
 #[test]
 fn test_diff_lambert_w() {
-    let result = diff("LambertW(x^2)".to_string(), "x".to_string(), None, None);
-    assert!(result.is_ok(), "LambertW diff failed: {:?}", result);
+    let result = diff("lambertw(x^2)", "x", None, None);
+    assert!(result.is_ok(), "lambertw diff failed: {:?}", result);
 }
 
 #[test]
 fn test_diff_erfc_erf() {
-    let result1 = diff("erf(x)".to_string(), "x".to_string(), None, None);
-    let result2 = diff("erfc(x)".to_string(), "x".to_string(), None, None);
+    let result1 = diff("erf(x)", "x", None, None);
+    let result2 = diff("erfc(x)", "x", None, None);
     assert!(result1.is_ok() && result2.is_ok(), "erf/erfc diff failed");
 }
 
@@ -281,7 +271,7 @@ fn test_eval_bessel_accuracy() {
 #[test]
 fn test_simplify_deeply_nested() {
     // ((((x + 0) * 1) / 1) - 0) ^ 1
-    let result = simplify("((((x + 0) * 1) / 1) - 0) ^ 1".to_string(), None, None);
+    let result = simplify("((((x + 0) * 1) / 1) - 0) ^ 1", None, None);
     assert!(result.is_ok());
     assert_eq!(result.unwrap(), "x");
 }
@@ -289,7 +279,7 @@ fn test_simplify_deeply_nested() {
 #[test]
 fn test_simplify_complex_trig_identity() {
     // sin(x)^2 + cos(x)^2 should simplify to 1
-    let result = simplify("sin(x)^2 + cos(x)^2".to_string(), None, None);
+    let result = simplify("sin(x)^2 + cos(x)^2", None, None);
     assert!(result.is_ok());
     assert_eq!(result.unwrap(), "1");
 }
@@ -297,7 +287,7 @@ fn test_simplify_complex_trig_identity() {
 #[test]
 fn test_simplify_log_exp_identity() {
     // ln(exp(x)) = x
-    let result = simplify("ln(exp(x))".to_string(), None, None);
+    let result = simplify("ln(exp(x))", None, None);
     assert!(result.is_ok());
     assert_eq!(result.unwrap(), "x");
 }
@@ -305,7 +295,7 @@ fn test_simplify_log_exp_identity() {
 #[test]
 fn test_simplify_exp_ln_identity() {
     // exp(ln(x)) = x
-    let result = simplify("exp(ln(x))".to_string(), None, None);
+    let result = simplify("exp(ln(x))", None, None);
     assert!(result.is_ok());
     assert_eq!(result.unwrap(), "x");
 }
@@ -313,7 +303,7 @@ fn test_simplify_exp_ln_identity() {
 #[test]
 fn test_simplify_double_negative() {
     // -(-x) = x
-    let result = simplify("-(-x)".to_string(), None, None);
+    let result = simplify("-(-x)", None, None);
     assert!(result.is_ok());
     // Could be "x" or simplified differently
 }
@@ -321,7 +311,7 @@ fn test_simplify_double_negative() {
 #[test]
 fn test_simplify_fraction_reduction() {
     // 6/9 = 2/3
-    let result = simplify("6/9".to_string(), None, None);
+    let result = simplify("6/9", None, None);
     assert!(result.is_ok());
     let s = result.unwrap();
     assert!(s == "2/3" || s.contains("2") && s.contains("3"));
@@ -330,7 +320,7 @@ fn test_simplify_fraction_reduction() {
 #[test]
 fn test_simplify_power_rules() {
     // x^2 * x^3 = x^5
-    let result = simplify("x^2 * x^3".to_string(), None, None);
+    let result = simplify("x^2 * x^3", None, None);
     assert!(result.is_ok());
     let s = result.unwrap();
     assert!(s.contains("5") || s == "x^5", "Got: {}", s);
@@ -339,7 +329,7 @@ fn test_simplify_power_rules() {
 #[test]
 fn test_simplify_sqrt_of_square() {
     // sqrt(x^2) = abs(x)
-    let result = simplify("sqrt(x^2)".to_string(), None, None);
+    let result = simplify("sqrt(x^2)", None, None);
     assert!(result.is_ok());
     let s = result.unwrap();
     assert!(s.contains("abs"), "sqrt(x^2) should be abs(x), got: {}", s);
@@ -348,7 +338,7 @@ fn test_simplify_sqrt_of_square() {
 #[test]
 fn test_simplify_zero_multiplication() {
     // 0 * (complex expression) = 0
-    let result = simplify("0 * (sin(x) + cos(x) * exp(x))".to_string(), None, None);
+    let result = simplify("0 * (sin(x) + cos(x) * exp(x))", None, None);
     assert!(result.is_ok());
     assert_eq!(result.unwrap(), "0");
 }
@@ -356,7 +346,7 @@ fn test_simplify_zero_multiplication() {
 #[test]
 fn test_simplify_one_power() {
     // x^0 = 1
-    let result = simplify("(sin(x) + cos(x))^0".to_string(), None, None);
+    let result = simplify("(sin(x) + cos(x))^0", None, None);
     assert!(result.is_ok());
     assert_eq!(result.unwrap(), "1");
 }
@@ -463,7 +453,7 @@ fn test_unicode_variable_names() {
 fn test_very_long_expression() {
     // Generate a very long expression: x + x + x + ... (100 times)
     let expr_str = (0..100).map(|_| "x").collect::<Vec<_>>().join(" + ");
-    let result = simplify(expr_str, None, None);
+    let result = simplify(&expr_str, None, None);
     assert!(result.is_ok(), "Long expression failed");
     let s = result.unwrap();
     assert!(
@@ -539,10 +529,10 @@ fn test_full_pipeline_diff_simplify_eval() {
     let formula = "sin(x)^2 + cos(x)^2";
 
     // Differentiate
-    let deriv = diff(formula.to_string(), "x".to_string(), None, None).unwrap();
+    let deriv = diff(formula, "x", None, None).unwrap();
 
     // Simplify the derivative
-    let simplified = simplify(deriv.clone(), None, None).unwrap();
+    let simplified = simplify(&deriv, None, None).unwrap();
 
     // The derivative of sin²(x) + cos²(x) = 1 is 0
     assert_eq!(
@@ -555,7 +545,7 @@ fn test_full_pipeline_diff_simplify_eval() {
 #[test]
 fn test_full_pipeline_with_evaluation() {
     // Differentiate x^3, simplify, then evaluate at x=2
-    let deriv = diff("x^3".to_string(), "x".to_string(), None, None).unwrap();
+    let deriv = diff("x^3", "x", None, None).unwrap();
     // d/dx[x^3] = 3x^2
 
     let expr = parse(&deriv, &HashSet::new(), &HashSet::new()).unwrap();
@@ -574,9 +564,9 @@ fn test_full_pipeline_with_evaluation() {
 #[test]
 fn test_second_derivative_pipeline() {
     // d²/dx² sin(x) = -sin(x)
-    let d1 = diff("sin(x)".to_string(), "x".to_string(), None, None).unwrap();
-    let d2 = diff(d1, "x".to_string(), None, None).unwrap();
-    let simplified = simplify(d2, None, None).unwrap();
+    let d1 = diff("sin(x)", "x", None, None).unwrap();
+    let d2 = diff(&d1, "x", None, None).unwrap();
+    let simplified = simplify(&d2, None, None).unwrap();
 
     // Should contain -sin(x) or -1*sin(x) or similar
     assert!(
@@ -619,7 +609,7 @@ fn test_infinite_differentiability_polygamma() {
     // Verify the chain doesn't break
     let mut expr = "polygamma(0, x)".to_string();
     for i in 0..5 {
-        let result = diff(expr.clone(), "x".to_string(), None, None);
+        let result = diff(&expr, "x", None, None);
         assert!(result.is_ok(), "polygamma diff {} failed: {:?}", i, result);
         expr = result.unwrap();
     }
@@ -630,7 +620,7 @@ fn test_infinite_differentiability_zeta() {
     // zeta(s) -> zeta_deriv(1, s) -> zeta_deriv(2, s) -> ...
     let mut expr = "zeta(s)".to_string();
     for i in 0..5 {
-        let result = diff(expr.clone(), "s".to_string(), None, None);
+        let result = diff(&expr, "s", None, None);
         assert!(result.is_ok(), "zeta diff {} failed: {:?}", i, result);
         expr = result.unwrap();
     }
@@ -639,31 +629,11 @@ fn test_infinite_differentiability_zeta() {
 #[test]
 fn test_closure_evaluation() {
     // Verify that deeply differentiated expressions can still be evaluated
-    let d5 = diff(
-        diff(
-            diff(
-                diff(
-                    diff("exp(x)".to_string(), "x".to_string(), None, None).unwrap(),
-                    "x".to_string(),
-                    None,
-                    None,
-                )
-                .unwrap(),
-                "x".to_string(),
-                None,
-                None,
-            )
-            .unwrap(),
-            "x".to_string(),
-            None,
-            None,
-        )
-        .unwrap(),
-        "x".to_string(),
-        None,
-        None,
-    )
-    .unwrap();
+    let d1 = diff("exp(x)", "x", None, None).unwrap();
+    let d2 = diff(&d1, "x", None, None).unwrap();
+    let d3 = diff(&d2, "x", None, None).unwrap();
+    let d4 = diff(&d3, "x", None, None).unwrap();
+    let d5 = diff(&d4, "x", None, None).unwrap();
 
     // d^5/dx^5 exp(x) = exp(x)
     let expr = parse(&d5, &HashSet::new(), &HashSet::new()).unwrap();

@@ -48,14 +48,14 @@ fn part1_string_api() {
     println!("  1.1 Simple Differentiation: diff()");
     let formula = "x^3 + 2*x^2 - 5*x + 1";
     println!("      Formula: {}", formula);
-    let result = diff(formula.to_string(), "x".to_string(), None, None).unwrap();
+    let result = diff(formula, "x", None, None).unwrap();
     println!("      d/dx:    {}\n", result);
 
     // 1.2 Simple simplify() function
     println!("  1.2 Simplification: simplify()");
     let ugly = "x + x + x + 0*y + 1*z";
     println!("      Before: {}", ugly);
-    let clean = simplify(ugly.to_string(), None, None).unwrap();
+    let clean = simplify(ugly, None, None).unwrap();
     println!("      After:  {}\n", clean);
 
     // 1.3 Diff builder with options
@@ -260,7 +260,7 @@ fn part5_all_functions() {
         ("lambertw(x)", "x"),
     ];
     for (expr, var) in &examples {
-        let result = diff(expr.to_string(), var.to_string(), None, None).unwrap();
+        let result = diff(expr, var, None, None).unwrap();
         println!("    d/d{} [{}] = {}", var, expr, result);
     }
     println!();

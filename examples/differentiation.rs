@@ -166,8 +166,8 @@ fn main() {
 
     println!("Differentiating expressions with user-defined functions:");
     let expr = "f(g(x))";
-    let custom_funcs = vec!["f".to_string(), "g".to_string()];
-    match diff(expr.to_string(), "x".to_string(), None, Some(&custom_funcs)) {
+    let custom_funcs = vec!["f", "g"];
+    match diff(expr, "x", None, Some(&custom_funcs)) {
         Ok(result) => println!("  d/dx [{}] = {}", expr, result),
         Err(e) => println!("  Error: {}", e),
     }
@@ -180,11 +180,11 @@ fn main() {
     println!("Second Derivatives (computed by differentiating twice):");
     // First derivative
     let expr = "sin(x)";
-    match diff(expr.to_string(), "x".to_string(), None, None) {
+    match diff(expr, "x", None, None) {
         Ok(first) => {
             println!("  d/dx [{}] = {}", expr, first);
             // Second derivative
-            match diff(first.clone(), "x".to_string(), None, None) {
+            match diff(&first, "x", None, None) {
                 Ok(second) => println!("  d²/dx² [{}] = {}", expr, second),
                 Err(e) => println!("  Error in second derivative: {}", e),
             }
@@ -194,17 +194,17 @@ fn main() {
 
     println!("\nThird and Higher Derivatives:");
     let expr = "f(x)";
-    let custom_funcs = vec!["f".to_string()];
-    match diff(expr.to_string(), "x".to_string(), None, Some(&custom_funcs)) {
+    let custom_funcs = vec!["f"];
+    match diff(expr, "x", None, Some(&custom_funcs)) {
         Ok(first) => {
             println!("  1st derivative of {}: {}", expr, first);
-            match diff(first.clone(), "x".to_string(), None, Some(&custom_funcs)) {
+            match diff(&first, "x", None, Some(&custom_funcs)) {
                 Ok(second) => {
                     println!("  2nd derivative: {}", second);
-                    match diff(second.clone(), "x".to_string(), None, Some(&custom_funcs)) {
+                    match diff(&second, "x", None, Some(&custom_funcs)) {
                         Ok(third) => {
                             println!("  3rd derivative: {}", third);
-                            match diff(third.clone(), "x".to_string(), None, Some(&custom_funcs)) {
+                            match diff(&third, "x", None, Some(&custom_funcs)) {
                                 Ok(fourth) => println!("  4th derivative: {}", fourth),
                                 Err(e) => println!("  Error in 4th derivative: {}", e),
                             }
@@ -220,7 +220,7 @@ fn main() {
 }
 
 fn demo(expr: &str, var: &str) {
-    match diff(expr.to_string(), var.to_string(), None, None) {
+    match diff(expr, var, None, None) {
         Ok(result) => println!("  d/d{} [{}] = {}", var, expr, result),
         Err(e) => println!("  d/d{} [{}] = Error: {}", var, expr, e),
     }

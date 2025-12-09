@@ -66,7 +66,7 @@ fn jacobian_internal(exprs: &[Expr], vars: &[&str]) -> Vec<Vec<Expr>> {
 /// // grad = [2*x, 2*y]
 /// ```
 pub fn gradient(expr: &Expr, vars: &[&Symbol]) -> Vec<Expr> {
-    let var_names: Vec<&str> = vars.iter().map(|s| s.name()).collect();
+    let var_names: Vec<&str> = vars.iter().filter_map(|s| s.name()).collect();
     gradient_internal(expr, &var_names)
 }
 
@@ -83,7 +83,7 @@ pub fn gradient(expr: &Expr, vars: &[&Symbol]) -> Vec<Expr> {
 /// // hess = [[2*y, 2*x], [2*x, 0]]
 /// ```
 pub fn hessian(expr: &Expr, vars: &[&Symbol]) -> Vec<Vec<Expr>> {
-    let var_names: Vec<&str> = vars.iter().map(|s| s.name()).collect();
+    let var_names: Vec<&str> = vars.iter().filter_map(|s| s.name()).collect();
     hessian_internal(expr, &var_names)
 }
 
@@ -100,7 +100,7 @@ pub fn hessian(expr: &Expr, vars: &[&Symbol]) -> Vec<Vec<Expr>> {
 /// // jac = [[2*x, 1], [y, x]]
 /// ```
 pub fn jacobian(exprs: &[Expr], vars: &[&Symbol]) -> Vec<Vec<Expr>> {
-    let var_names: Vec<&str> = vars.iter().map(|s| s.name()).collect();
+    let var_names: Vec<&str> = vars.iter().filter_map(|s| s.name()).collect();
     jacobian_internal(exprs, &var_names)
 }
 

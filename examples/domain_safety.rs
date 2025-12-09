@@ -169,19 +169,14 @@ fn main() {
 
     // Differentiate with e as fixed variable
     println!("\n  Differentiation with 'e' as fixed variable:");
-    match diff(
-        "e^x".to_string(),
-        "x".to_string(),
-        Some(&["e".to_string()]),
-        None,
-    ) {
+    match diff("e^x", "x", Some(&["e"]), None) {
         Ok(result) => println!("    d/dx [e^x] (e as constant) = {}", result),
         Err(e) => println!("    Error: {}", e),
     }
 
     // Differentiate normally (e as Euler's number)
     println!("\n  Differentiation with 'e' as Euler's number:");
-    match diff("e^x".to_string(), "x".to_string(), None, None) {
+    match diff("e^x", "x", None, None) {
         Ok(result) => println!("    d/dx [e^x] (e = Euler's number) = {}", result),
         Err(e) => println!("    Error: {}", e),
     }
@@ -208,7 +203,7 @@ fn main() {
 }
 
 fn demo_simplify(expr: &str) {
-    match simplify(expr.to_string(), None, None) {
+    match simplify(expr, None, None) {
         Ok(simplified) => {
             if simplified == expr {
                 println!("  {} → {} (unchanged)", expr, simplified);
@@ -221,8 +216,7 @@ fn demo_simplify(expr: &str) {
 }
 
 fn demo_simplify_fixed(expr: &str, fixed: &[&str]) {
-    let fixed_vars: Vec<String> = fixed.iter().map(|s| s.to_string()).collect();
-    match simplify(expr.to_string(), Some(&fixed_vars), None) {
+    match simplify(expr, Some(fixed), None) {
         Ok(simplified) => {
             if simplified == expr {
                 println!(
@@ -238,7 +232,7 @@ fn demo_simplify_fixed(expr: &str, fixed: &[&str]) {
 }
 
 fn demo_diff(expr: &str, var: &str) {
-    match diff(expr.to_string(), var.to_string(), None, None) {
+    match diff(expr, var, None, None) {
         Ok(derivative) => println!("  d/d{} [{}] = {}", var, expr, derivative),
         Err(e) => println!("  d/d{} [{}] = Error: {}", var, expr, e),
     }

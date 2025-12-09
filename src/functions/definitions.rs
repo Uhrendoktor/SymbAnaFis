@@ -525,19 +525,10 @@ pub(crate) fn all_definitions() -> Vec<FunctionDefinition> {
             arity: 1..=1,
             eval: |args| Some(args[0].abs()),
             derivative: |args, arg_primes| {
-                // d/dx |u| = sign(u) * u'
+                // d/dx |u| = signum(u) * u'
                 let u = args[0].clone();
                 let u_prime = arg_primes[0].clone();
-                mul_opt(func("sign", u), u_prime)
-            },
-        },
-        FunctionDefinition {
-            name: "sign",
-            arity: 1..=1,
-            eval: |args| Some(args[0].signum()),
-            derivative: |_, _| {
-                // d/dx sign(u) = 0 almost everywhere
-                Expr::number(0.0)
+                mul_opt(func("signum", u), u_prime)
             },
         },
         FunctionDefinition {
@@ -792,14 +783,14 @@ pub(crate) fn all_definitions() -> Vec<FunctionDefinition> {
             },
         },
         FunctionDefinition {
-            name: "LambertW",
+            name: "lambertw",
             arity: 1..=1,
             eval: |args| crate::math::eval_lambert_w(args[0]),
             derivative: |args, arg_primes| {
                 // d/dx W(u) = W(u) / (u(1+W(u))) * u'
                 let u = args[0].clone();
                 let u_prime = arg_primes[0].clone();
-                let w = func("LambertW", u.clone());
+                let w = func("lambertw", u.clone());
                 mul_opt(
                     Expr::div_expr(
                         w.clone(),
@@ -1019,23 +1010,6 @@ pub(crate) fn all_definitions() -> Vec<FunctionDefinition> {
             },
         },
         // Aliases and Test Helpers
-        FunctionDefinition {
-            name: "lambertw",
-            arity: 1..=1,
-            eval: |args| crate::math::eval_lambert_w(args[0]),
-            derivative: |args, arg_primes| {
-                let u = args[0].clone();
-                let u_prime = arg_primes[0].clone();
-                let w = func("lambertw", u.clone());
-                mul_opt(
-                    Expr::div_expr(
-                        w.clone(),
-                        Expr::mul_expr(u, Expr::add_expr(Expr::number(1.0), w)),
-                    ),
-                    u_prime,
-                )
-            },
-        },
         FunctionDefinition {
             name: "tetragamma",
             arity: 1..=1,

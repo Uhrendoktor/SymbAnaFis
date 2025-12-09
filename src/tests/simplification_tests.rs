@@ -338,7 +338,7 @@ mod tests {
         use crate::diff;
         // d/dx [x * exp(x) * sin(x) * ln(x)]
         let expr_str = "x * exp(x) * sin(x) * ln(x)";
-        let derivative = diff(expr_str.to_string(), "x".to_string(), None, None).unwrap();
+        let derivative = diff(expr_str, "x", None, None).unwrap();
 
         // Check if "... / x" is present (it shouldn't be if simplified)
         let derivative_str = derivative.to_string();

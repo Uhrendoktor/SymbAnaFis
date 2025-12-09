@@ -6,7 +6,7 @@ mod tests {
     fn test_div_hang_repro() {
         // sin(x)/x
         println!("Starting differentiation of sin(x)/x");
-        let result = diff("sin(x)/x".to_string(), "x".to_string(), None, None);
+        let result = diff("sin(x)/x", "x", None, None);
         match result {
             Ok(res) => println!("Result: {}", res),
             Err(e) => println!("Error: {:?}", e),

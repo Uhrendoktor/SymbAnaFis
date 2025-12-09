@@ -98,7 +98,6 @@ pub(crate) enum Operator {
 
     // Utility Functions
     Abs,
-    Sign,
     Signum,
     Floor,
     Ceil,
@@ -184,7 +183,6 @@ impl Operator {
             Operator::Sinc => "sinc",
             Operator::ExpPolar => "exp_polar",
             Operator::Abs => "abs",
-            Operator::Sign => "sign",
             Operator::Signum => "signum",
             Operator::Floor => "floor",
             Operator::Ceil => "ceil",
@@ -203,7 +201,7 @@ impl Operator {
             Operator::BesselY => "bessely",
             Operator::BesselI => "besseli",
             Operator::BesselK => "besselk",
-            Operator::LambertW => "LambertW",
+            Operator::LambertW => "lambertw",
             Operator::Ynm => "ynm",
             Operator::AssocLegendre => "assoc_legendre",
             Operator::Hermite => "hermite",
@@ -254,8 +252,7 @@ impl Operator {
             "sinc" => Some(Operator::Sinc),
             "exp_polar" => Some(Operator::ExpPolar),
             "abs" => Some(Operator::Abs),
-            "sign" | "sgn" => Some(Operator::Sign),
-            "signum" => Some(Operator::Signum),
+            "sign" | "sgn" | "signum" => Some(Operator::Signum),
             "floor" => Some(Operator::Floor),
             "ceil" => Some(Operator::Ceil),
             "round" => Some(Operator::Round),
@@ -336,7 +333,6 @@ impl Operator {
             | Operator::Cbrt
             | Operator::Sinc
             | Operator::Abs
-            | Operator::Sign
             | Operator::Signum
             | Operator::Floor
             | Operator::Ceil

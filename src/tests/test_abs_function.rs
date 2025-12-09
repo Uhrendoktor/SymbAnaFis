@@ -6,7 +6,8 @@ fn test_abs_function_simplification() {
     let expr = parse("abs(sigma)", &HashSet::new(), &HashSet::new()).unwrap();
     println!("Parsed expr: {:?}", expr);
 
-    let simplified = simplify(format!("{}", expr), None, None).unwrap();
+    let expr_str = expr.to_string();
+    let simplified = simplify(&expr_str, None, None).unwrap();
     println!("Simplified expr: {}", simplified);
 
     // Check that abs(sigma) stays as a function call
@@ -27,7 +28,8 @@ fn test_abs_in_product() {
     .unwrap();
     println!("Parsed expr: {:?}", expr);
 
-    let simplified = simplify(format!("{}", expr), None, None).unwrap();
+    let expr_str = expr.to_string();
+    let simplified = simplify(&expr_str, None, None).unwrap();
     println!("Simplified expr: {}", simplified);
 
     // Check that it simplifies correctly (abs may be simplified away)

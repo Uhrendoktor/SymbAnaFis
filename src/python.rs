@@ -221,7 +221,7 @@ impl PyDiff {
     }
 
     fn fixed_var(mut self_: PyRefMut<'_, Self>, var: String) -> PyRefMut<'_, Self> {
-        let sym = crate::Symbol::new(var);
+        let sym = crate::sym(&var);
         self_.inner = self_.inner.clone().fixed_var(&sym);
         self_
     }
@@ -293,7 +293,7 @@ impl PyDiff {
     }
 
     fn differentiate(&self, expr: &PyExpr, var: &str) -> PyResult<PyExpr> {
-        let sym = crate::Symbol::new(var);
+        let sym = crate::sym(var);
         self.inner
             .differentiate(expr.0.clone(), &sym)
             .map(PyExpr)
@@ -322,7 +322,7 @@ impl PySimplify {
     }
 
     fn fixed_var(mut self_: PyRefMut<'_, Self>, var: String) -> PyRefMut<'_, Self> {
-        let sym = crate::Symbol::new(var);
+        let sym = crate::sym(&var);
         self_.inner = self_.inner.clone().fixed_var(&sym);
         self_
     }
@@ -360,17 +360,15 @@ fn diff(
     fixed_vars: Option<Vec<String>>,
     custom_functions: Option<Vec<String>>,
 ) -> PyResult<String> {
-    let fixed: Option<Vec<String>> = fixed_vars.map(|v| v.iter().map(|s| s.to_string()).collect());
-    let custom: Option<Vec<String>> =
-        custom_functions.map(|v| v.iter().map(|s| s.to_string()).collect());
+    let fixed_strs: Option<Vec<&str>> = fixed_vars
+        .as_ref()
+        .map(|v| v.iter().map(|s| s.as_str()).collect());
+    let custom_strs: Option<Vec<&str>> = custom_functions
+        .as_ref()
+        .map(|v| v.iter().map(|s| s.as_str()).collect());
 
-    crate::diff(
-        formula.to_string(),
-        var.to_string(),
-        fixed.as_deref(),
-        custom.as_deref(),
-    )
-    .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("{:?}", e)))
+    crate::diff(formula, var, fixed_strs.as_deref(), custom_strs.as_deref())
+        .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("{:?}", e)))
 }
 
 /// Simplify a mathematical expression.
@@ -381,11 +379,14 @@ fn simplify(
     fixed_vars: Option<Vec<String>>,
     custom_functions: Option<Vec<String>>,
 ) -> PyResult<String> {
-    let fixed: Option<Vec<String>> = fixed_vars.map(|v| v.iter().map(|s| s.to_string()).collect());
-    let custom: Option<Vec<String>> =
-        custom_functions.map(|v| v.iter().map(|s| s.to_string()).collect());
+    let fixed_strs: Option<Vec<&str>> = fixed_vars
+        .as_ref()
+        .map(|v| v.iter().map(|s| s.as_str()).collect());
+    let custom_strs: Option<Vec<&str>> = custom_functions
+        .as_ref()
+        .map(|v| v.iter().map(|s| s.as_str()).collect());
 
-    crate::simplify(formula.to_string(), fixed.as_deref(), custom.as_deref())
+    crate::simplify(formula, fixed_strs.as_deref(), custom_strs.as_deref())
         .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("{:?}", e)))
 }
 
