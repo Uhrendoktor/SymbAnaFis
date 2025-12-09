@@ -170,10 +170,29 @@ impl<T: MathScalar> NumCast for Dual<T> {
     }
 }
 
-// NOTE: Signed trait removed - it had incorrect derivative implementation.
-// Use Float::abs instead, which correctly computes d/dx|x| = sign(x).
-// The previous Signed::abs implementation treated abs as fully differentiable
-// everywhere, which is mathematically incorrect.
+// Signed trait implementation using the correct abs from Float trait
+impl<T: MathScalar> num_traits::Signed for Dual<T> {
+    fn abs(&self) -> Self {
+        // Use Float::abs which correctly implements d/dx|x| = sign(x)
+        Float::abs(*self)
+    }
+
+    fn abs_sub(&self, other: &Self) -> Self {
+        Float::abs_sub(*self, *other)
+    }
+
+    fn signum(&self) -> Self {
+        Float::signum(*self)
+    }
+
+    fn is_positive(&self) -> bool {
+        self.val > T::zero()
+    }
+
+    fn is_negative(&self) -> bool {
+        self.val < T::zero()
+    }
+}
 
 impl<T: MathScalar> Bounded for Dual<T> {
     fn min_value() -> Self {

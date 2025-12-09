@@ -380,15 +380,20 @@ fn scan_characters(input: &str) -> Result<Vec<RawToken>, DiffError> {
                 pos += 'π'.len_utf8();
             }
 
-            // Identifier sequences
-            'a'..='z' | 'A'..='Z' | '_' => {
+            // Unicode and ASCII identifier sequences
+            // Use the remaining string slice for proper UTF-8 handling
+            _ if input[pos..]
+                .chars()
+                .next()
+                .map(|c| c.is_alphabetic() || c == '_')
+                .unwrap_or(false) =>
+            {
                 let _start_pos = pos;
                 let mut seq = String::new();
-                while pos < bytes.len() {
-                    let c = bytes[pos] as char;
-                    if c.is_ascii_alphanumeric() || c == '_' {
-                        seq.push(c);
-                        pos += 1;
+                for ch in input[pos..].chars() {
+                    if ch.is_alphanumeric() || ch == '_' {
+                        seq.push(ch);
+                        pos += ch.len_utf8();
                     } else {
                         break;
                     }
