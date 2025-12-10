@@ -241,6 +241,433 @@ fn format_mul_operand(expr: &Expr) -> String {
     }
 }
 
+// ============================================================================
+// LaTeX Formatter
+// ============================================================================
+
+/// Wrapper for LaTeX output formatting
+pub struct LatexFormatter<'a>(pub &'a Expr);
+
+impl fmt::Display for LatexFormatter<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        format_latex(self.0, f)
+    }
+}
+
+/// Format expression as LaTeX
+fn format_latex(expr: &Expr, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match &expr.kind {
+        ExprKind::Number(n) => {
+            if n.is_nan() {
+                write!(f, r"\text{{NaN}}")
+            } else if n.is_infinite() {
+                if *n > 0.0 {
+                    write!(f, r"\infty")
+                } else {
+                    write!(f, r"-\infty")
+                }
+            } else if n.trunc() == *n && n.abs() < 1e10 {
+                write!(f, "{}", *n as i64)
+            } else {
+                write!(f, "{}", n)
+            }
+        }
+
+        ExprKind::Symbol(s) => {
+            let name = s.as_ref();
+            // Convert common symbols to LaTeX
+            match name {
+                "pi" => write!(f, r"\pi"),
+                "alpha" => write!(f, r"\alpha"),
+                "beta" => write!(f, r"\beta"),
+                "gamma" => write!(f, r"\gamma"),
+                "delta" => write!(f, r"\delta"),
+                "epsilon" => write!(f, r"\epsilon"),
+                "theta" => write!(f, r"\theta"),
+                "lambda" => write!(f, r"\lambda"),
+                "mu" => write!(f, r"\mu"),
+                "sigma" => write!(f, r"\sigma"),
+                "omega" => write!(f, r"\omega"),
+                "phi" => write!(f, r"\phi"),
+                "psi" => write!(f, r"\psi"),
+                "tau" => write!(f, r"\tau"),
+                _ => write!(f, "{}", name),
+            }
+        }
+
+        ExprKind::FunctionCall { name, args } => {
+            let latex_name = match name.as_str() {
+                "sin" | "cos" | "tan" | "cot" | "sec" | "csc" => format!(r"\{}", name),
+                "asin" => r"\arcsin".to_string(),
+                "acos" => r"\arccos".to_string(),
+                "atan" => r"\arctan".to_string(),
+                "sinh" | "cosh" | "tanh" | "coth" => format!(r"\{}", name),
+                "ln" => r"\ln".to_string(),
+                "log" | "log10" => r"\log".to_string(),
+                "log2" => r"\log_2".to_string(),
+                "exp" => r"\exp".to_string(),
+                "sqrt" => {
+                    if args.len() == 1 {
+                        return write!(f, r"\sqrt{{{}}}", LatexFormatter(&args[0]));
+                    }
+                    r"\sqrt".to_string()
+                }
+                "abs" => {
+                    if args.len() == 1 {
+                        return write!(f, r"\left|{}\right|", LatexFormatter(&args[0]));
+                    }
+                    r"\text{abs}".to_string()
+                }
+                "gamma" => r"\Gamma".to_string(),
+                _ => format!(r"\text{{{}}}", name),
+            };
+
+            if args.is_empty() {
+                write!(f, r"{}\left(\right)", latex_name)
+            } else {
+                let args_str: Vec<String> = args
+                    .iter()
+                    .map(|arg| format!("{}", LatexFormatter(arg)))
+                    .collect();
+                write!(f, r"{}\left({}\right)", latex_name, args_str.join(", "))
+            }
+        }
+
+        ExprKind::Add(u, v) => {
+            // Check for subtraction pattern
+            if let Some(positive_v) = extract_negative(v) {
+                write!(
+                    f,
+                    "{} - {}",
+                    LatexFormatter(u),
+                    latex_mul_operand(&positive_v)
+                )
+            } else {
+                write!(f, "{} + {}", LatexFormatter(u), LatexFormatter(v))
+            }
+        }
+
+        ExprKind::Sub(u, v) => {
+            let right_str = match &v.kind {
+                ExprKind::Add(_, _) | ExprKind::Sub(_, _) => {
+                    format!(r"\left({}\right)", LatexFormatter(v))
+                }
+                _ => format!("{}", LatexFormatter(v)),
+            };
+            write!(f, "{} - {}", LatexFormatter(u), right_str)
+        }
+
+        ExprKind::Mul(u, v) => {
+            if let ExprKind::Number(n) = &u.kind {
+                if *n == -1.0 {
+                    return write!(f, "-{}", latex_mul_operand(v));
+                }
+            }
+            write!(
+                f,
+                r"{} \cdot {}",
+                latex_mul_operand(u),
+                latex_mul_operand(v)
+            )
+        }
+
+        ExprKind::Div(u, v) => {
+            write!(
+                f,
+                r"\frac{{{}}}{{{}}}",
+                LatexFormatter(u),
+                LatexFormatter(v)
+            )
+        }
+
+        ExprKind::Pow(u, v) => {
+            // Special case: e^x
+            if let ExprKind::Symbol(s) = &u.kind {
+                if s == "e" {
+                    return write!(f, r"e^{{{}}}", LatexFormatter(v));
+                }
+            }
+
+            let base_str = match &u.kind {
+                ExprKind::Add(_, _)
+                | ExprKind::Sub(_, _)
+                | ExprKind::Mul(_, _)
+                | ExprKind::Div(_, _) => {
+                    format!(r"\left({}\right)", LatexFormatter(u))
+                }
+                _ => format!("{}", LatexFormatter(u)),
+            };
+            write!(f, "{}^{{{}}}", base_str, LatexFormatter(v))
+        }
+
+        ExprKind::Derivative { inner, var, order } => {
+            if *order == 1 {
+                write!(
+                    f,
+                    r"\frac{{\partial {}}}{{\partial {}}}",
+                    LatexFormatter(inner),
+                    var
+                )
+            } else {
+                write!(
+                    f,
+                    r"\frac{{\partial^{} {}}}{{\partial {}^{}}}",
+                    order,
+                    LatexFormatter(inner),
+                    var,
+                    order
+                )
+            }
+        }
+    }
+}
+
+/// Format LaTeX multiplication operand
+fn latex_mul_operand(expr: &Expr) -> String {
+    match expr.kind {
+        ExprKind::Add(_, _) | ExprKind::Sub(_, _) => {
+            format!(r"\left({}\right)", LatexFormatter(expr))
+        }
+        _ => format!("{}", LatexFormatter(expr)),
+    }
+}
+
+// ============================================================================
+// Unicode Formatter
+// ============================================================================
+
+/// Wrapper for Unicode output formatting (superscripts, Greek letters)
+pub struct UnicodeFormatter<'a>(pub &'a Expr);
+
+impl fmt::Display for UnicodeFormatter<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        format_unicode(self.0, f)
+    }
+}
+
+/// Convert a digit to Unicode superscript
+fn to_superscript(c: char) -> char {
+    match c {
+        '0' => '⁰',
+        '1' => '¹',
+        '2' => '²',
+        '3' => '³',
+        '4' => '⁴',
+        '5' => '⁵',
+        '6' => '⁶',
+        '7' => '⁷',
+        '8' => '⁸',
+        '9' => '⁹',
+        '-' => '⁻',
+        '+' => '⁺',
+        '(' => '⁽',
+        ')' => '⁾',
+        _ => c,
+    }
+}
+
+/// Convert number to superscript string
+fn num_to_superscript(n: f64) -> String {
+    if n.trunc() == n && n.abs() < 1000.0 {
+        format!("{}", n as i64)
+            .chars()
+            .map(to_superscript)
+            .collect()
+    } else {
+        format!("^{}", n)
+    }
+}
+
+/// Format expression with Unicode characters
+fn format_unicode(expr: &Expr, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match &expr.kind {
+        ExprKind::Number(n) => {
+            if n.is_nan() {
+                write!(f, "NaN")
+            } else if n.is_infinite() {
+                if *n > 0.0 {
+                    write!(f, "∞")
+                } else {
+                    write!(f, "-∞")
+                }
+            } else if n.trunc() == *n && n.abs() < 1e10 {
+                write!(f, "{}", *n as i64)
+            } else {
+                write!(f, "{}", n)
+            }
+        }
+
+        ExprKind::Symbol(s) => {
+            let name = s.as_ref();
+            match name {
+                "pi" => write!(f, "π"),
+                "alpha" => write!(f, "α"),
+                "beta" => write!(f, "β"),
+                "gamma" => write!(f, "γ"),
+                "delta" => write!(f, "δ"),
+                "epsilon" => write!(f, "ε"),
+                "theta" => write!(f, "θ"),
+                "lambda" => write!(f, "λ"),
+                "mu" => write!(f, "μ"),
+                "sigma" => write!(f, "σ"),
+                "omega" => write!(f, "ω"),
+                "phi" => write!(f, "φ"),
+                "psi" => write!(f, "ψ"),
+                "tau" => write!(f, "τ"),
+                _ => write!(f, "{}", name),
+            }
+        }
+
+        ExprKind::FunctionCall { name, args } => {
+            if args.is_empty() {
+                write!(f, "{}()", name)
+            } else {
+                let args_str: Vec<String> = args
+                    .iter()
+                    .map(|arg| format!("{}", UnicodeFormatter(arg)))
+                    .collect();
+                write!(f, "{}({})", name, args_str.join(", "))
+            }
+        }
+
+        ExprKind::Add(u, v) => {
+            if let Some(positive_v) = extract_negative(v) {
+                write!(
+                    f,
+                    "{} − {}",
+                    UnicodeFormatter(u),
+                    unicode_mul_operand(&positive_v)
+                )
+            } else {
+                write!(f, "{} + {}", UnicodeFormatter(u), UnicodeFormatter(v))
+            }
+        }
+
+        ExprKind::Sub(u, v) => {
+            let right_str = match &v.kind {
+                ExprKind::Add(_, _) | ExprKind::Sub(_, _) => {
+                    format!("({})", UnicodeFormatter(v))
+                }
+                _ => format!("{}", UnicodeFormatter(v)),
+            };
+            write!(f, "{} − {}", UnicodeFormatter(u), right_str)
+        }
+
+        ExprKind::Mul(u, v) => {
+            if let ExprKind::Number(n) = &u.kind {
+                if *n == -1.0 {
+                    return write!(f, "−{}", unicode_mul_operand(v));
+                }
+            }
+            write!(f, "{}·{}", unicode_mul_operand(u), unicode_mul_operand(v))
+        }
+
+        ExprKind::Div(u, v) => {
+            let num_str = format!("{}", UnicodeFormatter(u));
+            let formatted_num = match &u.kind {
+                ExprKind::Add(_, _) | ExprKind::Sub(_, _) => format!("({})", num_str),
+                _ => num_str,
+            };
+            let denom_str = format!("{}", UnicodeFormatter(v));
+            let formatted_denom = match &v.kind {
+                ExprKind::Symbol(_)
+                | ExprKind::Number(_)
+                | ExprKind::Pow(_, _)
+                | ExprKind::FunctionCall { .. } => denom_str,
+                _ => format!("({})", denom_str),
+            };
+            write!(f, "{}/{}", formatted_num, formatted_denom)
+        }
+
+        ExprKind::Pow(u, v) => {
+            // Special case: e^x displays as exp(x)
+            if let ExprKind::Symbol(s) = &u.kind {
+                if s == "e" {
+                    return write!(f, "exp({})", UnicodeFormatter(v));
+                }
+            }
+
+            let base_str = match &u.kind {
+                ExprKind::Add(_, _)
+                | ExprKind::Sub(_, _)
+                | ExprKind::Mul(_, _)
+                | ExprKind::Div(_, _) => {
+                    format!("({})", UnicodeFormatter(u))
+                }
+                _ => format!("{}", UnicodeFormatter(u)),
+            };
+
+            // Use superscripts for simple integer exponents
+            if let ExprKind::Number(n) = &v.kind {
+                write!(f, "{}{}", base_str, num_to_superscript(*n))
+            } else if let ExprKind::Symbol(_) = &v.kind {
+                write!(f, "{}^{}", base_str, UnicodeFormatter(v))
+            } else {
+                write!(f, "{}^({})", base_str, UnicodeFormatter(v))
+            }
+        }
+
+        ExprKind::Derivative { inner, var, order } => {
+            let order_sup = num_to_superscript(*order as f64);
+            write!(
+                f,
+                "∂{}({})/∂{}{}",
+                order_sup,
+                UnicodeFormatter(inner),
+                var,
+                order_sup
+            )
+        }
+    }
+}
+
+/// Format Unicode multiplication operand
+fn unicode_mul_operand(expr: &Expr) -> String {
+    match expr.kind {
+        ExprKind::Add(_, _) | ExprKind::Sub(_, _) => format!("({})", UnicodeFormatter(expr)),
+        _ => format!("{}", UnicodeFormatter(expr)),
+    }
+}
+
+// ============================================================================
+// Expr Methods for Formatting
+// ============================================================================
+
+impl Expr {
+    /// Format expression as LaTeX string
+    ///
+    /// Uses expressive LaTeX notation:
+    /// - Fractions: `\frac{a}{b}`
+    /// - Multiplication: `a \cdot b`
+    /// - Functions: `\sin`, `\cos`, `\sqrt{x}`
+    /// - Greek: `pi` → `\pi`
+    ///
+    /// # Example
+    /// ```ignore
+    /// let expr = sym("x").pow(2.0) / sym("y");
+    /// assert_eq!(expr.to_latex(), r"\frac{x^{2}}{y}");
+    /// ```
+    pub fn to_latex(&self) -> String {
+        format!("{}", LatexFormatter(self))
+    }
+
+    /// Format expression with Unicode characters
+    ///
+    /// - Superscripts for powers: `x²`, `x³`
+    /// - Greek letters: `pi` → `π`
+    /// - Minus sign: `−` (proper minus)
+    /// - Multiplication: `·`
+    ///
+    /// # Example
+    /// ```ignore
+    /// let expr = sym("x").pow(2.0) + sym("pi");
+    /// assert_eq!(expr.to_unicode(), "x² + π");
+    /// ```
+    pub fn to_unicode(&self) -> String {
+        format!("{}", UnicodeFormatter(self))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -313,6 +313,14 @@ impl Symbol {
     }
 }
 
+// Methods on &Symbol to avoid requiring .clone()
+impl Symbol {
+    /// Raise to a power (reference version - no clone needed)
+    pub fn pow_ref(&self, exp: impl Into<Expr>) -> Expr {
+        Expr::pow(self.to_expr(), exp.into())
+    }
+}
+
 // Allow Symbol to be used where &str is expected
 impl AsRef<str> for Symbol {
     fn as_ref(&self) -> &str {
@@ -577,6 +585,30 @@ impl_binary_ops!(symbol_ops Expr, Symbol, |s: Expr| s, |r: Symbol| r.to_expr());
 impl_binary_ops!(symbol_ops Expr, &Symbol, |s: Expr| s, |r: &Symbol| r.to_expr());
 impl_binary_ops!(symbol_ops Expr, f64, |s: Expr| s, |r: f64| Expr::number(r));
 
+// &Expr operations (reference - allows &expr + &expr without explicit .clone())
+impl_binary_ops!(
+    symbol_ops & Expr,
+    &Expr,
+    |e: &Expr| e.clone(),
+    |r: &Expr| r.clone()
+);
+impl_binary_ops!(symbol_ops & Expr, Expr, |e: &Expr| e.clone(), |r: Expr| r);
+impl_binary_ops!(
+    symbol_ops & Expr,
+    Symbol,
+    |e: &Expr| e.clone(),
+    |r: Symbol| r.to_expr()
+);
+impl_binary_ops!(
+    symbol_ops & Expr,
+    &Symbol,
+    |e: &Expr| e.clone(),
+    |r: &Symbol| r.to_expr()
+);
+impl_binary_ops!(symbol_ops & Expr, f64, |e: &Expr| e.clone(), |r: f64| {
+    Expr::number(r)
+});
+
 // f64 on left side
 impl Add<Expr> for f64 {
     type Output = Expr;
@@ -613,6 +645,35 @@ impl Mul<Symbol> for f64 {
     }
 }
 
+// f64 on left side with &Expr
+impl Add<&Expr> for f64 {
+    type Output = Expr;
+    fn add(self, rhs: &Expr) -> Expr {
+        Expr::add_expr(Expr::number(self), rhs.clone())
+    }
+}
+
+impl Mul<&Expr> for f64 {
+    type Output = Expr;
+    fn mul(self, rhs: &Expr) -> Expr {
+        Expr::mul_expr(Expr::number(self), rhs.clone())
+    }
+}
+
+impl Sub<&Expr> for f64 {
+    type Output = Expr;
+    fn sub(self, rhs: &Expr) -> Expr {
+        Expr::sub_expr(Expr::number(self), rhs.clone())
+    }
+}
+
+impl Div<&Expr> for f64 {
+    type Output = Expr;
+    fn div(self, rhs: &Expr) -> Expr {
+        Expr::div_expr(Expr::number(self), rhs.clone())
+    }
+}
+
 // Negation
 impl Neg for Symbol {
     type Output = Expr;
@@ -625,6 +686,20 @@ impl Neg for Expr {
     type Output = Expr;
     fn neg(self) -> Expr {
         Expr::mul_expr(Expr::number(-1.0), self)
+    }
+}
+
+impl Neg for &Expr {
+    type Output = Expr;
+    fn neg(self) -> Expr {
+        Expr::mul_expr(Expr::number(-1.0), self.clone())
+    }
+}
+
+impl Neg for &Symbol {
+    type Output = Expr;
+    fn neg(self) -> Expr {
+        Expr::mul_expr(Expr::number(-1.0), self.to_expr())
     }
 }
 

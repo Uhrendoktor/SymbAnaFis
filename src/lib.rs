@@ -40,6 +40,7 @@ mod parser;
 mod simplification;
 mod symbol;
 pub mod traits;
+mod uncertainty;
 pub mod visitor;
 
 #[cfg(feature = "python")]
@@ -64,6 +65,7 @@ pub use symbol::{
     InternedSymbol, Symbol, SymbolError, clear_symbols, remove_symbol, sym, symb_get, symb_new,
     symbol_exists,
 };
+pub use uncertainty::{CovEntry, CovarianceMatrix, relative_uncertainty, uncertainty_propagation};
 
 /// Default maximum AST depth
 pub const DEFAULT_MAX_DEPTH: usize = 100;

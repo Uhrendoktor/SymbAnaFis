@@ -8,12 +8,14 @@ A comprehensive guide to the symb_anafis symbolic mathematics library.
 2. [Symbol Management](#symbol-management)
 3. [Core Functions](#core-functions)
 4. [Builder Pattern API](#builder-pattern-api)
-5. [Custom Functions](#custom-functions)
-6. [Evaluation](#evaluation)
-7. [Vector Calculus](#vector-calculus)
-8. [Parallel Evaluation](#parallel-evaluation)
-9. [Built-in Functions](#built-in-functions)
-10. [Expression Syntax](#expression-syntax)
+5. [Expression Output](#expression-output)
+6. [Uncertainty Propagation](#uncertainty-propagation)
+7. [Custom Functions](#custom-functions)
+8. [Evaluation](#evaluation)
+9. [Vector Calculus](#vector-calculus)
+10. [Parallel Evaluation](#parallel-evaluation)
+11. [Built-in Functions](#built-in-functions)
+12. [Expression Syntax](#expression-syntax)
 
 ---
 
@@ -175,9 +177,159 @@ Build expressions programmatically:
 use symb_anafis::{sym, Diff, Expr};
 
 let x = sym("x");
-let expr = x.clone().pow(2.0) + x.sin();  // x² + sin(x)
+
+// Use pow_ref() to avoid .clone()
+let expr = x.pow_ref(2.0) + x.sin();  // x² + sin(x)
 
 let derivative = Diff::new().differentiate(expr, &x)?;
+```
+
+---
+
+## Expression Output
+
+Format expressions for different output contexts.
+
+### LaTeX Output
+
+```rust
+use symb_anafis::sym;
+
+let x = sym("x");
+let sigma = sym("sigma");
+let expr = x.pow_ref(2.0) / sigma;  // No clone needed!
+
+println!("{}", expr.to_latex());
+// Output: \frac{x^{2}}{\sigma}
+```
+
+**LaTeX Features:**
+| Expression | LaTeX Output |
+|------------|--------------|
+| `a / b` | `\frac{a}{b}` |
+| `x^n` | `x^{n}` |
+| `a * b` | `a \cdot b` |
+| `sin(x)` | `\sin\left(x\right)` |
+| `sqrt(x)` | `\sqrt{x}` |
+| `pi`, `alpha`, etc. | `\pi`, `\alpha`, etc. |
+
+### Unicode Output
+
+```rust
+let expr = sym("x").pow(2.0) + sym("pi");
+println!("{}", expr.to_unicode());
+// Output: x² + π
+```
+
+**Unicode Features:**
+- Superscripts for integer powers: `x²`, `x³`, `x⁻¹`
+- Greek letters: `pi` → `π`, `sigma` → `σ`, `alpha` → `α`
+- Proper minus sign: `−`
+- Middle dot for multiplication: `·`
+- Infinity symbol: `∞`
+
+---
+
+## Uncertainty Propagation
+
+Compute uncertainty propagation using the standard formula:
+σ_f = √(Σᵢ Σⱼ (∂f/∂xᵢ)(∂f/∂xⱼ) Cov(xᵢ, xⱼ))
+
+### Basic Usage
+
+```rust
+use symb_anafis::{sym, uncertainty_propagation};
+
+let x = sym("x");
+let y = sym("y");
+let expr = &x + &y;  // Note: &x instead of x.clone()
+
+// Returns: sqrt(sigma_x^2 + sigma_y^2)
+let sigma = uncertainty_propagation(&expr, &["x", "y"], None)?;
+println!("{}", sigma.to_latex());
+```
+
+### Numeric Covariance
+
+```rust
+use symb_anafis::{uncertainty_propagation, CovarianceMatrix, CovEntry};
+
+let cov = CovarianceMatrix::diagonal(vec![
+    CovEntry::Num(1.0),  // σ_x² = 1
+    CovEntry::Num(4.0),  // σ_y² = 4
+]);
+
+let sigma = uncertainty_propagation(&expr, &["x", "y"], Some(&cov))?;
+// For f = x + y: σ_f = sqrt(1 + 4) = sqrt(5)
+```
+
+### Correlated Variables
+
+When variables are correlated (e.g., both depend on temperature), the full formula includes cross-terms:
+
+**σ_f² = Σᵢ Σⱼ (∂f/∂xᵢ)(∂f/∂xⱼ) Cov(xᵢ, xⱼ)**
+
+The **covariance matrix** for 2 variables is:
+```
+       |  Cov(x,x)   Cov(x,y)  |     |  σ_x²        ρ·σ_x·σ_y  |
+Cov =  |                       |  =  |                         |
+       |  Cov(y,x)   Cov(y,y)  |     |  ρ·σ_x·σ_y  σ_y²        |
+```
+
+Where **ρ** is the correlation coefficient (-1 to +1).
+
+**Example: Fully symbolic correlation**
+
+```rust
+use symb_anafis::{sym, CovEntry, CovarianceMatrix, Expr};
+
+let sigma_x = sym("sigma_x");
+let sigma_y = sym("sigma_y");
+let rho = sym("rho");  // correlation coefficient
+
+// Build the full 2x2 covariance matrix
+let cov = CovarianceMatrix::new(vec![
+    vec![
+        CovEntry::Symbolic(sigma_x.pow_ref(2.0)),          // [0,0]: σ_x²
+        CovEntry::Symbolic(&rho * &sigma_x * &sigma_y),    // [0,1]: ρ·σ_x·σ_y
+    ],
+    vec![
+        CovEntry::Symbolic(&rho * &sigma_x * &sigma_y),    // [1,0]: ρ·σ_x·σ_y
+        CovEntry::Symbolic(sigma_y.pow_ref(2.0)),          // [1,1]: σ_y²
+    ],
+]);
+
+let sigma = uncertainty_propagation(&expr, &["x", "y"], Some(&cov))?;
+// Result includes cross-terms with ρ
+```
+
+**Example: Numeric correlation**
+
+```rust
+// Known values: σ_x = 0.1, σ_y = 0.2, ρ = 0.5
+let sigma_x = 0.1;
+let sigma_y = 0.2;
+let rho = 0.5;
+
+let cov = CovarianceMatrix::new(vec![
+    vec![
+        CovEntry::Num(sigma_x.powi(2)),                    // σ_x² = 0.01
+        CovEntry::Num(rho * sigma_x * sigma_y),            // ρ·σ_x·σ_y = 0.01
+    ],
+    vec![
+        CovEntry::Num(rho * sigma_x * sigma_y),            // ρ·σ_x·σ_y = 0.01
+        CovEntry::Num(sigma_y.powi(2)),                    // σ_y² = 0.04
+    ],
+]);
+```
+
+### Relative Uncertainty
+
+```rust
+use symb_anafis::relative_uncertainty;
+
+// Returns σ_f / |f|
+let rel = relative_uncertainty(&expr, &["x", "y"], None)?;
 ```
 
 ---
@@ -340,7 +492,7 @@ use symb_anafis::{sym, gradient, hessian, jacobian};
 
 let x = sym("x");
 let y = sym("y");
-let expr = x.pow(2.0) + y.pow(2.0);
+let expr = x.pow_ref(2.0) + y.pow_ref(2.0);  // No clone needed!
 
 let grad = gradient(&expr, &[&x, &y]);  // Vec<Expr>
 ```
@@ -357,7 +509,7 @@ Evaluate expressions at multiple points in parallel:
 use symb_anafis::parallel::{evaluate_parallel, Value};
 
 let x = sym("x");
-let expr = x.pow(2.0);
+let expr = x.pow_ref(2.0);  // No clone needed!
 
 let vals: Vec<Value> = vec![0.0.into(), 1.0.into(), 2.0.into(), 3.0.into()];
 let results = evaluate_parallel(&[&expr], &[&["x"]], &[&[&vals]]);
@@ -406,14 +558,14 @@ use symb_anafis::{sym, Diff, Expr};
 
 let x = sym("x");
 
-// Direct method calls on Symbol
-let expr = x.clone().sin();              // sin(x)
-let expr = x.clone().gamma();            // gamma(x)
-let expr = x.clone().erf();              // erf(x)
+// Direct method calls on Symbol (use pow_ref to avoid clone)
+let expr = x.sin();                  // sin(x) - consumes x
+let expr = x.pow_ref(2.0);           // x² - keeps x usable
+let expr = x.gamma();                // gamma(x) - consumes x
 
 // Multi-argument functions
-let expr = x.clone().besselj(0);         // J_0(x) - shorthand
-let expr = Expr::call("besselj", [Expr::number(0.0), x.clone().into()]);  // Explicit
+let expr = x.besselj(0);             // J_0(x) - shorthand
+let expr = Expr::call("besselj", [Expr::number(0.0), x.into()]);  // Explicit
 
 // Differentiate special functions
 let result = Diff::new().diff_str("gamma(x)", "x")?;
