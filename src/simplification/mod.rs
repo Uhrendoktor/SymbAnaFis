@@ -1,4 +1,4 @@
-// Simplification framework - reduces expressions
+//! Simplification framework - reduces expressions
 pub(crate) mod engine;
 pub(crate) mod helpers;
 mod patterns;

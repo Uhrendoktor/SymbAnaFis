@@ -1,3 +1,8 @@
+//! Pratt parser for building abstract syntax trees from tokens
+//!
+//! Implements a top-down operator precedence parser with support for
+//! infix operators, prefix operators (unary minus), and function calls.
+
 use crate::parser::tokens::{Operator, Token};
 use crate::{DiffError, Expr, ExprKind};
 

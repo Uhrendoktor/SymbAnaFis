@@ -1,3 +1,11 @@
+//! Dual number implementation for automatic differentiation
+//!
+//! Dual numbers extend real numbers with an infinitesimal ε where ε² = 0.
+//! A dual number a + bε carries both a value and its derivative.
+//!
+//! This enables exact derivatives through function composition:
+//! f(a + ε) = f(a) + f'(a)ε
+
 use crate::traits::MathScalar;
 use num_traits::{Bounded, Float, FloatConst, FromPrimitive, Num, NumCast, One, ToPrimitive, Zero};
 use std::fmt;
@@ -504,6 +512,165 @@ impl<T: MathScalar + Float> Float for Dual<T> {
     }
 }
 
+// ============================================================================
+// Special Function Implementations for Dual Numbers
+// ============================================================================
+// These enable automatic differentiation for special mathematical functions.
+// Each function implements both the value and its derivative.
+#[allow(dead_code)]
+impl<T: MathScalar> Dual<T> {
+    /// Error function: erf(x) = (2/√π) ∫₀ˣ e^(-t²) dt
+    /// d/dx erf(x) = (2/√π) * e^(-x²)
+    pub fn erf(self) -> Self {
+        let val = crate::math::eval_erf(self.val);
+        let two = T::from(2.0).unwrap();
+        let pi = T::PI();
+        let deriv = two / pi.sqrt() * (-self.val * self.val).exp();
+        Self::new(val, self.eps * deriv)
+    }
+
+    /// Complementary error function: erfc(x) = 1 - erf(x)
+    /// d/dx erfc(x) = -d/dx erf(x) = -(2/√π) * e^(-x²)
+    pub fn erfc(self) -> Self {
+        let erf_result = self.erf();
+        Self::new(T::one() - erf_result.val, -erf_result.eps)
+    }
+
+    /// Gamma function: Γ(x)
+    /// d/dx Γ(x) = Γ(x) * ψ(x) where ψ is the digamma function
+    pub fn gamma(self) -> Option<Self> {
+        let val = crate::math::eval_gamma(self.val)?;
+        let digamma_val = crate::math::eval_digamma(self.val)?;
+        let deriv = val * digamma_val;
+        Some(Self::new(val, self.eps * deriv))
+    }
+
+    /// Digamma function: ψ(x) = d/dx ln(Γ(x)) = Γ'(x)/Γ(x)
+    /// d/dx ψ(x) = ψ₁(x) (trigamma)
+    pub fn digamma(self) -> Option<Self> {
+        let val = crate::math::eval_digamma(self.val)?;
+        let deriv = crate::math::eval_trigamma(self.val)?;
+        Some(Self::new(val, self.eps * deriv))
+    }
+
+    /// Trigamma function: ψ₁(x) = d/dx ψ(x)
+    /// d/dx ψ₁(x) = ψ₂(x) (tetragamma)
+    pub fn trigamma(self) -> Option<Self> {
+        let val = crate::math::eval_trigamma(self.val)?;
+        let deriv = crate::math::eval_tetragamma(self.val)?;
+        Some(Self::new(val, self.eps * deriv))
+    }
+
+    /// Polygamma function: ψₙ(x)
+    /// d/dx ψₙ(x) = ψₙ₊₁(x)
+    pub fn polygamma(self, n: i32) -> Option<Self> {
+        let val = crate::math::eval_polygamma(n, self.val)?;
+        let deriv = crate::math::eval_polygamma(n + 1, self.val)?;
+        Some(Self::new(val, self.eps * deriv))
+    }
+
+    /// Riemann zeta function: ζ(x)
+    /// d/dx ζ(x) = ζ'(x) (computed via eval_zeta_deriv)
+    pub fn zeta(self) -> Option<Self> {
+        let val = crate::math::eval_zeta(self.val)?;
+        let deriv = crate::math::eval_zeta_deriv(1, self.val)?;
+        Some(Self::new(val, self.eps * deriv))
+    }
+
+    /// Lambert W function: W(x) where W(x) * e^W(x) = x
+    /// d/dx W(x) = W(x) / (x * (1 + W(x)))
+    pub fn lambert_w(self) -> Option<Self> {
+        let w = crate::math::eval_lambert_w(self.val)?;
+        // d/dx W(x) = W(x) / (x * (1 + W(x))) = 1 / (e^W(x) * (1 + W(x)))
+        let one = T::one();
+        let deriv = if self.val.abs() < T::from(1e-15).unwrap() {
+            one // W'(0) = 1
+        } else {
+            w / (self.val * (one + w))
+        };
+        Some(Self::new(w, self.eps * deriv))
+    }
+
+    /// Bessel function of the first kind: J_n(x)
+    /// d/dx J_n(x) = (J_{n-1}(x) - J_{n+1}(x)) / 2
+    pub fn bessel_j(self, n: i32) -> Option<Self> {
+        let val = crate::math::bessel_j(n, self.val)?;
+        let jn_minus_1 = crate::math::bessel_j(n - 1, self.val)?;
+        let jn_plus_1 = crate::math::bessel_j(n + 1, self.val)?;
+        let two = T::from(2.0).unwrap();
+        let deriv = (jn_minus_1 - jn_plus_1) / two;
+        Some(Self::new(val, self.eps * deriv))
+    }
+
+    /// Sinc function: sinc(x) = sin(x)/x (with sinc(0) = 1)
+    /// d/dx sinc(x) = (x*cos(x) - sin(x)) / x²
+    pub fn sinc(self) -> Self {
+        let threshold = T::from(1e-10).unwrap();
+        if self.val.abs() < threshold {
+            // sinc(0) = 1, sinc'(0) = 0
+            Self::new(T::one(), T::zero())
+        } else {
+            let sin_x = self.val.sin();
+            let cos_x = self.val.cos();
+            let val = sin_x / self.val;
+            let deriv = (self.val * cos_x - sin_x) / (self.val * self.val);
+            Self::new(val, self.eps * deriv)
+        }
+    }
+
+    /// Sign function: sign(x) = x/|x| for x ≠ 0
+    /// d/dx sign(x) = 0 (almost everywhere, undefined at 0)
+    pub fn sign(self) -> Self {
+        Self::new(self.val.signum(), T::zero())
+    }
+
+    /// Elliptic integral of the first kind: K(k)
+    /// Uses numerical differentiation since analytical is complex
+    pub fn elliptic_k(self) -> Option<Self> {
+        let val = crate::math::eval_elliptic_k(self.val)?;
+        // Numerical derivative via finite difference
+        let h = T::from(1e-8).unwrap();
+        let val_plus = crate::math::eval_elliptic_k(self.val + h)?;
+        let val_minus = crate::math::eval_elliptic_k(self.val - h)?;
+        let two = T::from(2.0).unwrap();
+        let deriv = (val_plus - val_minus) / (two * h);
+        Some(Self::new(val, self.eps * deriv))
+    }
+
+    /// Elliptic integral of the second kind: E(k)
+    /// Uses numerical differentiation since analytical is complex
+    pub fn elliptic_e(self) -> Option<Self> {
+        let val = crate::math::eval_elliptic_e(self.val)?;
+        // Numerical derivative via finite difference
+        let h = T::from(1e-8).unwrap();
+        let val_plus = crate::math::eval_elliptic_e(self.val + h)?;
+        let val_minus = crate::math::eval_elliptic_e(self.val - h)?;
+        let two = T::from(2.0).unwrap();
+        let deriv = (val_plus - val_minus) / (two * h);
+        Some(Self::new(val, self.eps * deriv))
+    }
+
+    /// Beta function: B(a, b) = Γ(a)Γ(b)/Γ(a+b)
+    /// d/da B(a, b) = B(a, b) * (ψ(a) - ψ(a+b))
+    pub fn beta(self, b: Self) -> Option<Self> {
+        let gamma_a = crate::math::eval_gamma(self.val)?;
+        let gamma_b = crate::math::eval_gamma(b.val)?;
+        let gamma_ab = crate::math::eval_gamma(self.val + b.val)?;
+        let val = gamma_a * gamma_b / gamma_ab;
+
+        let psi_a = crate::math::eval_digamma(self.val)?;
+        let psi_b = crate::math::eval_digamma(b.val)?;
+        let psi_ab = crate::math::eval_digamma(self.val + b.val)?;
+
+        // d/da B(a,b) = B(a,b) * (ψ(a) - ψ(a+b))
+        // d/db B(a,b) = B(a,b) * (ψ(b) - ψ(a+b))
+        let deriv_a = val * (psi_a - psi_ab);
+        let deriv_b = val * (psi_b - psi_ab);
+
+        Some(Self::new(val, self.eps * deriv_a + b.eps * deriv_b))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -661,5 +828,56 @@ mod tests {
         let tanh_x = x.tanh();
         assert!(approx_eq(tanh_x.val, 0.0));
         assert!(approx_eq(tanh_x.eps, 1.0));
+    }
+
+    #[test]
+    fn test_dual_erf() {
+        // d/dx erf(x) = (2/√π) * e^(-x²)
+        let x = Dual::new(0.0, 1.0);
+        let result = x.erf();
+
+        assert!(approx_eq(result.val, 0.0)); // erf(0) = 0
+        // erf'(0) = 2/√π ≈ 1.1284
+        let expected_deriv = 2.0 / std::f64::consts::PI.sqrt();
+        assert!(approx_eq(result.eps, expected_deriv));
+    }
+
+    #[test]
+    fn test_dual_gamma() {
+        // Γ(1) = 1, Γ'(1) = -γ (Euler-Mascheroni constant, ≈ -0.5772)
+        let x = Dual::new(2.0, 1.0);
+        let result = x.gamma().unwrap();
+
+        assert!(approx_eq(result.val, 1.0)); // Γ(2) = 1! = 1
+        // Γ'(2) = Γ(2) * ψ(2) = 1 * (1 - γ) ≈ 0.4228
+        assert!(result.eps > 0.0 && result.eps < 1.0);
+    }
+
+    #[test]
+    fn test_dual_sinc() {
+        // sinc(0) = 1, sinc'(0) = 0
+        let x = Dual::new(0.0, 1.0);
+        let result = x.sinc();
+
+        assert!(approx_eq(result.val, 1.0));
+        assert!(approx_eq(result.eps, 0.0));
+
+        // At x = π: sinc(π) = 0, sinc'(π) = -1/π
+        let x_pi = Dual::new(std::f64::consts::PI, 1.0);
+        let result_pi = x_pi.sinc();
+        assert!(result_pi.val.abs() < 1e-10);
+    }
+
+    #[test]
+    fn test_dual_lambert_w() {
+        // W(0) = 0, W'(0) = 1
+        let x = Dual::new(1.0, 1.0);
+        let result = x.lambert_w().unwrap();
+
+        // W(1) ≈ 0.5671
+        assert!(result.val > 0.5 && result.val < 0.6);
+        // W'(1) = W(1) / (1 * (1 + W(1)))
+        let expected_deriv = result.val / (1.0 * (1.0 + result.val));
+        assert!((result.eps - expected_deriv).abs() < 1e-8);
     }
 }

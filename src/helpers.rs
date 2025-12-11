@@ -59,8 +59,8 @@ fn jacobian_internal(exprs: &[Expr], vars: &[&str]) -> Vec<Vec<Expr>> {
 ///
 /// # Example
 /// ```ignore
-/// let x = sym("x");
-/// let y = sym("y");
+/// let x = symb("x");
+/// let y = symb("y");
 /// let expr = x.pow(2.0) + y.pow(2.0);
 /// let grad = gradient(&expr, &[&x, &y]);
 /// // grad = [2*x, 2*y]
@@ -76,9 +76,9 @@ pub fn gradient(expr: &Expr, vars: &[&Symbol]) -> Vec<Expr> {
 ///
 /// # Example
 /// ```ignore
-/// let x = sym("x");
-/// let y = sym("y");
-/// let expr = x.pow(2.0) * y.clone();
+/// let x = symb("x");
+/// let y = symb("y");
+/// let expr = x.pow(2.0) * &y;
 /// let hess = hessian(&expr, &[&x, &y]);
 /// // hess = [[2*y, 2*x], [2*x, 0]]
 /// ```
@@ -92,10 +92,10 @@ pub fn hessian(expr: &Expr, vars: &[&Symbol]) -> Vec<Vec<Expr>> {
 ///
 /// # Example
 /// ```ignore
-/// let x = sym("x");
-/// let y = sym("y");
-/// let f1 = x.pow(2.0) + y.clone();
-/// let f2 = x.clone() * y.clone();
+/// let x = symb("x");
+/// let y = symb("y");
+/// let f1 = x.pow(2.0) + &y;
+/// let f2 = &x * &y;
 /// let jac = jacobian(&[f1, f2], &[&x, &y]);
 /// // jac = [[2*x, 1], [y, x]]
 /// ```

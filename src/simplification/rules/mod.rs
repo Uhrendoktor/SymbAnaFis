@@ -1,3 +1,8 @@
+//! Rule infrastructure for the simplification engine
+//!
+//! Provides macros (`rule!`, `rule_with_helpers!`), traits (`Rule`), and registry
+//! for defining and organizing simplification rules by category and priority.
+
 use crate::Expr;
 use crate::ExprKind as AstKind;
 use std::collections::{HashMap, HashSet};
@@ -229,17 +234,7 @@ pub trait Rule {
     /// Rules will ONLY be checked against expressions matching these kinds.
     /// Default: all kinds (for backwards compatibility during migration)
     fn applies_to(&self) -> &'static [ExprKind] {
-        &[
-            ExprKind::Number,
-            ExprKind::Symbol,
-            ExprKind::Add,
-            ExprKind::Sub,
-            ExprKind::Mul,
-            ExprKind::Div,
-            ExprKind::Pow,
-            ExprKind::Function,
-            ExprKind::Derivative,
-        ]
+        ALL_EXPR_KINDS
     }
 
     /// Apply this rule to an expression. Returns Some(new_expr) if transformation applied.
@@ -257,6 +252,19 @@ pub enum RuleCategory {
     Exponential,
     Root,
 }
+
+/// All expression kinds - used as default for rules
+pub const ALL_EXPR_KINDS: &[ExprKind] = &[
+    ExprKind::Number,
+    ExprKind::Symbol,
+    ExprKind::Add,
+    ExprKind::Sub,
+    ExprKind::Mul,
+    ExprKind::Div,
+    ExprKind::Pow,
+    ExprKind::Function,
+    ExprKind::Derivative,
+];
 
 /// Priority ranges for different types of operations:
 /// - 85-95: Expansion rules (distribute, expand powers, flatten nested structures)
@@ -338,7 +346,7 @@ impl RuleRegistry {
     pub fn load_all_rules(&mut self) {
         // Load rules from each category
         self.rules.extend(numeric::get_numeric_rules());
-        self.rules.extend(algebraic::get_algebraic_rules()); // Keep original algebraic rules for now
+        self.rules.extend(algebraic::get_algebraic_rules());
         self.rules.extend(trigonometric::get_trigonometric_rules());
         self.rules.extend(exponential::get_exponential_rules());
         self.rules.extend(root::get_root_rules());
@@ -374,17 +382,7 @@ impl RuleRegistry {
         self.rules_by_kind.clear();
 
         // Initialize all kinds
-        for kind in [
-            ExprKind::Number,
-            ExprKind::Symbol,
-            ExprKind::Add,
-            ExprKind::Sub,
-            ExprKind::Mul,
-            ExprKind::Div,
-            ExprKind::Pow,
-            ExprKind::Function,
-            ExprKind::Derivative,
-        ] {
+        for &kind in ALL_EXPR_KINDS {
             self.rules_by_kind.insert(kind, Vec::new());
         }
 

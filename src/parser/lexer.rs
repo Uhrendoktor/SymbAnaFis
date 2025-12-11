@@ -1,21 +1,21 @@
-// Lexer implementation - two-pass context-aware tokenization
-//
-// ROBUSTNESS IMPROVEMENTS (2024):
-// ================================
-// This lexer has been refactored to improve maintainability and robustness:
-//
-// 1. Number Parsing: Simplified to rely on f64::parse() for validation
-//    - Removed redundant manual sign handling in scientific notation
-//    - Cleaner character class checking (digits, '.', 'e', 'E', '+', '-')
-//
-// 2. Derivative Notation: Extracted into dedicated scan_derivative_notation()
-//    - Better isolation of complex parenthesis-balancing logic
-//    - Improved error messages for malformed derivative expressions
-//    - More testable and maintainable code structure
-//
-// 3. Sequence Resolution: Documented priority order and tradeoffs
-//    - Implicit multiplication (e.g., "xsin(y)" → "x * sin(y)") is heuristic-based
-//    - Users can disambiguate by using explicit operators or declaring fixed_vars
+//! Lexer implementation - two-pass context-aware tokenization
+//!
+//! # Robustness Improvements (2024)
+//!
+//! This lexer has been refactored to improve maintainability and robustness:
+//!
+//! 1. **Number Parsing**: Simplified to rely on `f64::parse()` for validation
+//!    - Removed redundant manual sign handling in scientific notation
+//!    - Cleaner character class checking (digits, '.', 'e', 'E', '+', '-')
+//!
+//! 2. **Derivative Notation**: Extracted into dedicated `scan_derivative_notation()`
+//!    - Better isolation of complex parenthesis-balancing logic
+//!    - Improved error messages for malformed derivative expressions
+//!    - More testable and maintainable code structure
+//!
+//! 3. **Sequence Resolution**: Documented priority order and tradeoffs
+//!    - Implicit multiplication (e.g., "xsin(y)" → "x * sin(y)") is heuristic-based
+//!    - Users can disambiguate by using explicit operators or declaring fixed_vars
 //
 use crate::DiffError;
 use crate::parser::tokens::{Operator, Token};
@@ -203,7 +203,6 @@ fn scan_derivative_notation(
     let mut seq = String::new();
     let mut depth = 0;
 
-    // chars is already positioned at '∂', consume it
     // chars is already positioned at '∂', consume it
     if chars.peek() == Some(&'∂') {
         seq.push(chars.next().unwrap());

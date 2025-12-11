@@ -1,19 +1,19 @@
-// Differentiation engine - applies calculus rules (PHASE 2 ENHANCED)
-//
-// DESIGN NOTE: Inline optimizations
-// =================================
-// This module contains inline simplification checks (e.g., 0 + x → x, 1 * x → x)
-// during derivative computation. This is INTENTIONAL and NOT redundant with the
-// simplification module because:
-//
-// 1. Preventing expression explosion: Without inline optimization, differentiating
-//    a function like sin(x^5) would create massive intermediate expression trees
-//    before simplification runs.
-//
-// 2. Performance: The simplification engine does a full bottom-up tree traversal.
-//    Inline checks here are O(1) pattern matches on immediate operands.
-//
-// The simplification engine then handles any remaining optimization opportunities.
+//! Differentiation engine - applies calculus rules (PHASE 2 ENHANCED)
+//!
+//! # Design Note: Inline Optimizations
+//!
+//! This module contains inline simplification checks (e.g., `0 + x → x`, `1 * x → x`)
+//! during derivative computation. This is INTENTIONAL and NOT redundant with the
+//! simplification module because:
+//!
+//! 1. **Preventing expression explosion**: Without inline optimization, differentiating
+//!    a function like `sin(x^5)` would create massive intermediate expression trees
+//!    before simplification runs.
+//!
+//! 2. **Performance**: The simplification engine does a full bottom-up tree traversal.
+//!    Inline checks here are O(1) pattern matches on immediate operands.
+//!
+//! The simplification engine then handles any remaining optimization opportunities.
 
 use crate::{CustomDerivativeFn, Expr, ExprKind};
 use std::collections::{HashMap, HashSet};

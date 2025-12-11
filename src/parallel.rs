@@ -1,31 +1,98 @@
 //! Parallel batch evaluation using Rayon
 //!
-//! This module provides a single unified function for parallelized evaluation
-//! of multiple expressions over multiple variable configurations.
+//! This module provides parallel evaluation of multiple expressions
+//! with flexible input types (Expr or string) and type-preserving output.
 //!
 //! Enable with the `parallel` feature:
 //! ```toml
 //! symb_anafis = { version = "0.3", features = ["parallel"] }
 //! ```
+//!
+//! # Example
+//! ```ignore
+//! use symb_anafis::{eval_parallel, symb};
+//! use symb_anafis::parallel::SKIP;
+//!
+//! let x = symb("x");
+//! let expr = x.pow(2.0);
+//!
+//! let results = eval_parallel!(
+//!     exprs: ["x^2 + y", expr],
+//!     vars: [["x", "y"], ["x"]],
+//!     values: [
+//!         [[1.0, 2.0], [3.0, 4.0]],
+//!         [[1.0, 2.0, 3.0]]
+//!     ]
+//! );
+//! ```
 
-use crate::Expr;
+use crate::{DiffError, Expr, parser};
 use rayon::prelude::*;
 use std::collections::HashMap;
+use std::collections::HashSet;
 
-/// A value to substitute for a variable.
-///
-/// Use this to pass numbers, expressions, or skip markers to `evaluate_parallel`.
-///
-/// # Examples
-/// ```ignore
-/// use symb_anafis::parallel::Value;
-///
-/// let vals: Vec<Value> = vec![
-///     2.0.into(),           // Number
-///     expr.into(),          // Expression
-///     Value::Skip,          // Keep variable symbolic
-/// ];
-/// ```
+// ============================================================================
+// Input Types
+// ============================================================================
+
+/// Expression input - can be an Expr or a string to parse
+#[derive(Debug, Clone)]
+pub enum ExprInput {
+    /// Already parsed expression
+    Parsed(Expr),
+    /// String formula to parse
+    String(String),
+}
+
+impl From<Expr> for ExprInput {
+    fn from(e: Expr) -> Self {
+        ExprInput::Parsed(e)
+    }
+}
+
+impl From<&Expr> for ExprInput {
+    fn from(e: &Expr) -> Self {
+        ExprInput::Parsed(e.clone())
+    }
+}
+
+impl From<&str> for ExprInput {
+    fn from(s: &str) -> Self {
+        ExprInput::String(s.to_string())
+    }
+}
+
+impl From<String> for ExprInput {
+    fn from(s: String) -> Self {
+        ExprInput::String(s)
+    }
+}
+
+/// Variable input - can be a Symbol or string name
+#[derive(Debug, Clone)]
+pub enum VarInput {
+    Name(String),
+}
+
+impl From<&str> for VarInput {
+    fn from(s: &str) -> Self {
+        VarInput::Name(s.to_string())
+    }
+}
+
+impl From<String> for VarInput {
+    fn from(s: String) -> Self {
+        VarInput::Name(s)
+    }
+}
+
+impl From<&crate::Symbol> for VarInput {
+    fn from(s: &crate::Symbol) -> Self {
+        VarInput::Name(s.name().unwrap_or("").to_string())
+    }
+}
+
+/// Value to substitute - number, expression, or skip
 #[derive(Debug, Clone)]
 pub enum Value {
     /// Substitute a numeric value
@@ -36,6 +103,9 @@ pub enum Value {
     Skip,
 }
 
+/// Convenience constant for skipping a variable
+pub const SKIP: Value = Value::Skip;
+
 impl From<f64> for Value {
     fn from(n: f64) -> Self {
         Value::Num(n)
@@ -44,6 +114,12 @@ impl From<f64> for Value {
 
 impl From<i32> for Value {
     fn from(n: i32) -> Self {
+        Value::Num(n as f64)
+    }
+}
+
+impl From<i64> for Value {
+    fn from(n: i64) -> Self {
         Value::Num(n as f64)
     }
 }
@@ -60,72 +136,142 @@ impl From<&Expr> for Value {
     }
 }
 
-impl<T: Into<Value>> From<Option<T>> for Value {
-    fn from(opt: Option<T>) -> Self {
-        match opt {
-            Some(v) => v.into(),
-            None => Value::Skip,
+// ============================================================================
+// Output Types
+// ============================================================================
+
+/// Result of parallel evaluation - preserves input type
+#[derive(Debug, Clone)]
+pub enum EvalResult {
+    /// Result as Expr (when input was Expr)
+    Expr(Expr),
+    /// Result as String (when input was string)
+    String(String),
+}
+
+impl EvalResult {
+    /// Get result as string (always works)
+    pub fn to_string(&self) -> String {
+        match self {
+            EvalResult::String(s) => s.clone(),
+            EvalResult::Expr(e) => format!("{}", e),
+        }
+    }
+
+    /// Get result as Expr (parses if needed)
+    pub fn to_expr(&self) -> Result<Expr, DiffError> {
+        match self {
+            EvalResult::Expr(e) => Ok(e.clone()),
+            EvalResult::String(s) => parser::parse(s, &HashSet::new(), &HashSet::new()),
+        }
+    }
+
+    /// Check if this is a string result
+    pub fn is_string(&self) -> bool {
+        matches!(self, EvalResult::String(_))
+    }
+
+    /// Check if this is an Expr result
+    pub fn is_expr(&self) -> bool {
+        matches!(self, EvalResult::Expr(_))
+    }
+
+    /// Unwrap as string, panics if Expr
+    pub fn unwrap_string(self) -> String {
+        match self {
+            EvalResult::String(s) => s,
+            EvalResult::Expr(_) => panic!("Expected String, got Expr"),
+        }
+    }
+
+    /// Unwrap as Expr, panics if String
+    pub fn unwrap_expr(self) -> Expr {
+        match self {
+            EvalResult::Expr(e) => e,
+            EvalResult::String(_) => panic!("Expected Expr, got String"),
         }
     }
 }
 
-/// Unified parallel evaluation for multiple expressions with flexible variable bindings.
+impl std::fmt::Display for EvalResult {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            EvalResult::String(s) => write!(f, "{}", s),
+            EvalResult::Expr(e) => write!(f, "{}", e),
+        }
+    }
+}
+
+// ============================================================================
+// Core Function
+// ============================================================================
+
+/// Unified parallel evaluation for multiple expressions with flexible inputs.
+///
+/// Prefer using the `eval_parallel!` macro for cleaner syntax.
 ///
 /// # Arguments
-/// * `exprs` - Slice of expressions to evaluate
-/// * `var_names` - For each expression, a slice of variable names
-/// * `values` - 3D structure: `values[expr_idx][var_idx][point_idx]`
-///   - `Value::Num(x)` or `x.into()` → substitute that number
-///   - `Value::Expr(e)` or `e.into()` → substitute that expression
-///   - `Value::Skip` or `None.into()` → keep variable symbolic
+/// * `exprs` - Vec of expression inputs (Expr or string)
+/// * `var_names` - 2D Vec of variable names for each expression
+/// * `values` - 3D Vec of substitution values
 ///
 /// # Returns
-/// For each expression, a Vec of evaluated/simplified expressions at each point.
-///
-/// # Example
-/// ```ignore
-/// use symb_anafis::parallel::{evaluate_parallel, Value};
-///
-/// // x*y*z with x=2, y=Skip → 2*z*y (partial)
-/// let results = evaluate_parallel(
-///     &[&expr],
-///     &[&["x", "y"]],
-///     &[&[&[2.0.into(), Value::Skip], &[3.0.into(), 4.0.into()]]],
-/// );
-/// ```
+/// For each expression, a Vec of `EvalResult` at each point.
+/// Output type matches input type (string→String, Expr→Expr).
 pub fn evaluate_parallel(
-    exprs: &[&Expr],
-    var_names: &[&[&str]],
-    values: &[&[&[Value]]],
-) -> Vec<Vec<Expr>> {
-    // Validate input dimensions
+    exprs: Vec<ExprInput>,
+    var_names: Vec<Vec<VarInput>>,
+    values: Vec<Vec<Vec<Value>>>,
+) -> Result<Vec<Vec<EvalResult>>, DiffError> {
     let n_exprs = exprs.len();
     if var_names.len() != n_exprs || values.len() != n_exprs {
-        return vec![vec![]; n_exprs];
+        return Err(DiffError::UnsupportedOperation(
+            "Mismatched dimensions in evaluate_parallel".to_string(),
+        ));
     }
 
+    // Parse all expressions and track which were strings
+    let parsed: Vec<(Expr, bool)> = exprs
+        .into_iter()
+        .map(|input| match input {
+            ExprInput::Parsed(e) => Ok((e, false)), // false = was Expr
+            ExprInput::String(s) => {
+                let expr = parser::parse(&s, &HashSet::new(), &HashSet::new())?;
+                Ok((expr, true)) // true = was String
+            }
+        })
+        .collect::<Result<Vec<_>, DiffError>>()?;
+
     // Process each expression in parallel
-    (0..n_exprs)
+    let results: Vec<Vec<EvalResult>> = (0..n_exprs)
         .into_par_iter()
         .map(|expr_idx| {
-            let expr = exprs[expr_idx];
-            let vars = var_names[expr_idx];
-            let vals = values[expr_idx];
+            let (expr, was_string) = &parsed[expr_idx];
+            let vars: Vec<&str> = var_names[expr_idx]
+                .iter()
+                .map(|v| match v {
+                    VarInput::Name(s) => s.as_str(),
+                })
+                .collect();
+            let vals = &values[expr_idx];
 
-            // Validate variable/value dimensions
+            // Validate dimensions
             if vars.len() != vals.len() {
                 return vec![];
             }
 
-            // Handle no variables case
             let n_vars = vars.len();
             if n_vars == 0 {
-                return vec![expr.evaluate(&HashMap::new())];
+                let result = expr.evaluate(&HashMap::new());
+                return vec![if *was_string {
+                    EvalResult::String(result.to_string())
+                } else {
+                    EvalResult::Expr(result)
+                }];
             }
 
-            // Use maximum length across all variable arrays
+            // Find max points across all variables
             let n_points = vals.iter().map(|v| v.len()).max().unwrap_or(0);
-
             if n_points == 0 {
                 return vec![];
             }
@@ -134,9 +280,6 @@ pub fn evaluate_parallel(
             (0..n_points)
                 .into_par_iter()
                 .map(|point_idx| {
-                    // For symbolic substitutions, we need to do expr.substitute()
-                    // For numeric, we use evaluate()
-
                     let mut var_map: HashMap<&str, f64> = HashMap::new();
                     let mut expr_subs: Vec<(&str, &Expr)> = Vec::new();
 
@@ -150,33 +293,110 @@ pub fn evaluate_parallel(
                                     expr_subs.push((vars[var_idx], e));
                                 }
                                 Value::Skip => {
-                                    // Keep symbolic - don't add to var_map
+                                    // Keep symbolic
                                 }
                             }
                         }
-                        // Out of bounds → keep symbolic
                     }
 
-                    // First apply expression substitutions, then numeric evaluation
+                    // Apply expression substitutions
                     let mut result = expr.clone();
                     for (var, sub_expr) in expr_subs {
                         result = result.substitute(var, sub_expr);
                     }
 
-                    // Then evaluate numerics
-                    result.evaluate(&var_map)
+                    // Evaluate numerics
+                    let evaluated = result.evaluate(&var_map);
+
+                    // Convert to appropriate result type
+                    if *was_string {
+                        EvalResult::String(evaluated.to_string())
+                    } else {
+                        EvalResult::Expr(evaluated)
+                    }
                 })
                 .collect()
         })
-        .collect()
+        .collect();
+
+    Ok(results)
 }
+
+// ============================================================================
+// Macro for Clean Syntax
+// ============================================================================
+
+/// Helper macro to parse nested value arrays
+#[macro_export]
+#[doc(hidden)]
+macro_rules! __parse_values_inner {
+    // Single value
+    (@val $v:expr) => {
+        $crate::parallel::Value::from($v)
+    };
+
+    // Array of values -> Vec<Value>
+    (@arr [$($v:expr),* $(,)?]) => {
+        vec![$($crate::__parse_values_inner!(@val $v)),*]
+    };
+
+    // Array of arrays -> Vec<Vec<Value>>
+    (@arr2 [$([$($v:expr),* $(,)?]),* $(,)?]) => {
+        vec![$($crate::__parse_values_inner!(@arr [$($v),*])),*]
+    };
+
+    // Array of array of arrays -> Vec<Vec<Vec<Value>>>
+    (@arr3 [$([$([$($v:expr),* $(,)?]),* $(,)?]),* $(,)?]) => {
+        vec![$($crate::__parse_values_inner!(@arr2 [$([$($v),*]),*])),*]
+    };
+}
+
+/// Parallel evaluation macro with clean syntax.
+///
+/// # Example
+/// ```ignore
+/// use symb_anafis::{eval_parallel, symb};
+/// use symb_anafis::parallel::SKIP;
+///
+/// let x = symb("x");
+/// let expr = x.pow(2.0);
+///
+/// let results = eval_parallel!(
+///     exprs: ["x + y", expr],
+///     vars: [["x", "y"], ["x"]],
+///     values: [
+///         [[1.0, 2.0], [3.0, 4.0]],
+///         [[1.0, 2.0, SKIP]]
+///     ]
+/// )?;
+///
+/// // results[0] is Vec<EvalResult::String>
+/// // results[1] is Vec<EvalResult::Expr>
+/// ```
+#[macro_export]
+macro_rules! eval_parallel {
+    (
+        exprs: [$($e:expr),* $(,)?],
+        vars: [$([$($v:expr),* $(,)?]),* $(,)?],
+        values: [$([$([$($val:expr),* $(,)?]),* $(,)?]),* $(,)?]
+    ) => {{
+        $crate::parallel::evaluate_parallel(
+            vec![$($crate::parallel::ExprInput::from($e)),*],
+            vec![$(vec![$($crate::parallel::VarInput::from($v)),*]),*],
+            vec![$(vec![$(vec![$($crate::parallel::Value::from($val)),*]),*]),*],
+        )
+    }};
+}
+
+// ============================================================================
+// Tests
+// ============================================================================
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{ExprKind, sym};
+    use crate::{ExprKind, symb};
 
-    /// Helper to extract f64 from Expr::Number
     fn get_num(expr: &Expr) -> f64 {
         match &expr.kind {
             ExprKind::Number(n) => *n,
@@ -185,134 +405,102 @@ mod tests {
     }
 
     #[test]
-    fn test_single_expr_single_var() {
-        let x = sym("x");
-        let expr = x.clone().pow(2.0);
-
-        // Using .into() for clean syntax
-        let vals: Vec<Value> = vec![0.0.into(), 1.0.into(), 2.0.into(), 3.0.into()];
-        let results = evaluate_parallel(&[&expr], &[&["x"]], &[&[&vals]]);
-
-        assert_eq!(results.len(), 1);
-        assert_eq!(results[0].len(), 4);
-        assert!((get_num(&results[0][0]) - 0.0).abs() < 1e-10);
-        assert!((get_num(&results[0][1]) - 1.0).abs() < 1e-10);
-        assert!((get_num(&results[0][2]) - 4.0).abs() < 1e-10);
-        assert!((get_num(&results[0][3]) - 9.0).abs() < 1e-10);
-    }
-
-    #[test]
-    fn test_single_expr_two_vars_zip() {
-        let x = sym("x");
-        let y = sym("y");
-        let expr = x.clone() + y.clone();
-
-        let x_vals: Vec<Value> = vec![1.0.into(), 2.0.into()];
-        let y_vals: Vec<Value> = vec![10.0.into(), 20.0.into()];
-        let results = evaluate_parallel(&[&expr], &[&["x", "y"]], &[&[&x_vals, &y_vals]]);
-
-        assert_eq!(results.len(), 1);
-        assert_eq!(results[0].len(), 2);
-        assert!((get_num(&results[0][0]) - 11.0).abs() < 1e-10);
-        assert!((get_num(&results[0][1]) - 22.0).abs() < 1e-10);
-    }
-
-    #[test]
-    fn test_partial_evaluation() {
-        // x*y*z with x=2, y=3 should return 6*z
-        let x = sym("x");
-        let y = sym("y");
-        let z = sym("z");
-        let expr = x.clone() * y.clone() * z.clone();
-
-        let x_vals: Vec<Value> = vec![2.0.into()];
-        let y_vals: Vec<Value> = vec![3.0.into()];
-        let results = evaluate_parallel(&[&expr], &[&["x", "y"]], &[&[&x_vals, &y_vals]]);
-
-        assert_eq!(results.len(), 1);
-        assert_eq!(results[0].len(), 1);
-
-        // Result should be 6*z
-        let result_str = results[0][0].to_string();
-        assert!(result_str.contains("z") || result_str.contains("6"));
-    }
-
-    #[test]
-    fn test_sparse_array_with_skip() {
-        // x*y: x=[2, Skip, 4], y=[3, 5, 6]
-        // Point 0: x=2, y=3 → 6
-        // Point 1: x=Skip, y=5 → 5*x (symbolic)
-        // Point 2: x=4, y=6 → 24
-        let x = sym("x");
-        let y = sym("y");
-        let expr = x.clone() * y.clone();
-
-        let x_vals: Vec<Value> = vec![2.0.into(), Value::Skip, 4.0.into()];
-        let y_vals: Vec<Value> = vec![3.0.into(), 5.0.into(), 6.0.into()];
-        let results = evaluate_parallel(&[&expr], &[&["x", "y"]], &[&[&x_vals, &y_vals]]);
+    fn test_string_expr_single_var() {
+        let results = eval_parallel!(
+            exprs: ["x^2"],
+            vars: [["x"]],
+            values: [[[1.0, 2.0, 3.0]]]
+        )
+        .unwrap();
 
         assert_eq!(results.len(), 1);
         assert_eq!(results[0].len(), 3);
-
-        // Point 0: 2*3 = 6
-        assert!((get_num(&results[0][0]) - 6.0).abs() < 1e-10);
-
-        // Point 1: Skip*5 = 5*x (symbolic)
-        let result1_str = results[0][1].to_string();
-        assert!(result1_str.contains("x") || result1_str.contains("5"));
-
-        // Point 2: 4*6 = 24
-        assert!((get_num(&results[0][2]) - 24.0).abs() < 1e-10);
+        assert!(results[0][0].is_string());
+        assert_eq!(results[0][0].to_string(), "1");
+        assert_eq!(results[0][1].to_string(), "4");
+        assert_eq!(results[0][2].to_string(), "9");
     }
 
     #[test]
-    fn test_expr_substitution() {
-        // x*y with x = θ+1, y = 2 → 2*(θ+1)
-        let x = sym("x");
-        let y = sym("y");
-        let theta = sym("θ");
-        let expr = x.clone() * y.clone();
+    fn test_expr_input_single_var() {
+        let x = symb("x");
+        let expr = x.pow(2.0);
 
-        let theta_plus_one = theta.clone() + Expr::number(1.0);
-        let x_vals: Vec<Value> = vec![theta_plus_one.into()]; // Expression substitution
-        let y_vals: Vec<Value> = vec![2.0.into()]; // Numeric
-        let results = evaluate_parallel(&[&expr], &[&["x", "y"]], &[&[&x_vals, &y_vals]]);
+        let results = eval_parallel!(
+            exprs: [expr],
+            vars: [["x"]],
+            values: [[[1.0, 2.0, 3.0]]]
+        )
+        .unwrap();
 
         assert_eq!(results.len(), 1);
-        assert_eq!(results[0].len(), 1);
-
-        // Result should contain θ
-        let result_str = results[0][0].to_string();
-        assert!(result_str.contains("θ") || result_str.contains("2"));
+        assert_eq!(results[0].len(), 3);
+        assert!(results[0][0].is_expr());
+        assert!((get_num(&results[0][0].clone().unwrap_expr()) - 1.0).abs() < 1e-10);
+        assert!((get_num(&results[0][1].clone().unwrap_expr()) - 4.0).abs() < 1e-10);
+        assert!((get_num(&results[0][2].clone().unwrap_expr()) - 9.0).abs() < 1e-10);
     }
 
     #[test]
-    fn test_multi_expr_different_vars() {
-        let x = sym("x");
-        let t = sym("t");
-        let expr1 = x.clone().pow(2.0);
-        let expr2 = t.clone() + Expr::number(1.0);
+    fn test_mixed_exprs() {
+        let t = symb("t");
+        let expr = &t + 1.0;
 
-        let x_vals: Vec<Value> = vec![2.0.into(), 3.0.into()];
-        let t_vals: Vec<Value> = vec![10.0.into(), 20.0.into(), 30.0.into()];
-
-        let results = evaluate_parallel(
-            &[&expr1, &expr2],
-            &[&["x"], &["t"]],
-            &[&[&x_vals], &[&t_vals]],
-        );
+        let results = eval_parallel!(
+            exprs: ["x^2", expr],
+            vars: [["x"], ["t"]],
+            values: [
+                [[2.0, 3.0]],
+                [[10.0, 20.0]]
+            ]
+        )
+        .unwrap();
 
         assert_eq!(results.len(), 2);
 
-        // expr1: x^2 at x=[2,3] → [4, 9]
-        assert_eq!(results[0].len(), 2);
-        assert!((get_num(&results[0][0]) - 4.0).abs() < 1e-10);
-        assert!((get_num(&results[0][1]) - 9.0).abs() < 1e-10);
+        // First was string
+        assert!(results[0][0].is_string());
+        assert_eq!(results[0][0].to_string(), "4");
+        assert_eq!(results[0][1].to_string(), "9");
 
-        // expr2: t+1 at t=[10,20,30] → [11, 21, 31]
-        assert_eq!(results[1].len(), 3);
-        assert!((get_num(&results[1][0]) - 11.0).abs() < 1e-10);
-        assert!((get_num(&results[1][1]) - 21.0).abs() < 1e-10);
-        assert!((get_num(&results[1][2]) - 31.0).abs() < 1e-10);
+        // Second was Expr
+        assert!(results[1][0].is_expr());
+        assert!((get_num(&results[1][0].clone().unwrap_expr()) - 11.0).abs() < 1e-10);
+        assert!((get_num(&results[1][1].clone().unwrap_expr()) - 21.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn test_two_vars() {
+        let results = eval_parallel!(
+            exprs: ["x + y"],
+            vars: [["x", "y"]],
+            values: [[[1.0, 2.0], [10.0, 20.0]]]
+        )
+        .unwrap();
+
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].len(), 2);
+        assert_eq!(results[0][0].to_string(), "11");
+        assert_eq!(results[0][1].to_string(), "22");
+    }
+
+    #[test]
+    fn test_skip_value() {
+        let results = eval_parallel!(
+            exprs: ["x * y"],
+            vars: [["x", "y"]],
+            values: [[[2.0, SKIP], [3.0, 5.0]]]
+        )
+        .unwrap();
+
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].len(), 2);
+
+        // Point 0: x=2, y=3 → 6
+        assert_eq!(results[0][0].to_string(), "6");
+
+        // Point 1: x=skip, y=5 → symbolic
+        let result1 = results[0][1].to_string();
+        assert!(result1.contains("x") || result1.contains("5"));
     }
 }

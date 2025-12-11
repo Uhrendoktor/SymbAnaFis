@@ -1,9 +1,9 @@
-use crate::{Diff, DiffError, Expr, sym};
+use crate::{Diff, DiffError, Expr, symb};
 
 #[test]
 fn test_builder_configuration() {
     // Test defaults - use a variable symbol for differentiation
-    let x = sym("x");
+    let x = symb("x");
     let diff = Diff::new();
     let res = diff.differentiate(x.clone().pow(2.0), &x).unwrap();
     assert_eq!(format!("{}", res), "2x");
@@ -12,7 +12,7 @@ fn test_builder_configuration() {
     let _diff_safe = Diff::new().domain_safe(true);
 
     // Test fixed_var with Symbol
-    let a = sym("a");
+    let a = symb("a");
     let diff_fixed = Diff::new().fixed_var(&a);
     let res = diff_fixed.diff_str("a*x", "x").unwrap();
     assert_eq!(res, "a");
@@ -30,7 +30,7 @@ fn test_custom_derivatives() {
     let diff = Diff::new().custom_derivative("my_func", my_deriv);
 
     // Test: my_func(x) -> 3*x^2 * 1 = 3x^2
-    let x = sym("x");
+    let x = symb("x");
     let expr = Expr::func("my_func", x.clone().into());
     let res = diff.differentiate(expr, &x).unwrap();
     assert_eq!(format!("{}", res), "3x^2");
@@ -44,7 +44,7 @@ fn test_custom_derivatives() {
 
 #[test]
 fn test_recursion_limits() {
-    let x = sym("x");
+    let x = symb("x");
     let mut deeply_nested: Expr = x.clone().into();
     // Reduce depth to avoid stack overflow in default run, but enough to trigger limit
     for _ in 0..20 {
@@ -67,7 +67,7 @@ fn test_recursion_limits() {
 #[test]
 fn test_node_limits() {
     // Create broad tree
-    let x = sym("x");
+    let x = symb("x");
     let mut broad: Expr = x.clone().into();
     for _ in 0..10 {
         broad = broad.clone() + broad.clone();
@@ -82,7 +82,7 @@ fn test_node_limits() {
 
 #[test]
 fn test_symbol_method_chaining() {
-    let x = sym("x");
+    let x = symb("x");
 
     // sin(x)^2 + cos(x)^2
     // Symbol.pow(2.0) works and returns Expr, but sin() returns Expr, so use pow_of
@@ -99,7 +99,7 @@ fn test_symbol_method_chaining() {
 
 #[test]
 fn test_advanced_functions() {
-    let x = sym("x");
+    let x = symb("x");
 
     // gamma(x) calls Symbol::gamma -> Expr
     let expr = x.clone().gamma();
@@ -113,7 +113,7 @@ fn test_advanced_functions() {
 #[test]
 fn test_api_reusability() {
     // Builder should be reusable (cloneable)
-    let a = sym("a");
+    let a = symb("a");
     let diff = Diff::new().fixed_var(&a);
 
     let _res1 = diff.diff_str("a*x", "x").unwrap();
@@ -127,7 +127,7 @@ fn test_api_reusability() {
 #[test]
 fn test_error_handling() {
     // Pass closure directly
-    let my_func = sym("my_func");
+    let my_func = symb("my_func");
     let diff = Diff::new()
         .custom_derivative("my_func", |_, _, _| Expr::number(0.0))
         .fixed_var(&my_func);

@@ -30,6 +30,9 @@ impl Span {
     }
 
     /// Check if this span has valid location info
+    ///
+    /// A span is valid if it covers at least one character (end > start).
+    /// An empty span (0..0 or N..N) is considered invalid.
     pub fn is_valid(&self) -> bool {
         self.end > self.start
     }
@@ -47,7 +50,8 @@ impl Span {
 }
 
 /// Errors that can occur during parsing and differentiation
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum DiffError {
     // Input validation errors
     EmptyFormula,

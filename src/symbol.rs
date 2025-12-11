@@ -7,10 +7,10 @@
 //!
 //! # Example
 //! ```ignore
-//! use symb_anafis::{sym, symb, symb_get, clear_symbols};
+//! use symb_anafis::{sym, symb_new, symb_get, clear_symbols};
 //!
 //! // Create a new symbol (errors if name already registered)
-//! let x = symb("x").unwrap();
+//! let x = symb_new("x").unwrap();
 //!
 //! // Get existing symbol (errors if not found)
 //! let x2 = symb_get("x").unwrap();
@@ -263,19 +263,13 @@ impl Symbol {
         self.0.name()
     }
 
-    /// Get the internal interned symbol
-    #[allow(dead_code)]
-    pub(crate) fn interned(&self) -> &InternedSymbol {
-        &self.0
-    }
-
     /// Convert to an Expr
     pub fn to_expr(&self) -> Expr {
         Expr::from_interned(self.0.clone())
     }
 
-    /// Raise to a power
-    pub fn pow(self, exp: impl Into<Expr>) -> Expr {
+    /// Raise to a power (takes &self - no clone needed)
+    pub fn pow(&self, exp: impl Into<Expr>) -> Expr {
         Expr::pow(self.to_expr(), exp.into())
     }
 
@@ -283,41 +277,33 @@ impl Symbol {
 
     /// Polygamma function: ψ^(n)(x)
     /// `x.polygamma(n)` → `polygamma(n, x)`
-    pub fn polygamma(self, n: impl Into<Expr>) -> Expr {
+    pub fn polygamma(&self, n: impl Into<Expr>) -> Expr {
         Expr::func_multi("polygamma", vec![n.into(), self.to_expr()])
     }
 
     /// Beta function: B(a, b)
-    pub fn beta(self, other: impl Into<Expr>) -> Expr {
+    pub fn beta(&self, other: impl Into<Expr>) -> Expr {
         Expr::func_multi("beta", vec![self.to_expr(), other.into()])
     }
 
     /// Bessel function of the first kind: J_n(x)
-    pub fn besselj(self, n: impl Into<Expr>) -> Expr {
+    pub fn besselj(&self, n: impl Into<Expr>) -> Expr {
         Expr::func_multi("besselj", vec![n.into(), self.to_expr()])
     }
 
     /// Bessel function of the second kind: Y_n(x)
-    pub fn bessely(self, n: impl Into<Expr>) -> Expr {
+    pub fn bessely(&self, n: impl Into<Expr>) -> Expr {
         Expr::func_multi("bessely", vec![n.into(), self.to_expr()])
     }
 
     /// Modified Bessel function of the first kind: I_n(x)
-    pub fn besseli(self, n: impl Into<Expr>) -> Expr {
+    pub fn besseli(&self, n: impl Into<Expr>) -> Expr {
         Expr::func_multi("besseli", vec![n.into(), self.to_expr()])
     }
 
     /// Modified Bessel function of the second kind: K_n(x)
-    pub fn besselk(self, n: impl Into<Expr>) -> Expr {
+    pub fn besselk(&self, n: impl Into<Expr>) -> Expr {
         Expr::func_multi("besselk", vec![n.into(), self.to_expr()])
-    }
-}
-
-// Methods on &Symbol to avoid requiring .clone()
-impl Symbol {
-    /// Raise to a power (reference version - no clone needed)
-    pub fn pow_ref(&self, exp: impl Into<Expr>) -> Expr {
-        Expr::pow(self.to_expr(), exp.into())
     }
 }
 
@@ -341,7 +327,7 @@ impl AsRef<str> for Symbol {
 /// ```ignore
 /// let x = symb_new("x")?;
 /// let y = symb_new("y")?;
-/// let expr = x.clone().pow(2) + y;
+/// let expr = x.pow(2) + y;  // No clone needed!
 /// ```
 pub fn symb_new(name: &str) -> Result<Symbol, SymbolError> {
     with_registry_mut(|registry| {
@@ -399,7 +385,7 @@ pub fn clear_symbols() {
 ///
 /// # Example
 /// ```ignore
-/// let x = symb("x")?;
+/// let x = symb("x");
 /// assert!(symbol_exists("x"));
 /// remove_symbol("x");
 /// assert!(!symbol_exists("x"));
@@ -437,7 +423,7 @@ pub(crate) fn get_or_intern(name: &str) -> InternedSymbol {
 /// For strict control, use `symb()` and `symb_get()` instead.
 ///
 /// Note: Unlike `symb()`, this does NOT error on duplicate names.
-pub fn sym(name: &str) -> Symbol {
+pub fn symb(name: &str) -> Symbol {
     Symbol(get_or_intern(name))
 }
 
@@ -445,8 +431,21 @@ pub fn sym(name: &str) -> Symbol {
 // Macro for generating math function methods
 // ============================================================================
 
-/// Generate math function methods for a type
-macro_rules! impl_math_functions {
+/// Generate math function methods for a type (taking &self for Symbol, self for Expr)
+macro_rules! impl_math_functions_ref {
+    ($type:ty, $converter:expr, $($fn_name:ident => $func_str:literal),* $(,)?) => {
+        impl $type {
+            $(
+                pub fn $fn_name(&self) -> Expr {
+                    Expr::func($func_str, $converter(self))
+                }
+            )*
+        }
+    };
+}
+
+/// Generate math function methods for Expr (consumes self)
+macro_rules! impl_math_functions_owned {
     ($type:ty, $converter:expr, $($fn_name:ident => $func_str:literal),* $(,)?) => {
         impl $type {
             $(
@@ -459,7 +458,7 @@ macro_rules! impl_math_functions {
 }
 
 // Define the function list once
-macro_rules! math_function_list {
+macro_rules! math_function_list_ref {
     ($macro_name:ident, $type:ty, $converter:expr) => {
         $macro_name!($type, $converter,
             // Trigonometric functions
@@ -488,11 +487,40 @@ macro_rules! math_function_list {
     };
 }
 
-// Apply to Symbol (convert via to_expr())
-math_function_list!(impl_math_functions, Symbol, |s: Symbol| s.to_expr());
+macro_rules! math_function_list_owned {
+    ($macro_name:ident, $type:ty, $converter:expr) => {
+        $macro_name!($type, $converter,
+            // Trigonometric functions
+            sin => "sin", cos => "cos", tan => "tan",
+            cot => "cot", sec => "sec", csc => "csc",
+            // Inverse trigonometric functions
+            asin => "asin", acos => "acos", atan => "atan",
+            acot => "acot", asec => "asec", acsc => "acsc",
+            // Hyperbolic functions
+            sinh => "sinh", cosh => "cosh", tanh => "tanh",
+            coth => "coth", sech => "sech", csch => "csch",
+            // Inverse hyperbolic functions
+            asinh => "asinh", acosh => "acosh", atanh => "atanh",
+            acoth => "acoth", asech => "asech", acsch => "acsch",
+            // Exponential and logarithmic functions
+            exp => "exp", ln => "ln", log => "log",
+            log10 => "log10", log2 => "log2",
+            // Root functions
+            sqrt => "sqrt", cbrt => "cbrt",
+            // Special functions (single-argument only)
+            abs => "abs", sign => "sign", sinc => "sinc",
+            erf => "erf", erfc => "erfc", gamma => "gamma",
+            digamma => "digamma", trigamma => "trigamma",
+            zeta => "zeta", lambertw => "lambertw",
+        );
+    };
+}
 
-// Apply to Expr (use directly)
-math_function_list!(impl_math_functions, Expr, |e: Expr| e);
+// Apply to Symbol (takes &self, converts via to_expr())
+math_function_list_ref!(impl_math_functions_ref, Symbol, |s: &Symbol| s.to_expr());
+
+// Apply to Expr (consumes self)
+math_function_list_owned!(impl_math_functions_owned, Expr, |e: Expr| e);
 
 // Convert Symbol to Expr
 impl From<Symbol> for Expr {
@@ -783,7 +811,7 @@ mod tests {
     #[test]
     fn test_symb_get_returns_existing() {
         let name = "test_get_existing";
-        let x = sym(name); // Use sym to ensure it exists
+        let x = symb(name); // Use sym to ensure it exists
         let x2 = symb_get(name).unwrap();
         assert_eq!(x.id(), x2.id());
     }
@@ -797,7 +825,7 @@ mod tests {
     #[test]
     fn test_symbol_exists() {
         let name = "test_exists_x";
-        let _ = sym(name); // Ensure it exists
+        let _ = symb(name); // Ensure it exists
         assert!(symbol_exists(name));
     }
 
@@ -812,23 +840,23 @@ mod tests {
 
     #[test]
     fn test_sym_legacy_compatibility() {
-        let x = sym("test_legacy_x");
-        let x2 = sym("test_legacy_x"); // Should NOT error
+        let x = symb("test_legacy_x");
+        let x2 = symb("test_legacy_x"); // Should NOT error
         assert_eq!(x.id(), x2.id());
     }
 
     #[test]
     fn test_symbol_equality() {
         let name = "test_equality_x";
-        let x1 = sym(name); // Use sym to ensure it exists  
+        let x1 = symb(name); // Use sym to ensure it exists  
         let x2 = symb_get(name).unwrap();
         assert_eq!(x1, x2); // Same ID, equal
     }
 
     #[test]
     fn test_symbol_arithmetic() {
-        let x = sym("test_arith_x");
-        let y = sym("test_arith_y");
+        let x = symb("test_arith_x");
+        let y = symb("test_arith_y");
 
         let sum = x.clone() + y.clone();
         assert_eq!(format!("{}", sum), "test_arith_x + test_arith_y");
@@ -839,17 +867,22 @@ mod tests {
 
     #[test]
     fn test_symbol_power() {
-        let x = sym("test_pow_x");
+        let x = symb("test_pow_x");
         let squared = x.pow(2.0);
         assert_eq!(format!("{}", squared), "test_pow_x^2");
     }
 
     #[test]
     fn test_symbol_functions() {
-        let x = sym("test_fn_x");
-        assert_eq!(format!("{}", x.clone().sin()), "sin(test_fn_x)");
-        assert_eq!(format!("{}", x.clone().cos()), "cos(test_fn_x)");
-        assert_eq!(format!("{}", x.clone().exp()), "exp(test_fn_x)");
+        let x = symb("test_fn_x");
+        // No clone() needed anymore - methods take &self!
+        assert_eq!(format!("{}", x.sin()), "sin(test_fn_x)");
+        assert_eq!(format!("{}", x.cos()), "cos(test_fn_x)");
+        assert_eq!(format!("{}", x.exp()), "exp(test_fn_x)");
         assert_eq!(format!("{}", x.ln()), "ln(test_fn_x)");
+
+        // Can now use x multiple times without clone!
+        let combined = x.sin() + x.cos();
+        assert_eq!(format!("{}", combined), "sin(test_fn_x) + cos(test_fn_x)");
     }
 }

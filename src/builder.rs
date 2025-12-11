@@ -6,15 +6,15 @@
 //! ```ignore
 //! use symb_anafis::{sym, Diff};
 //!
-//! let x = sym("x");
-//! let expr = x.clone().pow(2.0) + x.sin();
+//! let x = symb("x");
+//! let expr = x.pow(2.0) + x.sin();  // No clone needed!
 //!
 //! let derivative = Diff::new()
 //!     .domain_safe(true)
 //!     .differentiate(expr, &x)?;  // Now uses Symbol!
 //! ```
 
-use crate::{DiffError, Expr, Symbol, parser, simplification, sym};
+use crate::{DiffError, Expr, Symbol, parser, simplification, symb};
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
@@ -110,7 +110,7 @@ impl Diff {
     ///
     /// # Example
     /// ```ignore
-    /// let a = sym("a");
+    /// let a = symb("a");
     /// Diff::new().fixed_var(&a)
     /// ```
     pub fn fixed_var(mut self, var: &Symbol) -> Self {
@@ -124,8 +124,8 @@ impl Diff {
     ///
     /// # Example
     /// ```ignore
-    /// let a = sym("a");
-    /// let b = sym("b");
+    /// let a = symb("a");
+    /// let b = symb("b");
     /// Diff::new().fixed_vars(&[&a, &b])
     /// ```
     pub fn fixed_vars(mut self, vars: &[&Symbol]) -> Self {
@@ -230,11 +230,6 @@ impl Diff {
         self
     }
 
-    /// Get the CustomFn definition for a function (used by differentiation)
-    pub fn get_custom_fn(&self, name: &str) -> Option<&CustomFn> {
-        self.custom_fns.get(name)
-    }
-
     /// Set maximum AST depth
     pub fn max_depth(mut self, depth: usize) -> Self {
         self.max_depth = Some(depth);
@@ -247,21 +242,11 @@ impl Diff {
         self
     }
 
-    /// Get the custom derivative function for a function name, if any
-    pub fn get_custom_derivative(&self, name: &str) -> Option<&CustomDerivativeFn> {
-        self.custom_derivatives.get(name)
-    }
-
-    /// Get all custom evaluation functions
-    pub fn get_custom_evals(&self) -> &HashMap<String, CustomEvalFn> {
-        &self.custom_evals
-    }
-
     /// Differentiate an expression with respect to a variable
     ///
     /// # Example
     /// ```ignore
-    /// let x = sym("x");
+    /// let x = symb("x");
     /// let expr = x.pow(2.0);
     /// Diff::new().differentiate(expr, &x)
     /// ```
@@ -327,7 +312,7 @@ impl Diff {
         let ast = parser::parse(formula, &self.fixed_vars, &self.custom_functions)?;
 
         // Create a temporary Symbol for the variable
-        let var_sym = sym(var);
+        let var_sym = symb(var);
 
         // Differentiate
         let result = self.differentiate(ast, &var_sym)?;
@@ -375,7 +360,7 @@ impl Simplify {
     ///
     /// # Example
     /// ```ignore
-    /// let a = sym("a");
+    /// let a = symb("a");
     /// Simplify::new().fixed_var(&a)
     /// ```
     pub fn fixed_var(mut self, var: &Symbol) -> Self {
@@ -389,8 +374,8 @@ impl Simplify {
     ///
     /// # Example
     /// ```ignore
-    /// let a = sym("a");
-    /// let b = sym("b");
+    /// let a = symb("a");
+    /// let b = symb("b");
     /// Simplify::new().fixed_vars(&[&a, &b])
     /// ```
     pub fn fixed_vars(mut self, vars: &[&Symbol]) -> Self {
@@ -424,11 +409,6 @@ impl Simplify {
         self.custom_functions.insert(name.clone());
         self.custom_evals.insert(name, Arc::new(eval_fn));
         self
-    }
-
-    /// Get all custom evaluation functions
-    pub fn get_custom_evals(&self) -> &HashMap<String, CustomEvalFn> {
-        &self.custom_evals
     }
 
     /// Set maximum AST depth
@@ -489,7 +469,7 @@ impl Simplify {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::symbol::sym;
+    use crate::symbol::symb;
 
     #[test]
     fn test_diff_builder_basic() {
@@ -499,7 +479,7 @@ mod tests {
 
     #[test]
     fn test_diff_with_fixed_var() {
-        let a = sym("a");
+        let a = symb("a");
         let result = Diff::new().fixed_var(&a).diff_str("a*x", "x").unwrap();
         assert_eq!(result, "a");
     }
@@ -512,8 +492,8 @@ mod tests {
 
     #[test]
     fn test_diff_expr() {
-        let x = sym("x");
-        let expr = x.clone().pow(2.0);
+        let x = symb("x");
+        let expr = x.pow(2.0);
 
         let result = Diff::new().differentiate(expr, &x).unwrap();
         assert_eq!(format!("{}", result), "2x");
@@ -532,7 +512,7 @@ mod tests {
         use std::sync::Arc;
 
         // Create f(x) where f(x) = x² + 1
-        let x = sym("x");
+        let x = symb("x");
         let f_of_x = Expr::func("f", x.to_expr());
 
         // Set up variable substitution (x = 3)
@@ -558,7 +538,7 @@ mod tests {
         use std::collections::HashMap;
 
         // Create f(x)
-        let x = sym("x");
+        let x = symb("x");
         let f_of_x = Expr::func("f", x.to_expr());
 
         // Set up variable substitution (x = 3)

@@ -1,3 +1,8 @@
+//! Core simplification engine with rule-based architecture
+//!
+//! Implements bottom-up tree traversal, rule application with memoization,
+//! cycle detection, and configurable limits (iterations, depth, timeout).
+
 use super::rules::{ExprKind, RuleContext, RuleRegistry};
 use crate::{Expr, ExprKind as AstKind};
 use std::collections::{HashMap, HashSet};

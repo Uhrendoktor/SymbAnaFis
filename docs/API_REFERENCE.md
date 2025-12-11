@@ -16,6 +16,8 @@ A comprehensive guide to the symb_anafis symbolic mathematics library.
 10. [Parallel Evaluation](#parallel-evaluation)
 11. [Built-in Functions](#built-in-functions)
 12. [Expression Syntax](#expression-syntax)
+13. [Simplification Rules Architecture](#simplification-rules-architecture)
+14. [Error Handling](#error-handling)
 
 ---
 
@@ -54,17 +56,17 @@ Symbols are **interned** for O(1) comparison. Each unique symbol name exists onl
 
 | Function | Behavior | Use Case |
 |----------|----------|----------|
-| `sym("x")` | Get or create - never errors | General use, parser |
+| `symb("x")` | Get or create - never errors | General use, parser |
 | `symb_new("x")` | Create only - errors if exists | Strict control |
 | `symb_get("x")` | Get only - errors if not found | Retrieve existing |
 | `Symbol::anon()` | Create anonymous symbol | Temporary computation |
 
 ```rust
-use symb_anafis::{sym, symb_new, symb_get, Symbol};
+use symb_anafis::{symb, symb_new, symb_get, Symbol};
 
-// sym() - always works, idempotent
-let x1 = sym("x");  // Creates "x"
-let x2 = sym("x");  // Returns same "x", no error
+// symb() - always works, idempotent
+let x1 = symb("x");  // Creates "x"
+let x2 = symb("x");  // Returns same "x", no error
 assert_eq!(x1.id(), x2.id());  // true - same symbol!
 
 // symb_new() - strict create
@@ -152,7 +154,7 @@ let result = Diff::new()
     .domain_safe(true)       // Preserve mathematical domains
     .max_depth(200)          // AST depth limit
     .max_nodes(50000)        // Node count limit
-    .fixed_var(&sym("a"))    // Single constant
+    .fixed_var(&symb("a"))    // Single constant
     .custom_fn("f")          // Register function name
     .diff_str("a * f(x)", "x")?;
 ```
@@ -174,12 +176,12 @@ let result = Simplify::new()
 Build expressions programmatically:
 
 ```rust
-use symb_anafis::{sym, Diff, Expr};
+use symb_anafis::{symb, Diff, Expr};
 
-let x = sym("x");
+let x = symb("x");
 
-// Use pow_ref() to avoid .clone()
-let expr = x.pow_ref(2.0) + x.sin();  // x² + sin(x)
+// All Symbol methods take &self - no clone() needed!
+let expr = x.pow(2.0) + x.sin();  // x² + sin(x)
 
 let derivative = Diff::new().differentiate(expr, &x)?;
 ```
@@ -195,9 +197,9 @@ Format expressions for different output contexts.
 ```rust
 use symb_anafis::sym;
 
-let x = sym("x");
-let sigma = sym("sigma");
-let expr = x.pow_ref(2.0) / sigma;  // No clone needed!
+let x = symb("x");
+let sigma = symb("sigma");
+let expr = x.pow(2.0) / sigma;  // All methods take &self!
 
 println!("{}", expr.to_latex());
 // Output: \frac{x^{2}}{\sigma}
@@ -216,7 +218,7 @@ println!("{}", expr.to_latex());
 ### Unicode Output
 
 ```rust
-let expr = sym("x").pow(2.0) + sym("pi");
+let expr = symb("x").pow(2.0) + symb("pi");
 println!("{}", expr.to_unicode());
 // Output: x² + π
 ```
@@ -238,10 +240,10 @@ Compute uncertainty propagation using the standard formula:
 ### Basic Usage
 
 ```rust
-use symb_anafis::{sym, uncertainty_propagation};
+use symb_anafis::{symb, uncertainty_propagation};
 
-let x = sym("x");
-let y = sym("y");
+let x = symb("x");
+let y = symb("y");
 let expr = &x + &y;  // Note: &x instead of x.clone()
 
 // Returns: sqrt(sigma_x^2 + sigma_y^2)
@@ -281,21 +283,21 @@ Where **ρ** is the correlation coefficient (-1 to +1).
 **Example: Fully symbolic correlation**
 
 ```rust
-use symb_anafis::{sym, CovEntry, CovarianceMatrix, Expr};
+use symb_anafis::{symb, CovEntry, CovarianceMatrix, Expr};
 
-let sigma_x = sym("sigma_x");
-let sigma_y = sym("sigma_y");
-let rho = sym("rho");  // correlation coefficient
+let sigma_x = symb("sigma_x");
+let sigma_y = symb("sigma_y");
+let rho = symb("rho");  // correlation coefficient
 
 // Build the full 2x2 covariance matrix
 let cov = CovarianceMatrix::new(vec![
     vec![
-        CovEntry::Symbolic(sigma_x.pow_ref(2.0)),          // [0,0]: σ_x²
+        CovEntry::Symbolic(sigma_x.pow(2.0)),          // [0,0]: σ_x²
         CovEntry::Symbolic(&rho * &sigma_x * &sigma_y),    // [0,1]: ρ·σ_x·σ_y
     ],
     vec![
         CovEntry::Symbolic(&rho * &sigma_x * &sigma_y),    // [1,0]: ρ·σ_x·σ_y
-        CovEntry::Symbolic(sigma_y.pow_ref(2.0)),          // [1,1]: σ_y²
+        CovEntry::Symbolic(sigma_y.pow(2.0)),          // [1,1]: σ_y²
     ],
 ]);
 
@@ -488,11 +490,11 @@ let jac = jacobian_str(&["x^2 + y", "x * y"], &["x", "y"])?;
 ### Type-Safe Versions
 
 ```rust
-use symb_anafis::{sym, gradient, hessian, jacobian};
+use symb_anafis::{symb, gradient, hessian, jacobian};
 
-let x = sym("x");
-let y = sym("y");
-let expr = x.pow_ref(2.0) + y.pow_ref(2.0);  // No clone needed!
+let x = symb("x");
+let y = symb("y");
+let expr = x.pow(2.0) + y.pow(2.0);  // All methods take &self!
 
 let grad = gradient(&expr, &[&x, &y]);  // Vec<Expr>
 ```
@@ -503,29 +505,73 @@ let grad = gradient(&expr, &[&x, &y]);  // Vec<Expr>
 
 > Requires `parallel` feature: `symb_anafis = { features = ["parallel"] }`
 
-Evaluate expressions at multiple points in parallel:
+Evaluate multiple expressions at multiple points in parallel using Rayon.
+
+### `eval_parallel!` Macro
+
+Clean syntax for mixed-type parallel evaluation:
 
 ```rust
-use symb_anafis::parallel::{evaluate_parallel, Value};
+use symb_anafis::parallel::{eval_parallel, SKIP};
 
-let x = sym("x");
-let expr = x.pow_ref(2.0);  // No clone needed!
+let x = symb("x");
+let y = symb("y");
+let expr1 = &x.pow(2.0);
+let expr2 = &(x.clone() + y.clone());
 
-let vals: Vec<Value> = vec![0.0.into(), 1.0.into(), 2.0.into(), 3.0.into()];
-let results = evaluate_parallel(&[&expr], &[&["x"]], &[&[&vals]]);
-// results[0] = [0, 1, 4, 9]
+// Evaluate at multiple points
+let results = eval_parallel!(
+    [expr1, expr2],           // Expressions
+    [["x"], ["x", "y"]],      // Variables per expression
+    [
+        [[1.0, 2.0, 3.0]],                    // expr1: x values
+        [[1.0, 2.0], [10.0, 20.0]]            // expr2: x and y values
+    ]
+);
+// results[0] = [1.0, 4.0, 9.0]
+// results[1] = [11.0, 22.0]
 ```
 
-### Partial Evaluation with `Value::Skip`
+### `SKIP` Constant for Partial Evaluation
+
+Use `SKIP` to keep variables symbolic:
 
 ```rust
-let x_vals: Vec<Value> = vec![2.0.into(), Value::Skip, 4.0.into()];
-let y_vals: Vec<Value> = vec![3.0.into(), 5.0.into(), 6.0.into()];
+use symb_anafis::parallel::{eval_parallel!, SKIP};
 
-let results = evaluate_parallel(&[&(x * y)], &[&["x", "y"]], &[&[&x_vals, &y_vals]]);
-// Point 0: 2*3 = 6
-// Point 1: Skip*5 = "5x" (symbolic!)
-// Point 2: 4*6 = 24
+let results = eval_parallel!(
+    [&(x * y)],
+    [["x", "y"]],
+    [[[2.0, SKIP, 4.0], [3.0, 5.0, 6.0]]]
+);
+// Point 0: 2*3 = Num(6.0)
+// Point 1: SKIP*5 = Expr("5*x") - symbolic result!
+// Point 2: 4*6 = Num(24.0)
+```
+
+### Return Types: `EvalResult`
+
+Results are `EvalResult` enum preserving type information:
+
+```rust
+pub enum EvalResult {
+    Num(f64),       // Fully evaluated numeric result
+    Expr(Expr),     // Symbolic result (when SKIP used)
+}
+```
+
+### Direct Function: `evaluate_parallel`
+
+For programmatic use without macro:
+
+```rust
+use symb_anafis::parallel::{evaluate_parallel, ExprInput, VarInput, Value};
+
+let results = evaluate_parallel(
+    &[ExprInput::Ref(&expr)],
+    &[VarInput::Slice(&["x"])],
+    &[&[&[Value::Num(1.0), Value::Num(2.0)]]]
+);
 ```
 
 ---
@@ -554,14 +600,15 @@ let results = evaluate_parallel(&[&(x * y)], &[&["x", "y"]], &[&[&x_vals, &y_val
 ### Using Built-in Functions
 
 ```rust
-use symb_anafis::{sym, Diff, Expr};
+use symb_anafis::{symb, Diff, Expr};
 
-let x = sym("x");
+let x = symb("x");
 
-// Direct method calls on Symbol (use pow_ref to avoid clone)
-let expr = x.sin();                  // sin(x) - consumes x
-let expr = x.pow_ref(2.0);           // x² - keeps x usable
-let expr = x.gamma();                // gamma(x) - consumes x
+// All Symbol methods take &self - no clone() needed!
+let expr = x.sin();                  // sin(x)
+let expr = x.pow(2.0);               // x²
+let expr = x.gamma();                // gamma(x)
+// Reuse x freely: all methods borrow, nothing is consumed!
 
 // Multi-argument functions
 let expr = x.besselj(0);             // J_0(x) - shorthand
@@ -608,9 +655,10 @@ let result = Diff::new().diff_str("besselj(0, x)", "x")?;
 All functions return `Result<T, DiffError>`:
 
 ```rust
-use symb_anafis::{diff, DiffError};
+use symb_anafis::{Diff, DiffError};
 
-match diff("invalid syntax ((".to_string(), "x".to_string(), None, None) {
+let diff = Diff::new();
+match diff.diff_str("invalid syntax ((".to_string(), "x".to_string(), None, None) {
     Ok(result) => println!("Result: {}", result),
     Err(DiffError::ParseError { message, .. }) => println!("Parse error: {}", message),
     Err(e) => println!("Other error: {:?}", e),

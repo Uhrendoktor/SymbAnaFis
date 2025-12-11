@@ -1,3 +1,8 @@
+//! Math scalar trait and floating-point tolerance helpers
+//!
+//! Provides `MathScalar` trait aggregating all numeric operations, and
+//! tolerance-based comparison functions for floating-point values.
+
 use num_traits::{Float, FloatConst, FromPrimitive, Signed, ToPrimitive};
 use std::fmt::{Debug, Display};
 use std::ops::{

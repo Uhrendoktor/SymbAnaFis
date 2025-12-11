@@ -1,3 +1,7 @@
+//! Token types and operator definitions for the parser
+//!
+//! Defines [`Token`] for lexer output and [`Operator`] for arithmetic and built-in functions.
+
 /// Token types produced by the lexer
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum Token {

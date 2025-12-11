@@ -201,10 +201,10 @@ impl Expr {
     ///
     /// # Example
     /// ```ignore
-    /// use symb_anafis::{Expr, sym};
+    /// use symb_anafis::{Expr, symb};
     ///
-    /// let x = sym("x");
-    /// let y = sym("y");
+    /// let x = symb("x");
+    /// let y = symb("y");
     ///
     /// // Single arg
     /// Expr::call("f", [x.clone().into()]);        // → f(x)
@@ -380,13 +380,13 @@ impl Expr {
     ///
     /// # Example
     /// ```ignore
-    /// use symb_anafis::{Expr, sym};
-    /// let x = sym("x");
-    /// let expr = x.clone().pow(2.0);
+    /// use symb_anafis::{Expr, symb};
+    /// let x = symb("x");
+    /// let expr = x.pow(2.0);
     /// let derivative = expr.diff("x").unwrap();  // Returns 2x
     /// ```
     pub fn diff(&self, var: &str) -> Result<Expr, crate::DiffError> {
-        crate::Diff::new().differentiate(self.clone(), &crate::sym(var))
+        crate::Diff::new().differentiate(self.clone(), &crate::symb(var))
     }
 
     /// Simplify this expression (convenience wrapper)
@@ -396,10 +396,10 @@ impl Expr {
     ///
     /// # Example
     /// ```ignore
-    /// use symb_anafis::{Expr, sym};
-    /// let x = sym("x");
-    /// let expr = x.clone() + x.clone();  // x + x
-    /// let simplified = expr.simplified().unwrap();  // Returns 2x
+    /// use symb_anafis::{Expr, symb};
+    /// let x = symb("x");
+    /// let expr = x.sin() + x.sin();  // x + x (using sin just for example)
+    /// let simplified = expr.simplified().unwrap();  // Returns 2*sin(x)
     /// ```
     pub fn simplified(&self) -> Result<Expr, crate::DiffError> {
         crate::Simplify::new().simplify(self.clone())

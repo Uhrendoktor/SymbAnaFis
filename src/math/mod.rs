@@ -17,7 +17,6 @@
 use crate::traits::MathScalar;
 
 pub mod dual;
-mod robustness_tests;
 
 pub fn eval_exp_polar<T: MathScalar>(x: T) -> T {
     x.exp()

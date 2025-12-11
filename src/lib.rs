@@ -16,16 +16,16 @@
 //! ## String-based API (original)
 //! ```ignore
 //! use symb_anafis::diff;
-//! let result = diff("x^2".to_string(), "x".to_string(), None, None).unwrap();
+//! let result = diff("x^2", "x", None, None).unwrap();
 //! assert_eq!(result, "2x");
 //! ```
 //!
 //! ## Type-safe API (new)
 //! ```ignore
-//! use symb_anafis::{sym, Diff};
-//! let x = sym("x");
-//! let expr = x.clone().pow(2.0) + x.sin();
-//! let derivative = Diff::new().differentiate(expr, "x").unwrap();
+//! use symb_anafis::{symb, Diff};
+//! let x = symb("x");
+//! let expr = x.pow(2.0) + x.sin();  // No clone needed!
+//! let derivative = Diff::new().differentiate(expr, &x).unwrap();
 //! ```
 
 mod ast;
@@ -35,7 +35,7 @@ mod display;
 mod error;
 pub mod functions;
 mod helpers;
-pub(crate) mod math;
+mod math;
 mod parser;
 mod simplification;
 mod symbol;
@@ -54,7 +54,7 @@ mod tests;
 
 // Re-export key types for easier usage
 pub use ast::{Expr, ExprKind};
-pub use builder::{CustomDerivativeFn, Diff, Simplify};
+pub use builder::{CustomDerivativeFn, CustomFn, Diff, Simplify};
 pub use error::{DiffError, Span};
 pub use helpers::{
     evaluate_str, gradient, gradient_str, hessian, hessian_str, jacobian, jacobian_str,
@@ -62,7 +62,7 @@ pub use helpers::{
 pub use parser::parse;
 pub use simplification::simplify_expr;
 pub use symbol::{
-    InternedSymbol, Symbol, SymbolError, clear_symbols, remove_symbol, sym, symb_get, symb_new,
+    InternedSymbol, Symbol, SymbolError, clear_symbols, remove_symbol, symb, symb_get, symb_new,
     symbol_exists,
 };
 pub use uncertainty::{CovEntry, CovarianceMatrix, relative_uncertainty, uncertainty_propagation};

@@ -164,12 +164,12 @@ impl ExprVisitor for VariableCollector {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::sym;
+    use crate::symb;
 
     #[test]
     fn test_node_counter() {
-        let x = sym("x");
-        let expr = x.clone() + x.clone().pow(2.0); // x + x^2 = 5 nodes
+        let x = symb("x");
+        let expr = &x + x.pow(2.0); // x + x^2 = 5 nodes
         let mut counter = NodeCounter::default();
         walk_expr(&expr, &mut counter);
         assert_eq!(counter.count, 5); // +, x, ^, x, 2
@@ -177,9 +177,9 @@ mod tests {
 
     #[test]
     fn test_variable_collector() {
-        let x = sym("x");
-        let y = sym("y");
-        let expr = x + y;
+        let x = symb("x");
+        let y = symb("y");
+        let expr = &x + &y;
         let mut collector = VariableCollector::default();
         walk_expr(&expr, &mut collector);
         assert!(collector.variables.contains("x"));

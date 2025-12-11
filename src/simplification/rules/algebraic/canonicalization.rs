@@ -44,22 +44,25 @@ rule!(
     Algebraic,
     &[ExprKind::Mul],
     |expr: &Expr, _context: &RuleContext| {
-        let factors = crate::simplification::helpers::flatten_mul(expr);
+        let mut factors = crate::simplification::helpers::flatten_mul(expr);
 
         if factors.len() <= 1 {
             return None;
         }
 
-        // Sort factors for canonical ordering (numbers first, then symbols, etc.)
-        let mut sorted_factors = factors.clone();
-        sorted_factors.sort_by(crate::simplification::helpers::compare_mul_factors);
+        // Check if already sorted
+        let is_sorted = factors.windows(2).all(|w| {
+            crate::simplification::helpers::compare_mul_factors(&w[0], &w[1])
+                != std::cmp::Ordering::Greater
+        });
 
-        // Check if order changed
-        if sorted_factors != factors {
-            Some(crate::simplification::helpers::rebuild_mul(sorted_factors))
-        } else {
-            None
+        if is_sorted {
+            return None;
         }
+
+        // Sort factors for canonical ordering (numbers first, then symbols, etc.)
+        factors.sort_by(crate::simplification::helpers::compare_mul_factors);
+        Some(crate::simplification::helpers::rebuild_mul(factors))
     }
 );
 
@@ -70,22 +73,25 @@ rule!(
     Algebraic,
     &[ExprKind::Add],
     |expr: &Expr, _context: &RuleContext| {
-        let terms = crate::simplification::helpers::flatten_add(expr);
+        let mut terms = crate::simplification::helpers::flatten_add(expr);
 
         if terms.len() <= 1 {
             return None;
         }
 
-        // Sort terms for canonical ordering
-        let mut sorted_terms = terms.clone();
-        sorted_terms.sort_by(crate::simplification::helpers::compare_expr);
+        // Check if already sorted
+        let is_sorted = terms.windows(2).all(|w| {
+            crate::simplification::helpers::compare_expr(&w[0], &w[1])
+                != std::cmp::Ordering::Greater
+        });
 
-        // Check if order changed
-        if sorted_terms != terms {
-            Some(crate::simplification::helpers::rebuild_add(sorted_terms))
-        } else {
-            None
+        if is_sorted {
+            return None;
         }
+
+        // Sort terms for canonical ordering
+        terms.sort_by(crate::simplification::helpers::compare_expr);
+        Some(crate::simplification::helpers::rebuild_add(terms))
     }
 );
 

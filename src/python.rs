@@ -1,6 +1,42 @@
 //! Python bindings for symb_anafis using PyO3
+//!
+//! # Installation
+//! ```bash
+//! pip install symb_anafis
+//! ```
+//!
+//! # Quick Start
+//! ```python
+//! from symb_anafis import Expr, Diff, Simplify, diff, simplify
+//!
+//! # Create symbolic expressions
+//! x = Expr("x")
+//! y = Expr("y")
+//! expr = x ** 2 + y
+//!
+//! # Differentiate
+//! result = diff("x^2 + sin(x)", "x")
+//! print(result)  # "2*x + cos(x)"
+//!
+//! # Use builder API for more control
+//! d = Diff().fixed_var("a").domain_safe(True)
+//! result = d.diff_str("x^2 + a*x", "x")  # "2*x + a"
+//!
+//! # Simplify expressions
+//! result = simplify("x + x + 0")  # "2*x"
+//! ```
+//!
+//! # Available Classes
+//! - `Expr` - Symbolic expression wrapper
+//! - `Diff` - Differentiation builder
+//! - `Simplify` - Simplification builder
+//!
+//! # Available Functions
+//! - `diff(formula, var, fixed_vars?, custom_functions?)` - Differentiate string formula
+//! - `simplify(formula, fixed_vars?, custom_functions?)` - Simplify string formula
+//! - `parse(formula, fixed_vars?, custom_functions?)` - Parse formula to string
 
-use crate::{Expr as RustExpr, builder, sym};
+use crate::{Expr as RustExpr, builder, symb};
 use pyo3::prelude::*;
 use std::collections::HashSet;
 
@@ -14,7 +50,7 @@ impl PyExpr {
     /// Create a symbolic expression from a string
     #[new]
     fn new(name: &str) -> Self {
-        PyExpr(sym(name).into())
+        PyExpr(symb(name).into())
     }
 
     fn __str__(&self) -> String {
@@ -221,7 +257,7 @@ impl PyDiff {
     }
 
     fn fixed_var(mut self_: PyRefMut<'_, Self>, var: String) -> PyRefMut<'_, Self> {
-        let sym = crate::sym(&var);
+        let sym = crate::symb(&var);
         self_.inner = self_.inner.clone().fixed_var(&sym);
         self_
     }
@@ -293,7 +329,7 @@ impl PyDiff {
     }
 
     fn differentiate(&self, expr: &PyExpr, var: &str) -> PyResult<PyExpr> {
-        let sym = crate::sym(var);
+        let sym = crate::symb(var);
         self.inner
             .differentiate(expr.0.clone(), &sym)
             .map(PyExpr)
@@ -322,7 +358,7 @@ impl PySimplify {
     }
 
     fn fixed_var(mut self_: PyRefMut<'_, Self>, var: String) -> PyRefMut<'_, Self> {
-        let sym = crate::sym(&var);
+        let sym = crate::symb(&var);
         self_.inner = self_.inner.clone().fixed_var(&sym);
         self_
     }

@@ -15,7 +15,7 @@ use std::collections::HashMap;
 #[allow(unused_imports)]
 use symb_anafis::{
     Diff, Expr, ExprKind, Simplify, Symbol, diff, evaluate_str, gradient, gradient_str, hessian,
-    hessian_str, jacobian, jacobian_str, simplify, sym,
+    hessian_str, jacobian, jacobian_str, simplify, symb,
 };
 
 fn main() {
@@ -60,8 +60,8 @@ fn part1_string_api() {
 
     // 1.3 Diff builder with options
     println!("  1.3 Diff Builder with Options");
-    let a_sym = sym("a");
-    let b_sym = sym("b");
+    let a_sym = symb("a");
+    let b_sym = symb("b");
     let result = Diff::new()
         .domain_safe(true) // Enable domain safety checks
         .fixed_var(&a_sym) // Treat 'a' as constant
@@ -75,7 +75,7 @@ fn part1_string_api() {
 
     // 1.4 Simplify builder with options
     println!("  1.4 Simplify Builder with Options");
-    let k_sym = sym("k");
+    let k_sym = symb("k");
     let result = Simplify::new()
         .domain_safe(true) // Safe simplifications only
         .fixed_var(&k_sym) // k is a constant
@@ -94,9 +94,9 @@ fn part2_type_safe_api() {
     println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
 
     // 2.1 Creating symbols
-    println!("  2.1 Creating Symbols: sym()");
-    let x: Symbol = sym("x");
-    let y: Symbol = sym("y");
+    println!("  2.1 Creating Symbols: symb()");
+    let x: Symbol = symb("x");
+    let y: Symbol = symb("y");
     println!("      Created x and y symbols\n");
 
     // 2.2 Building expressions with operators
@@ -146,8 +146,8 @@ fn part3_numerical_evaluation() {
 
     // 3.1 Evaluate Expr with HashMap
     println!("  3.1 Evaluate Expression Objects");
-    let x = sym("x");
-    let y = sym("y");
+    let x = symb("x");
+    let y = symb("y");
     let expr: Expr = x.clone().pow(2.0) + y.clone().pow(2.0);
 
     let mut vars: HashMap<&str, f64> = HashMap::new();
@@ -182,8 +182,8 @@ fn part4_multi_variable_calculus() {
 
     // 4.1 Gradient (Expr-based)
     println!("  4.1 Gradient: ∇f = [∂f/∂x, ∂f/∂y, ...]");
-    let x = sym("x");
-    let y = sym("y");
+    let x = symb("x");
+    let y = symb("y");
     let f: Expr = x.clone().pow(2.0) * y.clone() + y.clone().pow(3.0);
     println!("      f(x,y) = x²y + y³");
 
@@ -275,7 +275,7 @@ fn part6_custom_derivatives() {
     println!("   Define derivative rules AND evaluation for user-defined functions");
     println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
 
-    let x = sym("x");
+    let x = symb("x");
 
     // 6.1 Custom Derivative Only
     println!("  6.1 Custom Derivative Rule: custom_derivative()");
@@ -368,7 +368,7 @@ fn part7_safety_features() {
 
     // 7.1 Max Depth Limit
     println!("  7.1 Maximum Expression Depth");
-    let x = sym("x");
+    let x = symb("x");
     let mut deep: Expr = x.clone().into();
     for _ in 0..60 {
         deep = deep.sin();
@@ -384,7 +384,7 @@ fn part7_safety_features() {
 
     // 7.2 Max Node Count Limit
     println!("  7.2 Maximum Node Count");
-    let x2 = sym("x");
+    let x2 = symb("x");
     let mut broad: Expr = x2.clone().into();
     for _ in 0..12 {
         broad = broad.clone() + broad.clone();
@@ -406,8 +406,8 @@ fn part7_safety_features() {
 
     // 7.4 Fixed Variables
     println!("  7.4 Fixed Variables (Constants)");
-    let a_const = sym("a");
-    let b_const = sym("b");
+    let a_const = symb("a");
+    let b_const = symb("b");
     let result = Diff::new()
         .fixed_var(&a_const)
         .fixed_var(&b_const)

@@ -7,6 +7,7 @@
 
 use crate::{Expr, ExprKind};
 use std::fmt;
+
 /// Check if an expression is negative (has a leading -1 coefficient)
 /// Returns Some(inner) if the expression is -1 * inner, None otherwise
 fn extract_negative(expr: &Expr) -> Option<Expr> {
@@ -446,6 +447,7 @@ impl fmt::Display for UnicodeFormatter<'_> {
 }
 
 /// Convert a digit to Unicode superscript
+#[inline]
 fn to_superscript(c: char) -> char {
     match c {
         '0' => '⁰',
@@ -467,6 +469,7 @@ fn to_superscript(c: char) -> char {
 }
 
 /// Convert number to superscript string
+#[inline]
 fn num_to_superscript(n: f64) -> String {
     if n.trunc() == n && n.abs() < 1000.0 {
         format!("{}", n as i64)
@@ -644,7 +647,7 @@ impl Expr {
     ///
     /// # Example
     /// ```ignore
-    /// let expr = sym("x").pow(2.0) / sym("y");
+    /// let expr = symb("x").pow(2.0) / symb("y");
     /// assert_eq!(expr.to_latex(), r"\frac{x^{2}}{y}");
     /// ```
     pub fn to_latex(&self) -> String {
@@ -660,7 +663,7 @@ impl Expr {
     ///
     /// # Example
     /// ```ignore
-    /// let expr = sym("x").pow(2.0) + sym("pi");
+    /// let expr = symb("x").pow(2.0) + symb("pi");
     /// assert_eq!(expr.to_unicode(), "x² + π");
     /// ```
     pub fn to_unicode(&self) -> String {

@@ -1,4 +1,4 @@
-// Parser module - converts strings to AST
+//! Parser module - converts strings to AST
 mod implicit_mul;
 mod lexer;
 mod pratt;

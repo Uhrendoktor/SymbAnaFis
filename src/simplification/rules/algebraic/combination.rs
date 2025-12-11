@@ -104,11 +104,13 @@ rule!(
             return None;
         }
 
+        let factors_len = factors.len();
+
         // Group factors by base and combine exponents
         let mut factor_groups: std::collections::HashMap<Expr, Vec<Expr>> =
             std::collections::HashMap::new();
 
-        for factor in &factors {
+        for factor in factors {
             match &factor.kind {
                 AstKind::Pow(base, exp) => {
                     factor_groups
@@ -118,7 +120,7 @@ rule!(
                 }
                 _ => {
                     factor_groups
-                        .entry(factor.clone())
+                        .entry(factor)
                         .or_default()
                         .push(Expr::number(1.0));
                 }
@@ -144,7 +146,7 @@ rule!(
             }
         }
 
-        if combined_factors.len() != factors.len() {
+        if combined_factors.len() != factors_len {
             Some(crate::simplification::helpers::rebuild_mul(
                 combined_factors,
             ))

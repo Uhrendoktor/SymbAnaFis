@@ -1,4 +1,7 @@
-// Implicit multiplication insertion
+//! Implicit multiplication insertion for natural notation
+//!
+//! Inserts `*` operators between tokens where multiplication is implied, e.g. `2x` → `2 * x`.
+
 use crate::parser::tokens::{Operator, Token};
 
 /// Insert implicit multiplication operators between appropriate tokens

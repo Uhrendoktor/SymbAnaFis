@@ -1,3 +1,7 @@
+//! Mathematical function definitions for the function registry
+//!
+//! Contains evaluation and symbolic differentiation rules for all supported functions.
+
 use super::registry::FunctionDefinition;
 use super::{func, mul_opt, neg};
 use crate::Expr;

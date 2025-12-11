@@ -112,10 +112,10 @@ impl CovarianceMatrix {
 ///
 /// # Example
 /// ```ignore
-/// use symb_anafis::{sym, uncertainty_propagation, CovarianceMatrix};
+/// use symb_anafis::{symb, uncertainty_propagation, CovarianceMatrix};
 ///
-/// let x = sym("x");
-/// let y = sym("y");
+/// let x = symb("x");
+/// let y = symb("y");
 /// let expr = &x + &y;  // f = x + y
 ///
 /// // Uncorrelated: σ_f² = σ_x² + σ_y²
@@ -230,14 +230,14 @@ pub fn relative_uncertainty(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::sym;
+    use crate::symb;
 
     #[test]
     fn test_simple_sum_uncorrelated() {
         // f = x + y
         // σ_f² = σ_x² + σ_y² (for uncorrelated variables)
-        let x = sym("x");
-        let y = sym("y");
+        let x = symb("x");
+        let y = symb("y");
         let expr = &x + &y;
 
         let result = uncertainty_propagation(&expr, &["x", "y"], None).unwrap();
@@ -251,8 +251,8 @@ mod tests {
     fn test_simple_product_uncorrelated() {
         // f = x * y
         // σ_f² = y² * σ_x² + x² * σ_y² (for uncorrelated variables)
-        let x = sym("x");
-        let y = sym("y");
+        let x = symb("x");
+        let y = symb("y");
         let expr = &x * &y;
 
         let result = uncertainty_propagation(&expr, &["x", "y"], None).unwrap();
@@ -264,8 +264,8 @@ mod tests {
     #[test]
     fn test_numeric_covariance() {
         // f = x + y with numeric variances
-        let x = sym("x");
-        let y = sym("y");
+        let x = symb("x");
+        let y = symb("y");
         let expr = &x + &y;
 
         // σ_x² = 1, σ_y² = 4
@@ -276,9 +276,9 @@ mod tests {
 
         let result = uncertainty_propagation(&expr, &["x", "y"], Some(&cov)).unwrap();
 
-        // For x + y: σ_f² = 1*1 + 1*4 = 5
+        // For x + y: σ_f = sqrt(1 + 4) = sqrt(5) ≈ 2.236
         if let crate::ExprKind::Number(n) = result.kind {
-            assert!((n - 5.0).abs() < 1e-10);
+            assert!((n - 5.0_f64.sqrt()).abs() < 1e-10);
         }
     }
 
@@ -286,7 +286,7 @@ mod tests {
     fn test_single_variable() {
         // f = x^2
         // σ_f² = (2x)² * σ_x² = 4x² * σ_x²
-        let x = sym("test_unc_x");
+        let x = symb("test_unc_x");
         let expr = x.pow(2.0);
 
         let result = uncertainty_propagation(&expr, &["test_unc_x"], None).unwrap();

@@ -600,15 +600,17 @@ impl Rule for PerfectSquareRule {
                         // mul_side should be c * a * (a + k) - extract coefficient and factors
                         let mul_factors = crate::simplification::helpers::flatten_mul(mul_side);
                         let mut c = 1.0;
-                        let mut non_numeric: Vec<Expr> = Vec::new();
-
-                        for f in &mul_factors {
-                            if let AstKind::Number(n) = &f.kind {
-                                c *= n;
-                            } else {
-                                non_numeric.push(f.clone());
-                            }
-                        }
+                        let non_numeric: Vec<Expr> = mul_factors
+                            .into_iter()
+                            .filter(|f| {
+                                if let AstKind::Number(n) = &f.kind {
+                                    c *= n;
+                                    false
+                                } else {
+                                    true
+                                }
+                            })
+                            .collect();
 
                         // c must have integer square root
                         if c <= 0.0 {

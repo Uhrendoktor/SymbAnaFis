@@ -1,3 +1,7 @@
+//! Pattern matching utilities for simplification rules
+//!
+//! Provides extractors for common expression patterns used by rule implementations.
+
 use crate::{Expr, ExprKind};
 
 /// Common pattern matching utilities for simplification rules

@@ -1,3 +1,8 @@
+//! Simplification helper functions and utilities
+//!
+//! Provides expression manipulation utilities: flattening, normalization,
+//! coefficient extraction, root prettification, and like-term grouping.
+
 use crate::{Expr, ExprKind};
 
 // Extracts (name, arg) for pow of function: name(arg)^power

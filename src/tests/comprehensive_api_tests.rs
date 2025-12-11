@@ -3,7 +3,7 @@
 //! Tests all public APIs and verifies numerical accuracy of all implemented functions.
 
 use crate::parser::parse as parser_parse;
-use crate::{Diff, Expr, ExprKind, Simplify, diff, simplify, sym};
+use crate::{Diff, Expr, ExprKind, Simplify, diff, simplify, symb};
 use std::collections::{HashMap, HashSet};
 
 const EPSILON: f64 = 1e-9;
@@ -100,8 +100,8 @@ mod api_tests {
 
     #[test]
     fn test_diff_builder_fixed_vars() {
-        let a = sym("a");
-        let b = sym("b");
+        let a = symb("a");
+        let b = symb("b");
         let result = Diff::new()
             .fixed_vars(&[&a, &b])
             .diff_str("a*x + b", "x")
@@ -111,7 +111,7 @@ mod api_tests {
 
     #[test]
     fn test_diff_builder_differentiate_expr() {
-        let x = sym("x");
+        let x = symb("x");
         let expr = x.clone().pow(2.0);
         let result = Diff::new().differentiate(expr, &x).unwrap();
         // Result should be 2x
@@ -137,24 +137,24 @@ mod api_tests {
 
     #[test]
     fn test_simplify_builder_simplify_expr() {
-        let x = sym("x");
+        let x = symb("x");
         let expr = x.clone() + Expr::number(0.0);
         let result = Simplify::new().simplify(expr).unwrap();
         assert_eq!(format!("{}", result), "x");
     }
 
-    // --- sym() and Symbol builder ---
+    // --- symb() and Symbol builder ---
     #[test]
     fn test_sym_creation() {
-        let x = sym("x");
+        let x = symb("x");
         let expr: Expr = x.into(); // Convert to Expr for display
         assert_eq!(format!("{}", expr), "x");
     }
 
     #[test]
     fn test_symbol_arithmetic() {
-        let x = sym("x");
-        let y = sym("y");
+        let x = symb("x");
+        let y = symb("y");
 
         // Addition
         let sum = x.clone() + y.clone();
@@ -171,7 +171,7 @@ mod api_tests {
 
     #[test]
     fn test_symbol_functions() {
-        let x = sym("x");
+        let x = symb("x");
 
         // Test function methods
         let _ = x.clone().sin();
@@ -199,7 +199,7 @@ mod api_tests {
 
     #[test]
     fn test_expr_substitute() {
-        let x = sym("x");
+        let x = symb("x");
         let expr = x.clone() + Expr::number(1.0);
         let substituted = expr.substitute("x", &Expr::number(5.0));
         let vars = HashMap::new();
@@ -213,7 +213,7 @@ mod api_tests {
 
     #[test]
     fn test_expr_fold_map() {
-        let x = sym("x");
+        let x = symb("x");
         let expr = x.clone() + Expr::number(1.0);
 
         // fold: count nodes
@@ -227,7 +227,7 @@ mod api_tests {
 
     #[test]
     fn test_expr_node_count() {
-        let x: Expr = sym("x").into();
+        let x: Expr = symb("x").into();
         assert_eq!(x.node_count(), 1);
 
         let expr = x.clone() + Expr::number(1.0);
@@ -236,7 +236,7 @@ mod api_tests {
 
     #[test]
     fn test_expr_max_depth() {
-        let x: Expr = sym("x").into();
+        let x: Expr = symb("x").into();
         assert_eq!(x.max_depth(), 1);
 
         let expr = x.clone() + Expr::number(1.0);
@@ -247,8 +247,8 @@ mod api_tests {
     #[test]
     fn test_gradient() {
         use crate::gradient;
-        let x = sym("x");
-        let y = sym("y");
+        let x = symb("x");
+        let y = symb("y");
         let x_expr: Expr = x.clone().into();
         let y_expr: Expr = y.clone().into();
         let expr = x_expr.clone() * x_expr.clone() + y_expr.clone() * y_expr.clone(); // x² + y²
@@ -262,7 +262,7 @@ mod api_tests {
     #[test]
     fn test_hessian() {
         use crate::hessian;
-        let x = sym("x");
+        let x = symb("x");
         let x_expr: Expr = x.clone().into();
         let expr = x_expr.clone() * x_expr.clone() * x_expr.clone(); // x³
         let hess = hessian(&expr, &[&x]);
@@ -276,8 +276,8 @@ mod api_tests {
     #[test]
     fn test_jacobian() {
         use crate::jacobian;
-        let x = sym("x");
-        let y = sym("y");
+        let x = symb("x");
+        let y = symb("y");
         let x_expr: Expr = x.clone().into();
         let y_expr: Expr = y.clone().into();
         let f = x_expr.clone() * y_expr.clone(); // xy
@@ -345,8 +345,8 @@ mod api_tests {
     #[test]
     fn test_diff_then_evaluate_with_symbols() {
         // Build expression: x^2 * y + sin(x)
-        let x_sym = sym("x");
-        let y_sym = sym("y");
+        let x_sym = symb("x");
+        let y_sym = symb("y");
         let x: Expr = x_sym.clone().into();
         let y: Expr = y_sym.clone().into();
         let expr = x.clone() * x.clone() * y.clone() + x.clone().sin();
@@ -383,8 +383,8 @@ mod api_tests {
         use crate::hessian;
 
         // Expression: x^2 * y + y^3
-        let x_sym = sym("x");
-        let y_sym = sym("y");
+        let x_sym = symb("x");
+        let y_sym = symb("y");
         let x: Expr = x_sym.clone().into();
         let y: Expr = y_sym.clone().into();
         let expr = x.clone() * x.clone() * y.clone() + y.clone() * y.clone() * y.clone();
@@ -463,8 +463,8 @@ mod api_tests {
         use crate::gradient;
 
         // f(x, y) = x^2 + y^2 (paraboloid)
-        let x_sym = sym("x");
-        let y_sym = sym("y");
+        let x_sym = symb("x");
+        let y_sym = symb("y");
         let x: Expr = x_sym.clone().into();
         let y: Expr = y_sym.clone().into();
         let expr = x.clone() * x.clone() + y.clone() * y.clone();
@@ -1121,7 +1121,7 @@ mod edge_case_tests {
 
 mod custom_fn_differentiation_tests {
     use crate::builder::CustomFn;
-    use crate::{Diff, Expr, sym};
+    use crate::{Diff, Expr, symb};
 
     /// Test basic CustomFn registration and differentiation
     #[test]
@@ -1137,7 +1137,7 @@ mod custom_fn_differentiation_tests {
         //                        = t^2 * 1 + t * 2t
         //                        = t^2 + 2t^2 = 3t^2
 
-        let t = sym("t");
+        let t = symb("t");
         let expr = Expr::call::<2>(
             "custom_mul",
             [
@@ -1171,7 +1171,7 @@ mod custom_fn_differentiation_tests {
             Expr::mul_expr(Expr::number(2.0), args[0].clone())
         });
 
-        let x = sym("x");
+        let x = symb("x");
         let expr = Expr::call::<1>("custom_f", [Expr::symbol("x")]);
 
         // d/dx custom_f(x) = 2x * 1 = 2x
@@ -1205,7 +1205,7 @@ mod custom_fn_differentiation_tests {
             .partial(0, |args: &[Expr]| args[1].clone()) // ∂f/∂u = v
             .partial(1, |args: &[Expr]| args[0].clone()); // ∂f/∂v = u
 
-        let x = sym("x");
+        let x = symb("x");
         let sin_x = Expr::func("sin", Expr::symbol("x"));
         let cos_x = Expr::func("cos", Expr::symbol("x"));
         let f_call = Expr::call::<2>("my_func", [sin_x, cos_x]);
@@ -1240,7 +1240,7 @@ mod custom_fn_differentiation_tests {
             .partial(0, |args: &[Expr]| args[1].clone())
             .partial(1, |args: &[Expr]| args[0].clone());
 
-        let x = sym("x");
+        let x = symb("x");
         let f_call = Expr::call::<2>("f", [Expr::number(5.0), Expr::symbol("x")]);
 
         let result = Diff::new()
@@ -1266,7 +1266,7 @@ mod custom_fn_differentiation_tests {
         let custom_fn = CustomFn::new(2).partial(0, |args: &[Expr]| args[1].clone());
         // Note: ∂f/∂b is NOT defined
 
-        let x = sym("x");
+        let x = symb("x");
         let f_call = Expr::call::<2>("g", [Expr::symbol("x"), Expr::symbol("x")]);
 
         let result = Diff::new()
