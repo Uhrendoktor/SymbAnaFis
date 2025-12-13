@@ -102,30 +102,30 @@ flowchart TB
 
 ```mermaid
 flowchart LR
-    subgraph "1. Parse"
-        I["\"x^2 + sin(x)\""] --> L["Lexer"]
-        L --> T["Tokens: x, ^, 2, +, sin, (, x, )"]
-        T --> P["Pratt Parser"]
-        P --> AST["Add(Pow(x,2), sin(x))"]
+    subgraph Parse
+        I[x^2 + sin x] --> L[Lexer]
+        L --> T[Tokens]
+        T --> P[Pratt Parser]
+        P --> AST[Add - Pow - sin]
     end
 
-    subgraph "2. Differentiate"
-        AST --> SUM["d/dx[a+b] = a' + b'"]
-        SUM --> POW["d/dx[x²] = 2x"]
-        SUM --> CHAIN["d/dx[sin(x)] = cos(x)"]
-        POW --> RESULT1["2x + cos(x)"]
+    subgraph Differentiate
+        AST --> SUM[Sum Rule]
+        SUM --> POW[d/dx x² = 2x]
+        SUM --> CHAIN[d/dx sin = cos]
+        POW --> RESULT1[2x + cos x]
         CHAIN --> RESULT1
     end
 
-    subgraph "3. Simplify"
-        RESULT1 --> PASS1["Pass 1: Numeric rules"]
-        PASS1 --> PASS2["Pass 2: Algebraic rules"]
-        PASS2 --> PASS3["Pass 3: Canonicalize"]
-        PASS3 --> FINAL["Stable: 2*x + cos(x)"]
+    subgraph Simplify
+        RESULT1 --> PASS1[Numeric rules]
+        PASS1 --> PASS2[Algebraic rules]
+        PASS2 --> PASS3[Canonicalize]
+        PASS3 --> FINAL[2*x + cos x]
     end
 
-    subgraph "4. Output"
-        FINAL --> STR["String: \"2*x + cos(x)\""]
+    subgraph Output
+        FINAL --> STR[String result]
     end
 ```
 
