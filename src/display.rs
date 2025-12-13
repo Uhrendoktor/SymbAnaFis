@@ -247,7 +247,7 @@ fn format_mul_operand(expr: &Expr) -> String {
 // ============================================================================
 
 /// Wrapper for LaTeX output formatting
-pub struct LatexFormatter<'a>(pub &'a Expr);
+pub(crate) struct LatexFormatter<'a>(pub(crate) &'a Expr);
 
 impl fmt::Display for LatexFormatter<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -438,7 +438,7 @@ fn latex_mul_operand(expr: &Expr) -> String {
 // ============================================================================
 
 /// Wrapper for Unicode output formatting (superscripts, Greek letters)
-pub struct UnicodeFormatter<'a>(pub &'a Expr);
+pub(crate) struct UnicodeFormatter<'a>(pub(crate) &'a Expr);
 
 impl fmt::Display for UnicodeFormatter<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

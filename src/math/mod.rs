@@ -28,7 +28,7 @@ use crate::traits::MathScalar;
 
 pub mod dual;
 
-pub fn eval_exp_polar<T: MathScalar>(x: T) -> T {
+pub(crate) fn eval_exp_polar<T: MathScalar>(x: T) -> T {
     x.exp()
 }
 
@@ -37,7 +37,7 @@ pub fn eval_exp_polar<T: MathScalar>(x: T) -> T {
 /// Uses Taylor series expansion: erf(x) = (2/√π) Σₙ (-1)ⁿ x^(2n+1) / (n!(2n+1))
 ///
 /// Reference: DLMF §7.6.1 <https://dlmf.nist.gov/7.6#E1>
-pub fn eval_erf<T: MathScalar>(x: T) -> T {
+pub(crate) fn eval_erf<T: MathScalar>(x: T) -> T {
     let sign = x.signum();
     let x = x.abs();
     // PI is available via FloatConst implementation on T
@@ -87,7 +87,7 @@ pub fn eval_erf<T: MathScalar>(x: T) -> T {
 /// Reference: Lanczos (1964) "A Precision Approximation of the Gamma Function"
 /// SIAM J. Numerical Analysis, Ser. B, Vol. 1, pp. 86-96
 /// See also: DLMF §5.10 <https://dlmf.nist.gov/5.10>
-pub fn eval_gamma<T: MathScalar>(x: T) -> Option<T> {
+pub(crate) fn eval_gamma<T: MathScalar>(x: T) -> Option<T> {
     if x <= T::zero() && x.fract() == T::zero() {
         return None;
     }
@@ -128,7 +128,7 @@ pub fn eval_gamma<T: MathScalar>(x: T) -> Option<T> {
 /// Uses reflection formula for x < 0.5: ψ(1-x) - ψ(x) = π cot(πx)
 ///
 /// Reference: DLMF §5.11 <https://dlmf.nist.gov/5.11>
-pub fn eval_digamma<T: MathScalar>(x: T) -> Option<T> {
+pub(crate) fn eval_digamma<T: MathScalar>(x: T) -> Option<T> {
     if x <= T::zero() && x.fract() == T::zero() {
         return None;
     }
@@ -162,7 +162,7 @@ pub fn eval_digamma<T: MathScalar>(x: T) -> Option<T> {
 /// with recurrence for small x: ψ₁(x) = ψ₁(x+1) + 1/x²
 ///
 /// Reference: DLMF §5.15 <https://dlmf.nist.gov/5.15>
-pub fn eval_trigamma<T: MathScalar>(x: T) -> Option<T> {
+pub(crate) fn eval_trigamma<T: MathScalar>(x: T) -> Option<T> {
     if x <= T::zero() && x.fract() == T::zero() {
         return None;
     }
@@ -190,7 +190,7 @@ pub fn eval_trigamma<T: MathScalar>(x: T) -> Option<T> {
 /// Uses asymptotic expansion with recurrence for small x.
 ///
 /// Reference: DLMF §5.15 <https://dlmf.nist.gov/5.15>
-pub fn eval_tetragamma<T: MathScalar>(x: T) -> Option<T> {
+pub(crate) fn eval_tetragamma<T: MathScalar>(x: T) -> Option<T> {
     if x <= T::zero() && x.fract() == T::zero() {
         return None;
     }
@@ -214,7 +214,7 @@ pub fn eval_tetragamma<T: MathScalar>(x: T) -> Option<T> {
 /// For Re(s) < 1: Uses functional equation ζ(s) = 2^s π^(s-1) sin(πs/2) Γ(1-s) ζ(1-s)
 ///
 /// Reference: DLMF §25.2 <https://dlmf.nist.gov/25.2>
-pub fn eval_zeta<T: MathScalar>(x: T) -> Option<T> {
+pub(crate) fn eval_zeta<T: MathScalar>(x: T) -> Option<T> {
     let one = T::one();
     if (x - one).abs() < T::from(1e-10).unwrap() {
         return None;
@@ -256,7 +256,7 @@ pub fn eval_zeta<T: MathScalar>(x: T) -> Option<T> {
 /// # Returns
 /// * `Some(value)` if convergent
 /// * `None` if at pole (s=1) or invalid
-pub fn eval_zeta_deriv<T: MathScalar>(n: i32, x: T) -> Option<T> {
+pub(crate) fn eval_zeta_deriv<T: MathScalar>(n: i32, x: T) -> Option<T> {
     if n < 0 {
         return None;
     }
@@ -398,7 +398,7 @@ pub fn eval_zeta_deriv<T: MathScalar>(n: i32, x: T) -> Option<T> {
 /// Reference: Corless et al. (1996) "On the Lambert W Function"
 /// Advances in Computational Mathematics, Vol. 5, pp. 329-359
 /// See also: DLMF §4.13 <https://dlmf.nist.gov/4.13>
-pub fn eval_lambert_w<T: MathScalar>(x: T) -> Option<T> {
+pub(crate) fn eval_lambert_w<T: MathScalar>(x: T) -> Option<T> {
     let one = T::one();
     let e = T::E();
     let e_inv = one / e;
@@ -482,7 +482,7 @@ pub fn eval_lambert_w<T: MathScalar>(x: T) -> Option<T> {
 /// ψⁿ(x) = (-1)^(n+1) n! Σ_{k=0}^∞ 1/(x+k)^(n+1)
 ///
 /// Reference: DLMF §5.15 <https://dlmf.nist.gov/5.15>
-pub fn eval_polygamma<T: MathScalar>(n: i32, x: T) -> Option<T> {
+pub(crate) fn eval_polygamma<T: MathScalar>(n: i32, x: T) -> Option<T> {
     if n < 0 {
         return None;
     }
@@ -576,7 +576,7 @@ pub fn eval_polygamma<T: MathScalar>(n: i32, x: T) -> Option<T> {
 /// with H_0(x) = 1, H_1(x) = 2x
 ///
 /// Reference: DLMF §18.9 <https://dlmf.nist.gov/18.9>
-pub fn eval_hermite<T: MathScalar>(n: i32, x: T) -> Option<T> {
+pub(crate) fn eval_hermite<T: MathScalar>(n: i32, x: T) -> Option<T> {
     if n < 0 {
         return None;
     }
@@ -605,7 +605,7 @@ pub fn eval_hermite<T: MathScalar>(n: i32, x: T) -> Option<T> {
 /// Negative m handled via relation: P_l^{-m} = (-1)^m (l-m)!/(l+m)! P_l^m
 ///
 /// Reference: DLMF §14.10 <https://dlmf.nist.gov/14.10>
-pub fn eval_assoc_legendre<T: MathScalar>(l: i32, m: i32, x: T) -> Option<T> {
+pub(crate) fn eval_assoc_legendre<T: MathScalar>(l: i32, m: i32, x: T) -> Option<T> {
     if l < 0 || m.abs() > l || x.abs() > T::one() {
         // Technically |x| > 1 is domain error, but some continuations exist.
         // Standard impl assumes -1 <= x <= 1
@@ -659,7 +659,12 @@ pub fn eval_assoc_legendre<T: MathScalar>(l: i32, m: i32, x: T) -> Option<T> {
 /// where N_l^m is the normalization factor.
 ///
 /// Reference: DLMF §14.30 <https://dlmf.nist.gov/14.30>
-pub fn eval_spherical_harmonic<T: MathScalar>(l: i32, m: i32, theta: T, phi: T) -> Option<T> {
+pub(crate) fn eval_spherical_harmonic<T: MathScalar>(
+    l: i32,
+    m: i32,
+    theta: T,
+    phi: T,
+) -> Option<T> {
     if l < 0 || m.abs() > l {
         return None;
     }
@@ -695,7 +700,7 @@ pub fn eval_spherical_harmonic<T: MathScalar>(l: i32, m: i32, theta: T, phi: T) 
 /// Uses the arithmetic-geometric mean (AGM) algorithm: K(k) = π/(2 · AGM(1, √(1-k²)))
 ///
 /// Reference: DLMF §19.8 <https://dlmf.nist.gov/19.8>
-pub fn eval_elliptic_k<T: MathScalar>(k: T) -> Option<T> {
+pub(crate) fn eval_elliptic_k<T: MathScalar>(k: T) -> Option<T> {
     let one = T::one();
     if k.abs() >= one {
         return Some(T::infinity());
@@ -725,7 +730,7 @@ pub fn eval_elliptic_k<T: MathScalar>(k: T) -> Option<T> {
 /// Uses the AGM algorithm with correction terms.
 ///
 /// Reference: DLMF §19.8 <https://dlmf.nist.gov/19.8>
-pub fn eval_elliptic_e<T: MathScalar>(k: T) -> Option<T> {
+pub(crate) fn eval_elliptic_e<T: MathScalar>(k: T) -> Option<T> {
     let one = T::one();
     if k.abs() > one {
         return Some(T::nan());
@@ -768,7 +773,7 @@ pub fn eval_elliptic_e<T: MathScalar>(k: T) -> Option<T> {
 /// with J_0 and J_1 computed via rational approximations.
 ///
 /// Reference: A&S §9.1.27, DLMF §10.6 <https://dlmf.nist.gov/10.6>
-pub fn bessel_j<T: MathScalar>(n: i32, x: T) -> Option<T> {
+pub(crate) fn bessel_j<T: MathScalar>(n: i32, x: T) -> Option<T> {
     let n_abs = n.abs();
     let j0 = bessel_j0(x);
     if n_abs == 0 {
@@ -802,7 +807,7 @@ pub fn bessel_j<T: MathScalar>(n: i32, x: T) -> Option<T> {
 /// For |x| ≥ 8: uses asymptotic form J_0(x) ≈ √(2/πx) cos(x - π/4) P(8/x)
 ///
 /// Reference: A&S §9.4.1-9.4.6 <https://dlmf.nist.gov/10.17>
-pub fn bessel_j0<T: MathScalar>(x: T) -> T {
+pub(crate) fn bessel_j0<T: MathScalar>(x: T) -> T {
     let ax = x.abs();
     let eight = T::from(8.0).unwrap();
 
@@ -861,7 +866,7 @@ pub fn bessel_j0<T: MathScalar>(x: T) -> T {
 /// Same structure as J_0 with different coefficients.
 ///
 /// Reference: A&S §9.4.4-9.4.6 <https://dlmf.nist.gov/10.17>
-pub fn bessel_j1<T: MathScalar>(x: T) -> T {
+pub(crate) fn bessel_j1<T: MathScalar>(x: T) -> T {
     let ax = x.abs();
     let eight = T::from(8.0).unwrap();
 
@@ -921,7 +926,7 @@ pub fn bessel_j1<T: MathScalar>(x: T) -> T {
 /// Defined only for x > 0 (singular at origin).
 ///
 /// Reference: A&S §9.1.27, DLMF §10.6 <https://dlmf.nist.gov/10.6>
-pub fn bessel_y<T: MathScalar>(n: i32, x: T) -> Option<T> {
+pub(crate) fn bessel_y<T: MathScalar>(n: i32, x: T) -> Option<T> {
     if x <= T::zero() {
         return None;
     }
@@ -949,7 +954,7 @@ pub fn bessel_y<T: MathScalar>(n: i32, x: T) -> Option<T> {
 /// Bessel function Y_0(x) via rational approximation
 ///
 /// Reference: A&S §9.4.1-9.4.6 <https://dlmf.nist.gov/10.17>
-pub fn bessel_y0<T: MathScalar>(x: T) -> T {
+pub(crate) fn bessel_y0<T: MathScalar>(x: T) -> T {
     let eight = T::from(8.0).unwrap();
     if x < eight {
         let y = x * x;
@@ -1002,7 +1007,7 @@ pub fn bessel_y0<T: MathScalar>(x: T) -> T {
 /// Bessel function Y_1(x) via rational approximation
 ///
 /// Reference: A&S §9.4.4-9.4.6 <https://dlmf.nist.gov/10.17>
-pub fn bessel_y1<T: MathScalar>(x: T) -> T {
+pub(crate) fn bessel_y1<T: MathScalar>(x: T) -> T {
     let eight = T::from(8.0).unwrap();
     if x < eight {
         let y = x * x;
@@ -1062,7 +1067,7 @@ pub fn bessel_y1<T: MathScalar>(x: T) -> T {
 /// I_{k-1} = (2k/x) I_k + I_{k+1}, normalized using I_0(x).
 ///
 /// Reference: Numerical Recipes §6.6, A&S §9.6 <https://dlmf.nist.gov/10.25>
-pub fn bessel_i<T: MathScalar>(n: i32, x: T) -> Option<T> {
+pub(crate) fn bessel_i<T: MathScalar>(n: i32, x: T) -> Option<T> {
     let n_abs = n.abs();
     if n_abs == 0 {
         return Some(bessel_i0(x));
@@ -1127,7 +1132,7 @@ pub fn bessel_i<T: MathScalar>(n: i32, x: T) -> Option<T> {
 /// Modified Bessel function I_0(x) via polynomial approximation
 ///
 /// Reference: A&S §9.8.1-9.8.4 <https://dlmf.nist.gov/10.40>
-pub fn bessel_i0<T: MathScalar>(x: T) -> T {
+pub(crate) fn bessel_i0<T: MathScalar>(x: T) -> T {
     let ax = x.abs();
     let three_seven_five = T::from(3.75).unwrap();
 
@@ -1163,7 +1168,7 @@ pub fn bessel_i0<T: MathScalar>(x: T) -> T {
 /// Modified Bessel function I_1(x) via polynomial approximation
 ///
 /// Reference: A&S §9.8.1-9.8.4 <https://dlmf.nist.gov/10.40>
-pub fn bessel_i1<T: MathScalar>(x: T) -> T {
+pub(crate) fn bessel_i1<T: MathScalar>(x: T) -> T {
     let ax = x.abs();
     let three_seven_five = T::from(3.75).unwrap();
 
@@ -1204,7 +1209,7 @@ pub fn bessel_i1<T: MathScalar>(x: T) -> T {
 /// Defined only for x > 0 (singular at origin).
 ///
 /// Reference: A&S §9.6.26, DLMF §10.29 <https://dlmf.nist.gov/10.29>
-pub fn bessel_k<T: MathScalar>(n: i32, x: T) -> Option<T> {
+pub(crate) fn bessel_k<T: MathScalar>(n: i32, x: T) -> Option<T> {
     if x <= T::zero() {
         return None;
     }
@@ -1232,7 +1237,7 @@ pub fn bessel_k<T: MathScalar>(n: i32, x: T) -> Option<T> {
 /// Modified Bessel function K_0(x) via polynomial approximation
 ///
 /// Reference: A&S §9.8.5-9.8.8 <https://dlmf.nist.gov/10.40>
-pub fn bessel_k0<T: MathScalar>(x: T) -> T {
+pub(crate) fn bessel_k0<T: MathScalar>(x: T) -> T {
     let two = T::from(2.0).unwrap();
     if x <= two {
         let four = T::from(4.0).unwrap();
@@ -1321,7 +1326,7 @@ use dual::Dual;
 ///
 /// # Returns
 /// The n-th derivative of zeta at x
-pub fn eval_zeta_deriv_ad(n: i32, x: f64) -> Option<f64> {
+pub(crate) fn eval_zeta_deriv_ad(n: i32, x: f64) -> Option<f64> {
     if n < 0 {
         return None;
     }

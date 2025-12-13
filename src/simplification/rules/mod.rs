@@ -190,7 +190,7 @@ macro_rules! rule_with_helpers {
 /// Expression kind for fast rule filtering
 /// Rules declare which expression kinds they can apply to
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
-pub enum ExprKind {
+pub(crate) enum ExprKind {
     Number,
     Symbol,
     Add,
@@ -221,7 +221,7 @@ impl ExprKind {
 }
 
 /// Core trait for all simplification rules
-pub trait Rule {
+pub(crate) trait Rule {
     fn name(&self) -> &'static str;
     fn priority(&self) -> i32;
     fn category(&self) -> RuleCategory;
@@ -244,7 +244,7 @@ pub trait Rule {
 
 /// Categories of simplification rules
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum RuleCategory {
+pub(crate) enum RuleCategory {
     Numeric,   // Constant folding, identities
     Algebraic, // General algebraic rules
     Trigonometric,
@@ -254,7 +254,7 @@ pub enum RuleCategory {
 }
 
 /// All expression kinds - used as default for rules
-pub const ALL_EXPR_KINDS: &[ExprKind] = &[
+pub(crate) const ALL_EXPR_KINDS: &[ExprKind] = &[
     ExprKind::Number,
     ExprKind::Symbol,
     ExprKind::Add,
@@ -275,7 +275,7 @@ pub const ALL_EXPR_KINDS: &[ExprKind] = &[
 /// Context passed to rules during application
 /// Uses Arc<HashSet> for cheap cloning (context is cloned per-node)
 #[derive(Clone, Debug, Default)]
-pub struct RuleContext {
+pub(crate) struct RuleContext {
     pub depth: usize,
     pub parent: Option<Expr>,
     pub variables: Arc<HashSet<String>>,

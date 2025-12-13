@@ -29,7 +29,7 @@ pub fn simplify_expr(expr: Expr, fixed_vars: HashSet<String>) -> Expr {
 
 /// Simplify an expression with domain safety and user-specified fixed variables
 /// Fixed variables are treated as constants (e.g., "e" as a variable, not Euler's constant)
-pub fn simplify_domain_safe(expr: Expr, fixed_vars: HashSet<String>) -> Expr {
+pub(crate) fn simplify_domain_safe(expr: Expr, fixed_vars: HashSet<String>) -> Expr {
     let mut current = expr;
 
     let mut simplifier = engine::Simplifier::new()
