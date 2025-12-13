@@ -1,10 +1,22 @@
 //! Uncertainty propagation for symbolic expressions
 //!
-//! Computes uncertainty propagation formulas using the standard formula:
+//! Computes uncertainty propagation formulas using the standard GUM formula:
 //! σ_f² = Σᵢ Σⱼ (∂f/∂xᵢ)(∂f/∂xⱼ) Cov(xᵢ, xⱼ)
 //!
 //! For uncorrelated variables, this simplifies to:
 //! σ_f² = Σᵢ (∂f/∂xᵢ)² σᵢ²
+//!
+//! # Reference
+//!
+//! JCGM 100:2008 "Evaluation of measurement data — Guide to the expression
+//! of uncertainty in measurement" (GUM), Section 5.1.2
+//! <https://www.bipm.org/documents/20126/2071204/JCGM_100_2008_E.pdf>
+//!
+//! # TODO
+//!
+//! - [ ] Cross-term optimization: compute upper triangle only and double cross-terms
+//!       σ² = Σᵢ (∂f/∂xᵢ)² σᵢ² + 2 Σᵢ<ⱼ (∂f/∂xᵢ)(∂f/∂xⱼ) Cov(xᵢ, xⱼ)
+//! - [ ] Matrix symmetry validation: assert Cov[i][j] = Cov[j][i]
 
 use crate::{Diff, DiffError, Expr};
 
