@@ -8,134 +8,11 @@ use std::ops::Deref;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use crate::symbol::{InternedSymbol, get_or_intern};
+use crate::core::symbol::{InternedSymbol, get_or_intern};
 
 /// Type alias for custom evaluation functions map
-pub type CustomEvalMap =
+pub(crate) type CustomEvalMap =
     std::collections::HashMap<String, std::sync::Arc<dyn Fn(&[f64]) -> Option<f64> + Send + Sync>>;
-
-// =============================================================================
-// EPOCHS - Global counters for phase-specific simplification tracking
-// =============================================================================
-
-/// Global epochs for each simplification phase.
-/// Aligned with priority tiers from simplification/README.md:
-///   100:   Numeric       - constant folding
-///   85-95: Expansion     - expand, distribute, flatten
-///   70-84: Cancellation  - identities, cancel common factors  
-///   40-69: Consolidation - combine terms, factor, compact
-///   1-39:  Canonicalization - sort, normalize display
-pub mod epochs {
-    use std::sync::atomic::{AtomicU64, Ordering};
-
-    pub static NUMERIC: AtomicU64 = AtomicU64::new(0);
-    pub static EXPANSION: AtomicU64 = AtomicU64::new(0);
-    pub static CANCELLATION: AtomicU64 = AtomicU64::new(0);
-    pub static CONSOLIDATION: AtomicU64 = AtomicU64::new(0);
-    pub static CANONICALIZATION: AtomicU64 = AtomicU64::new(0);
-
-    /// Invalidate all caches (new rules added or forced re-simplification)
-    #[allow(dead_code)]
-    pub fn invalidate_all() {
-        NUMERIC.fetch_add(1, Ordering::Relaxed);
-        EXPANSION.fetch_add(1, Ordering::Relaxed);
-        CANCELLATION.fetch_add(1, Ordering::Relaxed);
-        CONSOLIDATION.fetch_add(1, Ordering::Relaxed);
-        CANONICALIZATION.fetch_add(1, Ordering::Relaxed);
-    }
-}
-
-// =============================================================================
-// EXPRESSION FLAGS - Phase-specific epoch tracking
-// =============================================================================
-
-/// Phase-specific expression flags for fine-grained simplification tracking.
-/// Each flag tracks when that phase was last completed on this expression.
-#[derive(Debug, Clone, Copy, Default)]
-pub struct ExprFlags {
-    /// Priority 100: numeric simplification (constant folding)
-    pub numeric_at: Option<u64>,
-    /// Priority 85-95: expansion, distribution, flattening
-    pub expansion_at: Option<u64>,
-    /// Priority 70-84: identities, cancellation
-    pub cancellation_at: Option<u64>,
-    /// Priority 40-69: combine terms, factor, compact
-    pub consolidation_at: Option<u64>,
-    /// Priority 1-39: sorting, normalization
-    pub canonical_at: Option<u64>,
-}
-
-impl ExprFlags {
-    /// Check if numeric phase (priority 100) needs to run
-    #[inline]
-    pub fn needs_numeric(&self) -> bool {
-        self.numeric_at != Some(epochs::NUMERIC.load(Ordering::Relaxed))
-    }
-
-    /// Check if expansion phase (priority 85-95) needs to run
-    #[inline]
-    pub fn needs_expansion(&self) -> bool {
-        self.expansion_at != Some(epochs::EXPANSION.load(Ordering::Relaxed))
-    }
-
-    /// Check if cancellation phase (priority 70-84) needs to run
-    #[inline]
-    pub fn needs_cancellation(&self) -> bool {
-        self.cancellation_at != Some(epochs::CANCELLATION.load(Ordering::Relaxed))
-    }
-
-    /// Check if consolidation phase (priority 40-69) needs to run
-    #[inline]
-    pub fn needs_consolidation(&self) -> bool {
-        self.consolidation_at != Some(epochs::CONSOLIDATION.load(Ordering::Relaxed))
-    }
-
-    /// Check if canonicalization phase (priority 1-39) needs to run
-    #[inline]
-    pub fn needs_canonicalization(&self) -> bool {
-        self.canonical_at != Some(epochs::CANONICALIZATION.load(Ordering::Relaxed))
-    }
-
-    /// Check if fully simplified (all phases current)
-    #[inline]
-    pub fn is_simplified(&self) -> bool {
-        !self.needs_numeric()
-            && !self.needs_expansion()
-            && !self.needs_cancellation()
-            && !self.needs_consolidation()
-            && !self.needs_canonicalization()
-    }
-
-    /// Mark a specific phase as completed at current epoch
-    pub fn mark_numeric(&mut self) {
-        self.numeric_at = Some(epochs::NUMERIC.load(Ordering::Relaxed));
-    }
-
-    pub fn mark_expansion(&mut self) {
-        self.expansion_at = Some(epochs::EXPANSION.load(Ordering::Relaxed));
-    }
-
-    pub fn mark_cancellation(&mut self) {
-        self.cancellation_at = Some(epochs::CANCELLATION.load(Ordering::Relaxed));
-    }
-
-    pub fn mark_consolidation(&mut self) {
-        self.consolidation_at = Some(epochs::CONSOLIDATION.load(Ordering::Relaxed));
-    }
-
-    pub fn mark_canonicalization(&mut self) {
-        self.canonical_at = Some(epochs::CANONICALIZATION.load(Ordering::Relaxed));
-    }
-
-    /// Mark all phases as completed (fully simplified)
-    pub fn mark_all_simplified(&mut self) {
-        self.mark_numeric();
-        self.mark_expansion();
-        self.mark_cancellation();
-        self.mark_consolidation();
-        self.mark_canonicalization();
-    }
-}
 
 // =============================================================================
 // EXPRESSION ID COUNTER
@@ -159,8 +36,6 @@ pub struct Expr {
     pub hash: u64,
     /// The kind of expression (structure)
     pub kind: ExprKind,
-    /// Phase-specific simplification tracking
-    pub flags: ExprFlags,
 }
 
 impl Deref for Expr {
@@ -208,9 +83,10 @@ pub enum ExprKind {
 
     /// Function call (built-in or custom)
     /// Uses InternedSymbol for O(1) name comparisons
+    /// Args use Arc<Expr> for consistency with Sum/Product
     FunctionCall {
         name: InternedSymbol,
-        args: Vec<Expr>,
+        args: Vec<Arc<Expr>>,
     },
 
     /// N-ary sum: a + b + c + ...
@@ -234,6 +110,10 @@ pub enum ExprKind {
         var: String,
         order: u32,
     },
+
+    /// Polynomial in sparse representation (coefficient * powers)
+    /// Used for efficient polynomial operations (differentiation, multiplication)
+    Poly(super::poly::Polynomial),
 }
 
 // =============================================================================
@@ -330,6 +210,24 @@ fn compute_expr_hash(kind: &ExprKind) -> u64 {
                 let h = hash_u64(h, *order as u64);
                 hash_u64(h, inner.hash)
             }
+
+            // Polynomial: hash based on terms (order-independent)
+            ExprKind::Poly(poly) => {
+                let h = hash_byte(hash, b'P');
+                // Hash each term: commutative, so sum hashes
+                let mut acc: u64 = 0;
+                for term in poly.terms() {
+                    // Hash coefficient
+                    let term_hash = hash_f64(0, term.coeff);
+                    // Hash powers
+                    let term_hash = term.powers.iter().fold(term_hash, |h, (sym, pow)| {
+                        let h = hash_u64(h, sym.id());
+                        hash_u64(h, *pow as u64)
+                    });
+                    acc = acc.wrapping_add(term_hash);
+                }
+                hash_u64(h, acc)
+            }
         }
     }
 
@@ -337,25 +235,13 @@ fn compute_expr_hash(kind: &ExprKind) -> u64 {
 }
 
 impl Expr {
-    /// Create a new expression with fresh ID and default flags
+    /// Create a new expression with fresh ID
     pub fn new(kind: ExprKind) -> Self {
         let hash = compute_expr_hash(&kind);
         Expr {
             id: next_id(),
             hash,
             kind,
-            flags: ExprFlags::default(),
-        }
-    }
-
-    /// Create a new expression with specific flags
-    pub fn with_flags(kind: ExprKind, flags: ExprFlags) -> Self {
-        let hash = compute_expr_hash(&kind);
-        Expr {
-            id: next_id(),
-            hash,
-            kind,
-            flags,
         }
     }
 
@@ -374,19 +260,19 @@ impl Expr {
     /// Check if this expression is the number zero (with tolerance)
     #[inline]
     pub fn is_zero_num(&self) -> bool {
-        self.as_number().is_some_and(crate::traits::is_zero)
+        self.as_number().is_some_and(super::traits::is_zero)
     }
 
     /// Check if this expression is the number one (with tolerance)
     #[inline]
     pub fn is_one_num(&self) -> bool {
-        self.as_number().is_some_and(crate::traits::is_one)
+        self.as_number().is_some_and(super::traits::is_one)
     }
 
     /// Check if this expression is the number negative one (with tolerance)
     #[inline]
     pub fn is_neg_one_num(&self) -> bool {
-        self.as_number().is_some_and(crate::traits::is_neg_one)
+        self.as_number().is_some_and(super::traits::is_neg_one)
     }
 
     // -------------------------------------------------------------------------
@@ -408,13 +294,80 @@ impl Expr {
         Expr::new(ExprKind::Symbol(interned))
     }
 
+    /// Create a polynomial expression directly
+    pub fn poly(p: super::poly::Polynomial) -> Self {
+        // Empty polynomial is 0
+        if p.terms().is_empty() {
+            return Expr::number(0.0);
+        }
+        // Single constant term is just a number
+        if p.terms().len() == 1 && p.terms()[0].powers.is_empty() {
+            return Expr::number(p.terms()[0].coeff);
+        }
+        Expr::new(ExprKind::Poly(p))
+    }
+
     // -------------------------------------------------------------------------
     // N-ary Sum constructor (smart - flattens and sorts)
     // -------------------------------------------------------------------------
+}
 
+/// Extract the polynomial base hash from a term (x, x^2, 3*x^3 all have base "x")
+/// Returns None if term is not polynomial-like (contains functions, etc.)
+fn get_poly_base_hash(expr: &Expr) -> Option<u64> {
+    match &expr.kind {
+        // Symbol x → hash of x
+        ExprKind::Symbol(s) => Some(s.id()),
+        // x^n where n is a positive integer → hash of x
+        ExprKind::Pow(base, exp) => {
+            if let ExprKind::Number(n) = &exp.kind
+                && *n >= 1.0 && n.fract() == 0.0
+                    && let ExprKind::Symbol(s) = &base.kind {
+                        return Some(s.id());
+                    }
+            None
+        }
+        // c*x^n → hash of x
+        ExprKind::Product(factors) => {
+            let mut base_hash = None;
+            for f in factors.iter() {
+                match &f.kind {
+                    ExprKind::Number(_) => {} // Skip coefficients
+                    ExprKind::Symbol(s) => {
+                        if base_hash.is_some() {
+                            return None;
+                        } // Multiple variables
+                        base_hash = Some(s.id());
+                    }
+                    ExprKind::Pow(b, exp) => {
+                        if let ExprKind::Number(n) = &exp.kind
+                            && *n >= 1.0 && n.fract() == 0.0
+                                && let ExprKind::Symbol(s) = &b.kind {
+                                    if base_hash.is_some() {
+                                        return None;
+                                    }
+                                    base_hash = Some(s.id());
+                                    continue;
+                                }
+                        return None;
+                    }
+                    _ => return None, // Functions or other complex expressions
+                }
+            }
+            base_hash
+        }
+        ExprKind::Number(_) => Some(0), // Constants have "base" 0 (can combine with any polynomial)
+        _ => None,
+    }
+}
+
+impl Expr {
     /// Create a sum expression from terms.
     /// Flattens nested sums. Sorting and like-term combination is deferred to simplification
     /// for performance (avoids O(N²) cascade during differentiation).
+    ///
+    /// Auto-optimization: If 3+ terms form a pure polynomial (only numbers, symbols,
+    /// products of coeff*symbol^n), converts to Poly for O(N) differentiation.
     pub fn sum(terms: Vec<Expr>) -> Self {
         if terms.is_empty() {
             return Expr::number(0.0);
@@ -429,6 +382,12 @@ impl Expr {
         for t in terms {
             match t.kind {
                 ExprKind::Sum(inner) => flat.extend(inner),
+                ExprKind::Poly(poly) => {
+                    // Flatten Poly into its terms (they'll be merged later)
+                    for term_expr in poly.to_expr_terms() {
+                        flat.push(Arc::new(term_expr));
+                    }
+                }
                 ExprKind::Number(n) => numeric_sum += n, // Combine numbers immediately
                 _ => flat.push(Arc::new(t)),
             }
@@ -446,8 +405,78 @@ impl Expr {
             return Arc::try_unwrap(flat.pop().unwrap()).unwrap_or_else(|arc| (*arc).clone());
         }
 
-        // Note: Sorting and like-term combination deferred to simplify()
-        // This is critical for O(N log N) differentiation instead of O(N²)
+        // Streaming incremental Poly building: if term has same base as last, combine into Poly
+        // Since terms are canonically sorted, same-base terms are always adjacent
+        if flat.len() >= 2 {
+            let mut result: Vec<Arc<Expr>> = Vec::new();
+            let mut last_base: Option<u64> = None;
+
+            for term in flat.into_iter() {
+                let current_base = get_poly_base_hash(&term);
+
+                if current_base.is_some() && current_base == last_base && !result.is_empty() {
+                    // Same base as last term - merge into Poly
+                    let last = result.pop().unwrap();
+                    let last_expr = Arc::try_unwrap(last).unwrap_or_else(|arc| (*arc).clone());
+                    let term_expr = Arc::try_unwrap(term).unwrap_or_else(|arc| (*arc).clone());
+
+                    // If last was already a Poly, add to it; else create new Poly from both
+                    let merged = if let ExprKind::Poly(poly) = &last_expr.kind {
+                        // Convert Poly back to sum, add new term, reconvert
+                        let mut terms_vec: Vec<Arc<Expr>> =
+                            poly.to_expr_terms().into_iter().map(Arc::new).collect();
+                        terms_vec.push(Arc::new(term_expr.clone()));
+                        let temp_sum = Expr::new(ExprKind::Sum(terms_vec));
+                        if let Some(new_poly) = super::poly::Polynomial::try_from_expr(&temp_sum) {
+                            if new_poly.substitutions_count() == 0 {
+                                Expr::poly(new_poly)
+                            } else {
+                                result.push(Arc::new(last_expr));
+                                result.push(Arc::new(term_expr));
+                                last_base = current_base;
+                                continue;
+                            }
+                        } else {
+                            result.push(Arc::new(last_expr));
+                            result.push(Arc::new(term_expr));
+                            last_base = current_base;
+                            continue;
+                        }
+                    } else {
+                        // Create new Poly from both terms
+                        let temp_sum = Expr::new(ExprKind::Sum(vec![
+                            Arc::new(last_expr),
+                            Arc::new(term_expr),
+                        ]));
+                        if let Some(poly) = super::poly::Polynomial::try_from_expr(&temp_sum) {
+                            if poly.substitutions_count() == 0 {
+                                Expr::poly(poly)
+                            } else {
+                                // Can't convert - keep original
+                                result.push(Arc::new(temp_sum));
+                                last_base = current_base;
+                                continue;
+                            }
+                        } else {
+                            result.push(Arc::new(temp_sum));
+                            last_base = current_base;
+                            continue;
+                        }
+                    };
+                    result.push(Arc::new(merged));
+                } else {
+                    // Different base - just add
+                    result.push(term);
+                }
+                last_base = current_base;
+            }
+
+            if result.len() == 1 {
+                return Arc::try_unwrap(result.pop().unwrap()).unwrap_or_else(|arc| (*arc).clone());
+            }
+            return Expr::new(ExprKind::Sum(result));
+        }
+
         Expr::new(ExprKind::Sum(flat))
     }
 
@@ -577,7 +606,15 @@ impl Expr {
     }
 
     /// Create multiplication: a * b → Product([a, b])
+    ///
+    /// Optimization: If both operands are Poly, use fast O(N*M) polynomial multiplication
     pub fn mul_expr(left: Expr, right: Expr) -> Self {
+        // Fast path: Poly * Poly uses polynomial multiplication
+        if let (ExprKind::Poly(p1), ExprKind::Poly(p2)) = (&left.kind, &right.kind) {
+            let result = p1.mul(p2);
+            return Expr::poly(result);
+        }
+
         Expr::product(vec![left, right])
     }
 
@@ -616,12 +653,20 @@ impl Expr {
     pub fn func(name: impl AsRef<str>, content: Expr) -> Self {
         Expr::new(ExprKind::FunctionCall {
             name: get_or_intern(name.as_ref()),
-            args: vec![content],
+            args: vec![Arc::new(content)],
         })
     }
 
     /// Create a multi-argument function call
     pub fn func_multi(name: impl AsRef<str>, args: Vec<Expr>) -> Self {
+        Expr::new(ExprKind::FunctionCall {
+            name: get_or_intern(name.as_ref()),
+            args: args.into_iter().map(Arc::new).collect(),
+        })
+    }
+
+    /// Create a function call from Arc arguments (avoids cloning)
+    pub fn func_multi_from_arcs(name: impl AsRef<str>, args: Vec<Arc<Expr>>) -> Self {
         Expr::new(ExprKind::FunctionCall {
             name: get_or_intern(name.as_ref()),
             args,
@@ -666,6 +711,8 @@ impl Expr {
             ExprKind::Product(factors) => 1 + factors.iter().map(|f| f.node_count()).sum::<usize>(),
             ExprKind::Div(l, r) | ExprKind::Pow(l, r) => 1 + l.node_count() + r.node_count(),
             ExprKind::Derivative { inner, .. } => 1 + inner.node_count(),
+            // Poly is counted as 1 node + its expanded form
+            ExprKind::Poly(poly) => 1 + poly.terms().len(),
         }
     }
 
@@ -682,6 +729,7 @@ impl Expr {
             }
             ExprKind::Div(l, r) | ExprKind::Pow(l, r) => 1 + l.max_depth().max(r.max_depth()),
             ExprKind::Derivative { inner, .. } => 1 + inner.max_depth(),
+            ExprKind::Poly(_) => 2, // Poly is shallow: one level for poly, one for terms
         }
     }
 
@@ -695,6 +743,10 @@ impl Expr {
             ExprKind::Product(factors) => factors.iter().any(|f| f.contains_var(var)),
             ExprKind::Div(l, r) | ExprKind::Pow(l, r) => l.contains_var(var) || r.contains_var(var),
             ExprKind::Derivative { inner, var: v, .. } => v == var || inner.contains_var(var),
+            ExprKind::Poly(poly) => poly
+                .terms()
+                .iter()
+                .any(|t| t.powers.iter().any(|(s, _)| s == var)),
         }
     }
 
@@ -714,6 +766,10 @@ impl Expr {
             ExprKind::Derivative { inner, var, .. } => {
                 !excluded.contains(var) || inner.has_free_variables(excluded)
             }
+            ExprKind::Poly(poly) => poly
+                .terms()
+                .iter()
+                .any(|t| t.powers.iter().any(|(s, _)| !excluded.contains(s.as_ref()))),
         }
     }
 
@@ -755,6 +811,15 @@ impl Expr {
                 inner.collect_variables(vars);
             }
             ExprKind::Number(_) => {}
+            ExprKind::Poly(poly) => {
+                for term in poly.terms() {
+                    for (sym, _) in &term.powers {
+                        if let Some(name) = sym.name() {
+                            vars.insert(name.to_string());
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -765,7 +830,7 @@ impl Expr {
             ExprKind::Symbol(s) => Expr::from_interned(s.clone()),
             ExprKind::FunctionCall { name, args } => Expr::new(ExprKind::FunctionCall {
                 name: name.clone(),
-                args: args.iter().map(|arg| arg.deep_clone()).collect(),
+                args: args.iter().map(|arg| Arc::new(arg.deep_clone())).collect(),
             }),
             ExprKind::Sum(terms) => {
                 let cloned: Vec<Arc<Expr>> = terms
@@ -785,6 +850,10 @@ impl Expr {
             ExprKind::Pow(a, b) => Expr::pow(a.as_ref().deep_clone(), b.as_ref().deep_clone()),
             ExprKind::Derivative { inner, var, order } => {
                 Expr::derivative(inner.as_ref().deep_clone(), var.clone(), *order)
+            }
+            ExprKind::Poly(poly) => {
+                // Poly is expensive to deep clone, so we just clone it
+                Expr::new(ExprKind::Poly(poly.clone()))
             }
         }
     }
@@ -819,6 +888,7 @@ impl Expr {
                 r.fold(acc, f)
             }
             ExprKind::Derivative { inner, .. } => inner.fold(acc, f),
+            ExprKind::Poly(_) => acc, // Poly is opaque for folding
         }
     }
 
@@ -831,7 +901,7 @@ impl Expr {
             ExprKind::Number(_) | ExprKind::Symbol(_) => self.clone(),
             ExprKind::FunctionCall { name, args } => Expr::new(ExprKind::FunctionCall {
                 name: name.clone(),
-                args: args.iter().map(|arg| arg.map(f)).collect(),
+                args: args.iter().map(|arg| Arc::new(arg.map(f))).collect(),
             }),
             ExprKind::Sum(terms) => {
                 let mapped: Vec<Arc<Expr>> =
@@ -849,6 +919,10 @@ impl Expr {
             ExprKind::Pow(a, b) => Expr::pow(a.map(f), b.map(f)),
             ExprKind::Derivative { inner, var, order } => {
                 Expr::derivative(inner.map(f), var.clone(), *order)
+            }
+            ExprKind::Poly(poly) => {
+                // Poly is opaque for mapping - just clone
+                Expr::new(ExprKind::Poly(poly.clone()))
             }
         };
         f(&transformed)
@@ -911,7 +985,7 @@ impl Expr {
 
                 Expr::new(ExprKind::FunctionCall {
                     name: name.clone(),
-                    args: eval_args,
+                    args: eval_args.into_iter().map(Arc::new).collect(),
                 })
             }
             ExprKind::Sum(terms) => {
@@ -988,6 +1062,36 @@ impl Expr {
                 var.clone(),
                 *order,
             ),
+            ExprKind::Poly(poly) => {
+                // Direct polynomial evaluation: Σ (coeff × ∏ var^pow)
+                let mut total = 0.0;
+                let mut all_numeric = true;
+
+                'outer: for term in poly.terms() {
+                    let mut term_val = term.coeff;
+                    for (sym, pow) in &term.powers {
+                        if let Some(name) = sym.name() {
+                            if let Some(&val) = vars.get(name) {
+                                term_val *= val.powi(*pow as i32);
+                            } else {
+                                all_numeric = false;
+                                break 'outer;
+                            }
+                        } else {
+                            all_numeric = false;
+                            break 'outer;
+                        }
+                    }
+                    total += term_val;
+                }
+
+                if all_numeric {
+                    Expr::number(total)
+                } else {
+                    // Partial evaluation not possible, return Poly as-is
+                    self.clone()
+                }
+            }
         }
     }
 }
@@ -1198,6 +1302,18 @@ impl std::hash::Hash for ExprKind {
                 var.hash(state);
                 order.hash(state);
             }
+            ExprKind::Poly(poly) => {
+                // Hash polynomial terms
+                poly.terms().len().hash(state);
+                for term in poly.terms() {
+                    term.coeff.to_bits().hash(state);
+                    term.powers.len().hash(state);
+                    for (sym, pow) in &term.powers {
+                        sym.hash(state);
+                        pow.hash(state);
+                    }
+                }
+            }
         }
     }
 }
@@ -1216,13 +1332,14 @@ mod tests {
         let y = Expr::symbol("y");
         let z = Expr::symbol("z");
 
-        // (x + y) + z should flatten to Sum([x, y, z])
+        // (x + y) + z should flatten to Sum or Poly (3+ terms may become Poly)
         let inner = Expr::sum(vec![x.clone(), y.clone()]);
         let outer = Expr::sum(vec![inner, z.clone()]);
 
         match &outer.kind {
             ExprKind::Sum(terms) => assert_eq!(terms.len(), 3),
-            _ => panic!("Expected Sum"),
+            ExprKind::Poly(poly) => assert_eq!(poly.terms().len(), 3),
+            _ => panic!("Expected Sum or Poly"),
         }
     }
 
@@ -1256,32 +1373,5 @@ mod tests {
             }
             _ => panic!("Expected Sum from subtraction"),
         }
-    }
-
-    #[test]
-    fn test_expr_flags() {
-        let mut flags = ExprFlags::default();
-        assert!(flags.needs_numeric());
-        assert!(flags.needs_expansion());
-
-        flags.mark_numeric();
-        assert!(!flags.needs_numeric());
-        assert!(flags.needs_expansion());
-
-        flags.mark_all_simplified();
-        assert!(flags.is_simplified());
-    }
-
-    #[test]
-    fn test_epoch_invalidation() {
-        let mut flags = ExprFlags::default();
-        flags.mark_all_simplified();
-        assert!(flags.is_simplified());
-
-        // Simulate invalidation
-        epochs::NUMERIC.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-
-        // After invalidation, should need simplification again
-        assert!(!flags.is_simplified());
     }
 }

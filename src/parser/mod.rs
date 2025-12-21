@@ -18,7 +18,7 @@ pub fn parse(
     input: &str,
     fixed_vars: &HashSet<String>,
     custom_functions: &HashSet<String>,
-    context: Option<&crate::symbol::SymbolContext>,
+    context: Option<&crate::core::symbol::SymbolContext>,
 ) -> Result<Expr, DiffError> {
     // Pipeline: validate -> balance -> lex -> implicit_mul -> parse
 

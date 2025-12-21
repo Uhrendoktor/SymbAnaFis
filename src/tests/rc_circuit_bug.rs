@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod rc_circuit_differentiation_bug {
     use crate::{Expr, simplification::simplify_expr};
-    use std::collections::HashSet;
+    use std::collections::{HashMap, HashSet};
 
     #[test]
     fn test_rc_circuit_derivative_simplification() {
@@ -27,12 +27,7 @@ mod rc_circuit_differentiation_bug {
         fixed_vars.insert("C".to_string());
         fixed_vars.insert("V0".to_string());
 
-        let deriv = rc_expr.derive(
-            "t",
-            &fixed_vars,
-            &std::collections::HashMap::new(),
-            &std::collections::HashMap::new(),
-        );
+        let deriv = rc_expr.derive("t", &fixed_vars, &HashMap::new(), &HashMap::new());
         println!("Derivative (raw): {}", deriv);
 
         // Simplify

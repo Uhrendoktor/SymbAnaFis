@@ -15,8 +15,9 @@
 //! - Lambert W: Corless et al. (1996) (W'(x) = W(x)/(x(1+W(x))))
 
 use super::registry::FunctionDefinition;
-use super::{func, mul_opt, neg};
+use super::{func, func_arc, mul_opt, neg};
 use crate::Expr;
+use std::sync::Arc;
 
 /// Return all function definitions for populating the registry
 pub(crate) fn all_definitions() -> Vec<FunctionDefinition> {
@@ -28,9 +29,9 @@ pub(crate) fn all_definitions() -> Vec<FunctionDefinition> {
             eval: |args| Some(args[0].sin()),
             derivative: |args, arg_primes| {
                 // d/dx sin(u) = cos(u) * u'
-                let u = args[0].clone();
+                let u = Arc::clone(&args[0]);
                 let u_prime = arg_primes[0].clone();
-                mul_opt(func("cos", u), u_prime)
+                mul_opt(func_arc("cos", u), u_prime)
             },
         },
         FunctionDefinition {
@@ -39,9 +40,9 @@ pub(crate) fn all_definitions() -> Vec<FunctionDefinition> {
             eval: |args| Some(args[0].cos()),
             derivative: |args, arg_primes| {
                 // d/dx cos(u) = -sin(u) * u'
-                let u = args[0].clone();
+                let u = Arc::clone(&args[0]);
                 let u_prime = arg_primes[0].clone();
-                mul_opt(neg(func("sin", u)), u_prime)
+                mul_opt(neg(func_arc("sin", u)), u_prime)
             },
         },
         FunctionDefinition {
@@ -50,9 +51,9 @@ pub(crate) fn all_definitions() -> Vec<FunctionDefinition> {
             eval: |args| Some(args[0].tan()),
             derivative: |args, arg_primes| {
                 // d/dx tan(u) = sec^2(u) * u'
-                let u = args[0].clone();
+                let u = Arc::clone(&args[0]);
                 let u_prime = arg_primes[0].clone();
-                mul_opt(Expr::pow(func("sec", u), Expr::number(2.0)), u_prime)
+                mul_opt(Expr::pow(func_arc("sec", u), Expr::number(2.0)), u_prime)
             },
         },
         FunctionDefinition {
@@ -61,9 +62,12 @@ pub(crate) fn all_definitions() -> Vec<FunctionDefinition> {
             eval: |args| Some(1.0 / args[0].tan()),
             derivative: |args, arg_primes| {
                 // d/dx cot(u) = -csc^2(u) * u'
-                let u = args[0].clone();
+                let u = Arc::clone(&args[0]);
                 let u_prime = arg_primes[0].clone();
-                mul_opt(neg(Expr::pow(func("csc", u), Expr::number(2.0))), u_prime)
+                mul_opt(
+                    neg(Expr::pow(func_arc("csc", u), Expr::number(2.0))),
+                    u_prime,
+                )
             },
         },
         FunctionDefinition {
@@ -72,10 +76,10 @@ pub(crate) fn all_definitions() -> Vec<FunctionDefinition> {
             eval: |args| Some(1.0 / args[0].cos()),
             derivative: |args, arg_primes| {
                 // d/dx sec(u) = sec(u)tan(u) * u'
-                let u = args[0].clone();
+                let u = Arc::clone(&args[0]);
                 let u_prime = arg_primes[0].clone();
                 mul_opt(
-                    Expr::mul_expr(func("sec", u.clone()), func("tan", u)),
+                    Expr::mul_expr(func_arc("sec", Arc::clone(&u)), func_arc("tan", u)),
                     u_prime,
                 )
             },
@@ -86,10 +90,13 @@ pub(crate) fn all_definitions() -> Vec<FunctionDefinition> {
             eval: |args| Some(1.0 / args[0].sin()),
             derivative: |args, arg_primes| {
                 // d/dx csc(u) = -csc(u)cot(u) * u'
-                let u = args[0].clone();
+                let u = Arc::clone(&args[0]);
                 let u_prime = arg_primes[0].clone();
                 mul_opt(
-                    neg(Expr::mul_expr(func("csc", u.clone()), func("cot", u))),
+                    neg(Expr::mul_expr(
+                        func_arc("csc", Arc::clone(&u)),
+                        func_arc("cot", u),
+                    )),
                     u_prime,
                 )
             },
@@ -101,14 +108,17 @@ pub(crate) fn all_definitions() -> Vec<FunctionDefinition> {
             eval: |args| Some(args[0].asin()),
             derivative: |args, arg_primes| {
                 // d/dx asin(u) = u' / sqrt(1 - u^2)
-                let u = args[0].clone();
+                let u = Arc::clone(&args[0]);
                 let u_prime = arg_primes[0].clone();
                 mul_opt(
                     Expr::div_expr(
                         Expr::number(1.0),
                         func(
                             "sqrt",
-                            Expr::sub_expr(Expr::number(1.0), Expr::pow(u, Expr::number(2.0))),
+                            Expr::sub_expr(
+                                Expr::number(1.0),
+                                Expr::pow_from_arcs(u.clone(), Arc::new(Expr::number(2.0))),
+                            ),
                         ),
                     ),
                     u_prime,
@@ -121,14 +131,17 @@ pub(crate) fn all_definitions() -> Vec<FunctionDefinition> {
             eval: |args| Some(args[0].acos()),
             derivative: |args, arg_primes| {
                 // d/dx acos(u) = -u' / sqrt(1 - u^2)
-                let u = args[0].clone();
+                let u = Arc::clone(&args[0]);
                 let u_prime = arg_primes[0].clone();
                 mul_opt(
                     Expr::div_expr(
                         neg(u_prime),
                         func(
                             "sqrt",
-                            Expr::sub_expr(Expr::number(1.0), Expr::pow(u, Expr::number(2.0))),
+                            Expr::sub_expr(
+                                Expr::number(1.0),
+                                Expr::pow_from_arcs(u.clone(), Arc::new(Expr::number(2.0))),
+                            ),
                         ),
                     ),
                     Expr::number(1.0),
@@ -141,12 +154,15 @@ pub(crate) fn all_definitions() -> Vec<FunctionDefinition> {
             eval: |args| Some(args[0].atan()),
             derivative: |args, arg_primes| {
                 // d/dx atan(u) = u' / (1 + u^2)
-                let u = args[0].clone();
+                let u = Arc::clone(&args[0]);
                 let u_prime = arg_primes[0].clone();
                 mul_opt(
                     Expr::div_expr(
                         Expr::number(1.0),
-                        Expr::add_expr(Expr::number(1.0), Expr::pow(u, Expr::number(2.0))),
+                        Expr::add_expr(
+                            Expr::number(1.0),
+                            Expr::pow_from_arcs(u.clone(), Arc::new(Expr::number(2.0))),
+                        ),
                     ),
                     u_prime,
                 )
@@ -167,12 +183,15 @@ pub(crate) fn all_definitions() -> Vec<FunctionDefinition> {
             },
             derivative: |args, arg_primes| {
                 // d/dx acot(u) = -u' / (1 + u^2)
-                let u = args[0].clone();
+                let u = Arc::clone(&args[0]);
                 let u_prime = arg_primes[0].clone();
                 mul_opt(
                     Expr::div_expr(
                         neg(u_prime),
-                        Expr::add_expr(Expr::number(1.0), Expr::pow(u, Expr::number(2.0))),
+                        Expr::add_expr(
+                            Expr::number(1.0),
+                            Expr::pow_from_arcs(u.clone(), Arc::new(Expr::number(2.0))),
+                        ),
                     ),
                     Expr::number(1.0),
                 )
@@ -184,16 +203,19 @@ pub(crate) fn all_definitions() -> Vec<FunctionDefinition> {
             eval: |args| Some((1.0 / args[0]).acos()),
             derivative: |args, arg_primes| {
                 // d/dx asec(u) = u' / (|u| * sqrt(u^2 - 1))
-                let u = args[0].clone();
+                let u = Arc::clone(&args[0]);
                 let u_prime = arg_primes[0].clone();
                 mul_opt(
                     Expr::div_expr(
                         Expr::number(1.0),
                         Expr::mul_expr(
-                            func("abs", u.clone()),
+                            func_arc("abs", u.clone()),
                             func(
                                 "sqrt",
-                                Expr::sub_expr(Expr::pow(u, Expr::number(2.0)), Expr::number(1.0)),
+                                Expr::sub_expr(
+                                    Expr::pow_from_arcs(u.clone(), Arc::new(Expr::number(2.0))),
+                                    Expr::number(1.0),
+                                ),
                             ),
                         ),
                     ),
@@ -207,18 +229,21 @@ pub(crate) fn all_definitions() -> Vec<FunctionDefinition> {
             eval: |args| Some((1.0 / args[0]).asin()),
             derivative: |args, arg_primes| {
                 // d/dx acsc(u) = -u' / (|u| * sqrt(u^2 - 1))
-                let u = args[0].clone();
+                let u = Arc::clone(&args[0]);
                 let u_prime = arg_primes[0].clone();
                 mul_opt(
                     Expr::div_expr(
                         neg(u_prime),
-                        Expr::mul_expr(
-                            func("abs", u.clone()),
-                            func(
+                        Expr::mul_from_arcs(vec![
+                            Arc::new(func_arc("abs", u.clone())),
+                            Arc::new(func(
                                 "sqrt",
-                                Expr::sub_expr(Expr::pow(u, Expr::number(2.0)), Expr::number(1.0)),
-                            ),
-                        ),
+                                Expr::sub_expr(
+                                    Expr::pow_from_arcs(u.clone(), Arc::new(Expr::number(2.0))),
+                                    Expr::number(1.0),
+                                ),
+                            )),
+                        ]),
                     ),
                     Expr::number(1.0),
                 )
@@ -231,9 +256,9 @@ pub(crate) fn all_definitions() -> Vec<FunctionDefinition> {
             eval: |args| Some(args[0].sinh()),
             derivative: |args, arg_primes| {
                 // d/dx sinh(u) = cosh(u) * u'
-                let u = args[0].clone();
+                let u = Arc::clone(&args[0]);
                 let u_prime = arg_primes[0].clone();
-                mul_opt(func("cosh", u), u_prime)
+                mul_opt(func_arc("cosh", u), u_prime)
             },
         },
         FunctionDefinition {
@@ -242,9 +267,9 @@ pub(crate) fn all_definitions() -> Vec<FunctionDefinition> {
             eval: |args| Some(args[0].cosh()),
             derivative: |args, arg_primes| {
                 // d/dx cosh(u) = sinh(u) * u'
-                let u = args[0].clone();
+                let u = Arc::clone(&args[0]);
                 let u_prime = arg_primes[0].clone();
-                mul_opt(func("sinh", u), u_prime)
+                mul_opt(func_arc("sinh", u), u_prime)
             },
         },
         FunctionDefinition {
@@ -253,12 +278,12 @@ pub(crate) fn all_definitions() -> Vec<FunctionDefinition> {
             eval: |args| Some(args[0].tanh()),
             derivative: |args, arg_primes| {
                 // d/dx tanh(u) = (1 - tanh^2(u)) * u'
-                let u = args[0].clone();
+                let u = Arc::clone(&args[0]);
                 let u_prime = arg_primes[0].clone();
                 mul_opt(
                     Expr::sub_expr(
                         Expr::number(1.0),
-                        Expr::pow(func("tanh", u), Expr::number(2.0)),
+                        Expr::pow(func_arc("tanh", u), Expr::number(2.0)),
                     ),
                     u_prime,
                 )
@@ -270,9 +295,12 @@ pub(crate) fn all_definitions() -> Vec<FunctionDefinition> {
             eval: |args| Some(1.0 / args[0].tanh()),
             derivative: |args, arg_primes| {
                 // d/dx coth(u) = -csch^2(u) * u'
-                let u = args[0].clone();
+                let u = Arc::clone(&args[0]);
                 let u_prime = arg_primes[0].clone();
-                mul_opt(neg(Expr::pow(func("csch", u), Expr::number(2.0))), u_prime)
+                mul_opt(
+                    neg(Expr::pow(func_arc("csch", u), Expr::number(2.0))),
+                    u_prime,
+                )
             },
         },
         FunctionDefinition {
@@ -281,10 +309,13 @@ pub(crate) fn all_definitions() -> Vec<FunctionDefinition> {
             eval: |args| Some(1.0 / args[0].cosh()),
             derivative: |args, arg_primes| {
                 // d/dx sech(u) = -sech(u)tanh(u) * u'
-                let u = args[0].clone();
+                let u = Arc::clone(&args[0]);
                 let u_prime = arg_primes[0].clone();
                 mul_opt(
-                    neg(Expr::mul_expr(func("sech", u.clone()), func("tanh", u))),
+                    neg(Expr::mul_expr(
+                        func_arc("sech", Arc::clone(&u)),
+                        func_arc("tanh", u),
+                    )),
                     u_prime,
                 )
             },
@@ -295,10 +326,13 @@ pub(crate) fn all_definitions() -> Vec<FunctionDefinition> {
             eval: |args| Some(1.0 / args[0].sinh()),
             derivative: |args, arg_primes| {
                 // d/dx csch(u) = -csch(u)coth(u) * u'
-                let u = args[0].clone();
+                let u = Arc::clone(&args[0]);
                 let u_prime = arg_primes[0].clone();
                 mul_opt(
-                    neg(Expr::mul_expr(func("csch", u.clone()), func("coth", u))),
+                    neg(Expr::mul_expr(
+                        func_arc("csch", Arc::clone(&u)),
+                        func_arc("coth", u),
+                    )),
                     u_prime,
                 )
             },
@@ -310,14 +344,17 @@ pub(crate) fn all_definitions() -> Vec<FunctionDefinition> {
             eval: |args| Some(args[0].asinh()),
             derivative: |args, arg_primes| {
                 // d/dx asinh(u) = u' / sqrt(u^2 + 1)
-                let u = args[0].clone();
+                let u = Arc::clone(&args[0]);
                 let u_prime = arg_primes[0].clone();
                 mul_opt(
                     Expr::div_expr(
                         Expr::number(1.0),
                         func(
                             "sqrt",
-                            Expr::add_expr(Expr::pow(u, Expr::number(2.0)), Expr::number(1.0)),
+                            Expr::add_expr(
+                                Expr::pow_from_arcs(u.clone(), Arc::new(Expr::number(2.0))),
+                                Expr::number(1.0),
+                            ),
                         ),
                     ),
                     u_prime,
@@ -330,14 +367,17 @@ pub(crate) fn all_definitions() -> Vec<FunctionDefinition> {
             eval: |args| Some(args[0].acosh()),
             derivative: |args, arg_primes| {
                 // d/dx acosh(u) = u' / sqrt(u^2 - 1)
-                let u = args[0].clone();
+                let u = Arc::clone(&args[0]);
                 let u_prime = arg_primes[0].clone();
                 mul_opt(
                     Expr::div_expr(
                         Expr::number(1.0),
                         func(
                             "sqrt",
-                            Expr::sub_expr(Expr::pow(u, Expr::number(2.0)), Expr::number(1.0)),
+                            Expr::sub_expr(
+                                Expr::pow_from_arcs(u.clone(), Arc::new(Expr::number(2.0))),
+                                Expr::number(1.0),
+                            ),
                         ),
                     ),
                     u_prime,
@@ -350,12 +390,15 @@ pub(crate) fn all_definitions() -> Vec<FunctionDefinition> {
             eval: |args| Some(args[0].atanh()),
             derivative: |args, arg_primes| {
                 // d/dx atanh(u) = u' / (1 - u^2)
-                let u = args[0].clone();
+                let u = Arc::clone(&args[0]);
                 let u_prime = arg_primes[0].clone();
                 mul_opt(
                     Expr::div_expr(
                         Expr::number(1.0),
-                        Expr::sub_expr(Expr::number(1.0), Expr::pow(u, Expr::number(2.0))),
+                        Expr::sub_expr(
+                            Expr::number(1.0),
+                            Expr::pow_from_arcs(u.clone(), Arc::new(Expr::number(2.0))),
+                        ),
                     ),
                     u_prime,
                 )
@@ -367,12 +410,15 @@ pub(crate) fn all_definitions() -> Vec<FunctionDefinition> {
             eval: |args| Some(0.5 * ((args[0] + 1.0) / (args[0] - 1.0)).ln()),
             derivative: |args, arg_primes| {
                 // d/dx acoth(u) = u' / (1 - u^2)
-                let u = args[0].clone();
+                let u = Arc::clone(&args[0]);
                 let u_prime = arg_primes[0].clone();
                 mul_opt(
                     Expr::div_expr(
                         Expr::number(1.0),
-                        Expr::sub_expr(Expr::number(1.0), Expr::pow(u, Expr::number(2.0))),
+                        Expr::sub_expr(
+                            Expr::number(1.0),
+                            Expr::pow_from_arcs(u.clone(), Arc::new(Expr::number(2.0))),
+                        ),
                     ),
                     u_prime,
                 )
@@ -384,18 +430,21 @@ pub(crate) fn all_definitions() -> Vec<FunctionDefinition> {
             eval: |args| Some((1.0 / args[0]).acosh()),
             derivative: |args, arg_primes| {
                 // d/dx asech(u) = -u' / (u * sqrt(1 - u^2))
-                let u = args[0].clone();
+                let u = Arc::clone(&args[0]);
                 let u_prime = arg_primes[0].clone();
                 mul_opt(
                     Expr::div_expr(
                         neg(u_prime),
-                        Expr::mul_expr(
+                        Expr::mul_from_arcs(vec![
                             u.clone(),
-                            func(
+                            Arc::new(func(
                                 "sqrt",
-                                Expr::sub_expr(Expr::number(1.0), Expr::pow(u, Expr::number(2.0))),
-                            ),
-                        ),
+                                Expr::sub_expr(
+                                    Expr::number(1.0),
+                                    Expr::pow_from_arcs(u.clone(), Arc::new(Expr::number(2.0))),
+                                ),
+                            )),
+                        ]),
                     ),
                     Expr::number(1.0),
                 )
@@ -413,18 +462,21 @@ pub(crate) fn all_definitions() -> Vec<FunctionDefinition> {
             },
             derivative: |args, arg_primes| {
                 // d/dx acsch(u) = -u' / (|u| * sqrt(1 + u^2))
-                let u = args[0].clone();
+                let u = Arc::clone(&args[0]);
                 let u_prime = arg_primes[0].clone();
                 mul_opt(
                     Expr::div_expr(
                         neg(u_prime),
-                        Expr::mul_expr(
-                            func("abs", u.clone()),
-                            func(
+                        Expr::mul_from_arcs(vec![
+                            Arc::new(func_arc("abs", u.clone())),
+                            Arc::new(func(
                                 "sqrt",
-                                Expr::add_expr(Expr::number(1.0), Expr::pow(u, Expr::number(2.0))),
-                            ),
-                        ),
+                                Expr::add_expr(
+                                    Expr::number(1.0),
+                                    Expr::pow_from_arcs(u.clone(), Arc::new(Expr::number(2.0))),
+                                ),
+                            )),
+                        ]),
                     ),
                     Expr::number(1.0),
                 )
@@ -437,9 +489,9 @@ pub(crate) fn all_definitions() -> Vec<FunctionDefinition> {
             eval: |args| Some(args[0].exp()),
             derivative: |args, arg_primes| {
                 // d/dx exp(u) = exp(u) * u'
-                let u = args[0].clone();
+                let u = Arc::clone(&args[0]);
                 let u_prime = arg_primes[0].clone();
-                mul_opt(func("exp", u), u_prime)
+                mul_opt(func_arc("exp", u), u_prime)
             },
         },
         FunctionDefinition {
@@ -448,9 +500,12 @@ pub(crate) fn all_definitions() -> Vec<FunctionDefinition> {
             eval: |args| Some(args[0].ln()),
             derivative: |args, arg_primes| {
                 // d/dx ln(u) = u' / u
-                let u = args[0].clone();
+                let u = Arc::clone(&args[0]);
                 let u_prime = arg_primes[0].clone();
-                mul_opt(Expr::pow(u, Expr::number(-1.0)), u_prime)
+                mul_opt(
+                    Expr::pow_from_arcs(u.clone(), Arc::new(Expr::number(-1.0))),
+                    u_prime,
+                )
             },
         },
         FunctionDefinition {
@@ -459,9 +514,12 @@ pub(crate) fn all_definitions() -> Vec<FunctionDefinition> {
             eval: |args| Some(args[0].ln()),
             derivative: |args, arg_primes| {
                 // d/dx log(u) = ln(u), so same as ln
-                let u = args[0].clone();
+                let u = Arc::clone(&args[0]);
                 let u_prime = arg_primes[0].clone();
-                mul_opt(Expr::pow(u, Expr::number(-1.0)), u_prime)
+                mul_opt(
+                    Expr::pow_from_arcs(u.clone(), Arc::new(Expr::number(-1.0))),
+                    u_prime,
+                )
             },
         },
         FunctionDefinition {
@@ -470,12 +528,15 @@ pub(crate) fn all_definitions() -> Vec<FunctionDefinition> {
             eval: |args| Some(args[0].log10()),
             derivative: |args, arg_primes| {
                 // d/dx log10(u) = u' / (u * ln(10))
-                let u = args[0].clone();
+                let u = Arc::clone(&args[0]);
                 let u_prime = arg_primes[0].clone();
                 mul_opt(
                     Expr::div_expr(
                         Expr::number(1.0),
-                        Expr::mul_expr(u, func("ln", Expr::number(10.0))),
+                        Expr::mul_from_arcs(vec![
+                            u.clone(),
+                            Arc::new(func("ln", Expr::number(10.0))),
+                        ]),
                     ),
                     u_prime,
                 )
@@ -487,12 +548,15 @@ pub(crate) fn all_definitions() -> Vec<FunctionDefinition> {
             eval: |args| Some(args[0].log2()),
             derivative: |args, arg_primes| {
                 // d/dx log2(u) = u' / (u * ln(2))
-                let u = args[0].clone();
+                let u = Arc::clone(&args[0]);
                 let u_prime = arg_primes[0].clone();
                 mul_opt(
                     Expr::div_expr(
                         Expr::number(1.0),
-                        Expr::mul_expr(u, func("ln", Expr::number(2.0))),
+                        Expr::mul_from_arcs(vec![
+                            u.clone(),
+                            Arc::new(func("ln", Expr::number(2.0))),
+                        ]),
                     ),
                     u_prime,
                 )
@@ -504,12 +568,12 @@ pub(crate) fn all_definitions() -> Vec<FunctionDefinition> {
             eval: |args| Some(args[0].sqrt()),
             derivative: |args, arg_primes| {
                 // d/dx sqrt(u) = u' / (2 * sqrt(u))
-                let u = args[0].clone();
+                let u = Arc::clone(&args[0]);
                 let u_prime = arg_primes[0].clone();
                 mul_opt(
                     Expr::div_expr(
                         Expr::number(1.0),
-                        Expr::mul_expr(Expr::number(2.0), func("sqrt", u)),
+                        Expr::mul_expr(Expr::number(2.0), func_arc("sqrt", u)),
                     ),
                     u_prime,
                 )
@@ -521,14 +585,17 @@ pub(crate) fn all_definitions() -> Vec<FunctionDefinition> {
             eval: |args| Some(args[0].cbrt()),
             derivative: |args, arg_primes| {
                 // d/dx cbrt(u) = u' / (3 * u^(2/3))
-                let u = args[0].clone();
+                let u = Arc::clone(&args[0]);
                 let u_prime = arg_primes[0].clone();
                 mul_opt(
                     Expr::div_expr(
                         Expr::number(1.0),
                         Expr::mul_expr(
                             Expr::number(3.0),
-                            Expr::pow(u, Expr::div_expr(Expr::number(2.0), Expr::number(3.0))),
+                            Expr::pow_from_arcs(
+                                u.clone(),
+                                Arc::new(Expr::div_expr(Expr::number(2.0), Expr::number(3.0))),
+                            ),
                         ),
                     ),
                     u_prime,
@@ -542,9 +609,9 @@ pub(crate) fn all_definitions() -> Vec<FunctionDefinition> {
             eval: |args| Some(args[0].abs()),
             derivative: |args, arg_primes| {
                 // d/dx |u| = signum(u) * u'
-                let u = args[0].clone();
+                let u = Arc::clone(&args[0]);
                 let u_prime = arg_primes[0].clone();
-                mul_opt(func("signum", u), u_prime)
+                mul_opt(func_arc("signum", u), u_prime)
             },
         },
         FunctionDefinition {
@@ -562,13 +629,16 @@ pub(crate) fn all_definitions() -> Vec<FunctionDefinition> {
             eval: |args| Some(crate::math::eval_erf(args[0])),
             derivative: |args, arg_primes| {
                 // d/dx erf(u) = (2/sqrt(pi)) * exp(-u^2) * u'
-                let u = args[0].clone();
+                let u = Arc::clone(&args[0]);
                 let u_prime = arg_primes[0].clone();
                 let pi = Expr::symbol("pi");
                 mul_opt(
                     Expr::mul_expr(
                         Expr::div_expr(Expr::number(2.0), func("sqrt", pi)),
-                        func("exp", neg(Expr::pow(u, Expr::number(2.0)))),
+                        func(
+                            "exp",
+                            neg(Expr::pow_from_arcs(u.clone(), Arc::new(Expr::number(2.0)))),
+                        ),
                     ),
                     u_prime,
                 )
@@ -580,13 +650,16 @@ pub(crate) fn all_definitions() -> Vec<FunctionDefinition> {
             eval: |args| Some(1.0 - crate::math::eval_erf(args[0])),
             derivative: |args, arg_primes| {
                 // d/dx erfc(u) = -d/dx erf(u)
-                let u = args[0].clone();
+                let u = Arc::clone(&args[0]);
                 let u_prime = arg_primes[0].clone();
                 let pi = Expr::symbol("pi");
                 mul_opt(
                     Expr::mul_expr(
                         Expr::div_expr(Expr::number(-2.0), func("sqrt", pi)),
-                        func("exp", neg(Expr::pow(u, Expr::number(2.0)))),
+                        func(
+                            "exp",
+                            neg(Expr::pow_from_arcs(u.clone(), Arc::new(Expr::number(2.0)))),
+                        ),
                     ),
                     u_prime,
                 )
@@ -598,10 +671,10 @@ pub(crate) fn all_definitions() -> Vec<FunctionDefinition> {
             eval: |args| crate::math::eval_gamma(args[0]),
             derivative: |args, arg_primes| {
                 // d/dx gamma(u) = gamma(u) * psi(u) * u'
-                let u = args[0].clone();
+                let u = Arc::clone(&args[0]);
                 let u_prime = arg_primes[0].clone();
                 mul_opt(
-                    Expr::mul_expr(func("gamma", u.clone()), func("digamma", u)),
+                    Expr::mul_expr(func_arc("gamma", u.clone()), func_arc("digamma", u)),
                     u_prime,
                 )
             },
@@ -611,9 +684,9 @@ pub(crate) fn all_definitions() -> Vec<FunctionDefinition> {
             arity: 1..=1,
             eval: |args| crate::math::eval_digamma(args[0]),
             derivative: |args, arg_primes| {
-                let u = args[0].clone();
+                let u = Arc::clone(&args[0]);
                 let u_prime = arg_primes[0].clone();
-                mul_opt(func("trigamma", u), u_prime)
+                mul_opt(func_arc("trigamma", u), u_prime)
             },
         },
         FunctionDefinition {
@@ -621,9 +694,9 @@ pub(crate) fn all_definitions() -> Vec<FunctionDefinition> {
             arity: 1..=1,
             eval: |args| crate::math::eval_trigamma(args[0]),
             derivative: |args, arg_primes| {
-                let u = args[0].clone();
+                let u = Arc::clone(&args[0]);
                 let u_prime = arg_primes[0].clone();
-                mul_opt(func("tetragamma", u), u_prime)
+                mul_opt(func_arc("tetragamma", u), u_prime)
             },
         },
         FunctionDefinition {
@@ -644,13 +717,16 @@ pub(crate) fn all_definitions() -> Vec<FunctionDefinition> {
                 let a_prime = arg_primes[0].clone();
                 let b_prime = arg_primes[1].clone();
 
-                let beta_ab = Expr::func_multi("beta", vec![a.clone(), b.clone()]);
-                let psi_a_plus_b = func("digamma", Expr::add_expr(a.clone(), b.clone()));
+                let beta_ab = Expr::func_multi_from_arcs("beta", vec![a.clone(), b.clone()]);
+                let psi_a_plus_b = func_arc(
+                    "digamma",
+                    Arc::new(Expr::sum_from_arcs(vec![a.clone(), b.clone()])),
+                );
 
                 let term_a = mul_opt(
                     Expr::mul_expr(
                         beta_ab.clone(),
-                        Expr::sub_expr(func("digamma", a.clone()), psi_a_plus_b.clone()),
+                        Expr::sub_expr(func_arc("digamma", a.clone()), psi_a_plus_b.clone()),
                     ),
                     a_prime,
                 );
@@ -658,7 +734,7 @@ pub(crate) fn all_definitions() -> Vec<FunctionDefinition> {
                 let term_b = mul_opt(
                     Expr::mul_expr(
                         beta_ab,
-                        Expr::sub_expr(func("digamma", b.clone()), psi_a_plus_b),
+                        Expr::sub_expr(func_arc("digamma", b.clone()), psi_a_plus_b),
                     ),
                     b_prime,
                 );
@@ -676,11 +752,13 @@ pub(crate) fn all_definitions() -> Vec<FunctionDefinition> {
                 let x_prime = arg_primes[1].clone();
 
                 let half = Expr::number(0.5);
-                let n_minus_1 = Expr::sub_expr(n.clone(), Expr::number(1.0));
-                let n_plus_1 = Expr::add_expr(n.clone(), Expr::number(1.0));
+                let n_minus_1 = Expr::sum_from_arcs(vec![n.clone(), Arc::new(Expr::number(-1.0))]);
+                let n_plus_1 = Expr::sum_from_arcs(vec![n.clone(), Arc::new(Expr::number(1.0))]);
 
-                let j_prev = Expr::func_multi("besselj", vec![n_minus_1, x.clone()]);
-                let j_next = Expr::func_multi("besselj", vec![n_plus_1, x.clone()]);
+                let j_prev =
+                    Expr::func_multi_from_arcs("besselj", vec![Arc::new(n_minus_1), x.clone()]);
+                let j_next =
+                    Expr::func_multi_from_arcs("besselj", vec![Arc::new(n_plus_1), x.clone()]);
 
                 mul_opt(
                     Expr::mul_expr(half, Expr::sub_expr(j_prev, j_next)),
@@ -699,11 +777,13 @@ pub(crate) fn all_definitions() -> Vec<FunctionDefinition> {
                 let x_prime = arg_primes[1].clone();
 
                 let half = Expr::number(0.5);
-                let n_minus_1 = Expr::sub_expr(n.clone(), Expr::number(1.0));
-                let n_plus_1 = Expr::add_expr(n.clone(), Expr::number(1.0));
+                let n_minus_1 = Expr::sum_from_arcs(vec![n.clone(), Arc::new(Expr::number(-1.0))]);
+                let n_plus_1 = Expr::sum_from_arcs(vec![n.clone(), Arc::new(Expr::number(1.0))]);
 
-                let y_prev = Expr::func_multi("bessely", vec![n_minus_1, x.clone()]);
-                let y_next = Expr::func_multi("bessely", vec![n_plus_1, x.clone()]);
+                let y_prev =
+                    Expr::func_multi_from_arcs("bessely", vec![Arc::new(n_minus_1), x.clone()]);
+                let y_next =
+                    Expr::func_multi_from_arcs("bessely", vec![Arc::new(n_plus_1), x.clone()]);
 
                 mul_opt(
                     Expr::mul_expr(half, Expr::sub_expr(y_prev, y_next)),
@@ -722,11 +802,13 @@ pub(crate) fn all_definitions() -> Vec<FunctionDefinition> {
                 let x_prime = arg_primes[1].clone();
 
                 let half = Expr::number(0.5);
-                let n_minus_1 = Expr::sub_expr(n.clone(), Expr::number(1.0));
-                let n_plus_1 = Expr::add_expr(n.clone(), Expr::number(1.0));
+                let n_minus_1 = Expr::sum_from_arcs(vec![n.clone(), Arc::new(Expr::number(-1.0))]);
+                let n_plus_1 = Expr::sum_from_arcs(vec![n.clone(), Arc::new(Expr::number(1.0))]);
 
-                let i_prev = Expr::func_multi("besseli", vec![n_minus_1, x.clone()]);
-                let i_next = Expr::func_multi("besseli", vec![n_plus_1, x.clone()]);
+                let i_prev =
+                    Expr::func_multi_from_arcs("besseli", vec![Arc::new(n_minus_1), x.clone()]);
+                let i_next =
+                    Expr::func_multi_from_arcs("besseli", vec![Arc::new(n_plus_1), x.clone()]);
 
                 mul_opt(
                     Expr::mul_expr(half, Expr::add_expr(i_prev, i_next)),
@@ -745,11 +827,13 @@ pub(crate) fn all_definitions() -> Vec<FunctionDefinition> {
                 let x_prime = arg_primes[1].clone();
 
                 let neg_half = Expr::number(-0.5);
-                let n_minus_1 = Expr::sub_expr(n.clone(), Expr::number(1.0));
-                let n_plus_1 = Expr::add_expr(n.clone(), Expr::number(1.0));
+                let n_minus_1 = Expr::sum_from_arcs(vec![n.clone(), Arc::new(Expr::number(-1.0))]);
+                let n_plus_1 = Expr::sum_from_arcs(vec![n.clone(), Arc::new(Expr::number(1.0))]);
 
-                let k_prev = Expr::func_multi("besselk", vec![n_minus_1, x.clone()]);
-                let k_next = Expr::func_multi("besselk", vec![n_plus_1, x.clone()]);
+                let k_prev =
+                    Expr::func_multi_from_arcs("besselk", vec![Arc::new(n_minus_1), x.clone()]);
+                let k_next =
+                    Expr::func_multi_from_arcs("besselk", vec![Arc::new(n_plus_1), x.clone()]);
 
                 mul_opt(
                     Expr::mul_expr(neg_half, Expr::add_expr(k_prev, k_next)),
@@ -767,8 +851,9 @@ pub(crate) fn all_definitions() -> Vec<FunctionDefinition> {
                 let x = args[1].clone();
                 let x_prime = arg_primes[1].clone();
 
-                let n_plus_1 = Expr::add_expr(n, Expr::number(1.0));
-                let derivative = Expr::func_multi("polygamma", vec![n_plus_1, x]);
+                let n_plus_1 = Expr::sum_from_arcs(vec![n.clone(), Arc::new(Expr::number(1.0))]);
+                let derivative =
+                    Expr::func_multi_from_arcs("polygamma", vec![Arc::new(n_plus_1), x]);
 
                 mul_opt(derivative, x_prime)
             },
@@ -786,14 +871,14 @@ pub(crate) fn all_definitions() -> Vec<FunctionDefinition> {
             },
             derivative: |args, arg_primes| {
                 // d/dx sinc(u) = (u*cos(u) - sin(u))/u^2 * u'
-                let u = args[0].clone();
+                let u = Arc::clone(&args[0]);
                 let u_prime = arg_primes[0].clone();
                 let lhs = Expr::div_expr(
                     Expr::sub_expr(
-                        Expr::mul_expr(func("cos", u.clone()), u.clone()),
-                        func("sin", u.clone()),
+                        Expr::mul_from_arcs(vec![Arc::new(func_arc("cos", u.clone())), u.clone()]),
+                        func_arc("sin", u.clone()),
                     ),
-                    Expr::pow(u, Expr::number(2.0)),
+                    Expr::pow_from_arcs(u.clone(), Arc::new(Expr::number(2.0))),
                 );
                 mul_opt(lhs, u_prime)
             },
@@ -804,13 +889,16 @@ pub(crate) fn all_definitions() -> Vec<FunctionDefinition> {
             eval: |args| crate::math::eval_lambert_w(args[0]),
             derivative: |args, arg_primes| {
                 // d/dx W(u) = W(u) / (u(1+W(u))) * u'
-                let u = args[0].clone();
+                let u = Arc::clone(&args[0]);
                 let u_prime = arg_primes[0].clone();
-                let w = func("lambertw", u.clone());
+                let w = func_arc("lambertw", u.clone());
                 mul_opt(
                     Expr::div_expr(
                         w.clone(),
-                        Expr::mul_expr(u, Expr::add_expr(Expr::number(1.0), w)),
+                        Expr::mul_from_arcs(vec![
+                            u.clone(),
+                            Arc::new(Expr::add_expr(Expr::number(1.0), w)),
+                        ]),
                     ),
                     u_prime,
                 )
@@ -844,19 +932,22 @@ pub(crate) fn all_definitions() -> Vec<FunctionDefinition> {
                 // d/dk K(k) = (E(k)/(k(1-k^2)) - K(k)/k) * k'
                 let k = args[0].clone();
                 let k_prime = arg_primes[0].clone();
-                let big_k = func("elliptic_k", k.clone());
-                let big_e = func("elliptic_e", k.clone());
+                let big_k = func_arc("elliptic_k", k.clone());
+                let big_e = func_arc("elliptic_e", k.clone());
 
                 // term1 = E(k) / (k * (1 - k^2))
                 let term1 = Expr::div_expr(
                     big_e,
-                    Expr::mul_expr(
+                    Expr::mul_from_arcs(vec![
                         k.clone(),
-                        Expr::sub_expr(Expr::number(1.0), Expr::pow(k.clone(), Expr::number(2.0))),
-                    ),
+                        Arc::new(Expr::sub_expr(
+                            Expr::number(1.0),
+                            Expr::pow_from_arcs(k.clone(), Arc::new(Expr::number(2.0))),
+                        )),
+                    ]),
                 );
                 // term2 = K(k) / k
-                let term2 = Expr::div_expr(big_k, k);
+                let term2 = Expr::div_from_arcs(Arc::new(big_k), k.clone());
 
                 mul_opt(Expr::sub_expr(term1, term2), k_prime)
             },
@@ -869,10 +960,13 @@ pub(crate) fn all_definitions() -> Vec<FunctionDefinition> {
                 // d/dk E(k) = (E(k) - K(k)) / k * k'
                 let k = args[0].clone();
                 let k_prime = arg_primes[0].clone();
-                let big_k = func("elliptic_k", k.clone());
-                let big_e = func("elliptic_e", k.clone());
+                let big_k = func_arc("elliptic_k", k.clone());
+                let big_e = func_arc("elliptic_e", k.clone());
 
-                mul_opt(Expr::div_expr(Expr::sub_expr(big_e, big_k), k), k_prime)
+                mul_opt(
+                    Expr::div_from_arcs(Arc::new(Expr::sub_expr(big_e, big_k)), k),
+                    k_prime,
+                )
             },
         },
         // Other Special Functions
@@ -885,7 +979,8 @@ pub(crate) fn all_definitions() -> Vec<FunctionDefinition> {
                 let s = args[0].clone();
                 let s_prime = arg_primes[0].clone();
                 // We use "zeta_deriv" with order 1
-                let zp = Expr::func_multi("zeta_deriv", vec![Expr::number(1.0), s]);
+                let zp =
+                    Expr::func_multi_from_arcs("zeta_deriv", vec![Arc::new(Expr::number(1.0)), s]);
                 mul_opt(zp, s_prime)
             },
         },
@@ -900,8 +995,9 @@ pub(crate) fn all_definitions() -> Vec<FunctionDefinition> {
                 let s = args[1].clone();
                 let s_prime = arg_primes[1].clone();
 
-                let n_plus_1 = Expr::add_expr(n, Expr::number(1.0));
-                let next_deriv = Expr::func_multi("zeta_deriv", vec![n_plus_1, s]);
+                let n_plus_1 = Expr::sum_from_arcs(vec![n.clone(), Arc::new(Expr::number(1.0))]);
+                let next_deriv =
+                    Expr::func_multi_from_arcs("zeta_deriv", vec![Arc::new(n_plus_1), s]);
 
                 mul_opt(next_deriv, s_prime)
             },
@@ -917,9 +1013,9 @@ pub(crate) fn all_definitions() -> Vec<FunctionDefinition> {
                 let x = args[1].clone();
                 let x_prime = arg_primes[1].clone();
 
-                let two_n = Expr::mul_expr(Expr::number(2.0), n.clone());
-                let n_minus_1 = Expr::sub_expr(n, Expr::number(1.0));
-                let h_prev = Expr::func_multi("hermite", vec![n_minus_1, x]);
+                let two_n = Expr::mul_from_arcs(vec![Arc::new(Expr::number(2.0)), n.clone()]);
+                let n_minus_1 = Expr::sum_from_arcs(vec![n.clone(), Arc::new(Expr::number(-1.0))]);
+                let h_prev = Expr::func_multi_from_arcs("hermite", vec![Arc::new(n_minus_1), x]);
 
                 mul_opt(Expr::mul_expr(two_n, h_prev), x_prime)
             },
@@ -942,20 +1038,28 @@ pub(crate) fn all_definitions() -> Vec<FunctionDefinition> {
                 let x_prime = arg_primes[2].clone();
 
                 let term1 = Expr::mul_expr(
-                    Expr::mul_expr(l.clone(), x.clone()),
-                    Expr::func_multi("assoc_legendre", vec![l.clone(), m.clone(), x.clone()]),
+                    Expr::mul_from_arcs(vec![l.clone(), x.clone()]),
+                    Expr::func_multi_from_arcs(
+                        "assoc_legendre",
+                        vec![l.clone(), m.clone(), x.clone()],
+                    ),
                 );
 
-                let l_plus_m = Expr::add_expr(l.clone(), m.clone());
-                let l_minus_1 = Expr::sub_expr(l.clone(), Expr::number(1.0));
+                let l_plus_m = Expr::sum_from_arcs(vec![l.clone(), m.clone()]);
+                let l_minus_1 = Expr::sum_from_arcs(vec![l.clone(), Arc::new(Expr::number(-1.0))]);
                 let term2 = Expr::mul_expr(
                     l_plus_m,
-                    Expr::func_multi("assoc_legendre", vec![l_minus_1, m.clone(), x.clone()]),
+                    Expr::func_multi_from_arcs(
+                        "assoc_legendre",
+                        vec![Arc::new(l_minus_1), m.clone(), x.clone()],
+                    ),
                 );
 
                 let numerator = Expr::sub_expr(term1, term2);
-                let denominator =
-                    Expr::sub_expr(Expr::pow(x.clone(), Expr::number(2.0)), Expr::number(1.0));
+                let denominator = Expr::sub_expr(
+                    Expr::pow_from_arcs(x.clone(), Arc::new(Expr::number(2.0))),
+                    Expr::number(1.0),
+                );
 
                 mul_opt(Expr::div_expr(numerator, denominator), x_prime)
             },
@@ -981,40 +1085,44 @@ pub(crate) fn all_definitions() -> Vec<FunctionDefinition> {
                 let phi_prime = arg_primes[3].clone();
 
                 // Y chain rule
-                let y_expr = Expr::func_multi(
+                let y_expr = Expr::func_multi_from_arcs(
                     "spherical_harmonic",
                     vec![l.clone(), m.clone(), theta.clone(), phi.clone()],
                 );
 
                 // 1. d/dpsi contribution: -m * tan(m*phi) * Y * phi'
-                let m_phi = Expr::mul_expr(m.clone(), phi.clone());
-                let term_phi_part = Expr::mul_expr(
-                    Expr::mul_expr(neg(m.clone()), func("tan", m_phi)),
-                    y_expr.clone(),
-                );
+                let m_phi = Expr::mul_from_arcs(vec![m.clone(), phi.clone()]);
+                let term_phi_part = Expr::mul_from_arcs(vec![
+                    Arc::new(Expr::mul_from_arcs(vec![
+                        Arc::new(Expr::number(-1.0)),
+                        m.clone(),
+                    ])),
+                    Arc::new(func_arc("tan", Arc::new(m_phi))),
+                    Arc::new(y_expr.clone()),
+                ]);
                 let term_phi = mul_opt(term_phi_part, phi_prime);
 
                 // 2. d/dtheta contribution:
                 // derived as: Y * [ l*cot(theta) - (l+m)/sin(theta) * (P_{l-1}/P) ] * theta'
-                let cos_theta = func("cos", theta.clone());
-                let sin_theta = func("sin", theta.clone());
-                let l_minus_1 = Expr::sub_expr(l.clone(), Expr::number(1.0));
+                let cos_theta = func_arc("cos", theta.clone());
+                let sin_theta = func_arc("sin", theta.clone());
+                let l_minus_1 = Expr::sum_from_arcs(vec![l.clone(), Arc::new(Expr::number(-1.0))]);
 
-                let p_expr = Expr::func_multi(
+                let p_expr = Expr::func_multi_from_arcs(
                     "assoc_legendre",
-                    vec![l.clone(), m.clone(), cos_theta.clone()],
+                    vec![l.clone(), m.clone(), Arc::new(cos_theta.clone())],
                 );
-                let p_prev = Expr::func_multi(
+                let p_prev = Expr::func_multi_from_arcs(
                     "assoc_legendre",
-                    vec![l_minus_1, m.clone(), cos_theta.clone()],
+                    vec![Arc::new(l_minus_1), m.clone(), Arc::new(cos_theta)],
                 );
 
                 let term_a = Expr::mul_expr(
                     y_expr.clone(),
-                    Expr::mul_expr(l.clone(), func("cot", theta.clone())),
+                    Expr::mul_from_arcs(vec![l.clone(), Arc::new(func_arc("cot", theta.clone()))]),
                 );
 
-                let l_plus_m = Expr::add_expr(l.clone(), m.clone());
+                let l_plus_m = Expr::sum_from_arcs(vec![l.clone(), m.clone()]);
                 let term_b = Expr::mul_expr(
                     Expr::div_expr(Expr::mul_expr(y_expr.clone(), l_plus_m), sin_theta),
                     Expr::div_expr(p_prev, p_expr),
@@ -1033,7 +1141,8 @@ pub(crate) fn all_definitions() -> Vec<FunctionDefinition> {
             derivative: |args, arg_primes| {
                 let u = args[0].clone();
                 let u_prime = arg_primes[0].clone();
-                let deriv = Expr::func_multi("polygamma", vec![Expr::number(3.0), u]);
+                let deriv =
+                    Expr::func_multi_from_arcs("polygamma", vec![Arc::new(Expr::number(3.0)), u]);
                 mul_opt(deriv, u_prime)
             },
         },
@@ -1057,40 +1166,44 @@ pub(crate) fn all_definitions() -> Vec<FunctionDefinition> {
                 let theta_prime = arg_primes[2].clone();
                 let phi_prime = arg_primes[3].clone();
 
-                let y_expr = Expr::func_multi(
+                let y_expr = Expr::func_multi_from_arcs(
                     "ynm",
                     vec![l.clone(), m.clone(), theta.clone(), phi.clone()],
                 );
 
                 // d/dphi
-                let m_phi = Expr::mul_expr(m.clone(), phi.clone());
+                let m_phi = Expr::mul_from_arcs(vec![m.clone(), phi.clone()]);
                 let term_phi = mul_opt(
-                    Expr::mul_expr(
-                        Expr::mul_expr(neg(m.clone()), func("tan", m_phi)),
-                        y_expr.clone(),
-                    ),
+                    Expr::mul_from_arcs(vec![
+                        Arc::new(Expr::mul_from_arcs(vec![
+                            Arc::new(Expr::number(-1.0)),
+                            m.clone(),
+                        ])),
+                        Arc::new(func_arc("tan", Arc::new(m_phi))),
+                        Arc::new(y_expr.clone()),
+                    ]),
                     phi_prime,
                 );
 
                 // d/dtheta
-                let cos_theta = func("cos", theta.clone());
-                let sin_theta = func("sin", theta.clone());
-                let l_minus_1 = Expr::sub_expr(l.clone(), Expr::number(1.0));
+                let cos_theta = func_arc("cos", theta.clone());
+                let sin_theta = func_arc("sin", theta.clone());
+                let l_minus_1 = Expr::sum_from_arcs(vec![l.clone(), Arc::new(Expr::number(-1.0))]);
 
-                let p_expr = Expr::func_multi(
+                let p_expr = Expr::func_multi_from_arcs(
                     "assoc_legendre",
-                    vec![l.clone(), m.clone(), cos_theta.clone()],
+                    vec![l.clone(), m.clone(), Arc::new(cos_theta.clone())],
                 );
-                let p_prev = Expr::func_multi(
+                let p_prev = Expr::func_multi_from_arcs(
                     "assoc_legendre",
-                    vec![l_minus_1, m.clone(), cos_theta.clone()],
+                    vec![Arc::new(l_minus_1), m.clone(), Arc::new(cos_theta)],
                 );
 
                 let term_a = Expr::mul_expr(
                     y_expr.clone(),
-                    Expr::mul_expr(l.clone(), func("cot", theta.clone())),
+                    Expr::mul_from_arcs(vec![l.clone(), Arc::new(func_arc("cot", theta.clone()))]),
                 );
-                let l_plus_m = Expr::add_expr(l.clone(), m.clone());
+                let l_plus_m = Expr::sum_from_arcs(vec![l.clone(), m.clone()]);
                 let term_b = Expr::mul_expr(
                     Expr::div_expr(Expr::mul_expr(y_expr.clone(), l_plus_m), sin_theta),
                     Expr::div_expr(p_prev, p_expr),
@@ -1109,7 +1222,7 @@ pub(crate) fn all_definitions() -> Vec<FunctionDefinition> {
                 let x = args[0].clone();
                 let x_prime = arg_primes[0].clone();
                 // d/dx exp_polar(x) = exp_polar(x)
-                mul_opt(func("exp_polar", x), x_prime)
+                mul_opt(func_arc("exp_polar", x), x_prime)
             },
         },
     ]

@@ -39,7 +39,7 @@
 #[cfg(feature = "parallel")]
 use crate::parallel::{self, ExprInput, Value, VarInput};
 use crate::uncertainty::{CovEntry, CovarianceMatrix};
-use crate::{Expr as RustExpr, builder, symb};
+use crate::{Expr as RustExpr, api::builder, symb};
 use pyo3::prelude::*;
 use std::collections::HashSet;
 

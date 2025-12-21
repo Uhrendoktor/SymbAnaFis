@@ -4,15 +4,21 @@
 //! including their derivative formulas.
 
 use crate::{Expr, ExprKind};
+use std::sync::Arc;
 
 pub(crate) mod definitions;
 pub(crate) mod registry;
 
 // ===== Helper functions for building derivative expressions =====
 
-/// Create a function call expression
+/// Create a function call expression from Expr
 pub(crate) fn func(name: &str, arg: Expr) -> Expr {
     Expr::func(name, arg)
+}
+
+/// Create a function call expression from Arc<Expr> - cheap, avoids deep clone
+pub(crate) fn func_arc(name: &str, arg: Arc<Expr>) -> Expr {
+    Expr::func_multi_from_arcs(name, vec![arg])
 }
 
 /// Multiply, optimizing for common cases (0 and 1)

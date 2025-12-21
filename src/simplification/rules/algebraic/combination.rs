@@ -205,8 +205,11 @@ fn contains_variable(expr: &Expr) -> bool {
         AstKind::Sum(terms) => terms.iter().any(|t| contains_variable(t)),
         AstKind::Product(factors) => factors.iter().any(|f| contains_variable(f)),
         AstKind::Div(a, b) | AstKind::Pow(a, b) => contains_variable(a) || contains_variable(b),
-        AstKind::FunctionCall { args, .. } => args.iter().any(contains_variable),
+        AstKind::FunctionCall { args, .. } => args.iter().any(|a| contains_variable(a)),
         AstKind::Derivative { inner, .. } => contains_variable(inner),
+        AstKind::Poly(poly) => {
+            !poly.terms().is_empty() && poly.terms().iter().any(|t| !t.powers.is_empty())
+        }
     }
 }
 
@@ -406,21 +409,22 @@ rule!(
         if let AstKind::Product(factors) = &expr.kind {
             // Check if first factor is -1
             if let Some(first) = factors.first()
-                && matches!(&first.kind, AstKind::Number(n) if (*n + 1.0).abs() < 1e-10) {
-                    // Get the remaining factors
-                    let rest: Vec<_> = factors.iter().skip(1).map(|f| (**f).clone()).collect();
-                    if rest.len() == 1 {
-                        let inner = &rest[0];
-                        // -1 * Sum -> negate all terms
-                        if let AstKind::Sum(terms) = &inner.kind {
-                            let negated: Vec<Expr> = terms
-                                .iter()
-                                .map(|t| Expr::product(vec![Expr::number(-1.0), (**t).clone()]))
-                                .collect();
-                            return Some(Expr::sum(negated));
-                        }
+                && matches!(&first.kind, AstKind::Number(n) if (*n + 1.0).abs() < 1e-10)
+            {
+                // Get the remaining factors
+                let rest: Vec<_> = factors.iter().skip(1).map(|f| (**f).clone()).collect();
+                if rest.len() == 1 {
+                    let inner = &rest[0];
+                    // -1 * Sum -> negate all terms
+                    if let AstKind::Sum(terms) = &inner.kind {
+                        let negated: Vec<Expr> = terms
+                            .iter()
+                            .map(|t| Expr::product(vec![Expr::number(-1.0), (**t).clone()]))
+                            .collect();
+                        return Some(Expr::sum(negated));
                     }
                 }
+            }
         }
         None
     }

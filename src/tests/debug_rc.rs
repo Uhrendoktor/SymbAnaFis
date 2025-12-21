@@ -1,7 +1,7 @@
 #[test]
 fn debug_rc_derivative() {
     use crate::{Expr, simplification::simplify_expr};
-    use std::collections::HashSet;
+    use std::collections::{HashMap, HashSet};
 
     // Simplified RC test using n-ary Product
     let rc = Expr::product(vec![
@@ -23,12 +23,7 @@ fn debug_rc_derivative() {
     fixed.insert("C".to_string());
     fixed.insert("V0".to_string());
 
-    let deriv = rc.derive(
-        "t",
-        &fixed,
-        &std::collections::HashMap::new(),
-        &std::collections::HashMap::new(),
-    );
+    let deriv = rc.derive("t", &fixed, &HashMap::new(), &HashMap::new());
     eprintln!("Raw derivative: {}", deriv);
 
     let simplified = simplify_expr(deriv, fixed);

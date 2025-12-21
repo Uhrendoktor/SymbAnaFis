@@ -10,11 +10,8 @@ use std::sync::Arc;
 use std::sync::OnceLock;
 use std::time::{Duration, Instant};
 
-/// Efficiently extract owned Expr from Arc - avoids clone if reference count is 1
-#[inline]
-fn unwrap_or_clone(rc: Arc<Expr>) -> Expr {
-    Arc::try_unwrap(rc).unwrap_or_else(|rc| (*rc).clone())
-}
+/// Default cache capacity per rule before clearing (10K entries)
+const DEFAULT_CACHE_CAPACITY: usize = 10_000;
 
 /// Check if tracing is enabled via environment variable (cached)
 fn trace_enabled() -> bool {
@@ -39,7 +36,9 @@ fn global_registry() -> &'static RuleRegistry {
 
 /// Main simplification engine with rule-based architecture
 pub(crate) struct Simplifier {
-    rule_caches: HashMap<String, HashMap<u64, Option<Arc<Expr>>>>, // Per-rule memoization with Arc for cheap cloning
+    /// Per-rule caches - cleared when exceeding capacity to bound memory
+    rule_caches: HashMap<String, HashMap<u64, Option<Arc<Expr>>>>,
+    cache_capacity: usize,
     max_iterations: usize,
     max_depth: usize,
     timeout: Option<Duration>, // Wall-clock timeout to prevent hangs
@@ -58,12 +57,21 @@ impl Simplifier {
         // Use global registry instead of rebuilding each time
         Self {
             rule_caches: HashMap::new(),
+            cache_capacity: DEFAULT_CACHE_CAPACITY,
             max_iterations: 1000,
             max_depth: 50,
             timeout: None, // No timeout by default
             context: RuleContext::default(),
             domain_safe: false,
         }
+    }
+
+    /// Set the cache capacity per rule (default: 10K entries)
+    /// Cache is cleared when this limit is exceeded.
+    #[allow(dead_code)]
+    pub fn with_cache_capacity(mut self, capacity: usize) -> Self {
+        self.cache_capacity = capacity.max(1);
+        self
     }
 
     pub fn with_max_iterations(mut self, max_iterations: usize) -> Self {
@@ -93,10 +101,14 @@ impl Simplifier {
 
     /// Main simplification entry point
     pub fn simplify(&mut self, expr: Expr) -> Expr {
+        // Set domain_safe on context once (apply_rules_to_node will only update depth)
+        self.context.domain_safe = self.domain_safe;
+
         let mut current = Arc::new(expr);
         let mut iterations = 0;
-        // Use normalized expressions for cycle detection (handles Sub vs Add(-1*x) equivalence)
-        let mut seen_expressions: HashSet<Expr> = HashSet::new();
+        // Use expression id (structural hash) for cheap cycle detection
+        // This avoids storing full expression clones and expensive normalization
+        let mut seen_hashes: HashSet<u64> = HashSet::new();
         let start_time = Instant::now();
 
         loop {
@@ -131,10 +143,10 @@ impl Simplifier {
                 break; // No changes
             }
 
-            // After a full pass of all rules, check if we've seen this result before
-            // Use normalized form for proper cycle detection (handles Sub vs Add(-1*x) equivalence)
-            let normalized = crate::simplification::helpers::normalize_for_comparison(&current);
-            if seen_expressions.contains(&normalized) {
+            // After a full pass of all rules, check if we've seen this hash before
+            // The id field is a structural hash - cycle means we've seen exact same structure
+            let fingerprint = current.id;
+            if seen_hashes.contains(&fingerprint) {
                 // We're in a cycle - stop here with the current result
                 if trace_enabled() {
                     eprintln!("[DEBUG] Cycle detected, stopping");
@@ -142,7 +154,7 @@ impl Simplifier {
                 break;
             }
             // Add AFTER checking, so first iteration's result doesn't trigger false positive
-            seen_expressions.insert(normalized);
+            seen_hashes.insert(fingerprint);
 
             iterations += 1;
         }
@@ -224,22 +236,19 @@ impl Simplifier {
             AstKind::FunctionCall { name, args } => {
                 let args_simplified: Vec<Arc<Expr>> = args
                     .iter()
-                    .map(|arg| self.apply_rules_bottom_up(Arc::new(arg.clone()), depth + 1))
+                    .map(|arg| self.apply_rules_bottom_up(Arc::clone(arg), depth + 1))
                     .collect();
 
-                // Check if any arg changed
+                // Check if any arg changed using Arc pointer equality
                 let changed = args_simplified
                     .iter()
                     .zip(args.iter())
-                    .any(|(new, old)| new.as_ref() != old);
+                    .any(|(new, old)| !Arc::ptr_eq(new, old));
 
                 if !changed {
                     self.apply_rules_to_node(expr, depth)
                 } else {
-                    let new_expr = Arc::new(Expr::new(AstKind::FunctionCall {
-                        name: name.clone(),
-                        args: args_simplified.into_iter().map(unwrap_or_clone).collect(),
-                    }));
+                    let new_expr = Arc::new(Expr::func_multi_from_arcs(name, args_simplified));
                     self.apply_rules_to_node(new_expr, depth)
                 }
             }
@@ -249,18 +258,15 @@ impl Simplifier {
 
     /// Apply all applicable rules to a single node in dependency order
     fn apply_rules_to_node(&mut self, mut current: Arc<Expr>, depth: usize) -> Arc<Expr> {
-        let context = self
-            .context
-            .clone()
-            .with_depth(depth)
-            .with_domain_safe(self.domain_safe);
+        // Update depth in-place (context.domain_safe is already set in simplify())
+        self.context.set_depth(depth);
 
         // Get the expression kind once and only check rules that apply to it
         let kind = ExprKind::of(current.as_ref());
         let applicable_rules = global_registry().get_rules_for_kind(kind);
 
         for rule in applicable_rules {
-            if context.domain_safe && rule.alters_domain() {
+            if self.context.domain_safe && rule.alters_domain() {
                 continue;
             }
 
@@ -268,37 +274,40 @@ impl Simplifier {
 
             // Check per-rule cache using expression ID as key (fast)
             let cache_key = current.id;
-            if let Some(cache) = self.rule_caches.get(rule_name)
-                && let Some(cached_result) = cache.get(&cache_key)
-            {
-                if let Some(new_expr) = cached_result {
-                    current = Arc::clone(new_expr); // Cheap Arc clone!
+
+            if let Some(cache) = self.rule_caches.get(rule_name) {
+                if let Some(cached_result) = cache.get(&cache_key) {
+                    if let Some(new_expr) = cached_result {
+                        current = Arc::clone(new_expr); // Cheap Arc clone!
+                    }
+                    // cached_result is Some or None, either way we skip rule application
                     continue;
-                } else {
-                    continue; // Cached as "no change"
                 }
             }
 
             // Apply rule - pass &Arc<Expr>, get Option<Arc<Expr>>
             let original_id = current.id;
-            if let Some(new_expr) = rule.apply(&current, &context) {
+            if let Some(new_expr) = rule.apply(&current, &self.context) {
                 if trace_enabled() {
                     eprintln!("[TRACE] {} : {} => {}", rule_name, current, new_expr);
                 }
 
                 // Cache the transformation - Arc clone is cheap!
-                self.rule_caches
-                    .entry(rule_name.to_string())
-                    .or_default()
-                    .insert(original_id, Some(Arc::clone(&new_expr)));
+                let cache = self.rule_caches.entry(rule_name.to_string()).or_default();
+                // Bound memory: clear if exceeding capacity
+                if cache.len() >= self.cache_capacity {
+                    cache.clear();
+                }
+                cache.insert(original_id, Some(Arc::clone(&new_expr)));
 
                 current = new_expr;
             } else {
                 // Cache as "no change"
-                self.rule_caches
-                    .entry(rule_name.to_string())
-                    .or_default()
-                    .insert(original_id, None);
+                let cache = self.rule_caches.entry(rule_name.to_string()).or_default();
+                if cache.len() >= self.cache_capacity {
+                    cache.clear();
+                }
+                cache.insert(original_id, None);
             }
         }
 
@@ -312,7 +321,7 @@ pub(crate) fn simplify_expr_with_fixed_vars(expr: Expr, fixed_vars: HashSet<Stri
     // Skip verification for performance - just simplify directly
     let mut simplifier = Simplifier::new()
         .with_max_iterations(1000)
-        .with_max_depth(20)
+        .with_max_depth(50)
         .with_variables(variables)
         .with_fixed_vars(fixed_vars);
     simplifier.simplify(expr)

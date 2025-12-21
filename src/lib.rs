@@ -28,45 +28,44 @@
 //! let derivative = Diff::new().differentiate(expr, &x).unwrap();
 //! ```
 
-mod ast;
-mod builder;
-mod differentiation;
-mod display;
-mod error;
-pub mod functions;
-mod helpers;
+// New module structure
+mod api; // User-facing builders: Diff, Simplify, helpers
+mod bindings; // External bindings (Python, parallel)
+mod core; // Core types: Expr, Symbol, Polynomial, Error, Display, Visitor
+mod diff; // Differentiation engine
+
+mod functions;
 mod math;
 mod parser;
-pub mod poly;
 mod simplification;
-mod symbol;
-pub mod traits;
 mod uncertainty;
-pub mod visitor;
 
-#[cfg(feature = "python")]
-mod python;
-
-#[cfg(feature = "parallel")]
-pub mod parallel;
+// Re-export visitor at crate root for public API
+pub use core::visitor;
 
 #[cfg(test)]
 mod tests;
 
-// Re-export key types for easier usage
-pub use ast::{Expr, ExprKind};
-pub use builder::{CustomDerivativeFn, CustomFn, Diff, Simplify};
-pub use error::{DiffError, Span};
-pub use helpers::{
-    evaluate_str, gradient, gradient_str, hessian, hessian_str, jacobian, jacobian_str,
-};
-pub use parser::parse;
-pub use simplification::simplify_expr;
-pub use symbol::{
+// Re-export key types from core
+pub use core::{DiffError, Span};
+pub use core::{Expr, ExprKind};
+pub use core::{
     InternedSymbol, Symbol, SymbolContext, SymbolError, clear_symbols, global_context,
     remove_symbol, symb, symb_get, symb_new, symbol_count, symbol_exists, symbol_names,
 };
+
+// Re-export API types
+pub use api::{CustomDerivativeFn, CustomFn, Diff, Simplify};
+pub use api::{evaluate_str, gradient, gradient_str, hessian, hessian_str, jacobian, jacobian_str};
+
+// Re-export other public APIs
+pub use parser::parse;
+pub use simplification::simplify_expr;
 pub use uncertainty::{CovEntry, CovarianceMatrix, relative_uncertainty, uncertainty_propagation};
+
+// Conditional re-exports
+#[cfg(feature = "parallel")]
+pub use bindings::parallel;
 
 /// Default maximum AST depth
 pub const DEFAULT_MAX_DEPTH: usize = 100;
@@ -145,7 +144,7 @@ pub fn simplify(
     fixed_vars: Option<&[&str]>,
     custom_functions: Option<&[&str]>,
 ) -> Result<String, DiffError> {
-    let mut builder = builder::Simplify::new();
+    let mut builder = api::Simplify::new();
 
     if let Some(vars) = fixed_vars {
         builder = builder.fixed_vars_str(vars.iter().copied());

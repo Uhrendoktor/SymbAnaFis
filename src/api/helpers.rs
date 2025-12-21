@@ -192,8 +192,8 @@ mod tests {
     fn test_gradient() {
         let grad = gradient_str("x^2 + y^2", &["x", "y"]).unwrap();
         assert_eq!(grad.len(), 2);
-        assert_eq!(grad[0], "2x");
-        assert_eq!(grad[1], "2y");
+        assert_eq!(grad[0], "2*x");
+        assert_eq!(grad[1], "2*y");
     }
 
     #[test]
@@ -209,7 +209,7 @@ mod tests {
     fn test_jacobian() {
         let jac = jacobian_str(&["x^2", "x * y"], &["x", "y"]).unwrap();
         assert_eq!(jac.len(), 2);
-        assert_eq!(jac[0][0], "2x");
+        assert_eq!(jac[0][0], "2*x");
         assert_eq!(jac[1][0], "y");
     }
 

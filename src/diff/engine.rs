@@ -32,7 +32,7 @@ impl Expr {
         var: &str,
         fixed_vars: &HashSet<String>,
         custom_derivatives: &HashMap<String, CustomDerivativeFn>,
-        custom_fns: &HashMap<String, crate::builder::CustomFn>,
+        custom_fns: &HashMap<String, crate::api::builder::CustomFn>,
     ) -> Expr {
         match &self.kind {
             // Base cases
@@ -53,7 +53,7 @@ impl Expr {
                     return Expr::number(0.0);
                 }
 
-                // Check for custom derivative first
+                // Check for custom derivative first (single-arg functions)
                 if let Some(custom_rule) = custom_derivatives.get(name.as_str())
                     && args.len() == 1
                 {
@@ -62,7 +62,7 @@ impl Expr {
                     return custom_rule(inner, var, &inner_prime);
                 }
 
-                // Check Registry
+                // Check Registry (built-in functions like sin, cos, etc.)
                 if let Some(def) = crate::functions::registry::Registry::get(name.as_str())
                     && def.validate_arity(args.len())
                 {
@@ -73,66 +73,46 @@ impl Expr {
                     return (def.derivative)(args, &arg_primes);
                 }
 
-                // Check multi-arg custom functions (CustomFn) with registered partial derivatives
-                if let Some(custom_fn) = custom_fns.get(name.as_str()) {
-                    // Use multi-variable chain rule: dF/dx = Σ (∂F/∂arg[i]) * (darg[i]/dx)
-                    let mut terms = Vec::new();
-
-                    for (i, arg) in args.iter().enumerate() {
-                        let arg_prime = arg.derive(var, fixed_vars, custom_derivatives, custom_fns);
-
-                        // Optimization: if derivative of argument is 0, skip this term
-                        if let ExprKind::Number(n) = arg_prime.kind
-                            && n == 0.0
-                        {
-                            continue;
-                        }
-
-                        // Get the partial derivative ∂F/∂arg[i] from the registered CustomFn
-                        if let Some(partial_fn) = custom_fn.partials.get(&i) {
-                            // partial_fn(&args) returns the symbolic ∂F/∂arg[i] evaluated at args
-                            let partial = partial_fn(args);
-                            terms.push(Expr::mul_expr(partial, arg_prime));
-                        } else {
-                            // No partial registered for this argument - create symbolic notation
-                            let inner_func = Expr::func_multi(name.clone(), args.clone());
-                            let partial_derivative =
-                                Expr::derivative(inner_func, format!("arg{}", i), 1);
-                            terms.push(Expr::mul_expr(partial_derivative, arg_prime));
-                        }
-                    }
-
-                    return if terms.is_empty() {
-                        Expr::number(0.0)
-                    } else if terms.len() == 1 {
-                        terms.remove(0)
-                    } else {
-                        // Sum all terms with single call (avoids O(N²) cascade)
-                        Expr::sum(terms)
+                // Multi-arg chain rule: dF/dx = Σ (∂F/∂arg[i]) * (darg[i]/dx)
+                // Clone args only ONCE here (lazy - only if we need symbolic partials)
+                let mut args_cloned: Option<Vec<Expr>> = None;
+                let get_args_cloned =
+                    |cache: &mut Option<Vec<Expr>>, args: &[Arc<Expr>]| -> Vec<Expr> {
+                        cache
+                            .get_or_insert_with(|| args.iter().map(|a| (**a).clone()).collect())
+                            .clone()
                     };
-                }
 
-                // Fallback: Implicit/custom function - use multi-variable chain rule
-                // d/dx f(u1, u2, ...) = sum( (df/du_i) * (du_i/dx) )
+                let custom_fn = custom_fns.get(name.as_str());
                 let mut terms = Vec::new();
 
-                for arg in args.iter() {
+                for (i, arg) in args.iter().enumerate() {
                     let arg_prime = arg.derive(var, fixed_vars, custom_derivatives, custom_fns);
 
-                    // Optimization: if derivative of argument is 0, skip this term
-                    // MATCH FIX: use ExprKind
-                    if let ExprKind::Number(n) = arg_prime.kind
-                        && n == 0.0
-                    {
+                    // Skip if derivative is zero
+                    if arg_prime.is_zero_num() {
                         continue;
                     }
 
-                    // Construct partial derivative using proper AST: ∂^1 f(args) / ∂ var
-                    // The inner expression is the FunctionCall with its current arguments
-                    let inner_func = Expr::func_multi(name.clone(), args.clone());
-                    let partial_derivative = Expr::derivative(inner_func, var.to_string(), 1);
+                    // Try to get partial from custom_fn, otherwise create symbolic
+                    let partial = if let Some(cf) = custom_fn {
+                        if let Some(partial_fn) = cf.partials.get(&i) {
+                            let args_vec = get_args_cloned(&mut args_cloned, args);
+                            partial_fn(&args_vec)
+                        } else {
+                            // No partial registered - symbolic
+                            let args_vec = get_args_cloned(&mut args_cloned, args);
+                            let inner_func = Expr::func_multi(name.clone(), args_vec);
+                            Expr::derivative(inner_func, format!("arg{}", i), 1)
+                        }
+                    } else {
+                        // Fallback: unknown function - symbolic partial
+                        let args_vec = get_args_cloned(&mut args_cloned, args);
+                        let inner_func = Expr::func_multi(name.clone(), args_vec);
+                        Expr::derivative(inner_func, var.to_string(), 1)
+                    };
 
-                    terms.push(Expr::mul_expr(partial_derivative, arg_prime));
+                    terms.push(Expr::mul_expr(partial, arg_prime));
                 }
 
                 if terms.is_empty() {
@@ -140,7 +120,6 @@ impl Expr {
                 } else if terms.len() == 1 {
                     terms.remove(0)
                 } else {
-                    // Sum all terms with single call (avoids O(N²) cascade)
                     Expr::sum(terms)
                 }
             }
@@ -214,64 +193,55 @@ impl Expr {
                 let u_prime = u.derive(var, fixed_vars, custom_derivatives, custom_fns);
                 let v_prime = v.derive(var, fixed_vars, custom_derivatives, custom_fns);
 
-                // If both derivatives are 0, result is 0
+                // Fast path: both derivatives are 0
                 if u_prime.is_zero_num() && v_prime.is_zero_num() {
-                    Expr::number(0.0)
-                } else {
-                    // Helper: multiply two expressions, using Arc::clone when possible
-                    let mul_arc_expr = |a: &Arc<Expr>, b: Expr| -> Expr {
-                        if b.is_one_num() {
-                            Expr::unwrap_arc(Arc::clone(a))
-                        } else if a.is_one_num() {
-                            b
-                        } else {
-                            Expr::product_from_arcs(vec![Arc::clone(a), Arc::new(b)])
-                        }
-                    };
+                    return Expr::number(0.0);
+                }
 
-                    let numerator = if u_prime.is_zero_num() {
-                        // -u * v'
-                        if v_prime.is_zero_num() {
-                            Expr::number(0.0)
-                        } else if v_prime.is_one_num() {
-                            Expr::product_from_arcs(vec![
-                                Arc::new(Expr::number(-1.0)),
-                                Arc::clone(u),
-                            ])
-                        } else {
-                            Expr::product_from_arcs(vec![
-                                Arc::new(Expr::number(-1.0)),
-                                Arc::clone(u),
-                                Arc::new(v_prime.clone()),
-                            ])
-                        }
-                    } else if v_prime.is_zero_num() {
-                        // u' * v
-                        mul_arc_expr(v, u_prime.clone())
-                    } else {
-                        // u' * v - u * v'
-                        let term1 = mul_arc_expr(v, u_prime.clone());
-                        let term2 =
-                            Expr::product_from_arcs(vec![Arc::clone(u), Arc::new(v_prime.clone())]);
-
-                        if term1.is_zero_num() {
-                            Expr::product(vec![Expr::number(-1.0), term2])
-                        } else if term2.is_zero_num() {
-                            term1
-                        } else {
-                            Expr::sub_expr(term1, term2)
-                        }
-                    };
-
-                    if numerator.is_zero_num() {
-                        Expr::number(0.0)
-                    } else if v.is_one_num() {
-                        numerator
-                    } else {
-                        let denominator =
-                            Expr::pow_from_arcs(Arc::clone(v), Arc::new(Expr::number(2.0)));
-                        Expr::div_expr(numerator, denominator)
+                // Compute numerator based on which derivatives are non-zero
+                let numerator = match (u_prime.is_zero_num(), v_prime.is_zero_num()) {
+                    (true, true) => return Expr::number(0.0), // Already handled above
+                    (true, false) => {
+                        // Numerator = -u * v'
+                        Expr::product_from_arcs(vec![
+                            Arc::new(Expr::number(-1.0)),
+                            Arc::clone(u),
+                            Arc::new(v_prime),
+                        ])
                     }
+                    (false, true) => {
+                        // Numerator = u' * v
+                        if u_prime.is_one_num() {
+                            Expr::unwrap_arc(Arc::clone(v))
+                        } else if v.is_one_num() {
+                            u_prime
+                        } else {
+                            Expr::product_from_arcs(vec![Arc::clone(v), Arc::new(u_prime)])
+                        }
+                    }
+                    (false, false) => {
+                        // Numerator = u' * v - u * v'
+                        let term1 = if u_prime.is_one_num() {
+                            Expr::unwrap_arc(Arc::clone(v))
+                        } else if v.is_one_num() {
+                            u_prime
+                        } else {
+                            Expr::product_from_arcs(vec![Arc::clone(v), Arc::new(u_prime)])
+                        };
+                        let term2 = Expr::product_from_arcs(vec![Arc::clone(u), Arc::new(v_prime)]);
+                        Expr::sub_expr(term1, term2)
+                    }
+                };
+
+                // Apply denominator v^2
+                if numerator.is_zero_num() {
+                    Expr::number(0.0)
+                } else if v.is_one_num() {
+                    numerator
+                } else {
+                    let denominator =
+                        Expr::pow_from_arcs(Arc::clone(v), Arc::new(Expr::number(2.0)));
+                    Expr::div_expr(numerator, denominator)
                 }
             }
 
@@ -359,19 +329,19 @@ impl Expr {
                         };
                         let term1 = if v_prime.is_zero_num() || ln_u.is_zero_num() {
                             Expr::number(0.0)
+                        } else if ln_u.is_one_num() {
+                            v_prime.clone() // Need clone since used again below
                         } else if v_prime.is_one_num() {
                             ln_u
-                        } else if ln_u.is_one_num() {
-                            v_prime.clone()
                         } else {
-                            Expr::mul_expr(v_prime.clone(), ln_u)
+                            Expr::mul_expr(v_prime.clone(), ln_u) // Need clone
                         };
 
                         // Term 2: v * (u'/u)
                         let u_over_u_prime = if u_prime.is_zero_num() {
                             Expr::number(0.0)
                         } else if u.is_one_num() {
-                            u_prime.clone() // u'/1 = u'
+                            u_prime // Move instead of clone since only used here
                         } else if u_prime.is_one_num() {
                             // 1/u
                             Expr::pow_from_arcs(Arc::clone(u), Arc::new(Expr::number(-1.0)))
@@ -442,6 +412,20 @@ impl Expr {
                     }
                 }
             }
+
+            // Polynomial: use fast sparse polynomial derivative!
+            ExprKind::Poly(poly) => {
+                // Get the variable as InternedSymbol
+                let var_sym = crate::core::symbol::get_or_intern(var);
+                // Fast O(N) derivative on polynomial representation
+                let deriv_poly = poly.derivative(&var_sym);
+                // Convert result back to Expr (stays as Poly if non-trivial)
+                if deriv_poly.terms().is_empty() {
+                    Expr::number(0.0)
+                } else {
+                    Expr::new(ExprKind::Poly(deriv_poly))
+                }
+            }
         }
     }
 
@@ -481,20 +465,8 @@ impl Expr {
     /// let derivative = expr.derive_cached("x", &mut cache);
     /// // Cache ensures sin(x) is differentiated only once
     /// ```
-    pub fn derive_cached(&self, var: &str, cache: &mut HashMap<(u64, String), Expr>) -> Expr {
-        let key = (self.id, var.to_string());
-
-        // Check cache first
-        if let Some(cached) = cache.get(&key) {
-            return cached.clone();
-        }
-
-        // Compute derivative using standard derive
-        let result = self.derive(var, &HashSet::new(), &HashMap::new(), &HashMap::new());
-
-        // Cache the result
-        cache.insert(key, result.clone());
-        result
+    pub fn derive_cached(&self, var: &str) -> Expr {
+        self.derive(var, &HashSet::new(), &HashMap::new(), &HashMap::new())
     }
 }
 
@@ -541,10 +513,7 @@ mod tests {
         // (x - 1)' = 1 - 0 = 1
         let expr = Expr::sub_expr(Expr::symbol("x"), Expr::number(1.0));
         let result = expr.derive("x", &HashSet::new(), &HashMap::new(), &HashMap::new());
-        match result.kind {
-            ExprKind::Number(n) => assert_eq!(n, 1.0),
-            _ => panic!("Expected Number(1.0), got {:?}", result),
-        }
+        assert!(matches!(result.kind, ExprKind::Number(n) if n == 1.0));
     }
 
     #[test]

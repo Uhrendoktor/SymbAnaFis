@@ -20,24 +20,25 @@ rule!(
             // Helper to check if expansion is useful
             let check_and_expand = |target: &Expr, other: &Expr| -> Option<Expr> {
                 if let AstKind::Pow(base, exp) = &target.kind
-                    && let AstKind::Product(base_factors) = &base.kind {
-                        // Check if any base factor is present in 'other'
-                        let mut useful = false;
-                        for factor in base_factors.iter() {
-                            if contains_factor(other, factor) {
-                                useful = true;
-                                break;
-                            }
-                        }
-
-                        if useful {
-                            let pow_factors: Vec<Expr> = base_factors
-                                .iter()
-                                .map(|f| Expr::pow((**f).clone(), (**exp).clone()))
-                                .collect();
-                            return Some(Expr::product(pow_factors));
+                    && let AstKind::Product(base_factors) = &base.kind
+                {
+                    // Check if any base factor is present in 'other'
+                    let mut useful = false;
+                    for factor in base_factors.iter() {
+                        if contains_factor(other, factor) {
+                            useful = true;
+                            break;
                         }
                     }
+
+                    if useful {
+                        let pow_factors: Vec<Expr> = base_factors
+                            .iter()
+                            .map(|f| Expr::pow((**f).clone(), (**exp).clone()))
+                            .collect();
+                        return Some(Expr::product(pow_factors));
+                    }
+                }
                 None
             };
 
@@ -66,93 +67,96 @@ rule!(
             // Expand (a*b)^n -> a^n * b^n ONLY if expansion enables simplification
             if let AstKind::Product(base_factors) = &base.kind
                 && let AstKind::Number(n) = &exp.kind
-                    && *n > 1.0 && n.fract() == 0.0 && (*n as i64) < 10 {
-                        // Check if expansion would enable simplification
-                        let has_simplifiable = base_factors.iter().any(|f| match &f.kind {
-                            AstKind::Pow(_, inner_exp) => {
-                                if let AstKind::Number(inner_n) = &inner_exp.kind {
-                                    (inner_n * n).fract().abs() < 1e-10
-                                } else if let AstKind::Div(num, den) = &inner_exp.kind {
-                                    if let (AstKind::Number(a), AstKind::Number(b)) =
-                                        (&num.kind, &den.kind)
-                                    {
-                                        ((a * n) / b).fract().abs() < 1e-10
-                                    } else {
-                                        false
-                                    }
-                                } else {
-                                    false
-                                }
+                && *n > 1.0
+                && n.fract() == 0.0
+                && (*n as i64) < 10
+            {
+                // Check if expansion would enable simplification
+                let has_simplifiable = base_factors.iter().any(|f| match &f.kind {
+                    AstKind::Pow(_, inner_exp) => {
+                        if let AstKind::Number(inner_n) = &inner_exp.kind {
+                            (inner_n * n).fract().abs() < 1e-10
+                        } else if let AstKind::Div(num, den) = &inner_exp.kind {
+                            if let (AstKind::Number(a), AstKind::Number(b)) = (&num.kind, &den.kind)
+                            {
+                                ((a * n) / b).fract().abs() < 1e-10
+                            } else {
+                                false
                             }
-                            AstKind::FunctionCall { name, .. } => {
-                                matches!(name.as_str(), "sqrt" | "cbrt") && *n >= 2.0
-                            }
-                            AstKind::Number(_) => true,
-                            _ => false,
-                        });
-
-                        if has_simplifiable {
-                            let factors: Vec<Expr> = base_factors
-                                .iter()
-                                .map(|f| Expr::pow((**f).clone(), (**exp).clone()))
-                                .collect();
-                            return Some(Expr::product(factors));
+                        } else {
+                            false
                         }
                     }
+                    AstKind::FunctionCall { name, .. } => {
+                        matches!(name.as_str(), "sqrt" | "cbrt") && *n >= 2.0
+                    }
+                    AstKind::Number(_) => true,
+                    _ => false,
+                });
+
+                if has_simplifiable {
+                    let factors: Vec<Expr> = base_factors
+                        .iter()
+                        .map(|f| Expr::pow((**f).clone(), (**exp).clone()))
+                        .collect();
+                    return Some(Expr::product(factors));
+                }
+            }
 
             // Expand (a/b)^n -> a^n / b^n ONLY if expansion enables simplification
             if let AstKind::Div(a, b) = &base.kind
                 && let AstKind::Number(n) = &exp.kind
-                    && *n > 1.0 && n.fract() == 0.0 && (*n as i64) < 10 {
-                        // Helper to check if a term would simplify when raised to power n
-                        let would_simplify = |term: &Expr| -> bool {
-                            match &term.kind {
-                                AstKind::Pow(_, inner_exp) => {
-                                    if let AstKind::Number(inner_n) = &inner_exp.kind {
-                                        (inner_n * n).fract().abs() < 1e-10
-                                    } else if let AstKind::Div(num, den) = &inner_exp.kind {
-                                        if let (AstKind::Number(a_val), AstKind::Number(b_val)) =
-                                            (&num.kind, &den.kind)
-                                        {
-                                            ((a_val * n) / b_val).fract().abs() < 1e-10
-                                        } else {
-                                            false
-                                        }
-                                    } else {
-                                        false
-                                    }
+                && *n > 1.0
+                && n.fract() == 0.0
+                && (*n as i64) < 10
+            {
+                // Helper to check if a term would simplify when raised to power n
+                let would_simplify = |term: &Expr| -> bool {
+                    match &term.kind {
+                        AstKind::Pow(_, inner_exp) => {
+                            if let AstKind::Number(inner_n) = &inner_exp.kind {
+                                (inner_n * n).fract().abs() < 1e-10
+                            } else if let AstKind::Div(num, den) = &inner_exp.kind {
+                                if let (AstKind::Number(a_val), AstKind::Number(b_val)) =
+                                    (&num.kind, &den.kind)
+                                {
+                                    ((a_val * n) / b_val).fract().abs() < 1e-10
+                                } else {
+                                    false
                                 }
-                                AstKind::FunctionCall { name, .. } => {
-                                    matches!(name.as_str(), "sqrt" | "cbrt") && *n >= 2.0
-                                }
-                                AstKind::Number(_) => true,
-                                AstKind::Product(factors) => {
-                                    factors.iter().any(|f| match &f.kind {
-                                        AstKind::Number(_) => true,
-                                        AstKind::FunctionCall { name, .. } => {
-                                            matches!(name.as_str(), "sqrt" | "cbrt")
-                                        }
-                                        AstKind::Pow(_, inner_exp) => {
-                                            if let AstKind::Number(inner_n) = &inner_exp.kind {
-                                                (inner_n * n).fract().abs() < 1e-10
-                                            } else {
-                                                false
-                                            }
-                                        }
-                                        _ => false,
-                                    })
-                                }
-                                _ => false,
+                            } else {
+                                false
                             }
-                        };
-
-                        // Only expand if numerator or denominator would simplify
-                        if would_simplify(a) || would_simplify(b) {
-                            let a_pow = Expr::pow((**a).clone(), (**exp).clone());
-                            let b_pow = Expr::pow((**b).clone(), (**exp).clone());
-                            return Some(Expr::div_expr(a_pow, b_pow));
                         }
+                        AstKind::FunctionCall { name, .. } => {
+                            matches!(name.as_str(), "sqrt" | "cbrt") && *n >= 2.0
+                        }
+                        AstKind::Number(_) => true,
+                        AstKind::Product(factors) => factors.iter().any(|f| match &f.kind {
+                            AstKind::Number(_) => true,
+                            AstKind::FunctionCall { name, .. } => {
+                                matches!(name.as_str(), "sqrt" | "cbrt")
+                            }
+                            AstKind::Pow(_, inner_exp) => {
+                                if let AstKind::Number(inner_n) = &inner_exp.kind {
+                                    (inner_n * n).fract().abs() < 1e-10
+                                } else {
+                                    false
+                                }
+                            }
+                            _ => false,
+                        }),
+                        _ => false,
                     }
+                };
+
+                // Only expand if numerator or denominator would simplify
+                if would_simplify(a) || would_simplify(b) {
+                    let a_pow = Expr::pow((**a).clone(), (**exp).clone());
+                    let b_pow = Expr::pow((**b).clone(), (**exp).clone());
+                    return Some(Expr::div_expr(a_pow, b_pow));
+                }
+            }
         }
         None
     }
@@ -169,73 +173,73 @@ rule!(
             // Expand (a + b)^n for small integer n - only on 2-term sums
             if let AstKind::Sum(terms) = &base.kind
                 && terms.len() == 2
-                    && let AstKind::Number(n) = &exp.kind
-                        && *n >= 2.0 && *n <= 4.0 && n.fract() == 0.0 {
-                            let a = &terms[0];
-                            let b = &terms[1];
+                && let AstKind::Number(n) = &exp.kind
+                && *n >= 2.0
+                && *n <= 4.0
+                && n.fract() == 0.0
+            {
+                let a = &terms[0];
+                let b = &terms[1];
 
-                            // CONSERVATIVE: Only expand if both terms are pure numbers
-                            fn is_number(e: &Expr) -> bool {
-                                matches!(e.kind, AstKind::Number(_))
-                            }
+                // CONSERVATIVE: Only expand if both terms are pure numbers
+                fn is_number(e: &Expr) -> bool {
+                    matches!(e.kind, AstKind::Number(_))
+                }
 
-                            if !(is_number(a) && is_number(b)) {
-                                return None;
-                            }
+                if !(is_number(a) && is_number(b)) {
+                    return None;
+                }
 
-                            let n_int = *n as i64;
-                            match n_int {
-                                2 => {
-                                    // (a + b)^2 = a^2 + 2*a*b + b^2
-                                    let a2 = Expr::pow((**a).clone(), Expr::number(2.0));
-                                    let b2 = Expr::pow((**b).clone(), Expr::number(2.0));
-                                    let ab2 = Expr::product(vec![
-                                        Expr::number(2.0),
-                                        (**a).clone(),
-                                        (**b).clone(),
-                                    ]);
-                                    return Some(Expr::sum(vec![a2, ab2, b2]));
-                                }
-                                3 => {
-                                    // (a + b)^3 = a^3 + 3*a^2*b + 3*a*b^2 + b^3
-                                    let a3 = Expr::pow((**a).clone(), Expr::number(3.0));
-                                    let b3 = Expr::pow((**b).clone(), Expr::number(3.0));
-                                    let a2b = Expr::product(vec![
-                                        Expr::number(3.0),
-                                        Expr::pow((**a).clone(), Expr::number(2.0)),
-                                        (**b).clone(),
-                                    ]);
-                                    let ab2 = Expr::product(vec![
-                                        Expr::number(3.0),
-                                        (**a).clone(),
-                                        Expr::pow((**b).clone(), Expr::number(2.0)),
-                                    ]);
-                                    return Some(Expr::sum(vec![a3, a2b, ab2, b3]));
-                                }
-                                4 => {
-                                    // (a + b)^4 = a^4 + 4*a^3*b + 6*a^2*b^2 + 4*a*b^3 + b^4
-                                    let a4 = Expr::pow((**a).clone(), Expr::number(4.0));
-                                    let b4 = Expr::pow((**b).clone(), Expr::number(4.0));
-                                    let a3b = Expr::product(vec![
-                                        Expr::number(4.0),
-                                        Expr::pow((**a).clone(), Expr::number(3.0)),
-                                        (**b).clone(),
-                                    ]);
-                                    let a2b2 = Expr::product(vec![
-                                        Expr::number(6.0),
-                                        Expr::pow((**a).clone(), Expr::number(2.0)),
-                                        Expr::pow((**b).clone(), Expr::number(2.0)),
-                                    ]);
-                                    let ab3 = Expr::product(vec![
-                                        Expr::number(4.0),
-                                        (**a).clone(),
-                                        Expr::pow((**b).clone(), Expr::number(3.0)),
-                                    ]);
-                                    return Some(Expr::sum(vec![a4, a3b, a2b2, ab3, b4]));
-                                }
-                                _ => {}
-                            }
-                        }
+                let n_int = *n as i64;
+                match n_int {
+                    2 => {
+                        // (a + b)^2 = a^2 + 2*a*b + b^2
+                        let a2 = Expr::pow((**a).clone(), Expr::number(2.0));
+                        let b2 = Expr::pow((**b).clone(), Expr::number(2.0));
+                        let ab2 =
+                            Expr::product(vec![Expr::number(2.0), (**a).clone(), (**b).clone()]);
+                        return Some(Expr::sum(vec![a2, ab2, b2]));
+                    }
+                    3 => {
+                        // (a + b)^3 = a^3 + 3*a^2*b + 3*a*b^2 + b^3
+                        let a3 = Expr::pow((**a).clone(), Expr::number(3.0));
+                        let b3 = Expr::pow((**b).clone(), Expr::number(3.0));
+                        let a2b = Expr::product(vec![
+                            Expr::number(3.0),
+                            Expr::pow((**a).clone(), Expr::number(2.0)),
+                            (**b).clone(),
+                        ]);
+                        let ab2 = Expr::product(vec![
+                            Expr::number(3.0),
+                            (**a).clone(),
+                            Expr::pow((**b).clone(), Expr::number(2.0)),
+                        ]);
+                        return Some(Expr::sum(vec![a3, a2b, ab2, b3]));
+                    }
+                    4 => {
+                        // (a + b)^4 = a^4 + 4*a^3*b + 6*a^2*b^2 + 4*a*b^3 + b^4
+                        let a4 = Expr::pow((**a).clone(), Expr::number(4.0));
+                        let b4 = Expr::pow((**b).clone(), Expr::number(4.0));
+                        let a3b = Expr::product(vec![
+                            Expr::number(4.0),
+                            Expr::pow((**a).clone(), Expr::number(3.0)),
+                            (**b).clone(),
+                        ]);
+                        let a2b2 = Expr::product(vec![
+                            Expr::number(6.0),
+                            Expr::pow((**a).clone(), Expr::number(2.0)),
+                            Expr::pow((**b).clone(), Expr::number(2.0)),
+                        ]);
+                        let ab3 = Expr::product(vec![
+                            Expr::number(4.0),
+                            (**a).clone(),
+                            Expr::pow((**b).clone(), Expr::number(3.0)),
+                        ]);
+                        return Some(Expr::sum(vec![a4, a3b, a2b2, ab3, b4]));
+                    }
+                    _ => {}
+                }
+            }
         }
         None
     }

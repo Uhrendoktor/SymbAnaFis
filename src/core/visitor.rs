@@ -4,6 +4,7 @@
 //! manually handling the recursive structure.
 
 use crate::{Expr, ExprKind};
+use std::sync::Arc;
 
 /// Trait for visiting expression nodes in the AST
 ///
@@ -32,7 +33,7 @@ pub trait ExprVisitor {
     fn visit_symbol(&mut self, name: &str) -> bool;
 
     /// Visit a function call, returns true to visit arguments
-    fn visit_function(&mut self, name: &str, args: &[Expr]) -> bool;
+    fn visit_function(&mut self, name: &str, args: &[Arc<Expr>]) -> bool;
 
     /// Visit a binary operation (+, -, *, /, ^), returns true to visit operands
     fn visit_binary(&mut self, op: &str, left: &Expr, right: &Expr) -> bool;
@@ -102,6 +103,12 @@ pub fn walk_expr<V: ExprVisitor>(expr: &Expr, visitor: &mut V) {
                 walk_expr(inner, visitor);
             }
         }
+        // Poly: walk each term expression directly (avoid to_expr() recursion)
+        ExprKind::Poly(poly) => {
+            for term_expr in poly.to_expr_terms() {
+                walk_expr(&term_expr, visitor);
+            }
+        }
     }
 }
 
@@ -122,7 +129,7 @@ impl ExprVisitor for NodeCounter {
         true
     }
 
-    fn visit_function(&mut self, _name: &str, _args: &[Expr]) -> bool {
+    fn visit_function(&mut self, _name: &str, _args: &[Arc<Expr>]) -> bool {
         self.count += 1;
         true
     }
@@ -154,7 +161,7 @@ impl ExprVisitor for VariableCollector {
         true
     }
 
-    fn visit_function(&mut self, _name: &str, _args: &[Expr]) -> bool {
+    fn visit_function(&mut self, _name: &str, _args: &[Arc<Expr>]) -> bool {
         true
     }
 
@@ -176,10 +183,10 @@ mod tests {
     #[test]
     fn test_node_counter() {
         let x = symb("x");
-        let expr = x + x.pow(2.0); // x + x^2 = 5 nodes
+        let expr = x + x.pow(2.0); // x + x^2 = Poly([x, x^2]) = 4 nodes (2 terms × 2 elements each)
         let mut counter = NodeCounter::default();
         walk_expr(&expr, &mut counter);
-        assert_eq!(counter.count, 5); // +, x, ^, x, 2
+        assert_eq!(counter.count, 4); // With Poly: x, x, 2, x^2 walked as term expressions
     }
 
     #[test]

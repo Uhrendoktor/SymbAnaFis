@@ -6,7 +6,7 @@
 //! This enables exact derivatives through function composition:
 //! f(a + ε) = f(a) + f'(a)ε
 
-use crate::traits::MathScalar;
+use crate::core::traits::MathScalar;
 use num_traits::{Bounded, Float, FloatConst, FromPrimitive, Num, NumCast, One, ToPrimitive, Zero};
 use std::fmt;
 use std::ops::{

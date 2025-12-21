@@ -23,7 +23,7 @@ fn test_simplify_to_sinh() {
     let simplified = simplify_expr(expr, HashSet::new());
     if let ExprKind::FunctionCall { name, args } = &simplified.kind {
         assert_eq!(name, "sinh");
-        assert_eq!(args[0], Expr::symbol("x"));
+        assert_eq!(*args[0], Expr::symbol("x"));
     } else {
         panic!("Expected sinh(x), got {:?}", simplified);
     }
@@ -46,7 +46,7 @@ fn test_simplify_to_cosh() {
     let simplified = simplify_expr(expr, HashSet::new());
     if let ExprKind::FunctionCall { name, args } = &simplified.kind {
         assert_eq!(name, "cosh");
-        assert_eq!(args[0], Expr::symbol("x"));
+        assert_eq!(*args[0], Expr::symbol("x"));
     } else {
         panic!("Expected cosh(x), got {:?}", simplified);
     }
@@ -77,7 +77,7 @@ fn test_simplify_to_tanh() {
     let simplified = simplify_expr(expr, HashSet::new());
     if let ExprKind::FunctionCall { name, args } = &simplified.kind {
         assert_eq!(name, "tanh");
-        assert_eq!(args[0], Expr::symbol("x"));
+        assert_eq!(*args[0], Expr::symbol("x"));
     } else {
         panic!("Expected tanh(x), got {:?}", simplified);
     }
@@ -108,7 +108,7 @@ fn test_simplify_to_coth() {
     let simplified = simplify_expr(expr, HashSet::new());
     if let ExprKind::FunctionCall { name, args } = &simplified.kind {
         assert_eq!(name, "coth");
-        assert_eq!(args[0], Expr::symbol("x"));
+        assert_eq!(*args[0], Expr::symbol("x"));
     } else {
         panic!("Expected coth(x), got {:?}", simplified);
     }
@@ -131,7 +131,7 @@ fn test_simplify_to_sech() {
     let simplified = simplify_expr(expr, HashSet::new());
     if let ExprKind::FunctionCall { name, args } = &simplified.kind {
         assert_eq!(name, "sech");
-        assert_eq!(args[0], Expr::symbol("x"));
+        assert_eq!(*args[0], Expr::symbol("x"));
     } else {
         panic!("Expected sech(x), got {:?}", simplified);
     }
@@ -157,7 +157,7 @@ fn test_simplify_to_csch() {
     let simplified = simplify_expr(expr, HashSet::new());
     if let ExprKind::FunctionCall { name, args } = &simplified.kind {
         assert_eq!(name, "csch");
-        assert_eq!(args[0], Expr::symbol("x"));
+        assert_eq!(*args[0], Expr::symbol("x"));
     } else {
         panic!("Expected csch(x), got {:?}", simplified);
     }
@@ -176,7 +176,7 @@ fn test_hyperbolic_identities() {
         assert!(matches!(&factors[0].kind, ExprKind::Number(n) if *n == -1.0));
         if let ExprKind::FunctionCall { name, args } = &factors[1].kind {
             assert_eq!(name, "sinh");
-            assert_eq!(args[0], Expr::symbol("x"));
+            assert_eq!(*args[0], Expr::symbol("x"));
         } else {
             panic!("Expected sinh(x)");
         }
@@ -192,7 +192,7 @@ fn test_hyperbolic_identities() {
     let simplified = simplify_expr(expr, HashSet::new());
     if let ExprKind::FunctionCall { name, args } = &simplified.kind {
         assert_eq!(name, "cosh");
-        assert_eq!(args[0], Expr::symbol("x"));
+        assert_eq!(*args[0], Expr::symbol("x"));
     } else {
         panic!("Expected cosh(x)");
     }
@@ -220,7 +220,7 @@ fn test_hyperbolic_identities() {
         assert_eq!(**exp, Expr::number(2.0));
         if let ExprKind::FunctionCall { name, args } = &base.kind {
             assert_eq!(name, "sech");
-            assert_eq!(args[0], Expr::symbol("x"));
+            assert_eq!(*args[0], Expr::symbol("x"));
         } else {
             panic!("Expected sech(x)");
         }
@@ -238,7 +238,7 @@ fn test_hyperbolic_identities() {
         assert_eq!(**exp, Expr::number(2.0));
         if let ExprKind::FunctionCall { name, args } = &base.kind {
             assert_eq!(name, "csch");
-            assert_eq!(args[0], Expr::symbol("x"));
+            assert_eq!(*args[0], Expr::symbol("x"));
         } else {
             panic!("Expected csch(x)");
         }

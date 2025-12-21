@@ -6,7 +6,7 @@
 use crate::parser::tokens::{Operator, Token};
 use crate::{DiffError, Expr};
 
-use crate::symbol::SymbolContext;
+use crate::core::symbol::SymbolContext;
 
 /// Parse tokens into an AST using Pratt parsing algorithm
 pub(crate) fn parse_expression(
@@ -58,11 +58,12 @@ impl<'a> Parser<'a> {
 
             // Special case: collect additive chains to avoid O(N²) cascade
             // Only activate at the additive level (precedence 10)
-            if let Token::Operator(Operator::Add | Operator::Sub) = token {
-                if precedence == 10 && min_precedence <= 10 {
-                    left = self.parse_additive_chain(left)?;
-                    continue;
-                }
+            if let Token::Operator(Operator::Add | Operator::Sub) = token
+                && precedence == 10
+                && min_precedence <= 10
+            {
+                left = self.parse_additive_chain(left)?;
+                continue;
             }
 
             left = self.parse_infix(left, precedence)?;
@@ -343,7 +344,7 @@ impl<'a> Parser<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ast::{Expr, ExprKind};
+    use crate::core::expr::{Expr, ExprKind};
 
     #[test]
     fn test_parse_number() {

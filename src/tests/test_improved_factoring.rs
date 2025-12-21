@@ -46,10 +46,10 @@ mod tests {
         let result_str = result.to_string();
         println!("4*x^2 + 4*x + 1 = {}", result_str);
 
-        // Expect (2*x + 1)^2 or equivalent
+        // Must be factored to (2*x + 1)^2 or (1 + 2*x)^2
         assert!(
-            result_str.contains("(2x + 1)^2") || result_str.contains("(1 + 2x)^2"),
-            "Expected (2x + 1)^2, got: {}",
+            result_str.contains("(2*x + 1)^2") || result_str.contains("(1 + 2*x)^2"),
+            "Expected (2*x + 1)^2, got: {}",
             result_str
         );
     }
@@ -66,6 +66,38 @@ mod tests {
                 || result_str.contains("(x + -1)")
                 || result_str.contains("(-1 + x)"),
             "Expected factorization, got: {}",
+            result_str
+        );
+    }
+
+    #[test]
+    fn test_sum_of_cubes() {
+        // x^3 + y^3 = (x + y)(x^2 - xy + y^2)
+        let result = simplify("x^3 + y^3", None, None).unwrap();
+        let result_str = result.to_string();
+        println!("x^3 + y^3 = {}", result_str);
+
+        // Should be factored as product containing (x + y)
+        assert!(
+            result_str.contains("(x + y)") || result_str.contains("(y + x)"),
+            "Expected sum of cubes factorization containing (x+y), got: {}",
+            result_str
+        );
+    }
+
+    #[test]
+    fn test_difference_of_cubes() {
+        // x^3 - y^3 = (x - y)(x^2 + xy + y^2)
+        let result = simplify("x^3 - y^3", None, None).unwrap();
+        let result_str = result.to_string();
+        println!("x^3 - y^3 = {}", result_str);
+
+        // Should be factored as product containing (x - y)
+        assert!(
+            result_str.contains("(x - y)")
+                || result_str.contains("(x + -1*y)")
+                || result_str.contains("(-y + x)"),
+            "Expected difference of cubes factorization containing (x-y), got: {}",
             result_str
         );
     }

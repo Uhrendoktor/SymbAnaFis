@@ -103,6 +103,16 @@ fn bench_large_expressions(c: &mut Criterion) {
     let mixed_expr = symb_anafis::parse(&mixed_str, &empty_set, &empty_set, None).unwrap();
     let mixed_atom = parse!(&mixed_str);
 
+    // Diff only (no simplification) - to measure diff overhead separately
+    group.bench_function("symb_anafis/diff_only_mixed_300", |b| {
+        b.iter(|| {
+            Diff::new()
+                .skip_simplification(true)
+                .differentiate(black_box(mixed_expr.clone()), black_box(&x_symb))
+        })
+    });
+
+    // Diff + simplification
     group.bench_function("symb_anafis/diff_mixed_300", |b| {
         b.iter(|| Diff::new().differentiate(black_box(mixed_expr.clone()), black_box(&x_symb)))
     });
@@ -124,6 +134,31 @@ fn bench_large_expressions(c: &mut Criterion) {
             let atom = parse!(black_box(&mixed_str));
             atom.derivative(x_sym)
         })
+    });
+
+    // -------------------------------------------------------------------------
+    // Evaluation Benchmarks: Simplified vs Unsimplified Derivatives
+    // -------------------------------------------------------------------------
+
+    // Pre-compute derivatives for evaluation
+    let deriv_unsimplified = Diff::new()
+        .skip_simplification(true)
+        .differentiate(mixed_expr.clone(), &x_symb)
+        .unwrap();
+    let deriv_simplified = Diff::new()
+        .differentiate(mixed_expr.clone(), &x_symb)
+        .unwrap();
+
+    // Variables for evaluation
+    let mut vars = std::collections::HashMap::new();
+    vars.insert("x", 2.5);
+
+    group.bench_function("symb_anafis/eval_unsimplified_deriv", |b| {
+        b.iter(|| black_box(&deriv_unsimplified).evaluate(black_box(&vars)))
+    });
+
+    group.bench_function("symb_anafis/eval_simplified_deriv", |b| {
+        b.iter(|| black_box(&deriv_simplified).evaluate(black_box(&vars)))
     });
 
     group.finish();

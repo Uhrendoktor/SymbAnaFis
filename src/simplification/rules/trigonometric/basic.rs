@@ -1,4 +1,4 @@
-use crate::ast::{Expr, ExprKind as AstKind};
+use crate::core::expr::{Expr, ExprKind as AstKind};
 use crate::simplification::helpers;
 use crate::simplification::rules::{ExprKind, Rule, RuleCategory, RuleContext};
 use std::f64::consts::PI;
@@ -224,6 +224,131 @@ rule!(
                 }
                 _ => {}
             }
+        }
+        None
+    }
+);
+
+// Ratio rules: convert 1/trig to reciprocal functions
+rule!(
+    OneCosToSecRule,
+    "one_cos_to_sec",
+    85,
+    Trigonometric,
+    &[ExprKind::Div],
+    |expr: &Expr, _context: &RuleContext| {
+        if let AstKind::Div(num, den) = &expr.kind
+            && let AstKind::Number(n) = &num.kind
+            && (*n - 1.0).abs() < 1e-10
+        {
+            // 1/cos(x) → sec(x)
+            if let AstKind::FunctionCall { name, args } = &den.kind
+                && name == "cos"
+                && args.len() == 1
+            {
+                return Some(Expr::func("sec", (*args[0]).clone()));
+            }
+            // 1/cos(x)^n → sec(x)^n
+            if let AstKind::Pow(base, exp) = &den.kind
+                && let AstKind::FunctionCall { name, args } = &base.kind
+                && name == "cos"
+                && args.len() == 1
+            {
+                return Some(Expr::pow(
+                    Expr::func("sec", (*args[0]).clone()),
+                    (**exp).clone(),
+                ));
+            }
+        }
+        None
+    }
+);
+
+rule!(
+    OneSinToCscRule,
+    "one_sin_to_csc",
+    85,
+    Trigonometric,
+    &[ExprKind::Div],
+    |expr: &Expr, _context: &RuleContext| {
+        if let AstKind::Div(num, den) = &expr.kind
+            && let AstKind::Number(n) = &num.kind
+            && (*n - 1.0).abs() < 1e-10
+        {
+            // 1/sin(x) → csc(x)
+            if let AstKind::FunctionCall { name, args } = &den.kind
+                && name == "sin"
+                && args.len() == 1
+            {
+                return Some(Expr::func("csc", (*args[0]).clone()));
+            }
+            // 1/sin(x)^n → csc(x)^n
+            if let AstKind::Pow(base, exp) = &den.kind
+                && let AstKind::FunctionCall { name, args } = &base.kind
+                && name == "sin"
+                && args.len() == 1
+            {
+                return Some(Expr::pow(
+                    Expr::func("csc", (*args[0]).clone()),
+                    (**exp).clone(),
+                ));
+            }
+        }
+        None
+    }
+);
+
+rule!(
+    SinCosToTanRule,
+    "sin_cos_to_tan",
+    85,
+    Trigonometric,
+    &[ExprKind::Div],
+    |expr: &Expr, _context: &RuleContext| {
+        if let AstKind::Div(num, den) = &expr.kind
+            && let AstKind::FunctionCall {
+                name: num_name,
+                args: num_args,
+            } = &num.kind
+            && let AstKind::FunctionCall {
+                name: den_name,
+                args: den_args,
+            } = &den.kind
+            && num_name == "sin"
+            && den_name == "cos"
+            && num_args.len() == 1
+            && den_args.len() == 1
+            && num_args[0] == den_args[0]
+        {
+            return Some(Expr::func("tan", (*num_args[0]).clone()));
+        }
+        None
+    }
+);
+
+rule!(
+    CosSinToCotRule,
+    "cos_sin_to_cot",
+    85,
+    Trigonometric,
+    &[ExprKind::Div],
+    |expr: &Expr, _context: &RuleContext| {
+        if let AstKind::Div(num, den) = &expr.kind
+            && let AstKind::FunctionCall {
+                name: num_name,
+                args: num_args,
+            } = &num.kind
+            && let AstKind::FunctionCall {
+                name: den_name,
+                args: den_args,
+            } = &den.kind
+            && num_name == "cos"
+            && den_name == "sin"
+            && num_args.len() == 1
+            && den_args.len() == 1
+            && num_args[0] == den_args[0]
+        {
+            return Some(Expr::func("cot", (*num_args[0]).clone()));
         }
         None
     }

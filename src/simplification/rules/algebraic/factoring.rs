@@ -1,4 +1,4 @@
-use crate::poly::Polynomial;
+use crate::core::poly::Polynomial;
 use crate::simplification::rules::{ExprKind, Rule, RuleCategory, RuleContext};
 use crate::{Expr, ExprKind as AstKind};
 use std::sync::Arc;
@@ -105,10 +105,10 @@ impl Rule for FractionCancellationRule {
                     AstKind::Pow(b, exp) => (b.as_ref().clone(), exp.as_ref().clone()),
                     AstKind::FunctionCall { name, args } if args.len() == 1 => {
                         if name == "sqrt" {
-                            (args[0].clone(), Expr::number(0.5))
+                            ((*args[0]).clone(), Expr::number(0.5))
                         } else if name == "cbrt" {
                             (
-                                args[0].clone(),
+                                (*args[0]).clone(),
                                 Expr::div_expr(Expr::number(1.0), Expr::number(3.0)),
                             )
                         } else {
@@ -259,128 +259,150 @@ impl Rule for PerfectSquareRule {
     }
 
     fn applies_to(&self) -> &'static [ExprKind] {
-        &[ExprKind::Sum]
+        &[ExprKind::Sum, ExprKind::Poly]
     }
 
     fn apply(&self, expr: &Arc<Expr>, _context: &RuleContext) -> Option<Arc<Expr>> {
         fn apply_inner(expr: &Expr) -> Option<Expr> {
-            if let AstKind::Sum(terms) = &expr.kind
-                && terms.len() == 3
-            {
-                let terms_vec: Vec<Expr> = terms.iter().map(|t| (**t).clone()).collect();
-
-                let mut square_terms: Vec<(f64, Expr)> = Vec::new();
-                let mut linear_terms: Vec<(f64, Expr, Expr)> = Vec::new();
-                let mut constants = Vec::new();
-
-                fn extract_coeff_and_factors(term: &Expr) -> (f64, Vec<Expr>) {
-                    match &term.kind {
-                        AstKind::Product(factors) => {
-                            let mut coeff = 1.0;
-                            let mut non_numeric: Vec<Expr> = Vec::new();
-                            for f in factors.iter() {
-                                if let AstKind::Number(n) = &f.kind {
-                                    coeff *= n;
-                                } else {
-                                    non_numeric.push((**f).clone());
-                                }
-                            }
-                            (coeff, non_numeric)
+            // Extract terms from Sum or Poly, handling Sum([constant, Poly]) case
+            let terms_vec: Vec<Expr> = match &expr.kind {
+                AstKind::Sum(terms) if terms.len() == 3 => {
+                    terms.iter().map(|t| (**t).clone()).collect()
+                }
+                AstKind::Sum(terms) if terms.len() == 2 => {
+                    // Check for Sum([constant, Poly]) pattern - flatten to 3 terms
+                    let mut flat_terms = Vec::new();
+                    for t in terms.iter() {
+                        if let AstKind::Poly(poly) = &t.kind {
+                            flat_terms.extend(poly.to_expr_terms());
+                        } else {
+                            flat_terms.push((**t).clone());
                         }
-                        AstKind::Number(n) => (*n, vec![]),
-                        _ => (1.0, vec![term.clone()]),
+                    }
+                    if flat_terms.len() == 3 {
+                        flat_terms
+                    } else {
+                        return None;
                     }
                 }
+                AstKind::Poly(poly) if poly.terms().len() == 3 => {
+                    // Convert Poly terms to Expr for analysis
+                    poly.to_expr_terms()
+                }
+                _ => return None,
+            };
 
-                for term in &terms_vec {
-                    match &term.kind {
-                        AstKind::Pow(base, exp) => {
-                            if let AstKind::Number(n) = &exp.kind
-                                && (*n - 2.0).abs() < 1e-10
-                            {
-                                square_terms.push((1.0, (**base).clone()));
+            let mut square_terms: Vec<(f64, Expr)> = Vec::new();
+            let mut linear_terms: Vec<(f64, Expr, Expr)> = Vec::new();
+            let mut constants = Vec::new();
+
+            fn extract_coeff_and_factors(term: &Expr) -> (f64, Vec<Expr>) {
+                match &term.kind {
+                    AstKind::Product(factors) => {
+                        let mut coeff = 1.0;
+                        let mut non_numeric: Vec<Expr> = Vec::new();
+                        for f in factors.iter() {
+                            if let AstKind::Number(n) = &f.kind {
+                                coeff *= n;
+                            } else {
+                                non_numeric.push((**f).clone());
+                            }
+                        }
+                        (coeff, non_numeric)
+                    }
+                    AstKind::Number(n) => (*n, vec![]),
+                    _ => (1.0, vec![term.clone()]),
+                }
+            }
+
+            for term in &terms_vec {
+                match &term.kind {
+                    AstKind::Pow(base, exp) => {
+                        if let AstKind::Number(n) = &exp.kind
+                            && (*n - 2.0).abs() < 1e-10
+                        {
+                            square_terms.push((1.0, (**base).clone()));
+                            continue;
+                        }
+                        linear_terms.push((1.0, term.clone(), Expr::number(1.0)));
+                    }
+                    AstKind::Number(n) => {
+                        // Check if number is a perfect square (positive)
+                        if *n > 0.0 {
+                            let sqrt_n = n.sqrt();
+                            if (sqrt_n - sqrt_n.round()).abs() < 1e-10 {
+                                // It's a perfect square constant, treat as square term (coeff=1, base=sqrt(n))
+                                // We treat '9' as 1*3^2. So coeff=1.0, base=Number(3)
+                                square_terms.push((1.0, Expr::number(sqrt_n.round())));
                                 continue;
                             }
-                            linear_terms.push((1.0, term.clone(), Expr::number(1.0)));
                         }
-                        AstKind::Number(n) => {
-                            // Check if number is a perfect square (positive)
-                            if *n > 0.0 {
-                                let sqrt_n = n.sqrt();
-                                if (sqrt_n - sqrt_n.round()).abs() < 1e-10 {
-                                    // It's a perfect square constant, treat as square term (coeff=1, base=sqrt(n))
-                                    // We treat '9' as 1*3^2. So coeff=1.0, base=Number(3)
-                                    square_terms.push((1.0, Expr::number(sqrt_n.round())));
-                                    continue;
-                                }
-                            }
-                            constants.push(*n);
-                        }
-                        AstKind::Product(_) => {
-                            let (coeff, factors) = extract_coeff_and_factors(term);
+                        constants.push(*n);
+                    }
+                    AstKind::Product(_) => {
+                        let (coeff, factors) = extract_coeff_and_factors(term);
 
-                            if factors.len() == 1 {
-                                if let AstKind::Pow(base, exp) = &factors[0].kind
-                                    && let AstKind::Number(n) = &exp.kind
-                                    && (*n - 2.0).abs() < 1e-10
-                                {
-                                    square_terms.push((coeff, (**base).clone()));
-                                    continue;
-                                }
-                                linear_terms.push((coeff, factors[0].clone(), Expr::number(1.0)));
-                            } else if factors.len() == 2 {
-                                linear_terms.push((coeff, factors[0].clone(), factors[1].clone()));
+                        if factors.len() == 1 {
+                            if let AstKind::Pow(base, exp) = &factors[0].kind
+                                && let AstKind::Number(n) = &exp.kind
+                                && (*n - 2.0).abs() < 1e-10
+                            {
+                                square_terms.push((coeff, (**base).clone()));
+                                continue;
                             }
-                        }
-                        _ => {
-                            linear_terms.push((1.0, term.clone(), Expr::number(1.0)));
+                            linear_terms.push((coeff, factors[0].clone(), Expr::number(1.0)));
+                        } else if factors.len() == 2 {
+                            linear_terms.push((coeff, factors[0].clone(), factors[1].clone()));
                         }
                     }
+                    _ => {
+                        linear_terms.push((1.0, term.clone(), Expr::number(1.0)));
+                    }
                 }
+            }
 
-                // Case 1: Standard perfect square a^2 + 2*a*b + b^2
-                if square_terms.len() == 2 && linear_terms.len() == 1 {
-                    let (c1, a) = &square_terms[0];
-                    let (c2, b) = &square_terms[1];
-                    let (cross_coeff, cross_a, cross_b) = &linear_terms[0];
+            // Case 1: Standard perfect square a^2 + 2*a*b + b^2
+            if square_terms.len() == 2 && linear_terms.len() == 1 {
+                let (c1, a) = &square_terms[0];
+                let (c2, b) = &square_terms[1];
+                let (cross_coeff, cross_a, cross_b) = &linear_terms[0];
 
-                    let sqrt_c1 = c1.sqrt();
-                    let sqrt_c2 = c2.sqrt();
+                let sqrt_c1 = c1.sqrt();
+                let sqrt_c2 = c2.sqrt();
 
-                    if (sqrt_c1 - sqrt_c1.round()).abs() < 1e-10
-                        && (sqrt_c2 - sqrt_c2.round()).abs() < 1e-10
+                if (sqrt_c1 - sqrt_c1.round()).abs() < 1e-10
+                    && (sqrt_c2 - sqrt_c2.round()).abs() < 1e-10
+                {
+                    let expected_cross_abs = (2.0 * sqrt_c1 * sqrt_c2).abs();
+                    let cross_coeff_abs = cross_coeff.abs();
+
+                    if (expected_cross_abs - cross_coeff_abs).abs() < 1e-10
+                        && ((a == cross_a && b == cross_b) || (a == cross_b && b == cross_a))
                     {
-                        let expected_cross_abs = (2.0 * sqrt_c1 * sqrt_c2).abs();
-                        let cross_coeff_abs = cross_coeff.abs();
+                        let sign = cross_coeff.signum();
 
-                        if (expected_cross_abs - cross_coeff_abs).abs() < 1e-10
-                            && ((a == cross_a && b == cross_b) || (a == cross_b && b == cross_a))
-                        {
-                            let sign = cross_coeff.signum();
+                        let term_a = if (sqrt_c1 - 1.0).abs() < 1e-10 {
+                            a.clone()
+                        } else {
+                            Expr::product(vec![Expr::number(sqrt_c1.round()), a.clone()])
+                        };
 
-                            let term_a = if (sqrt_c1 - 1.0).abs() < 1e-10 {
-                                a.clone()
-                            } else {
-                                Expr::product(vec![Expr::number(sqrt_c1.round()), a.clone()])
-                            };
+                        let term_b = if (sqrt_c2 - 1.0).abs() < 1e-10 {
+                            b.clone()
+                        } else {
+                            Expr::product(vec![Expr::number(sqrt_c2.round()), b.clone()])
+                        };
 
-                            let term_b = if (sqrt_c2 - 1.0).abs() < 1e-10 {
-                                b.clone()
-                            } else {
-                                Expr::product(vec![Expr::number(sqrt_c2.round()), b.clone()])
-                            };
+                        let inner = if sign > 0.0 {
+                            Expr::sum(vec![term_a, term_b])
+                        } else {
+                            Expr::sum(vec![
+                                term_a,
+                                Expr::product(vec![Expr::number(-1.0), term_b]),
+                            ])
+                        };
 
-                            let inner = if sign > 0.0 {
-                                Expr::sum(vec![term_a, term_b])
-                            } else {
-                                Expr::sum(vec![
-                                    term_a,
-                                    Expr::product(vec![Expr::number(-1.0), term_b]),
-                                ])
-                            };
-
-                            return Some(Expr::pow(inner, Expr::number(2.0)));
-                        }
+                        return Some(Expr::pow(inner, Expr::number(2.0)));
                     }
                 }
             }
@@ -759,61 +781,67 @@ rule!(
     "perfect_cube",
     40,
     Algebraic,
-    &[ExprKind::Sum],
+    &[ExprKind::Sum, ExprKind::Poly],
     |expr: &Expr, _context: &RuleContext| {
         // Pattern: a^3 + 3a^2b + 3ab^2 + b^3 = (a+b)^3
         // Pattern: a^3 - 3a^2b + 3ab^2 - b^3 = (a-b)^3
         // Also: a^3 + b^3 = (a+b)(a^2 - ab + b^2) and a^3 - b^3 = (a-b)(a^2 + ab + b^2)
-        if let AstKind::Sum(terms) = &expr.kind {
-            // Check for sum/difference of cubes: a^3 + b^3 or a^3 - b^3
-            if terms.len() == 2 {
-                fn get_cube_root(e: &Expr) -> Option<Expr> {
-                    if let AstKind::Pow(base, exp) = &e.kind
-                        && let AstKind::Number(n) = &exp.kind
-                        && *n == 3.0
-                    {
-                        return Some((**base).clone());
-                    }
-                    None
-                }
 
-                fn extract_negated(term: &Expr) -> Option<Expr> {
-                    if let AstKind::Product(factors) = &term.kind
-                        && factors.len() == 2
-                        && let AstKind::Number(n) = &factors[0].kind
-                        && (*n + 1.0).abs() < 1e-10
-                    {
-                        return Some((*factors[1]).clone());
-                    }
-                    None
-                }
+        // Extract terms from Sum or Poly
+        let terms: Vec<Expr> = match &expr.kind {
+            AstKind::Sum(ts) if ts.len() == 2 => ts.iter().map(|t| (**t).clone()).collect(),
+            AstKind::Poly(poly) if poly.terms().len() == 2 => poly.to_expr_terms(),
+            _ => return None,
+        };
 
-                let t1 = &terms[0];
-                let t2 = &terms[1];
-
-                // a^3 + b^3 = (a+b)(a^2 - ab + b^2)
-                if let (Some(a), Some(b)) = (get_cube_root(t1), get_cube_root(t2)) {
-                    let sum = Expr::sum(vec![a.clone(), b.clone()]);
-                    let a2 = Expr::pow(a.clone(), Expr::number(2.0));
-                    let ab = Expr::product(vec![a.clone(), b.clone()]);
-                    let b2 = Expr::pow(b.clone(), Expr::number(2.0));
-                    let neg_ab = Expr::product(vec![Expr::number(-1.0), ab]);
-                    let trinomial = Expr::sum(vec![a2, neg_ab, b2]);
-                    return Some(Expr::product(vec![sum, trinomial]));
-                }
-
-                // a^3 + (-b^3) = a^3 - b^3 = (a-b)(a^2 + ab + b^2)
-                if let (Some(a), Some(neg_inner)) = (get_cube_root(t1), extract_negated(t2))
-                    && let Some(b) = get_cube_root(&neg_inner)
+        // Check for sum/difference of cubes: a^3 + b^3 or a^3 - b^3
+        if terms.len() == 2 {
+            fn get_cube_root(e: &Expr) -> Option<Expr> {
+                if let AstKind::Pow(base, exp) = &e.kind
+                    && let AstKind::Number(n) = &exp.kind
+                    && *n == 3.0
                 {
-                    let neg_b = Expr::product(vec![Expr::number(-1.0), b.clone()]);
-                    let diff = Expr::sum(vec![a.clone(), neg_b]);
-                    let a2 = Expr::pow(a.clone(), Expr::number(2.0));
-                    let ab = Expr::product(vec![a.clone(), b.clone()]);
-                    let b2 = Expr::pow(b.clone(), Expr::number(2.0));
-                    let trinomial = Expr::sum(vec![a2, ab, b2]);
-                    return Some(Expr::product(vec![diff, trinomial]));
+                    return Some((**base).clone());
                 }
+                None
+            }
+
+            fn extract_negated(term: &Expr) -> Option<Expr> {
+                if let AstKind::Product(factors) = &term.kind
+                    && factors.len() == 2
+                    && let AstKind::Number(n) = &factors[0].kind
+                    && (*n + 1.0).abs() < 1e-10
+                {
+                    return Some((*factors[1]).clone());
+                }
+                None
+            }
+
+            let t1 = &terms[0];
+            let t2 = &terms[1];
+
+            // a^3 + b^3 = (a+b)(a^2 - ab + b^2)
+            if let (Some(a), Some(b)) = (get_cube_root(t1), get_cube_root(t2)) {
+                let sum = Expr::sum(vec![a.clone(), b.clone()]);
+                let a2 = Expr::pow(a.clone(), Expr::number(2.0));
+                let ab = Expr::product(vec![a.clone(), b.clone()]);
+                let b2 = Expr::pow(b.clone(), Expr::number(2.0));
+                let neg_ab = Expr::product(vec![Expr::number(-1.0), ab]);
+                let trinomial = Expr::sum(vec![a2, neg_ab, b2]);
+                return Some(Expr::product(vec![sum, trinomial]));
+            }
+
+            // a^3 + (-b^3) = a^3 - b^3 = (a-b)(a^2 + ab + b^2)
+            if let (Some(a), Some(neg_inner)) = (get_cube_root(t1), extract_negated(t2))
+                && let Some(b) = get_cube_root(&neg_inner)
+            {
+                let neg_b = Expr::product(vec![Expr::number(-1.0), b.clone()]);
+                let diff = Expr::sum(vec![a.clone(), neg_b]);
+                let a2 = Expr::pow(a.clone(), Expr::number(2.0));
+                let ab = Expr::product(vec![a.clone(), b.clone()]);
+                let b2 = Expr::pow(b.clone(), Expr::number(2.0));
+                let trinomial = Expr::sum(vec![a2, ab, b2]);
+                return Some(Expr::product(vec![diff, trinomial]));
             }
         }
         None

@@ -13,7 +13,7 @@ rule!(ExpLnRule, "exp_ln", 80, Algebraic, &[ExprKind::Function], alters_domain: 
         && inner_name == "ln"
         && inner_args.len() == 1
     {
-        return Some(inner_args[0].clone());
+        return Some((*inner_args[0]).clone());
     }
     None
 });
@@ -29,7 +29,7 @@ rule!(LnExpRule, "ln_exp", 80, Algebraic, &[ExprKind::Function], alters_domain: 
         && inner_name == "exp"
         && inner_args.len() == 1
     {
-        return Some(inner_args[0].clone());
+        return Some((*inner_args[0]).clone());
     }
     None
 });
@@ -59,7 +59,7 @@ rule!(ExpMulLnRule, "exp_mul_ln", 80, Algebraic, &[ExprKind::Function], alters_d
 
                     let exponent = Expr::product_from_arcs(other_factors);
 
-                    return Some(Expr::pow(inner_args[0].clone(), exponent));
+                    return Some(Expr::pow((*inner_args[0]).clone(), exponent));
                 }
             }
         }
@@ -76,7 +76,7 @@ rule!(EPowLnRule, "e_pow_ln", 85, Algebraic, &[ExprKind::Pow], alters_domain: tr
                 && name == "ln"
                 && args.len() == 1
             {
-                return Some(args[0].clone());
+                return Some((*args[0]).clone());
             }
     None
 });
@@ -106,7 +106,7 @@ rule!(EPowMulLnRule, "e_pow_mul_ln", 85, Algebraic, &[ExprKind::Pow], alters_dom
 
                         let exponent = Expr::product_from_arcs(other_factors);
 
-                        return Some(Expr::pow(inner_args[0].clone(), exponent));
+                        return Some(Expr::pow((*inner_args[0]).clone(), exponent));
                     }
                 }
             }

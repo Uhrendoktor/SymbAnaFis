@@ -13,7 +13,7 @@ pub(crate) fn get_fn_pow_named(expr: &Expr, power: f64) -> Option<(&str, Expr)> 
         && let ExprKind::FunctionCall { name, args } = &base.kind
         && args.len() == 1
     {
-        return Some((name.as_str(), args[0].clone()));
+        return Some((name.as_str(), (*args[0]).clone()));
     }
     None
 }
@@ -135,6 +135,7 @@ pub(crate) fn compare_expr(a: &Expr, b: &Expr) -> std::cmp::Ordering {
             Sum(..) => (50, String::new(), 0.0),
             Div(..) => (35, String::new(), 0.0),
             Derivative { var, .. } => (45, var.clone(), 0.0),
+            Poly(_) => (25, String::new(), 0.0), // Poly treated as complex
         }
     }
 
@@ -183,6 +184,7 @@ pub(crate) fn compare_mul_factors(a: &Expr, b: &Expr) -> std::cmp::Ordering {
             Product(..) | Div(..) => 50,
             Sum(..) => 60,
             Derivative { .. } => 45, // After functions, before mul/div
+            Poly(_) => 55,           // After products, before sums
         }
     }
 
@@ -305,7 +307,10 @@ pub(crate) fn prettify_roots(expr: Expr) -> Expr {
         ),
         ExprKind::FunctionCall { name, args } => Expr::new(ExprKind::FunctionCall {
             name,
-            args: args.into_iter().map(prettify_roots).collect(),
+            args: args
+                .into_iter()
+                .map(|a| Arc::new(prettify_roots((*a).clone())))
+                .collect(),
         }),
         _ => Expr::new(expr.kind), // Reconstruct
     }
@@ -523,7 +528,8 @@ pub(crate) fn get_term_hash(expr: &Expr) -> u64 {
             ExprKind::FunctionCall { name, args } => {
                 let h = hash_one_byte(hash, b'F');
                 let h = hash_u64(h, name.id());
-                args.iter().fold(h, hash_term_inner)
+                args.iter()
+                    .fold(h, |acc, a| hash_term_inner(acc, a.as_ref()))
             }
 
             // Sums: Commutative mix of terms
@@ -558,6 +564,22 @@ pub(crate) fn get_term_hash(expr: &Expr) -> u64 {
 
                 let h = hash_u64(h, *order as u64);
                 hash_term_inner(h, inner)
+            }
+
+            // Poly: Hash based on polynomial terms
+            ExprKind::Poly(poly) => {
+                let h = hash_one_byte(hash, b'Y'); // 'Y' for polY to distinguish
+                // Commutative sum of term hashes
+                let mut acc: u64 = 0;
+                for term in poly.terms() {
+                    let term_h = hash_f64(FNV_OFFSET, term.coeff);
+                    let term_h = term.powers.iter().fold(term_h, |h, (sym, pow)| {
+                        let h = hash_u64(h, sym.id());
+                        hash_u64(h, *pow as u64)
+                    });
+                    acc = acc.wrapping_add(term_h);
+                }
+                hash_u64(h, acc)
             }
         }
     }
@@ -635,7 +657,10 @@ pub(crate) fn normalize_for_comparison(expr: &Expr) -> Expr {
             Expr::pow(norm_a, norm_b)
         }
         ExprKind::FunctionCall { name, args } => {
-            let norm_args: Vec<Expr> = args.iter().map(normalize_for_comparison).collect();
+            let norm_args: Vec<Expr> = args
+                .iter()
+                .map(|a| normalize_for_comparison(a.as_ref()))
+                .collect();
             // Check if any arg changed
             let changed = norm_args
                 .iter()
@@ -644,10 +669,7 @@ pub(crate) fn normalize_for_comparison(expr: &Expr) -> Expr {
             if !changed {
                 return expr.clone();
             }
-            Expr::new(ExprKind::FunctionCall {
-                name: name.clone(),
-                args: norm_args,
-            })
+            Expr::func_multi(name, norm_args)
         }
         // Leaves remain unchanged (already handled at the top)
         _ => expr.clone(),

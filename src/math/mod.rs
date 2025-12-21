@@ -24,7 +24,7 @@
 //! - **Inverse trig**: |x| > 1 is a domain error for asin/acos
 //! - **Square root**: Negative inputs return NaN or None depending on context
 
-use crate::traits::MathScalar;
+use crate::core::traits::MathScalar;
 
 pub mod dual;
 

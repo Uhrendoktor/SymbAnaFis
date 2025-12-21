@@ -6,7 +6,7 @@ use crate::diff;
 fn test_polynomial_accuracy() {
     // d/dx[x^3] = 3x^2
     let result = diff("x^3", "x", None, None).unwrap();
-    assert_eq!(result, "3x^2");
+    assert_eq!(result, "3*x^2");
 
     // d/dx[5x^4 + 3x^2 + 7] = 20x^3 + 6x or 2*(10*x^3 + 3*x) after GCD factoring
     let result = diff("5*x^4 + 3*x^2 + 7", "x", None, None).unwrap();

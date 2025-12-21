@@ -54,21 +54,22 @@ rule!(
         if let AstKind::Div(num, outer_den) = &expr.kind {
             // Check if num is a Sum containing a Div
             if let AstKind::Sum(terms) = &num.kind
-                && terms.len() == 2 {
-                    // Look for pattern: Sum([a, Div(b, c)]) / d -> Sum([a*c, b]) / (c*d)
-                    for (i, term) in terms.iter().enumerate() {
-                        if let AstKind::Div(b, c) = &term.kind {
-                            let other_term = if i == 0 { &terms[1] } else { &terms[0] };
-                            // (a*c + b) / (c*d)
-                            let new_num = Expr::sum(vec![
-                                Expr::product(vec![(**other_term).clone(), (**c).clone()]),
-                                (**b).clone(),
-                            ]);
-                            let new_den = Expr::product(vec![(**c).clone(), (**outer_den).clone()]);
-                            return Some(Expr::div_expr(new_num, new_den));
-                        }
+                && terms.len() == 2
+            {
+                // Look for pattern: Sum([a, Div(b, c)]) / d -> Sum([a*c, b]) / (c*d)
+                for (i, term) in terms.iter().enumerate() {
+                    if let AstKind::Div(b, c) = &term.kind {
+                        let other_term = if i == 0 { &terms[1] } else { &terms[0] };
+                        // (a*c + b) / (c*d)
+                        let new_num = Expr::sum(vec![
+                            Expr::product(vec![(**other_term).clone(), (**c).clone()]),
+                            (**b).clone(),
+                        ]);
+                        let new_den = Expr::product(vec![(**c).clone(), (**outer_den).clone()]);
+                        return Some(Expr::div_expr(new_num, new_den));
                     }
                 }
+            }
         }
         None
     }
@@ -82,52 +83,53 @@ rule!(
     &[ExprKind::Sum],
     |expr: &Expr, _context: &RuleContext| {
         if let AstKind::Sum(terms) = &expr.kind
-            && terms.len() == 2 {
-                let u = &terms[0];
-                let v = &terms[1];
+            && terms.len() == 2
+        {
+            let u = &terms[0];
+            let v = &terms[1];
 
-                // Case 1: a/b + c/d
-                if let (AstKind::Div(n1, d1), AstKind::Div(n2, d2)) = (&u.kind, &v.kind) {
-                    // Check for common denominator
-                    if d1 == d2 {
-                        return Some(Expr::div_expr(
-                            Expr::sum(vec![(**n1).clone(), (**n2).clone()]),
-                            (**d1).clone(),
-                        ));
-                    }
-                    // (n1*d2 + n2*d1) / (d1*d2)
-                    let new_num = Expr::sum(vec![
-                        Expr::product(vec![(**n1).clone(), (**d2).clone()]),
-                        Expr::product(vec![(**n2).clone(), (**d1).clone()]),
-                    ]);
-                    let new_den = Expr::product(vec![(**d1).clone(), (**d2).clone()]);
-                    return Some(Expr::div_expr(new_num, new_den));
+            // Case 1: a/b + c/d
+            if let (AstKind::Div(n1, d1), AstKind::Div(n2, d2)) = (&u.kind, &v.kind) {
+                // Check for common denominator
+                if d1 == d2 {
+                    return Some(Expr::div_expr(
+                        Expr::sum(vec![(**n1).clone(), (**n2).clone()]),
+                        (**d1).clone(),
+                    ));
                 }
-
-                // Case 2: a + b/c (v is the fraction)
-                if let AstKind::Div(n, d) = &v.kind {
-                    let u_times_d = if matches!(&u.kind, AstKind::Number(x) if (*x - 1.0).abs() < 1e-10)
-                    {
-                        (**d).clone()
-                    } else {
-                        Expr::product(vec![(**u).clone(), (**d).clone()])
-                    };
-                    let new_num = Expr::sum(vec![u_times_d, (**n).clone()]);
-                    return Some(Expr::div_expr(new_num, (**d).clone()));
-                }
-
-                // Case 3: a/b + c (u is the fraction)
-                if let AstKind::Div(n, d) = &u.kind {
-                    let v_times_d = if matches!(&v.kind, AstKind::Number(x) if (*x - 1.0).abs() < 1e-10)
-                    {
-                        (**d).clone()
-                    } else {
-                        Expr::product(vec![(**v).clone(), (**d).clone()])
-                    };
-                    let new_num = Expr::sum(vec![(**n).clone(), v_times_d]);
-                    return Some(Expr::div_expr(new_num, (**d).clone()));
-                }
+                // (n1*d2 + n2*d1) / (d1*d2)
+                let new_num = Expr::sum(vec![
+                    Expr::product(vec![(**n1).clone(), (**d2).clone()]),
+                    Expr::product(vec![(**n2).clone(), (**d1).clone()]),
+                ]);
+                let new_den = Expr::product(vec![(**d1).clone(), (**d2).clone()]);
+                return Some(Expr::div_expr(new_num, new_den));
             }
+
+            // Case 2: a + b/c (v is the fraction)
+            if let AstKind::Div(n, d) = &v.kind {
+                let u_times_d = if matches!(&u.kind, AstKind::Number(x) if (*x - 1.0).abs() < 1e-10)
+                {
+                    (**d).clone()
+                } else {
+                    Expr::product(vec![(**u).clone(), (**d).clone()])
+                };
+                let new_num = Expr::sum(vec![u_times_d, (**n).clone()]);
+                return Some(Expr::div_expr(new_num, (**d).clone()));
+            }
+
+            // Case 3: a/b + c (u is the fraction)
+            if let AstKind::Div(n, d) = &u.kind {
+                let v_times_d = if matches!(&v.kind, AstKind::Number(x) if (*x - 1.0).abs() < 1e-10)
+                {
+                    (**d).clone()
+                } else {
+                    Expr::product(vec![(**v).clone(), (**d).clone()])
+                };
+                let new_num = Expr::sum(vec![(**n).clone(), v_times_d]);
+                return Some(Expr::div_expr(new_num, (**d).clone()));
+            }
+        }
         None
     }
 );

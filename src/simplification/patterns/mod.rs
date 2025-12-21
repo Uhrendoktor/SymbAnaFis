@@ -16,17 +16,18 @@ pub(crate) mod common {
             ExprKind::Product(factors) => {
                 // Check if first factor is a number coefficient
                 if let Some(first) = factors.first()
-                    && let ExprKind::Number(n) = &first.kind {
-                        // Return coefficient and remaining factors
-                        let rest: Vec<_> = factors.iter().skip(1).map(|f| (**f).clone()).collect();
-                        if rest.is_empty() {
-                            return (*n, Expr::number(1.0));
-                        } else if rest.len() == 1 {
-                            return (*n, rest.into_iter().next().unwrap());
-                        } else {
-                            return (*n, Expr::product(rest));
-                        }
+                    && let ExprKind::Number(n) = &first.kind
+                {
+                    // Return coefficient and remaining factors
+                    let rest: Vec<_> = factors.iter().skip(1).map(|f| (**f).clone()).collect();
+                    if rest.is_empty() {
+                        return (*n, Expr::number(1.0));
+                    } else if rest.len() == 1 {
+                        return (*n, rest.into_iter().next().unwrap());
+                    } else {
+                        return (*n, Expr::product(rest));
                     }
+                }
                 (1.0, expr.clone())
             }
             _ => (1.0, expr.clone()),
@@ -44,7 +45,7 @@ pub(crate) mod trigonometric {
             if args.len() == 1 {
                 match name.as_str() {
                     "sin" | "cos" | "tan" | "cot" | "sec" | "csc" => {
-                        Some((name.as_str(), args[0].clone()))
+                        Some((name.as_str(), (*args[0]).clone()))
                     }
                     _ => None,
                 }

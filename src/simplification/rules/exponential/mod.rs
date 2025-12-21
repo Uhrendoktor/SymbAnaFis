@@ -1,4 +1,4 @@
-use crate::ast::{Expr, ExprKind as AstKind};
+use crate::core::expr::{Expr, ExprKind as AstKind};
 use crate::simplification::rules::{ExprKind, Rule, RuleCategory, RuleContext};
 use std::sync::Arc;
 
@@ -78,7 +78,7 @@ rule!(ExpLnIdentityRule, "exp_ln_identity", 90, Exponential, &[ExprKind::Functio
         && inner_name == "ln"
         && inner_args.len() == 1
     {
-        return Some(inner_args[0].clone());
+        return Some((*inner_args[0]).clone());
     }
     None
 });
@@ -96,7 +96,7 @@ rule!(LnExpIdentityRule, "ln_exp_identity", 90, Exponential, &[ExprKind::Functio
             && inner_name == "exp"
             && inner_args.len() == 1
         {
-            return Some(inner_args[0].clone());
+            return Some((*inner_args[0]).clone());
         }
         // Check for ln(e^x)
         if let AstKind::Pow(base, exp) = &args[0].kind
@@ -174,7 +174,7 @@ rule!(
                     }
                     return Some(Expr::product(vec![
                         Expr::number(0.5),
-                        Expr::func(name.clone(), inner_args[0].clone()),
+                        Expr::func(name.clone(), (*inner_args[0]).clone()),
                     ]));
                 }
                 // log(cbrt(x)) = (1/3) * log(x)
@@ -184,7 +184,7 @@ rule!(
                     }
                     return Some(Expr::product(vec![
                         Expr::div_expr(Expr::number(1.0), Expr::number(3.0)),
-                        Expr::func(name.clone(), inner_args[0].clone()),
+                        Expr::func(name.clone(), (*inner_args[0]).clone()),
                     ]));
                 }
             }
@@ -234,7 +234,7 @@ rule!(
             && name == "exp"
             && args.len() == 1
         {
-            return Some(Expr::pow(Expr::symbol("e"), args[0].clone()));
+            return Some(Expr::pow(Expr::symbol("e"), (*args[0]).clone()));
         }
         None
     }
@@ -246,7 +246,7 @@ fn get_ln_arg(expr: &Expr) -> Option<Expr> {
         && name == "ln"
         && args.len() == 1
     {
-        return Some(args[0].clone());
+        return Some((*args[0]).clone());
     }
     None
 }

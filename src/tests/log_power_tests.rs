@@ -18,16 +18,17 @@ mod tests {
 
             let has_ln = factors.iter().any(|f| {
                 if let ExprKind::FunctionCall { name, args } = &f.kind
-                    && name == "ln" {
-                        // The argument should be abs(x)
-                        if let ExprKind::FunctionCall {
-                            name: abs_name,
-                            args: abs_args,
-                        } = &args[0].kind
-                        {
-                            return abs_name == "abs" && abs_args[0] == Expr::symbol("x");
-                        }
+                    && name == "ln"
+                {
+                    // The argument should be abs(x)
+                    if let ExprKind::FunctionCall {
+                        name: abs_name,
+                        args: abs_args,
+                    } = &args[0].kind
+                    {
+                        return abs_name == "abs" && *abs_args[0] == Expr::symbol("x");
                     }
+                }
                 false
             });
             assert!(has_ln, "Expected ln(abs(x))");
@@ -49,7 +50,7 @@ mod tests {
 
             let has_log = factors.iter().any(|f| {
                 if let ExprKind::FunctionCall { name, args } = &f.kind {
-                    name == "log10" && args[0] == Expr::symbol("x")
+                    name == "log10" && *args[0] == Expr::symbol("x")
                 } else {
                     false
                 }
@@ -74,13 +75,13 @@ mod tests {
             let has_log = factors.iter().any(|f| {
                 if let ExprKind::FunctionCall { name, args } = &f.kind
                     && name == "log10"
-                        && let ExprKind::FunctionCall {
-                            name: abs_name,
-                            args: abs_args,
-                        } = &args[0].kind
-                        {
-                            return abs_name == "abs" && abs_args[0] == Expr::symbol("x");
-                        }
+                    && let ExprKind::FunctionCall {
+                        name: abs_name,
+                        args: abs_args,
+                    } = &args[0].kind
+                {
+                    return abs_name == "abs" && *abs_args[0] == Expr::symbol("x");
+                }
                 false
             });
             assert!(has_log, "Expected log10(abs(x))");
@@ -101,7 +102,7 @@ mod tests {
             ExprKind::Div(num, den) => {
                 // Check for log2(x) / 2
                 let is_log2 = if let ExprKind::FunctionCall { name, args } = &num.kind {
-                    name == "log2" && args[0] == Expr::symbol("x")
+                    name == "log2" && *args[0] == Expr::symbol("x")
                 } else {
                     false
                 };
@@ -115,7 +116,7 @@ mod tests {
                 let has_half = factors.iter().any(|f| **f == Expr::number(0.5));
                 let has_log2 = factors.iter().any(|f| {
                     if let ExprKind::FunctionCall { name, args } = &f.kind {
-                        name == "log2" && args[0] == Expr::symbol("x")
+                        name == "log2" && *args[0] == Expr::symbol("x")
                     } else {
                         false
                     }

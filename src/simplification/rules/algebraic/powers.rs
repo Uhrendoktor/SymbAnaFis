@@ -61,10 +61,7 @@ rule!(
                     if let AstKind::Number(outer_n) = &v.kind {
                         let product = inner_n * outer_n;
                         if (product - 1.0).abs() < 1e-10 {
-                            return Some(Expr::func_multi(
-                                "abs",
-                                vec![(**base).clone()],
-                            ));
+                            return Some(Expr::func_multi("abs", vec![(**base).clone()]));
                         }
                     }
                 }
@@ -118,27 +115,30 @@ rule!(
                     // Both are powers with the same base
                     if let (AstKind::Pow(base_1, exp_1), AstKind::Pow(base_2, exp_2)) =
                         (&f1.kind, &f2.kind)
-                        && base_1 == base_2 {
-                            // Combine: x^a * x^b = x^(a+b)
-                            let new_exp = Expr::sum(vec![(**exp_1).clone(), (**exp_2).clone()]);
-                            let combined = Expr::pow((**base_1).clone(), new_exp);
-                            return build_result(combined);
-                        }
+                        && base_1 == base_2
+                    {
+                        // Combine: x^a * x^b = x^(a+b)
+                        let new_exp = Expr::sum(vec![(**exp_1).clone(), (**exp_2).clone()]);
+                        let combined = Expr::pow((**base_1).clone(), new_exp);
+                        return build_result(combined);
+                    }
 
                     // One is a power and the other is the same base
                     if let AstKind::Pow(base_1, exp_1) = &f1.kind
-                        && **base_1 == **f2 {
-                            let new_exp = Expr::sum(vec![(**exp_1).clone(), Expr::number(1.0)]);
-                            let combined = Expr::pow((**base_1).clone(), new_exp);
-                            return build_result(combined);
-                        }
+                        && **base_1 == **f2
+                    {
+                        let new_exp = Expr::sum(vec![(**exp_1).clone(), Expr::number(1.0)]);
+                        let combined = Expr::pow((**base_1).clone(), new_exp);
+                        return build_result(combined);
+                    }
 
                     if let AstKind::Pow(base_2, exp_2) = &f2.kind
-                        && **base_2 == **f1 {
-                            let new_exp = Expr::sum(vec![Expr::number(1.0), (**exp_2).clone()]);
-                            let combined = Expr::pow((**base_2).clone(), new_exp);
-                            return build_result(combined);
-                        }
+                        && **base_2 == **f1
+                    {
+                        let new_exp = Expr::sum(vec![Expr::number(1.0), (**exp_2).clone()]);
+                        let combined = Expr::pow((**base_2).clone(), new_exp);
+                        return build_result(combined);
+                    }
                 }
             }
         }
@@ -292,59 +292,58 @@ rule!(
 
                     if let (AstKind::Pow(base_1, exp_1), AstKind::Pow(base_2, exp_2)) =
                         (&f1.kind, &f2.kind)
-                        && exp_1 == exp_2 {
-                            // Skip if either base^exp would result in an integer - we prefer expanded numeric coefficients
-                            // (e.g., 9*y^2 not (3y)^2, but allow sqrt(2)*sqrt(pi) → sqrt(2pi))
-                            let would_simplify_to_int = |base: &Expr, exp: &Expr| -> bool {
-                                if let (AstKind::Number(base_val), AstKind::Number(exp_val)) =
-                                    (&base.kind, &exp.kind)
-                                {
-                                    let result = base_val.powf(*exp_val);
-                                    result.is_finite() && (result - result.round()).abs() < 1e-10
-                                } else {
-                                    false
-                                }
-                            };
-
-                            if would_simplify_to_int(base_1, exp_1)
-                                || would_simplify_to_int(base_2, exp_2)
+                        && exp_1 == exp_2
+                    {
+                        // Skip if either base^exp would result in an integer - we prefer expanded numeric coefficients
+                        // (e.g., 9*y^2 not (3y)^2, but allow sqrt(2)*sqrt(pi) → sqrt(2pi))
+                        let would_simplify_to_int = |base: &Expr, exp: &Expr| -> bool {
+                            if let (AstKind::Number(base_val), AstKind::Number(exp_val)) =
+                                (&base.kind, &exp.kind)
                             {
+                                let result = base_val.powf(*exp_val);
+                                result.is_finite() && (result - result.round()).abs() < 1e-10
+                            } else {
+                                false
+                            }
+                        };
+
+                        if would_simplify_to_int(base_1, exp_1)
+                            || would_simplify_to_int(base_2, exp_2)
+                        {
+                            continue;
+                        }
+
+                        if context.domain_safe
+                            && crate::simplification::helpers::is_fractional_root_exponent(exp_1)
+                        {
+                            let left_non_neg =
+                                crate::simplification::helpers::is_known_non_negative(base_1);
+                            let right_non_neg =
+                                crate::simplification::helpers::is_known_non_negative(base_2);
+                            if !(left_non_neg && right_non_neg) {
                                 continue;
                             }
-
-                            if context.domain_safe
-                                && crate::simplification::helpers::is_fractional_root_exponent(
-                                    exp_1,
-                                )
-                            {
-                                let left_non_neg =
-                                    crate::simplification::helpers::is_known_non_negative(base_1);
-                                let right_non_neg =
-                                    crate::simplification::helpers::is_known_non_negative(base_2);
-                                if !(left_non_neg && right_non_neg) {
-                                    continue;
-                                }
-                            }
-
-                            // Combine: x^a * y^a = (x*y)^a
-                            let combined_base =
-                                Expr::product(vec![(**base_1).clone(), (**base_2).clone()]);
-                            let combined = Expr::pow(combined_base, (**exp_1).clone());
-
-                            let mut new_factors: Vec<Expr> = factors
-                                .iter()
-                                .enumerate()
-                                .filter(|(k, _)| *k != i && *k != j)
-                                .map(|(_, f)| (**f).clone())
-                                .collect();
-                            new_factors.push(combined);
-
-                            if new_factors.len() == 1 {
-                                return Some(new_factors.into_iter().next().unwrap());
-                            } else {
-                                return Some(Expr::product(new_factors));
-                            }
                         }
+
+                        // Combine: x^a * y^a = (x*y)^a
+                        let combined_base =
+                            Expr::product(vec![(**base_1).clone(), (**base_2).clone()]);
+                        let combined = Expr::pow(combined_base, (**exp_1).clone());
+
+                        let mut new_factors: Vec<Expr> = factors
+                            .iter()
+                            .enumerate()
+                            .filter(|(k, _)| *k != i && *k != j)
+                            .map(|(_, f)| (**f).clone())
+                            .collect();
+                        new_factors.push(combined);
+
+                        if new_factors.len() == 1 {
+                            return Some(new_factors.into_iter().next().unwrap());
+                        } else {
+                            return Some(Expr::product(new_factors));
+                        }
+                    }
                 }
             }
         }
@@ -381,11 +380,12 @@ rule!(
             // Handle Product([-1, exp]): x^(-1 * a) -> 1/x^a
             if let AstKind::Product(factors) = &exp.kind
                 && factors.len() == 2
-                    && let AstKind::Number(n) = &factors[0].kind
-                        && *n == -1.0 {
-                            let denominator = Expr::pow((**base).clone(), (*factors[1]).clone());
-                            return Some(Expr::div_expr(Expr::number(1.0), denominator));
-                        }
+                && let AstKind::Number(n) = &factors[0].kind
+                && *n == -1.0
+            {
+                let denominator = Expr::pow((**base).clone(), (*factors[1]).clone());
+                return Some(Expr::div_expr(Expr::number(1.0), denominator));
+            }
         }
         None
     }

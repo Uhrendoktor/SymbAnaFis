@@ -73,13 +73,15 @@ fn evaluate_numeric_functions(expr: Expr) -> Expr {
             // Check for 0.5 coefficient: 0.5 * expr -> expr / 2
             if processed.len() == 2 {
                 if let ExprKind::Number(n) = &processed[0].kind
-                    && *n == 0.5 {
-                        return Expr::div_expr(processed[1].clone(), Expr::number(2.0));
-                    }
+                    && *n == 0.5
+                {
+                    return Expr::div_expr(processed[1].clone(), Expr::number(2.0));
+                }
                 if let ExprKind::Number(n) = &processed[1].kind
-                    && *n == 0.5 {
-                        return Expr::div_expr(processed[0].clone(), Expr::number(2.0));
-                    }
+                    && *n == 0.5
+                {
+                    return Expr::div_expr(processed[0].clone(), Expr::number(2.0));
+                }
             }
 
             Expr::product(processed)
@@ -114,7 +116,14 @@ fn evaluate_numeric_functions(expr: Expr) -> Expr {
             Expr::pow(u, v)
         }
         ExprKind::FunctionCall { name, args } => {
-            let args: Vec<Expr> = args.into_iter().map(evaluate_numeric_functions).collect();
+            let args: Vec<Expr> = args
+                .into_iter()
+                .map(|a| {
+                    evaluate_numeric_functions(
+                        std::sync::Arc::try_unwrap(a).unwrap_or_else(|arc| (*arc).clone()),
+                    )
+                })
+                .collect();
 
             // Evaluate sqrt(n) if n is a perfect square
             if name == "sqrt"

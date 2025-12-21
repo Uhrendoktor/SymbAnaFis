@@ -1153,7 +1153,7 @@ mod tests {
         assert_eq!(format!("{}", sum), "test_arith_x2 + test_arith_y2");
 
         let scaled = 2.0 * x;
-        assert_eq!(format!("{}", scaled), "2test_arith_x2");
+        assert_eq!(format!("{}", scaled), "2*test_arith_x2");
     }
 
     #[test]

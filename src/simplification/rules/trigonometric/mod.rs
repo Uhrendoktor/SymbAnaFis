@@ -41,5 +41,10 @@ pub(crate) fn get_trigonometric_rules() -> Vec<Arc<dyn Rule + Send + Sync>> {
         Arc::new(angles::TrigProductToDoubleAngleRule),
         // Triple angle formulas
         Arc::new(triple_angle::TrigTripleAngleRule),
+        // Ratio rules: convert fractions to canonical trig functions
+        Arc::new(basic::OneCosToSecRule),
+        Arc::new(basic::OneSinToCscRule),
+        Arc::new(basic::SinCosToTanRule),
+        Arc::new(basic::CosSinToCotRule),
     ]
 }

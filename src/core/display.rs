@@ -14,27 +14,50 @@ use std::sync::Arc;
 // HELPER FUNCTIONS
 // =============================================================================
 
-/// Check if an expression is negative (has a leading -1 coefficient in a Product)
-/// Returns Some(inner_product_without_neg1) if the expression is Product([-1, ...])
+/// Check if an expression is negative (has a negative leading coefficient)
+/// Returns Some(positive_equivalent) if the expression has a negative sign
 fn extract_negative(expr: &Expr) -> Option<Expr> {
     match &expr.kind {
         ExprKind::Product(factors) => {
             if !factors.is_empty()
                 && let ExprKind::Number(n) = &factors[0].kind
-                && (*n + 1.0).abs() < 1e-10
+                && *n < 0.0
             {
-                // Remove the -1 factor
-                if factors.len() == 2 {
-                    return Some((*factors[1]).clone());
+                // Negative leading coefficient
+                let abs_coeff = n.abs();
+                if (abs_coeff - 1.0).abs() < 1e-10 {
+                    // Exactly -1: just remove it
+                    if factors.len() == 2 {
+                        return Some((*factors[1]).clone());
+                    } else {
+                        let remaining: Vec<Arc<Expr>> = factors[1..].to_vec();
+                        return Some(Expr::product_from_arcs(remaining));
+                    }
                 } else {
-                    let remaining: Vec<Arc<Expr>> = factors[1..].to_vec();
-                    return Some(Expr::product_from_arcs(remaining));
+                    // Other negative coefficient like -2, -3.5: replace with positive
+                    let mut new_factors: Vec<Arc<Expr>> = Vec::with_capacity(factors.len());
+                    new_factors.push(Arc::new(Expr::number(abs_coeff)));
+                    new_factors.extend(factors[1..].iter().cloned());
+                    return Some(Expr::product_from_arcs(new_factors));
                 }
             }
         }
         ExprKind::Number(n) => {
             if *n < 0.0 {
                 return Some(Expr::number(-*n));
+            }
+        }
+        // Handle Poly with negative first term
+        ExprKind::Poly(poly) => {
+            if let Some(first_term) = poly.terms().first() {
+                if first_term.coeff < 0.0 {
+                    // Create a new Poly with negated first term coefficient
+                    let mut negated_poly = poly.clone();
+                    if let Some(first) = negated_poly.terms_mut().first_mut() {
+                        first.coeff = -first.coeff;
+                    }
+                    return Some(Expr::new(ExprKind::Poly(negated_poly)));
+                }
             }
         }
         _ => {}
@@ -149,27 +172,9 @@ impl fmt::Display for Expr {
                     }
                 }
 
-                // Display factors with appropriate separators
-                let mut result = String::new();
-                let mut prev_needs_star = false;
-
-                for (i, factor) in factors.iter().enumerate() {
-                    let factor_str = format_factor(factor);
-
-                    if i == 0 {
-                        result.push_str(&factor_str);
-                        prev_needs_star = needs_explicit_star_after(factor);
-                    } else {
-                        // Determine if we need explicit *
-                        if prev_needs_star || needs_explicit_star_before(factor) {
-                            result.push('*');
-                        }
-                        result.push_str(&factor_str);
-                        prev_needs_star = needs_explicit_star_after(factor);
-                    }
-                }
-
-                write!(f, "{}", result)
+                // Display factors with explicit * separator
+                let factor_strs: Vec<String> = factors.iter().map(|f| format_factor(f)).collect();
+                write!(f, "{}", factor_strs.join("*"))
             }
 
             ExprKind::Div(u, v) => {
@@ -223,24 +228,13 @@ impl fmt::Display for Expr {
             ExprKind::Derivative { inner, var, order } => {
                 write!(f, "∂^{}_{}/∂_{}^{}", order, inner, var, order)
             }
+
+            // Poly: display inline using Polynomial's Display
+            ExprKind::Poly(poly) => {
+                write!(f, "{}", poly)
+            }
         }
     }
-}
-
-/// Check if we need explicit * after this expression
-fn needs_explicit_star_after(expr: &Expr) -> bool {
-    matches!(
-        expr.kind,
-        ExprKind::Symbol(_)
-            | ExprKind::Pow(_, _)
-            | ExprKind::FunctionCall { .. }
-            | ExprKind::Div(_, _)
-    )
-}
-
-/// Check if we need explicit * before this expression
-fn needs_explicit_star_before(expr: &Expr) -> bool {
-    matches!(expr.kind, ExprKind::Number(_) | ExprKind::Div(_, _))
 }
 
 // =============================================================================
@@ -579,6 +573,9 @@ fn format_latex(expr: &Expr, f: &mut fmt::Formatter<'_>) -> fmt::Result {
                 )
             }
         }
+
+        // Poly: display inline in LaTeX
+        ExprKind::Poly(poly) => write!(f, "{}", poly),
     }
 }
 
@@ -763,6 +760,9 @@ fn format_unicode(expr: &Expr, f: &mut fmt::Formatter<'_>) -> fmt::Result {
             let sup = num_to_superscript(*order as f64);
             write!(f, "∂{}({})/∂{}{}", sup, UnicodeFormatter(inner), var, sup)
         }
+
+        // Poly: display inline in unicode
+        ExprKind::Poly(poly) => write!(f, "{}", poly),
     }
 }
 
@@ -822,7 +822,7 @@ mod tests {
     #[test]
     fn test_display_product() {
         let prod = Expr::product(vec![Expr::number(2.0), Expr::symbol("x")]);
-        assert_eq!(format!("{}", prod), "2x");
+        assert_eq!(format!("{}", prod), "2*x");
     }
 
     #[test]

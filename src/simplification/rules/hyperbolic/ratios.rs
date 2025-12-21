@@ -1,4 +1,4 @@
-use crate::ast::{Expr, ExprKind as AstKind};
+use crate::core::expr::{Expr, ExprKind as AstKind};
 use crate::simplification::rules::{ExprKind, Rule, RuleCategory, RuleContext};
 
 rule!(
@@ -23,7 +23,7 @@ rule!(
             && den_args.len() == 1
             && num_args[0] == den_args[0]
         {
-            return Some(Expr::func("tanh", num_args[0].clone()));
+            return Some(Expr::func("tanh", (*num_args[0]).clone()));
         }
         None
     }
@@ -51,7 +51,7 @@ rule!(
             && den_args.len() == 1
             && num_args[0] == den_args[0]
         {
-            return Some(Expr::func("coth", num_args[0].clone()));
+            return Some(Expr::func("coth", (*num_args[0]).clone()));
         }
         None
     }
@@ -71,7 +71,7 @@ rule!(
             && name == "cosh"
             && args.len() == 1
         {
-            return Some(Expr::func_multi("sech", args.clone()));
+            return Some(Expr::func_multi_from_arcs("sech", args.clone()));
         }
         None
     }
@@ -91,7 +91,7 @@ rule!(
             && name == "sinh"
             && args.len() == 1
         {
-            return Some(Expr::func_multi("csch", args.clone()));
+            return Some(Expr::func_multi_from_arcs("csch", args.clone()));
         }
         None
     }
@@ -111,7 +111,7 @@ rule!(
             && name == "tanh"
             && args.len() == 1
         {
-            return Some(Expr::func_multi("coth", args.clone()));
+            return Some(Expr::func_multi_from_arcs("coth", args.clone()));
         }
         None
     }

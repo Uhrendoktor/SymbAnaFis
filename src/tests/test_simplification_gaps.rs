@@ -15,7 +15,7 @@ mod tests {
         // 5*x - x should simplify to 4*x
         let expr = "5*x - x";
         let result = simplify(expr, None, None).unwrap();
-        assert_eq!(result, "4x");
+        assert_eq!(result, "4*x");
     }
 
     #[test]
@@ -39,7 +39,7 @@ mod tests {
         // exp(ln(x^2)) + sqrt(x^4) -> x^2 + x^2 -> 2x^2
         let expr = "exp(ln(x^2)) + sqrt(x^4)";
         let result = simplify(expr, None, None).unwrap();
-        assert_eq!(result, "2x^2");
+        assert_eq!(result, "2*x^2");
     }
 
     #[test]
@@ -47,7 +47,7 @@ mod tests {
         // e^(ln(x^2)) + sqrt(x^4) -> x^2 + x^2 -> 2x^2
         let expr = "e^(ln(x^2)) + sqrt(x^4)";
         let result = simplify(expr, None, None).unwrap();
-        assert_eq!(result, "2x^2");
+        assert_eq!(result, "2*x^2");
     }
 
     #[test]

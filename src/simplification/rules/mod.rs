@@ -199,6 +199,7 @@ pub(crate) enum ExprKind {
     Pow,
     Function,   // Any function call
     Derivative, // Partial derivative expression
+    Poly,       // Polynomial (don't trigger Sum rules)
 }
 
 impl ExprKind {
@@ -214,6 +215,7 @@ impl ExprKind {
             AstKind::Pow(_, _) => ExprKind::Pow,
             AstKind::FunctionCall { .. } => ExprKind::Function,
             AstKind::Derivative { .. } => ExprKind::Derivative,
+            AstKind::Poly(_) => ExprKind::Poly, // Poly has its own rules, don't trigger Sum rules
         }
     }
 }
@@ -280,14 +282,10 @@ pub(crate) struct RuleContext {
 }
 
 impl RuleContext {
-    pub fn with_depth(mut self, depth: usize) -> Self {
+    /// Set depth by mutable reference (avoids clone)
+    #[inline]
+    pub fn set_depth(&mut self, depth: usize) {
         self.depth = depth;
-        self
-    }
-
-    pub fn with_domain_safe(mut self, domain_safe: bool) -> Self {
-        self.domain_safe = domain_safe;
-        self
     }
 
     pub fn with_variables(mut self, variables: HashSet<String>) -> Self {

@@ -6,7 +6,7 @@ fn test_builder_configuration() {
     let x = symb("x");
     let diff = Diff::new();
     let res = diff.differentiate(x.clone().pow(2.0), &x).unwrap();
-    assert_eq!(format!("{}", res), "2x");
+    assert_eq!(format!("{}", res), "2*x");
 
     // Test domain_safe
     let _diff_safe = Diff::new().domain_safe(true);
@@ -33,13 +33,13 @@ fn test_custom_derivatives() {
     let x = symb("x");
     let expr = Expr::func("my_func", x.into());
     let res = diff.differentiate(expr, &x).unwrap();
-    assert_eq!(format!("{}", res), "3x^2");
+    assert_eq!(format!("{}", res), "3*x^2");
 
     // Test chain rule: my_func(x^2) -> 3*(x^2)^2 * (2x) = 6x^5
     let expr2 = Expr::func("my_func", x.clone().pow(2.0));
     let res2 = diff.differentiate(expr2, &x).unwrap();
 
-    assert_eq!(format!("{}", res2), "6x^5");
+    assert_eq!(format!("{}", res2), "6*x^5");
 }
 
 #[test]

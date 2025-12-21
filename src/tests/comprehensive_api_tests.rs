@@ -1120,7 +1120,7 @@ mod edge_case_tests {
 // ============================================================
 
 mod custom_fn_differentiation_tests {
-    use crate::builder::CustomFn;
+    use crate::api::builder::CustomFn;
     use crate::{Diff, Expr, symb};
 
     /// Test basic CustomFn registration and differentiation

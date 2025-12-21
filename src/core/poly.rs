@@ -4,7 +4,7 @@
 //! Complex sub-expressions (sin, exp, etc.) become temporary symbols during
 //! polynomial operations, then get substituted back.
 
-use crate::symbol::{InternedSymbol, get_or_intern};
+use crate::core::symbol::{InternedSymbol, get_or_intern};
 use crate::{Expr, ExprKind};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -117,13 +117,55 @@ impl PolyTerm {
     }
 }
 
+impl std::fmt::Display for PolyTerm {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if self.powers.is_empty() {
+            // Constant term
+            return write!(f, "{}", format_coeff(self.coeff));
+        }
+
+        let mut first = true;
+
+        // Write coefficient if not 1 (or -1)
+        if (self.coeff - 1.0).abs() > 1e-10 && (self.coeff + 1.0).abs() > 1e-10 {
+            write!(f, "{}", format_coeff(self.coeff))?;
+            first = false;
+        } else if (self.coeff + 1.0).abs() < 1e-10 {
+            write!(f, "-")?;
+        }
+
+        // Write variable powers
+        for (sym, pow) in &self.powers {
+            if !first {
+                write!(f, "*")?;
+            }
+            if *pow == 1 {
+                write!(f, "{}", sym)?;
+            } else {
+                write!(f, "{}^{}", sym, pow)?;
+            }
+            first = false;
+        }
+        Ok(())
+    }
+}
+
+/// Helper to format coefficient
+fn format_coeff(n: f64) -> String {
+    if n.trunc() == n && n.abs() < 1e10 {
+        format!("{}", n as i64)
+    } else {
+        format!("{}", n)
+    }
+}
+
 // =============================================================================
 // POLYNOMIAL
 // =============================================================================
 
 /// Multivariate polynomial with expression substitution
 /// Non-polynomial sub-expressions are replaced with temporary symbols
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Polynomial {
     /// List of terms (coefficient * monomial)
     terms: Vec<PolyTerm>,
@@ -136,6 +178,40 @@ pub struct Polynomial {
     next_temp_id: u64,
 }
 
+impl std::fmt::Display for Polynomial {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if self.terms.is_empty() {
+            return write!(f, "0");
+        }
+
+        let mut first = true;
+        for term in &self.terms {
+            if first {
+                // First term: check if negative
+                if term.coeff < 0.0 {
+                    // Create a temporary positive version for display
+                    let mut pos_term = term.clone();
+                    pos_term.coeff = -term.coeff;
+                    write!(f, "-{}", pos_term)?;
+                } else {
+                    write!(f, "{}", term)?;
+                }
+                first = false;
+            } else {
+                // Subsequent terms: show + or -
+                if term.coeff < 0.0 {
+                    let mut pos_term = term.clone();
+                    pos_term.coeff = -term.coeff;
+                    write!(f, " - {}", pos_term)?;
+                } else {
+                    write!(f, " + {}", term)?;
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
 impl Polynomial {
     /// Create a new empty polynomial
     pub fn new() -> Self {
@@ -143,6 +219,64 @@ impl Polynomial {
             terms: Vec::new(),
             substitutions: HashMap::new(),
             next_temp_id: 0,
+        }
+    }
+
+    /// Get read access to the terms
+    pub fn terms(&self) -> &[PolyTerm] {
+        &self.terms
+    }
+
+    /// Get mutable access to the terms (for display formatting)
+    pub fn terms_mut(&mut self) -> &mut [PolyTerm] {
+        &mut self.terms
+    }
+
+    /// Get the number of opaque substitutions (non-polynomial sub-expressions)
+    pub fn substitutions_count(&self) -> usize {
+        self.substitutions.len()
+    }
+
+    /// Convert each term to an Expr (for flattening Poly into Sum)
+    pub fn to_expr_terms(&self) -> Vec<Expr> {
+        self.terms
+            .iter()
+            .map(|term| self.term_to_expr(term))
+            .collect()
+    }
+
+    /// Convert a single term to Expr
+    fn term_to_expr(&self, term: &PolyTerm) -> Expr {
+        // Start with coefficient
+        let mut factors: Vec<Expr> = Vec::new();
+
+        if (term.coeff - 1.0).abs() > 1e-14 || term.powers.is_empty() {
+            factors.push(Expr::number(term.coeff));
+        }
+
+        // Add variable powers
+        for (sym, pow) in &term.powers {
+            // Check if this is a temp symbol needing substitution
+            let base_expr = if let Some(original) = self.substitutions.get(&sym.id()) {
+                (**original).clone()
+            } else {
+                Expr::from_interned(sym.clone())
+            };
+
+            if *pow == 1 {
+                factors.push(base_expr);
+            } else {
+                factors.push(Expr::pow(base_expr, Expr::number(*pow as f64)));
+            }
+        }
+
+        // Build the result
+        if factors.is_empty() {
+            Expr::number(term.coeff)
+        } else if factors.len() == 1 {
+            factors.pop().unwrap()
+        } else {
+            Expr::product(factors)
         }
     }
 
@@ -274,6 +408,13 @@ impl Polynomial {
             // FunctionCall, Derivative: treat as opaque expressions
             ExprKind::FunctionCall { .. } | ExprKind::Derivative { .. } => {
                 self.add_opaque_expr(expr)
+            }
+
+            // Poly: already a polynomial, just merge it
+            ExprKind::Poly(poly) => {
+                self.terms.extend(poly.terms.clone());
+                self.merge_substitutions(poly);
+                Some(())
             }
         }
     }
@@ -531,7 +672,10 @@ impl Polynomial {
         if term_exprs.len() == 1 {
             term_exprs.into_iter().next().unwrap()
         } else {
-            Expr::sum(term_exprs)
+            // Use Expr::new directly to bypass sum() Poly detection and prevent recursion
+            Expr::new(crate::ExprKind::Sum(
+                term_exprs.into_iter().map(std::sync::Arc::new).collect(),
+            ))
         }
     }
 
@@ -787,7 +931,7 @@ mod tests {
         let expr = Expr::product(vec![Expr::number(3.0), Expr::symbol("x")]);
         let poly = Polynomial::try_from_expr(&expr).unwrap();
         assert_eq!(poly.term_count(), 1);
-        assert_eq!(poly.to_expr().to_string(), "3x");
+        assert_eq!(poly.to_expr().to_string(), "3*x");
     }
 
     #[test]

@@ -25,7 +25,7 @@ mod tests {
         let simplified = simplify_expr(expr, HashSet::new());
         if let ExprKind::FunctionCall { name, args } = &simplified.kind {
             assert_eq!(name, "cosh");
-            assert_eq!(args[0], Expr::symbol("x"));
+            assert_eq!(*args[0], Expr::symbol("x"));
         } else {
             panic!("Expected cosh(x), got {:?}", simplified);
         }
@@ -49,7 +49,7 @@ mod tests {
         let simplified = simplify_expr(expr, HashSet::new());
         if let ExprKind::FunctionCall { name, args } = &simplified.kind {
             assert_eq!(name, "cosh");
-            assert_eq!(args[0], Expr::symbol("x"));
+            assert_eq!(*args[0], Expr::symbol("x"));
         } else {
             panic!("Expected cosh(x), got {:?}", simplified);
         }
@@ -81,7 +81,7 @@ mod tests {
         let simplified = simplify_expr(expr, HashSet::new());
         if let ExprKind::FunctionCall { name, args } = &simplified.kind {
             assert_eq!(name, "coth");
-            assert_eq!(args[0], Expr::symbol("x"));
+            assert_eq!(*args[0], Expr::symbol("x"));
         } else {
             panic!("Expected coth(x), got {:?}", simplified);
         }
@@ -113,7 +113,7 @@ mod tests {
         let simplified = simplify_expr(expr, HashSet::new());
         if let ExprKind::FunctionCall { name, args } = &simplified.kind {
             assert_eq!(name, "tanh");
-            assert_eq!(args[0], Expr::symbol("x"));
+            assert_eq!(*args[0], Expr::symbol("x"));
         } else {
             panic!("Expected tanh(x), got {:?}", simplified);
         }
@@ -137,7 +137,7 @@ mod tests {
         let simplified = simplify_expr(expr, HashSet::new());
         if let ExprKind::FunctionCall { name, args } = &simplified.kind {
             assert_eq!(name, "sech");
-            assert_eq!(args[0], Expr::symbol("x"));
+            assert_eq!(*args[0], Expr::symbol("x"));
         } else {
             panic!("Expected sech(x), got {:?}", simplified);
         }
@@ -163,7 +163,7 @@ mod tests {
         let simplified = simplify_expr(expr, HashSet::new());
         if let ExprKind::FunctionCall { name, args } = &simplified.kind {
             assert_eq!(name, "sinh");
-            assert_eq!(args[0], Expr::symbol("x"));
+            assert_eq!(*args[0], Expr::symbol("x"));
         } else {
             panic!("Expected sinh(x), got {:?}", simplified);
         }
@@ -190,7 +190,7 @@ mod tests {
         let simplified = simplify_expr(expr, HashSet::new());
         if let ExprKind::FunctionCall { name, args } = &simplified.kind {
             assert_eq!(name, "sinh");
-            assert_eq!(args[0], Expr::symbol("x"));
+            assert_eq!(*args[0], Expr::symbol("x"));
         } else {
             panic!("Expected sinh(x), got {:?}", simplified);
         }

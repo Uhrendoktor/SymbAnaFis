@@ -1,7 +1,7 @@
 use crate::Expr;
 use std::collections::HashMap;
 use std::ops::RangeInclusive;
-use std::sync::OnceLock;
+use std::sync::{Arc, OnceLock};
 
 /// Definition of a mathematical function including its evaluation and differentiation logic
 #[derive(Clone)]
@@ -16,9 +16,9 @@ pub(crate) struct FunctionDefinition {
     pub eval: fn(&[f64]) -> Option<f64>,
 
     /// Symbolic differentiation function
-    /// Arguments: (args of the function call, derivatives of the arguments)
+    /// Arguments: (args of the function call as Arc, derivatives of the arguments)
     /// Returns the total derivative dA/dx = sum( (dA/d_arg_i) * (d_arg_i/dx) )
-    pub derivative: fn(&[Expr], &[Expr]) -> Expr,
+    pub derivative: fn(&[Arc<Expr>], &[Expr]) -> Expr,
 }
 
 impl FunctionDefinition {

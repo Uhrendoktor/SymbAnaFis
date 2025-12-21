@@ -14,8 +14,9 @@
 //!     .differentiate(expr, &x)?;  // Now uses Symbol!
 //! ```
 
-use crate::{DiffError, Expr, Symbol, parser, simplification, symbol::SymbolContext};
-use std::collections::{HashMap, HashSet};
+use crate::{DiffError, Expr, Symbol, core::symbol::SymbolContext, parser, simplification};
+use std::collections::HashMap;
+use std::collections::HashSet;
 use std::sync::Arc;
 
 /// Custom derivative function type (for single-arg functions)
@@ -85,6 +86,7 @@ impl CustomFn {
 #[derive(Clone, Default)]
 pub struct Diff {
     domain_safe: bool,
+    skip_simplification: bool, // For benchmarking: return raw derivative
     fixed_vars: HashSet<String>,
     custom_functions: HashSet<String>,
     custom_derivatives: HashMap<String, CustomDerivativeFn>,
@@ -104,6 +106,12 @@ impl Diff {
     /// Enable or disable domain-safe mode (skips domain-altering rules)
     pub fn domain_safe(mut self, safe: bool) -> Self {
         self.domain_safe = safe;
+        self
+    }
+
+    /// Skip simplification and return raw derivative (for benchmarking)
+    pub fn skip_simplification(mut self, skip: bool) -> Self {
+        self.skip_simplification = skip;
         self
     }
 
@@ -286,6 +294,11 @@ impl Diff {
             &self.custom_derivatives,
             &self.custom_fns,
         );
+
+        // Skip simplification if requested (for benchmarking)
+        if self.skip_simplification {
+            return Ok(derivative);
+        }
 
         // Simplify
         let simplified = if self.domain_safe {
@@ -497,12 +510,12 @@ impl Simplify {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::symbol::symb;
+    use crate::core::symbol::symb;
 
     #[test]
     fn test_diff_builder_basic() {
         let result = Diff::new().diff_str("x^2", "x").unwrap();
-        assert_eq!(result, "2x");
+        assert_eq!(result, "2*x");
     }
 
     #[test]
@@ -515,7 +528,7 @@ mod tests {
     #[test]
     fn test_diff_domain_safe() {
         let result = Diff::new().domain_safe(true).diff_str("x^2", "x").unwrap();
-        assert_eq!(result, "2x");
+        assert_eq!(result, "2*x");
     }
 
     #[test]
@@ -524,13 +537,13 @@ mod tests {
         let expr = x.pow(2.0);
 
         let result = Diff::new().differentiate(expr, &x).unwrap();
-        assert_eq!(format!("{}", result), "2x");
+        assert_eq!(format!("{}", result), "2*x");
     }
 
     #[test]
     fn test_simplify_builder() {
         let result = Simplify::new().simplify_str("x + x").unwrap();
-        assert_eq!(result, "2x");
+        assert_eq!(result, "2*x");
     }
 
     #[test]

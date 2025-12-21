@@ -1,4 +1,4 @@
-use crate::ast::{Expr, ExprKind as AstKind};
+use crate::core::expr::{Expr, ExprKind as AstKind};
 use crate::simplification::rules::{ExprKind, Rule, RuleCategory, RuleContext};
 use std::sync::Arc;
 
@@ -123,7 +123,7 @@ rule!(SqrtProductRule, "sqrt_product", 56, Root, &[ExprKind::Product], alters_do
                         // sqrt(a) * sqrt(b) = sqrt(a*b)
                         let combined = Expr::func(
                             "sqrt",
-                            Expr::product(vec![args1[0].clone(), args2[0].clone()]),
+                            Expr::product(vec![(*args1[0]).clone(), (*args2[0]).clone()]),
                         );
 
                         let mut new_factors: Vec<Expr> = factors.iter()
@@ -166,8 +166,8 @@ rule!(SqrtDivRule, "sqrt_div", 56, Root, &[ExprKind::Div], alters_domain: true, 
             return Some(Expr::func(
                 "sqrt",
                 Expr::div_expr(
-                    u_args[0].clone(),
-                    v_args[0].clone(),
+                    (*u_args[0]).clone(),
+                    (*v_args[0]).clone(),
                 ),
             ));
         }
@@ -188,13 +188,13 @@ rule!(
             match name.as_str() {
                 "sqrt" => {
                     return Some(Expr::pow(
-                        args[0].clone(),
+                        (*args[0]).clone(),
                         Expr::div_expr(Expr::number(1.0), Expr::number(2.0)),
                     ));
                 }
                 "cbrt" => {
                     return Some(Expr::pow(
-                        args[0].clone(),
+                        (*args[0]).clone(),
                         Expr::div_expr(Expr::number(1.0), Expr::number(3.0)),
                     ));
                 }
@@ -216,35 +216,37 @@ rule!(
         if let AstKind::FunctionCall { name, args } = &expr.kind
             && name == "sqrt"
             && args.len() == 1
-            && let AstKind::Product(factors) = &args[0].kind {
-                // Look for a square factor x^2
-                for (i, factor) in factors.iter().enumerate() {
-                    if let AstKind::Pow(base, exp) = &factor.kind
-                        && let AstKind::Number(n) = &exp.kind
-                            && *n == 2.0 {
-                                // Found x^2, extract |x|
-                                let abs_base = Expr::func("abs", (**base).clone());
+            && let AstKind::Product(factors) = &args[0].kind
+        {
+            // Look for a square factor x^2
+            for (i, factor) in factors.iter().enumerate() {
+                if let AstKind::Pow(base, exp) = &factor.kind
+                    && let AstKind::Number(n) = &exp.kind
+                    && *n == 2.0
+                {
+                    // Found x^2, extract |x|
+                    let abs_base = Expr::func("abs", (**base).clone());
 
-                                // Build remaining product for sqrt
-                                let remaining: Vec<Arc<Expr>> = factors
-                                    .iter()
-                                    .enumerate()
-                                    .filter(|(j, _)| *j != i)
-                                    .map(|(_, f)| f.clone())
-                                    .collect();
+                    // Build remaining product for sqrt
+                    let remaining: Vec<Arc<Expr>> = factors
+                        .iter()
+                        .enumerate()
+                        .filter(|(j, _)| *j != i)
+                        .map(|(_, f)| f.clone())
+                        .collect();
 
-                                let inner = Expr::product_from_arcs(remaining);
-                                let sqrt_remaining = if matches!(inner.kind, AstKind::Number(n) if (n - 1.0).abs() < 1e-10)
-                                {
-                                    Expr::number(1.0)
-                                } else {
-                                    Expr::func("sqrt", inner)
-                                };
+                    let inner = Expr::product_from_arcs(remaining);
+                    let sqrt_remaining = if matches!(inner.kind, AstKind::Number(n) if (n - 1.0).abs() < 1e-10)
+                    {
+                        Expr::number(1.0)
+                    } else {
+                        Expr::func("sqrt", inner)
+                    };
 
-                                return Some(Expr::product(vec![abs_base, sqrt_remaining]));
-                            }
+                    return Some(Expr::product(vec![abs_base, sqrt_remaining]));
                 }
             }
+        }
         None
     }
 );

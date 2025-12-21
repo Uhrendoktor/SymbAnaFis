@@ -37,7 +37,7 @@ rule!(
             && (inner_name == "abs" || inner_name == "Abs")
             && inner_args.len() == 1
         {
-            return Some(args[0].clone());
+            return Some((*args[0]).clone());
         }
         None
     }
@@ -88,7 +88,7 @@ rule!(
             {
                 // Check if exponent is a positive even integer
                 if *n > 0.0 && n.fract() == 0.0 && (*n as i64) % 2 == 0 {
-                    return Some(args[0].clone());
+                    return Some((*args[0]).clone());
                 }
             }
         }
@@ -112,7 +112,7 @@ rule!(
         {
             // Check if exponent is a positive even integer
             if *n > 0.0 && n.fract() == 0.0 && (*n as i64) % 2 == 0 {
-                return Some(Expr::pow(args[0].clone(), exp.as_ref().clone()));
+                return Some(Expr::pow((*args[0]).clone(), exp.as_ref().clone()));
             }
         }
         None
@@ -158,7 +158,7 @@ rule!(
             } = &args[0].kind
             && (inner_name == "sign" || inner_name == "sgn")
         {
-            return Some(args[0].clone());
+            return Some((*args[0]).clone());
         }
         None
     }
@@ -227,7 +227,7 @@ rule!(
                                 .filter(|(k, _)| *k != i && *k != j)
                                 .map(|(_, f)| (**f).clone())
                                 .collect();
-                            new_factors.push(args1[0].clone());
+                            new_factors.push((*args1[0]).clone());
                             if new_factors.len() == 1 {
                                 return Some(new_factors.into_iter().next().unwrap());
                             } else {
