@@ -100,6 +100,393 @@ flowchart TB
     O1 --> O3
 ```
 
+---
+
+## Differentiation Engine Architecture
+
+The differentiation engine (`diff/engine.rs`) implements symbolic differentiation via recursive rule application.
+
+```mermaid
+flowchart TB
+    subgraph "Entry Point"
+        E1["Expr.derive(var, fixed_vars, custom_derivatives, custom_fns)"]
+        E2["Expr.derive_raw(var) - No simplification"]
+    end
+
+    subgraph "Pattern Matching on ExprKind"
+        M1["Number(n)"]
+        M2["Symbol(s)"]
+        M3["FunctionCall{name, args}"]
+        M4["Sum(terms)"]
+        M5["Product(factors)"]
+        M6["Div(u, v)"]
+        M7["Pow(u, v)"]
+        M8["Derivative{inner, var, order}"]
+        M9["Poly(polynomial)"]
+    end
+
+    subgraph "Differentiation Rules"
+        R1["d/dx[c] = 0"]
+        R2["d/dx[x] = 1, d/dx[y] = 0"]
+        R3["Chain Rule via Registry
+        or Custom Derivatives"]
+        R4["Sum Rule: Σ d/dx[term_i]"]
+        R5["N-ary Product Rule:
+        Σ (term_i' × Π_{j≠i} term_j)"]
+        R6["Quotient Rule:
+        (u'v - uv') / v²"]
+        R7["Logarithmic Differentiation:
+        u^v × (v'×ln(u) + v×u'/u)"]
+        R8["Order Increment:
+        ∂^n/∂x^n → ∂^(n+1)/∂x^(n+1)"]
+        R9["Polynomial Derivative:
+        Fast O(n) term-by-term"]
+    end
+
+    subgraph "Function Registry Lookup"
+        F1["Check custom_derivatives map"]
+        F2["Check CustomFn partials"]
+        F3["Lookup in global Registry
+        (50+ built-in functions)"]
+        F4["Fallback: Symbolic ∂f/∂x"]
+    end
+
+    subgraph "Inline Optimizations"
+        O1["0 + x → x"]
+        O2["1 × x → x"]
+        O3["0 × x → 0"]
+        O4["Skip zero derivatives"]
+    end
+
+    E1 --> M1 & M2 & M3 & M4 & M5 & M6 & M7 & M8 & M9
+
+    M1 --> R1
+    M2 --> R2
+    M3 --> F1
+    F1 -->|"Found"| R3
+    F1 -->|"Not Found"| F2
+    F2 -->|"Has Partials"| R3
+    F2 -->|"No Partials"| F3
+    F3 -->|"Built-in"| R3
+    F3 -->|"Unknown"| F4
+
+    M4 --> R4
+    M5 --> R5
+    M6 --> R6
+    M7 --> R7
+    M8 --> R8
+    M9 --> R9
+
+    R1 & R2 & R3 & R4 & R5 & R6 & R7 & R8 & R9 --> O1 --> O2 --> O3 --> O4
+    O4 --> Result["Expr (unsimplified)"]
+```
+
+### Key Differentation Features
+
+| Feature | Implementation |
+|---------|----------------|
+| **Logarithmic Differentiation** | Handles `x^x`, `f^g` correctly |
+| **Custom Derivatives** | `Diff::custom_derivative("f", \|inner, var, inner'| ...)` |
+| **Multi-arg Partials** | `CustomFn::partial(0, \|args| ...)` for chain rule |
+| **Fixed Variables** | Variables in `fixed_vars` treated as constants (derivative = 0) |
+| **Inline Optimization** | Prevents expression explosion during recursion |
+
+---
+
+## Simplification Engine Architecture
+
+The simplification engine (`simplification/engine.rs`) uses a multi-pass, rule-based approach.
+
+```mermaid
+flowchart TB
+    subgraph "Entry Point"
+        E1["Simplifier::new()
+        .with_domain_safe(bool)
+        .with_max_iterations(n)
+        .with_fixed_vars(set)"]
+        E2["simplify(expr)"]
+    end
+
+    subgraph "Main Loop"
+        L1["Wrap expr in Arc"]
+        L2["apply_rules_bottom_up(expr, depth)"]
+        L3{"Changed?"}
+        L4{"Iterations < max?"}
+        L5["Return result"]
+    end
+
+    subgraph "Bottom-Up Traversal"
+        B1["Recurse into children first"]
+        B2["Rebuild node if children changed"]
+        B3["apply_rules_to_node(node)"]
+        B4["Return simplified node"]
+    end
+
+    subgraph "Rule Application"
+        RA1["Get rules for ExprKind"]
+        RA2["Sort by priority (descending)"]
+        RA3["For each rule:"]
+        RA4{"Matches pattern?"}
+        RA5{"domain_safe &&
+        alters_domain?"}
+        RA6["Apply transformation"]
+        RA7["Mark changed, restart"]
+    end
+
+    subgraph "Rule Categories (Priority)"
+        P1["85-95: Expansion
+        (distribute, flatten)"]
+        P2["70-84: Cancellation
+        (x/x→1, x^0→1)"]
+        P3["40-69: Consolidation
+        (factor, combine)"]
+        P4["1-39: Canonicalization
+        (sort terms)"]
+    end
+
+    subgraph "Rule Registry"
+        RR1["Numeric Rules (~20)"]
+        RR2["Algebraic Rules (~40)"]
+        RR3["Trigonometric Rules (~30)"]
+        RR4["Hyperbolic Rules (~15)"]
+        RR5["Exponential Rules (~10)"]
+        RR6["Root Rules (~5)"]
+    end
+
+    E1 --> E2 --> L1 --> L2
+
+    L2 --> B1 --> B2 --> B3 --> B4
+    B4 --> L3
+    L3 -->|"Yes"| L4
+    L3 -->|"No"| L5
+    L4 -->|"Yes"| L2
+    L4 -->|"No"| L5
+
+    B3 --> RA1 --> RA2 --> RA3 --> RA4
+    RA4 -->|"No"| RA3
+    RA4 -->|"Yes"| RA5
+    RA5 -->|"Skip"| RA3
+    RA5 -->|"Apply"| RA6 --> RA7
+
+    RA1 -.-> RR1 & RR2 & RR3 & RR4 & RR5 & RR6
+    RR1 & RR2 & RR3 & RR4 & RR5 & RR6 -.-> P1 & P2 & P3 & P4
+```
+
+### Rule Execution Flow
+
+```mermaid
+flowchart LR
+    subgraph "Phase 1: Expand"
+        E1["a×(b+c) → ab + ac"]
+        E2["(a+b)² → a² + 2ab + b²"]
+        E3["Flatten nested Sum/Product"]
+    end
+
+    subgraph "Phase 2: Cancel"
+        C1["x/x → 1"]
+        C2["x - x → 0"]
+        C3["x^0 → 1"]
+        C4["x^a/x^b → x^(a-b)"]
+    end
+
+    subgraph "Phase 3: Consolidate"
+        N1["2x + 3x → 5x"]
+        N2["x×x → x²"]
+        N3["sin²+cos² → 1"]
+        N4["exp(ln(x)) → x"]
+    end
+
+    subgraph "Phase 4: Canonicalize"
+        S1["Sort Sum terms"]
+        S2["Sort Product factors"]
+        S3["Normalize coefficients"]
+    end
+
+    E1 & E2 & E3 --> C1 & C2 & C3 & C4 --> N1 & N2 & N3 & N4 --> S1 & S2 & S3
+```
+
+---
+
+## Evaluation Engine Architecture
+
+The evaluation engine provides both tree-walking and compiled bytecode evaluation.
+
+```mermaid
+flowchart TB
+    subgraph "Entry Points"
+        E1["expr.evaluate(&vars)
+        Tree-walking interpreter"]
+        E2["expr.compile(&var_names)
+        → CompiledEvaluator"]
+        E3["evaluator.evaluate(&values)
+        Bytecode VM"]
+    end
+
+    subgraph "Tree-Walking Evaluator"
+        TW1["Match on ExprKind"]
+        TW2["Number → return value"]
+        TW3["Symbol → lookup in vars HashMap"]
+        TW4["Sum → evaluate all, sum"]
+        TW5["Product → evaluate all, multiply"]
+        TW6["FunctionCall → eval args, call fn"]
+        TW7["Recurse for Div, Pow, etc."]
+    end
+
+    subgraph "Bytecode Compiler"
+        C1["Traverse expression tree"]
+        C2["Generate Instruction sequence"]
+        C3["Map variable names → indices"]
+        C4["Calculate max stack depth"]
+        C5["Return CompiledEvaluator"]
+    end
+
+    subgraph "Bytecode Instructions"
+        I1["LoadConst(f64)"]
+        I2["LoadParam(index)"]
+        I3["Add, Mul, Sub, Div, Pow"]
+        I4["Sin, Cos, Tan, Exp, Ln..."]
+        I5["Square, Cube, Recip (optimized)"]
+        I6["CallExternal{id, arity}"]
+    end
+
+    subgraph "Stack-Based VM"
+        VM1["Pre-allocate stack to max_depth"]
+        VM2["For each instruction:"]
+        VM3["LoadConst → push constant"]
+        VM4["LoadParam → push param[i]"]
+        VM5["BinOp → pop 2, push result"]
+        VM6["UnaryOp → modify top"]
+        VM7["Return stack[0]"]
+    end
+
+    E1 --> TW1
+    TW1 --> TW2 & TW3 & TW4 & TW5 & TW6 & TW7
+
+    E2 --> C1 --> C2 --> C3 --> C4 --> C5
+
+    C2 -.-> I1 & I2 & I3 & I4 & I5 & I6
+
+    E3 --> VM1 --> VM2
+    VM2 --> VM3 & VM4 & VM5 & VM6 --> VM7
+```
+
+### Compiled vs Tree-Walking Performance
+
+| Operation | Tree-Walking | Compiled |
+|-----------|--------------|----------|
+| Setup | None | ~1-5 μs compile |
+| Per-eval | ~100-500 ns | ~10-50 ns |
+| Best for | Single evaluation | Batch evaluation (1000s of points) |
+| Memory | O(depth) recursion | Pre-allocated stack |
+
+---
+
+## Parallel Evaluation Architecture
+
+The parallel module (`bindings/parallel.rs`) provides Rayon-powered batch evaluation.
+
+```mermaid
+flowchart TB
+    subgraph "Input Types"
+        I1["ExprInput::Parsed(Expr)"]
+        I2["ExprInput::String(formula)"]
+        I3["VarInput (name, symbol_id)"]
+        I4["Value::Num(f64)"]
+        I5["Value::Expr(symbolic)"]
+        I6["Value::Skip"]
+    end
+
+    subgraph "evaluate_parallel()"
+        EP1["Parse string inputs (if needed)"]
+        EP2["Compile each expression"]
+        EP3["Rayon parallel iterator"]
+        EP4["Evaluate at each point"]
+        EP5["Collect results"]
+    end
+
+    subgraph "Parallelization Strategy"
+        PS1["Each expression independent"]
+        PS2["Each evaluation point independent"]
+        PS3["Rayon work-stealing scheduler"]
+        PS4["Batch size tuning"]
+    end
+
+    subgraph "Output Types"
+        O1["EvalResult::Expr"]
+        O2["EvalResult::String"]
+        O3["Vec<Vec<f64>> for numeric"]
+    end
+
+    I1 & I2 --> EP1
+    I3 & I4 & I5 & I6 --> EP3
+
+    EP1 --> EP2 --> EP3 --> EP4 --> EP5
+
+    EP3 -.-> PS1 & PS2 & PS3 & PS4
+
+    EP5 --> O1 & O2 & O3
+```
+
+### Parallel Evaluation Flow
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant evaluate_parallel
+    participant Parser
+    participant Compiler
+    participant Rayon
+    participant Worker1
+    participant Worker2
+    participant WorkerN
+
+    User->>evaluate_parallel: exprs, vars, values[][]
+    
+    loop For each expr
+        evaluate_parallel->>Parser: Parse (if string)
+        Parser-->>evaluate_parallel: Expr
+        evaluate_parallel->>Compiler: compile(Expr, vars)
+        Compiler-->>evaluate_parallel: CompiledEvaluator
+    end
+
+    evaluate_parallel->>Rayon: par_iter(values)
+    
+    par
+        Rayon->>Worker1: batch[0..n]
+        Rayon->>Worker2: batch[n..m]
+        Rayon->>WorkerN: batch[m..]
+    end
+
+    Worker1-->>Rayon: results[0..n]
+    Worker2-->>Rayon: results[n..m]
+    WorkerN-->>Rayon: results[m..]
+
+    Rayon-->>evaluate_parallel: Vec<f64>
+    evaluate_parallel-->>User: EvalResult
+```
+
+### Usage Example
+
+```rust
+use symb_anafis::bindings::parallel::*;
+
+// Evaluate derivative at 1000 points
+let expr = symb_anafis::diff("sin(x)^2", "x", None, None)?;
+let vars = vec!["x".into()];
+let values: Vec<Vec<f64>> = (0..1000)
+    .map(|i| vec![i as f64 * 0.001])
+    .collect();
+
+let results = evaluate_parallel(
+    vec![expr.into()],
+    vec![vars],
+    vec![values],
+)?;
+// results[0] contains 1000 f64 values
+```
+
+---
+
 ### Data Flow: `diff("x^2 + sin(x)", "x")`
 
 ```mermaid
