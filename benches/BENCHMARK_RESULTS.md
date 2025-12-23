@@ -170,21 +170,21 @@
 
 | Operation | SymbAnaFis | Symbolica | Speedup |
 |-----------|------------|-----------|---------|
-| Parse | 74 µs | 105 µs | **SA 1.4x** |
-| Diff (no simplify) | 44 µs | 110 µs | **SA 2.5x** |
-| Compile (simplified) | 11.6 µs | 996 µs | **SA 86x** |
-| Eval 1000pts (simplified) | 2,178 µs | 1,455 µs | **SY 1.5x** |
+| Parse | 75 µs | 107 µs | **SA 1.4x** |
+| Diff (no simplify) | 45 µs | 110 µs | **SA 2.5x** |
+| Compile (simplified) | 11.6 µs | 1,018 µs | **SA 88x** |
+| Eval 1000pts (simplified) | 1,983 µs | 1,471 µs | **SY 1.3x** |
 
 ### 300 Terms
 
 | Operation | SymbAnaFis | Symbolica | Speedup |
 |-----------|------------|-----------|---------|
-| Parse | 228 µs | 336 µs | **SA 1.5x** |
-| Diff (no simplify) | 133 µs | 331 µs | **SA 2.5x** |
-| Compile (simplified) | 35.8 µs | 11,134 µs | **SA 311x** |
-| Eval 1000pts (simplified) | 6,863 µs | 4,112 µs | **SY 1.7x** |
+| Parse | 227 µs | 340 µs | **SA 1.5x** |
+| Diff (no simplify) | 133 µs | 335 µs | **SA 2.5x** |
+| Compile (simplified) | 35.8 µs | 11,712 µs | **SA 327x** |
+| Eval 1000pts (simplified) | 6,046 µs | 4,080 µs | **SY 1.5x** |
 
-> **Key Insight:** After SymbAnaFis's full simplification, compilation is dramatically faster (86x-311x). However, Symbolica's evaluator is faster for large simplified expressions (1.5x-1.7x).
+> **Key Insight:** After SymbAnaFis's full simplification, compilation is dramatically faster (88x-327x). Symbolica's evaluator is still faster for large expressions (1.3x-1.5x), but the gap narrowed significantly after inlining optimizations (~12% improvement).
 
 ---
 
@@ -265,7 +265,7 @@
 | **Tree-Walk → Compiled** | Compiled | **5x - 13x** faster |
 | **eval_batch vs loop** | eval_batch | **~16%** faster |
 | **Evaluation** (small expr) | Symbolica | **1.4x - 4.5x** faster |
-| **Evaluation** (large expr, simplified) | Symbolica | **1.5x - 1.7x** faster |
+| **Evaluation** (large expr, simplified) | Symbolica | **1.3x - 1.5x** faster |
 | **Full Pipeline** (small) | Symbolica | **1.9x - 4.8x** faster |
 
 ### Key Insights

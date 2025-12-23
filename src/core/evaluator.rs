@@ -455,6 +455,70 @@ macro_rules! process_instruction {
     };
 }
 
+/// Macro for fast-path instruction dispatch (single evaluation)
+/// $instr: The instruction to process
+/// $stack: The stack Vec<f64>
+/// $params: The params slice &[f64]
+/// $self: Reference to CompiledEvaluator (for slow path fallback)
+macro_rules! single_fast_path {
+    ($instr:expr, $stack:ident, $params:expr, $self_ref:expr) => {
+        match *$instr {
+            Instruction::LoadConst(c) => $stack.push(c),
+            Instruction::LoadParam(p) => $stack.push($params[p]),
+            Instruction::Add => {
+                let b = $stack.pop().unwrap();
+                *$stack.last_mut().unwrap() += b;
+            }
+            Instruction::Mul => {
+                let b = $stack.pop().unwrap();
+                *$stack.last_mut().unwrap() *= b;
+            }
+            Instruction::Div => {
+                let b = $stack.pop().unwrap();
+                *$stack.last_mut().unwrap() /= b;
+            }
+            Instruction::Pow => {
+                let exp = $stack.pop().unwrap();
+                let base = $stack.last_mut().unwrap();
+                *base = base.powf(exp);
+            }
+            Instruction::Neg => {
+                let top = $stack.last_mut().unwrap();
+                *top = -*top;
+            }
+            Instruction::Sin => {
+                let top = $stack.last_mut().unwrap();
+                *top = top.sin();
+            }
+            Instruction::Cos => {
+                let top = $stack.last_mut().unwrap();
+                *top = top.cos();
+            }
+            Instruction::Sqrt => {
+                let top = $stack.last_mut().unwrap();
+                *top = top.sqrt();
+            }
+            Instruction::Exp => {
+                let top = $stack.last_mut().unwrap();
+                *top = top.exp();
+            }
+            Instruction::Ln => {
+                let top = $stack.last_mut().unwrap();
+                *top = top.ln();
+            }
+            Instruction::Tan => {
+                let top = $stack.last_mut().unwrap();
+                *top = top.tan();
+            }
+            Instruction::Abs => {
+                let top = $stack.last_mut().unwrap();
+                *top = top.abs();
+            }
+            _ => $self_ref.exec_slow_instruction_single($instr, &mut *$stack, $params),
+        }
+    };
+}
+
 /// Macro for fast-path batch instruction dispatch
 /// Used by eval_batch and eval_batch_range to avoid code duplication
 /// $instr: The instruction to process
@@ -589,7 +653,7 @@ impl CompiledEvaluator {
         stack.clear();
 
         for instr in self.instructions.iter() {
-            process_instruction!(instr, stack, |i| params[i]);
+            single_fast_path!(instr, stack, params, self);
         }
         stack.pop().unwrap_or(f64::NAN)
     }
@@ -700,10 +764,22 @@ impl CompiledEvaluator {
     }
 
     #[inline(never)]
+    #[cold]
     fn exec_slow_instruction(&self, instr: &Instruction, stack: &mut Vec<f64>) {
         process_instruction!(instr, stack, |_| unreachable!(
             "LoadParam should be handled in fast path"
         ));
+    }
+
+    #[inline(never)]
+    #[cold]
+    fn exec_slow_instruction_single(
+        &self,
+        instr: &Instruction,
+        stack: &mut Vec<f64>,
+        params: &[f64],
+    ) {
+        process_instruction!(instr, stack, |i| params[i]);
     }
 
     /// Parallel batch evaluation - evaluate expression at multiple data points in parallel
