@@ -156,7 +156,7 @@ Warning: `global_context()` is deprecated or internal. Use explicit `Context` or
 
 ## Core Functions
 
-### `diff(formula, var, fixed_vars, custom_functions)`
+### `diff(formula, var, known_symbols, custom_functions)`
 
 Differentiate an expression with respect to a variable.
 
@@ -182,7 +182,7 @@ simplify("x^2 + 2*x + 1", &[], None)?;
 // Result: "(x + 1)^2"
 ```
 
-### `parse(formula, fixed_vars, custom_functions)`
+### `parse(formula, known_symbols, custom_functions)`
 
 Parse a string into an `Expr` AST.
 

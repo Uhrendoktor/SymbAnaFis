@@ -3,8 +3,8 @@
 ## v0.5.0 - Performance Optimization
 
 ### Goal
-Improve differentiation performance through targeted optimizations especially on the simplification engine
-clean architecture as much as possible and make sure it is easy to extend.
+Improve differentiation performance through targeted optimizations especially on the simplification engine and
+make sure the architecture is clean and easy to extend.
 
 ## v0.6.0 - Equation Solving
 
