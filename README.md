@@ -106,11 +106,13 @@ let results = evaluate_parallel(&inputs, &data);
 Register custom functions with their own derivative rules.
 
 ```rust
+use symb_anafis::{Diff, UserFunction};
+
 Diff::new()
-    .custom_derivative("f", |inner, _var, inner_prime| {
-        // Define d/dx f(u) = 2u * u'
-        Expr::number(2.0) * inner.clone() * inner_prime.clone()
-    })
+    .user_fn("f", UserFunction::new(1..=1).partial(0, |args| {
+        // Define ∂f/∂u = 2u for f(u)
+        2.0 * args[0].clone()
+    }))
     .diff_str("f(x^2)", "x")?; // → 4*x^3
 ```
 

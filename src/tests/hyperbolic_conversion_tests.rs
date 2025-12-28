@@ -1,5 +1,6 @@
 use crate::simplification::simplify_expr;
 use crate::{Expr, ExprKind};
+use std::collections::HashMap;
 use std::collections::HashSet;
 
 #[test]
@@ -20,7 +21,15 @@ fn test_simplify_to_sinh() {
         Expr::number(2.0),
     );
 
-    let simplified = simplify_expr(expr, HashSet::new());
+    let simplified = simplify_expr(
+        expr,
+        HashSet::new(),
+        HashMap::new(),
+        None,
+        None,
+        None,
+        false,
+    );
     if let ExprKind::FunctionCall { name, args } = &simplified.kind {
         assert_eq!(name.as_str(), "sinh");
         assert_eq!(*args[0], Expr::symbol("x"));
@@ -43,7 +52,15 @@ fn test_simplify_to_cosh() {
         Expr::number(2.0),
     );
 
-    let simplified = simplify_expr(expr, HashSet::new());
+    let simplified = simplify_expr(
+        expr,
+        HashSet::new(),
+        HashMap::new(),
+        None,
+        None,
+        None,
+        false,
+    );
     if let ExprKind::FunctionCall { name, args } = &simplified.kind {
         assert_eq!(name.as_str(), "cosh");
         assert_eq!(*args[0], Expr::symbol("x"));
@@ -74,7 +91,15 @@ fn test_simplify_to_tanh() {
     ]);
     let expr = Expr::div_expr(numerator, denominator);
 
-    let simplified = simplify_expr(expr, HashSet::new());
+    let simplified = simplify_expr(
+        expr,
+        HashSet::new(),
+        HashMap::new(),
+        None,
+        None,
+        None,
+        false,
+    );
     if let ExprKind::FunctionCall { name, args } = &simplified.kind {
         assert_eq!(name.as_str(), "tanh");
         assert_eq!(*args[0], Expr::symbol("x"));
@@ -105,7 +130,15 @@ fn test_simplify_to_coth() {
     ]);
     let expr = Expr::div_expr(numerator, denominator);
 
-    let simplified = simplify_expr(expr, HashSet::new());
+    let simplified = simplify_expr(
+        expr,
+        HashSet::new(),
+        HashMap::new(),
+        None,
+        None,
+        None,
+        false,
+    );
     if let ExprKind::FunctionCall { name, args } = &simplified.kind {
         assert_eq!(name.as_str(), "coth");
         assert_eq!(*args[0], Expr::symbol("x"));
@@ -128,7 +161,15 @@ fn test_simplify_to_sech() {
         ]),
     );
 
-    let simplified = simplify_expr(expr, HashSet::new());
+    let simplified = simplify_expr(
+        expr,
+        HashSet::new(),
+        HashMap::new(),
+        None,
+        None,
+        None,
+        false,
+    );
     if let ExprKind::FunctionCall { name, args } = &simplified.kind {
         assert_eq!(name.as_str(), "sech");
         assert_eq!(*args[0], Expr::symbol("x"));
@@ -154,7 +195,15 @@ fn test_simplify_to_csch() {
         ]),
     );
 
-    let simplified = simplify_expr(expr, HashSet::new());
+    let simplified = simplify_expr(
+        expr,
+        HashSet::new(),
+        HashMap::new(),
+        None,
+        None,
+        None,
+        false,
+    );
     if let ExprKind::FunctionCall { name, args } = &simplified.kind {
         assert_eq!(name.as_str(), "csch");
         assert_eq!(*args[0], Expr::symbol("x"));
@@ -170,7 +219,15 @@ fn test_hyperbolic_identities() {
         "sinh",
         Expr::product(vec![Expr::number(-1.0), Expr::symbol("x")]),
     );
-    let simplified = simplify_expr(expr, HashSet::new());
+    let simplified = simplify_expr(
+        expr,
+        HashSet::new(),
+        HashMap::new(),
+        None,
+        None,
+        None,
+        false,
+    );
     if let ExprKind::Product(factors) = &simplified.kind {
         assert!(factors.len() == 2);
         assert!(matches!(&factors[0].kind, ExprKind::Number(n) if *n == -1.0));
@@ -189,7 +246,15 @@ fn test_hyperbolic_identities() {
         "cosh",
         Expr::product(vec![Expr::number(-1.0), Expr::symbol("x")]),
     );
-    let simplified = simplify_expr(expr, HashSet::new());
+    let simplified = simplify_expr(
+        expr,
+        HashSet::new(),
+        HashMap::new(),
+        None,
+        None,
+        None,
+        false,
+    );
     if let ExprKind::FunctionCall { name, args } = &simplified.kind {
         assert_eq!(name.as_str(), "cosh");
         assert_eq!(*args[0], Expr::symbol("x"));
@@ -205,7 +270,18 @@ fn test_hyperbolic_identities() {
             Expr::pow(Expr::func("sinh", Expr::symbol("x")), Expr::number(2.0)),
         ]),
     ]);
-    assert_eq!(simplify_expr(expr, HashSet::new()), Expr::number(1.0));
+    assert_eq!(
+        simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false
+        ),
+        Expr::number(1.0)
+    );
 
     // 1 - tanh^2(x) = sech^2(x) represented as Sum([1, Product([-1, tanh^2(x)])])
     let expr = Expr::sum(vec![
@@ -215,7 +291,15 @@ fn test_hyperbolic_identities() {
             Expr::pow(Expr::func("tanh", Expr::symbol("x")), Expr::number(2.0)),
         ]),
     ]);
-    let simplified = simplify_expr(expr, HashSet::new());
+    let simplified = simplify_expr(
+        expr,
+        HashSet::new(),
+        HashMap::new(),
+        None,
+        None,
+        None,
+        false,
+    );
     if let ExprKind::Pow(base, exp) = &simplified.kind {
         assert_eq!(**exp, Expr::number(2.0));
         if let ExprKind::FunctionCall { name, args } = &base.kind {
@@ -233,7 +317,15 @@ fn test_hyperbolic_identities() {
         Expr::pow(Expr::func("coth", Expr::symbol("x")), Expr::number(2.0)),
         Expr::number(-1.0),
     ]);
-    let simplified = simplify_expr(expr, HashSet::new());
+    let simplified = simplify_expr(
+        expr,
+        HashSet::new(),
+        HashMap::new(),
+        None,
+        None,
+        None,
+        false,
+    );
     if let ExprKind::Pow(base, exp) = &simplified.kind {
         assert_eq!(**exp, Expr::number(2.0));
         if let ExprKind::FunctionCall { name, args } = &base.kind {

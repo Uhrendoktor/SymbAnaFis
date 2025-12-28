@@ -19,7 +19,7 @@ flowchart TB
         .domain_safe()
         .max_depth()
         .fixed_var()
-        .custom_derivative()"]
+        .user_fn()"]
         B2["Simplify::new()
         .domain_safe()
         .max_depth()"]
@@ -186,7 +186,7 @@ flowchart TB
 | Feature | Implementation |
 |---------|----------------|
 | **Logarithmic Differentiation** | Handles `x^x`, `f^g` correctly |
-| **Custom Derivatives** | `Diff::custom_derivative("f", \|inner, var, inner'| ...)` |
+| **Custom Functions** | `Diff::user_fn("f", UserFunction)` with partial derivatives and evaluation |
 | **Multi-arg Partials** | `CustomFn::partial(0, \|args| ...)` for chain rule |
 | **Fixed Variables** | Variables in `fixed_vars` treated as constants (derivative = 0) |
 | **Inline Optimization** | Prevents expression explosion during recursion |
@@ -692,10 +692,12 @@ Implements standard calculus rules:
 **Custom functions:**
 ```rust
 Diff::new()
-    .custom_derivative("f", |inner, _var, inner_prime| {
-        // d/dx[f(u)] = 2u · u'
-        Expr::number(2.0) * inner * inner_prime
-    })
+    .user_fn("f", UserFunction::new(1..=1)
+        .partial(0, |args: &[Arc<Expr>]| {
+            // ∂f/∂u = 2u
+            Expr::number(2.0) * Expr::from(&args[0])
+        })
+        .expect("valid arg"))
 ```
 
 ### 5. Simplification Engine (`simplification/`)
@@ -824,7 +826,7 @@ PyO3 bindings exposing:
 
 ## Extension Points
 
-1. **Custom derivatives:** `Diff::new().custom_derivative("f", ...)`
+1. **Custom functions:** `Diff::new().user_fn("f", UserFunction)` with partial derivatives and evaluation
 2. **Custom evaluation:** `Diff::new().custom_eval("f", ...)`
 3. **New simplification rules:** Add to `simplification/rules/`
 4. **New functions:** Add to `functions/definitions.rs` and `registry.rs`

@@ -11,23 +11,25 @@ fn test_builder_configuration() {
     // Test domain_safe
     let _diff_safe = Diff::new().domain_safe(true);
 
-    // Test fixed_var with Symbol
-    let a = symb("a");
-    let diff_fixed = Diff::new().fixed_var(&a);
-    let res = diff_fixed.diff_str("a*x", "x").unwrap();
-    assert_eq!(res, "a");
+    // Test known_symbols parameter in diff_str
+    let res = Diff::new().diff_str("alpha*x", "x", &["alpha"]).unwrap();
+    assert_eq!(res, "alpha");
 }
 
 #[test]
 fn test_custom_derivatives() {
-    // Custom rule: d/dx[my_func(u)] = 3*u^2 * u'
-    // Pass closure directly, not Arc::new(closure)
-    let my_deriv = |inner: &Expr, _var: &str, inner_prime: &Expr| -> Expr {
-        // 3 * inner^2 * inner_prime
-        Expr::number(3.0) * inner.clone().pow_of(2.0) * inner_prime.clone()
-    };
+    use crate::core::unified_context::UserFunction;
 
-    let diff = Diff::new().custom_derivative("my_func", my_deriv);
+    // Custom rule: d/dx[my_func(u)] = 3*u^2 * u'
+    // Define my_func(u) with ∂my_func/∂u = 3*u^2
+    let my_func = UserFunction::new(1..=1)
+        .partial(0, |args: &[std::sync::Arc<Expr>]| {
+            // ∂my_func/∂u = 3*u^2
+            Expr::number(3.0) * Expr::from(&args[0]).pow(2.0)
+        })
+        .expect("valid arg");
+
+    let diff = Diff::new().user_fn("my_func", my_func);
 
     // Test: my_func(x) -> 3*x^2 * 1 = 3x^2
     let x = symb("x");
@@ -87,7 +89,7 @@ fn test_symbol_method_chaining() {
 
     // sin(x)^2 + cos(x)^2
     // Symbol.pow(2.0) works and returns Expr, but sin() returns Expr, so use pow_of
-    let expr = x.clone().sin().pow_of(2.0) + x.clone().cos().pow_of(2.0);
+    let expr = x.clone().sin().pow(2.0) + x.clone().cos().pow(2.0);
 
     // Accept either ordering (canonical ordering now deferred to simplify)
     let display = format!("{}", expr);
@@ -116,26 +118,28 @@ fn test_advanced_functions() {
 #[test]
 fn test_api_reusability() {
     // Builder should be reusable (cloneable)
-    let a = symb("a");
-    let diff = Diff::new().fixed_var(&a);
+    let diff = Diff::new();
 
-    let _res1 = diff.diff_str("a*x", "x").unwrap();
-    let _res2 = diff.diff_str("a*x^2", "x").unwrap();
+    // Use known_symbols parameter in diff_str
+    let _res1 = diff.diff_str("alpha*x", "x", &["alpha"]).unwrap();
+    let _res2 = diff.diff_str("alpha*x^2", "x", &["alpha"]).unwrap();
 
     // Clone
     let diff2 = diff.clone().domain_safe(true);
-    let _res3 = diff2.diff_str("sqrt(x^2)", "x").unwrap();
+    let _res3 = diff2.diff_str("sqrt(x^2)", "x", &[]).unwrap();
 }
 
 #[test]
 fn test_error_handling() {
-    // Pass closure directly
-    let my_func = symb("my_func");
-    let diff = Diff::new()
-        .custom_derivative("my_func", |_, _, _| Expr::number(0.0))
-        .fixed_var(&my_func);
+    use crate::core::unified_context::UserFunction;
 
-    // Should fail because "my_func" is both custom func and fixed var
-    let res = diff.diff_str("my_func(x)", "x");
+    // Pass closure directly
+    let user_fn = UserFunction::new(1..=1)
+        .partial(0, |_: &[std::sync::Arc<Expr>]| Expr::number(0.0))
+        .expect("valid arg");
+    let diff = Diff::new().user_fn("my_func", user_fn);
+
+    // Should fail because "my_func" is both custom func and in known_symbols
+    let res = diff.diff_str("my_func(x)", "x", &["my_func"]);
     assert!(matches!(res, Err(DiffError::NameCollision { .. })));
 }

@@ -1,7 +1,6 @@
 use crate::simplification::simplify_expr;
 use crate::{Expr, ExprKind};
-use std::collections::HashSet;
-
+use std::collections::{HashMap, HashSet};
 #[test]
 fn test_trig_symmetry_extended() {
     // tan(-x) = -tan(x)
@@ -9,7 +8,15 @@ fn test_trig_symmetry_extended() {
         "tan",
         Expr::product(vec![Expr::number(-1.0), Expr::symbol("x")]),
     );
-    let simplified = simplify_expr(expr, HashSet::new());
+    let simplified = simplify_expr(
+        expr,
+        HashSet::new(),
+        HashMap::new(),
+        None,
+        None,
+        None,
+        false,
+    );
     // Should be -1 * tan(x) or Product([-1, tan(x)])
     if let ExprKind::Product(factors) = &simplified.kind {
         assert!(factors.len() == 2);
@@ -29,7 +36,15 @@ fn test_trig_symmetry_extended() {
         "sec",
         Expr::product(vec![Expr::number(-1.0), Expr::symbol("x")]),
     );
-    let simplified = simplify_expr(expr, HashSet::new());
+    let simplified = simplify_expr(
+        expr,
+        HashSet::new(),
+        HashMap::new(),
+        None,
+        None,
+        None,
+        false,
+    );
     if let ExprKind::FunctionCall { name, args } = &simplified.kind {
         assert_eq!(name.as_str(), "sec");
         assert_eq!(*args[0], Expr::symbol("x"));
@@ -42,26 +57,81 @@ fn test_trig_symmetry_extended() {
 fn test_inverse_composition() {
     // sin(asin(x)) = x
     let expr = Expr::func("sin", Expr::func("asin", Expr::symbol("x")));
-    assert_eq!(simplify_expr(expr, HashSet::new()), Expr::symbol("x"));
+    assert_eq!(
+        simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false
+        ),
+        Expr::symbol("x")
+    );
 
     // cos(acos(x)) = x
     let expr = Expr::func("cos", Expr::func("acos", Expr::symbol("x")));
-    assert_eq!(simplify_expr(expr, HashSet::new()), Expr::symbol("x"));
+    assert_eq!(
+        simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false
+        ),
+        Expr::symbol("x")
+    );
 
     // tan(atan(x)) = x
     let expr = Expr::func("tan", Expr::func("atan", Expr::symbol("x")));
-    assert_eq!(simplify_expr(expr, HashSet::new()), Expr::symbol("x"));
+    assert_eq!(
+        simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false
+        ),
+        Expr::symbol("x")
+    );
 }
 
 #[test]
 fn test_inverse_composition_reverse() {
     // asin(sin(x)) = x
     let expr = Expr::func("asin", Expr::func("sin", Expr::symbol("x")));
-    assert_eq!(simplify_expr(expr, HashSet::new()), Expr::symbol("x"));
+    assert_eq!(
+        simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false
+        ),
+        Expr::symbol("x")
+    );
 
     // acos(cos(x)) = x
     let expr = Expr::func("acos", Expr::func("cos", Expr::symbol("x")));
-    assert_eq!(simplify_expr(expr, HashSet::new()), Expr::symbol("x"));
+    assert_eq!(
+        simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false
+        ),
+        Expr::symbol("x")
+    );
 }
 
 #[test]
@@ -71,14 +141,33 @@ fn test_pythagorean_identities() {
         Expr::pow(Expr::func("sin", Expr::symbol("x")), Expr::number(2.0)),
         Expr::pow(Expr::func("cos", Expr::symbol("x")), Expr::number(2.0)),
     ]);
-    assert_eq!(simplify_expr(expr, HashSet::new()), Expr::number(1.0));
+    assert_eq!(
+        simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false
+        ),
+        Expr::number(1.0)
+    );
 
     // 1 + tan^2(x) = sec^2(x)
     let expr = Expr::sum(vec![
         Expr::number(1.0),
         Expr::pow(Expr::func("tan", Expr::symbol("x")), Expr::number(2.0)),
     ]);
-    let simplified = simplify_expr(expr, HashSet::new());
+    let simplified = simplify_expr(
+        expr,
+        HashSet::new(),
+        HashMap::new(),
+        None,
+        None,
+        None,
+        false,
+    );
     if let ExprKind::Pow(base, exp) = &simplified.kind {
         assert_eq!(**exp, Expr::number(2.0));
         if let ExprKind::FunctionCall { name, args } = &base.kind {
@@ -96,7 +185,15 @@ fn test_pythagorean_identities() {
         Expr::number(1.0),
         Expr::pow(Expr::func("cot", Expr::symbol("x")), Expr::number(2.0)),
     ]);
-    let simplified = simplify_expr(expr, HashSet::new());
+    let simplified = simplify_expr(
+        expr,
+        HashSet::new(),
+        HashMap::new(),
+        None,
+        None,
+        None,
+        false,
+    );
     if let ExprKind::Pow(base, exp) = &simplified.kind {
         assert_eq!(**exp, Expr::number(2.0));
         if let ExprKind::FunctionCall { name, args } = &base.kind {
@@ -121,7 +218,15 @@ fn test_cofunction_identities() {
             Expr::product(vec![Expr::number(-1.0), Expr::symbol("x")]),
         ]),
     );
-    let simplified = simplify_expr(expr, HashSet::new());
+    let simplified = simplify_expr(
+        expr,
+        HashSet::new(),
+        HashMap::new(),
+        None,
+        None,
+        None,
+        false,
+    );
     if let ExprKind::FunctionCall { name, args } = &simplified.kind {
         assert_eq!(name.as_str(), "cos");
         assert_eq!(*args[0], Expr::symbol("x"));
@@ -137,7 +242,15 @@ fn test_cofunction_identities() {
             Expr::product(vec![Expr::number(-1.0), Expr::symbol("x")]),
         ]),
     );
-    let simplified = simplify_expr(expr, HashSet::new());
+    let simplified = simplify_expr(
+        expr,
+        HashSet::new(),
+        HashMap::new(),
+        None,
+        None,
+        None,
+        false,
+    );
     if let ExprKind::FunctionCall { name, args } = &simplified.kind {
         assert_eq!(name.as_str(), "sin");
         assert_eq!(*args[0], Expr::symbol("x"));
@@ -154,7 +267,15 @@ fn test_trig_periodicity() {
         "sin",
         Expr::sum(vec![Expr::symbol("x"), Expr::number(2.0 * PI)]),
     );
-    let simplified = simplify_expr(expr, HashSet::new());
+    let simplified = simplify_expr(
+        expr,
+        HashSet::new(),
+        HashMap::new(),
+        None,
+        None,
+        None,
+        false,
+    );
     if let ExprKind::FunctionCall { name, args } = &simplified.kind {
         assert_eq!(name.as_str(), "sin");
         assert_eq!(*args[0], Expr::symbol("x"));
@@ -167,7 +288,15 @@ fn test_trig_periodicity() {
         "cos",
         Expr::sum(vec![Expr::symbol("x"), Expr::number(2.0 * PI)]),
     );
-    let simplified = simplify_expr(expr, HashSet::new());
+    let simplified = simplify_expr(
+        expr,
+        HashSet::new(),
+        HashMap::new(),
+        None,
+        None,
+        None,
+        false,
+    );
     if let ExprKind::FunctionCall { name, args } = &simplified.kind {
         assert_eq!(name.as_str(), "cos");
         assert_eq!(*args[0], Expr::symbol("x"));
@@ -184,7 +313,15 @@ fn test_trig_periodicity_general() {
         "sin",
         Expr::sum(vec![Expr::symbol("x"), Expr::number(4.0 * PI)]),
     );
-    let simplified = simplify_expr(expr, HashSet::new());
+    let simplified = simplify_expr(
+        expr,
+        HashSet::new(),
+        HashMap::new(),
+        None,
+        None,
+        None,
+        false,
+    );
     if let ExprKind::FunctionCall { name, args } = &simplified.kind {
         assert_eq!(name.as_str(), "sin");
         assert_eq!(*args[0], Expr::symbol("x"));
@@ -197,7 +334,15 @@ fn test_trig_periodicity_general() {
         "cos",
         Expr::sum(vec![Expr::symbol("x"), Expr::number(-2.0 * PI)]),
     );
-    let simplified = simplify_expr(expr, HashSet::new());
+    let simplified = simplify_expr(
+        expr,
+        HashSet::new(),
+        HashMap::new(),
+        None,
+        None,
+        None,
+        false,
+    );
     if let ExprKind::FunctionCall { name, args } = &simplified.kind {
         assert_eq!(name.as_str(), "cos");
         assert_eq!(*args[0], Expr::symbol("x"));
@@ -217,7 +362,15 @@ fn test_trig_reflection_shifts() {
             Expr::product(vec![Expr::number(-1.0), Expr::symbol("x")]),
         ]),
     );
-    let simplified = simplify_expr(expr, HashSet::new());
+    let simplified = simplify_expr(
+        expr,
+        HashSet::new(),
+        HashMap::new(),
+        None,
+        None,
+        None,
+        false,
+    );
     if let ExprKind::FunctionCall { name, args } = &simplified.kind {
         assert_eq!(name.as_str(), "sin");
         assert_eq!(*args[0], Expr::symbol("x"));
@@ -227,7 +380,15 @@ fn test_trig_reflection_shifts() {
 
     // cos(pi + x) = -cos(x)
     let expr = Expr::func("cos", Expr::sum(vec![Expr::number(PI), Expr::symbol("x")]));
-    let simplified = simplify_expr(expr, HashSet::new());
+    let simplified = simplify_expr(
+        expr,
+        HashSet::new(),
+        HashMap::new(),
+        None,
+        None,
+        None,
+        false,
+    );
     if let ExprKind::Product(factors) = &simplified.kind {
         assert!(factors.len() == 2);
         assert!(matches!(&factors[0].kind, ExprKind::Number(n) if *n == -1.0));
@@ -249,7 +410,15 @@ fn test_trig_reflection_shifts() {
             Expr::product(vec![Expr::number(-1.0), Expr::symbol("x")]),
         ]),
     );
-    let simplified = simplify_expr(expr, HashSet::new());
+    let simplified = simplify_expr(
+        expr,
+        HashSet::new(),
+        HashMap::new(),
+        None,
+        None,
+        None,
+        false,
+    );
     if let ExprKind::Product(factors) = &simplified.kind {
         assert!(factors.len() == 2);
         assert!(matches!(&factors[0].kind, ExprKind::Number(n) if *n == -1.0));
@@ -270,19 +439,60 @@ fn test_trig_exact_values_extended() {
 
     // sin(pi/6) = 0.5
     let expr = Expr::func("sin", Expr::number(PI / 6.0));
-    assert_eq!(simplify_expr(expr, HashSet::new()), Expr::number(0.5));
+    assert_eq!(
+        simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false
+        ),
+        Expr::number(0.5)
+    );
 
     // cos(pi/3) = 0.5
     let expr = Expr::func("cos", Expr::number(PI / 3.0));
-    assert_eq!(simplify_expr(expr, HashSet::new()), Expr::number(0.5));
+    assert_eq!(
+        simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false
+        ),
+        Expr::number(0.5)
+    );
 
     // tan(pi/4) = 1.0
     let expr = Expr::func("tan", Expr::number(PI / 4.0));
-    assert_eq!(simplify_expr(expr, HashSet::new()), Expr::number(1.0));
+    assert_eq!(
+        simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false
+        ),
+        Expr::number(1.0)
+    );
 
     // sin(pi/4) = sqrt(2)/2 approx 0.70710678
     let expr = Expr::func("sin", Expr::number(PI / 4.0));
-    let simplified = simplify_expr(expr, HashSet::new());
+    let simplified = simplify_expr(
+        expr,
+        HashSet::new(),
+        HashMap::new(),
+        None,
+        None,
+        None,
+        false,
+    );
     if let ExprKind::Number(n) = simplified.kind {
         assert!((n - (2.0f64.sqrt() / 2.0)).abs() < 1e-10);
     } else {
@@ -297,7 +507,15 @@ fn test_double_angle_formulas() {
         "sin",
         Expr::product(vec![Expr::number(2.0), Expr::symbol("x")]),
     );
-    let simplified = simplify_expr(expr, HashSet::new());
+    let simplified = simplify_expr(
+        expr,
+        HashSet::new(),
+        HashMap::new(),
+        None,
+        None,
+        None,
+        false,
+    );
     // Should be Product([2, cos(x), sin(x)]) or similar
     if let ExprKind::Product(factors) = &simplified.kind {
         let has_2 = factors
@@ -331,7 +549,15 @@ fn test_double_angle_formulas() {
         "cos",
         Expr::product(vec![Expr::number(2.0), Expr::symbol("x")]),
     );
-    let simplified = simplify_expr(expr, HashSet::new());
+    let simplified = simplify_expr(
+        expr,
+        HashSet::new(),
+        HashMap::new(),
+        None,
+        None,
+        None,
+        false,
+    );
     // Should stay as cos(2*x) or cos(Product([2, x]))
     if let ExprKind::FunctionCall { name, args } = &simplified.kind {
         assert_eq!(name.as_str(), "cos");
@@ -355,7 +581,15 @@ fn test_double_angle_formulas() {
         "tan",
         Expr::product(vec![Expr::number(2.0), Expr::symbol("x")]),
     );
-    let simplified = simplify_expr(expr, HashSet::new());
+    let simplified = simplify_expr(
+        expr,
+        HashSet::new(),
+        HashMap::new(),
+        None,
+        None,
+        None,
+        false,
+    );
     // Should stay as tan(2*x)
     if let ExprKind::FunctionCall { name, args } = &simplified.kind {
         assert_eq!(name.as_str(), "tan");

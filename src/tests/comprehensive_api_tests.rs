@@ -24,7 +24,7 @@ fn eval(expr_str: &str) -> Option<f64> {
     let custom = HashSet::new();
     let expr = parser_parse(expr_str, &fixed, &custom, None).ok()?;
     let vars: HashMap<&str, f64> = HashMap::new();
-    match &expr.evaluate(&vars).kind {
+    match &expr.evaluate(&vars, &HashMap::new()).kind {
         ExprKind::Number(n) => Some(*n),
         _ => None,
     }
@@ -35,7 +35,7 @@ fn eval_with(expr_str: &str, vars: &[(&str, f64)]) -> Option<f64> {
     let custom = HashSet::new();
     let expr = parser_parse(expr_str, &fixed, &custom, None).ok()?;
     let var_map: HashMap<&str, f64> = vars.iter().cloned().collect();
-    match &expr.evaluate(&var_map).kind {
+    match &expr.evaluate(&var_map, &HashMap::new()).kind {
         ExprKind::Number(n) => Some(*n),
         _ => None,
     }
@@ -51,20 +51,20 @@ mod api_tests {
     // --- diff() function ---
     #[test]
     fn test_diff_basic() {
-        let result = diff("x^2", "x", None, None).unwrap();
+        let result = diff("x^2", "x", &[], None).unwrap();
         assert!(result.contains("2") && result.contains("x"));
     }
 
     #[test]
     fn test_diff_with_fixed_vars() {
-        let result = diff("a*x^2", "x", Some(&["a"]), None).unwrap();
+        let result = diff("a*x^2", "x", &["a"], None).unwrap();
         // a is constant, so derivative should have 2ax
         assert!(result.contains("a"));
     }
 
     #[test]
     fn test_diff_with_custom_functions() {
-        let result = diff("f(x)", "x", None, Some(&["f"])).unwrap();
+        let result = diff("f(x)", "x", &[], Some(&["f"])).unwrap();
         // Custom function derivative should contain f'
         assert!(result.contains("f'") || result.contains("∂"));
     }
@@ -72,20 +72,20 @@ mod api_tests {
     // --- simplify() function ---
     #[test]
     fn test_simplify_basic() {
-        let result = simplify("x + x", None, None).unwrap();
+        let result = simplify("x + x", &[], None).unwrap();
         assert!(result.contains("2") && result.contains("x"));
     }
 
     #[test]
     fn test_simplify_with_fixed_vars() {
-        let result = simplify("a + a", Some(&["a"]), None).unwrap();
+        let result = simplify("a + a", &["a"], None).unwrap();
         assert!(result.contains("2") && result.contains("a"));
     }
 
     // --- Diff builder ---
     #[test]
     fn test_diff_builder_basic() {
-        let result = Diff::new().diff_str("x^3", "x").unwrap();
+        let result = Diff::new().diff_str("x^3", "x", &[]).unwrap();
         assert!(result.contains("3") && result.contains("x"));
     }
 
@@ -93,20 +93,18 @@ mod api_tests {
     fn test_diff_builder_domain_safe() {
         let result = Diff::new()
             .domain_safe(true)
-            .diff_str("sqrt(x)", "x")
+            .diff_str("sqrt(x)", "x", &[])
             .unwrap();
         assert!(result.contains("sqrt") || result.contains("1/"));
     }
 
     #[test]
-    fn test_diff_builder_fixed_vars() {
-        let a = symb("a");
-        let b = symb("b");
+    fn test_diff_builder_known_symbols() {
+        // Use known_symbols parameter in diff_str for multi-char symbols
         let result = Diff::new()
-            .fixed_vars(&[&a, &b])
-            .diff_str("a*x + b", "x")
+            .diff_str("alpha*x + beta", "x", &["alpha", "beta"])
             .unwrap();
-        assert!(result.contains("a"));
+        assert!(result.contains("alpha"));
     }
 
     #[test]
@@ -121,7 +119,7 @@ mod api_tests {
     // --- Simplify builder ---
     #[test]
     fn test_simplify_builder_basic() {
-        let result = Simplify::new().simplify_str("x*1 + 0").unwrap();
+        let result = Simplify::new().simplify_str("x*1 + 0", &[]).unwrap();
         assert_eq!(result, "x");
     }
 
@@ -129,7 +127,7 @@ mod api_tests {
     fn test_simplify_builder_domain_safe() {
         let result = Simplify::new()
             .domain_safe(true)
-            .simplify_str("(x^2)^(1/2)")
+            .simplify_str("(x^2)^(1/2)", &[])
             .unwrap();
         // Domain-safe shouldn't simplify to |x|
         assert!(result.contains("x"));
@@ -189,7 +187,7 @@ mod api_tests {
         let custom = HashSet::new();
         let expr = parser_parse("2 + 3", &fixed, &custom, None).unwrap();
         let vars = HashMap::new();
-        let result = expr.evaluate(&vars);
+        let result = expr.evaluate(&vars, &HashMap::new());
         if let ExprKind::Number(n) = result.kind {
             assert_eq!(n, 5.0);
         } else {
@@ -203,7 +201,7 @@ mod api_tests {
         let expr = x + Expr::number(1.0);
         let substituted = expr.substitute("x", &Expr::number(5.0));
         let vars = HashMap::new();
-        let result = substituted.evaluate(&vars);
+        let result = substituted.evaluate(&vars, &HashMap::new());
         if let ExprKind::Number(n) = result.kind {
             assert_eq!(n, 6.0);
         } else {
@@ -252,7 +250,7 @@ mod api_tests {
         let x_expr: Expr = x.into();
         let y_expr: Expr = y.into();
         let expr = x_expr.clone() * x_expr.clone() + y_expr.clone() * y_expr.clone(); // x² + y²
-        let grad = gradient(&expr, &[&x, &y]);
+        let grad = gradient(&expr, &[&x, &y]).unwrap();
         assert_eq!(grad.len(), 2);
         // ∂/∂x = 2x, ∂/∂y = 2y
         let s = format!("{}", grad[0]);
@@ -265,7 +263,7 @@ mod api_tests {
         let x = symb("x");
         let x_expr: Expr = x.into();
         let expr = x_expr.clone() * x_expr.clone() * x_expr.clone(); // x³
-        let hess = hessian(&expr, &[&x]);
+        let hess = hessian(&expr, &[&x]).unwrap();
         assert_eq!(hess.len(), 1); // 1x1 matrix
         assert_eq!(hess[0].len(), 1);
         // ∂²/∂x² of x³ = 6x
@@ -282,7 +280,7 @@ mod api_tests {
         let y_expr: Expr = y.into();
         let f = x_expr.clone() * y_expr.clone(); // xy
         let g = x_expr.clone() + y_expr.clone(); // x + y
-        let jac = jacobian(&[f, g], &[&x, &y]);
+        let jac = jacobian(&[f, g], &[&x, &y]).unwrap();
         assert_eq!(jac.len(), 2); // 2 rows
         assert_eq!(jac[0].len(), 2); // 2 columns
     }
@@ -334,7 +332,7 @@ mod api_tests {
 
         // Evaluate with x = 2.0 (custom function remains symbolic)
         let vars: HashMap<&str, f64> = [("x", 2.0)].iter().cloned().collect();
-        let result = expr.evaluate(&vars);
+        let result = expr.evaluate(&vars, &HashMap::new());
 
         // Result should contain f(2) + 2 (custom function partially evaluated)
         let s = format!("{}", result);
@@ -361,7 +359,7 @@ mod api_tests {
             .iter()
             .cloned()
             .collect();
-        let result = derivative.evaluate(&vars);
+        let result = derivative.evaluate(&vars, &HashMap::new());
 
         // At x=π, y=3: 2*π*3 + cos(π) = 6π - 1 ≈ 17.85
         if let ExprKind::Number(n) = result.kind {
@@ -390,7 +388,7 @@ mod api_tests {
         let expr = x.clone() * x.clone() * y.clone() + y.clone() * y.clone() * y.clone();
 
         // Compute Hessian matrix
-        let hess = hessian(&expr, &[&x_sym, &y_sym]);
+        let hess = hessian(&expr, &[&x_sym, &y_sym]).unwrap();
         assert_eq!(hess.len(), 2, "Hessian should be 2x2");
         assert_eq!(hess[0].len(), 2);
 
@@ -402,7 +400,7 @@ mod api_tests {
         let vars: HashMap<&str, f64> = [("x", 2.0), ("y", 3.0)].iter().cloned().collect();
 
         // H[0][0] = 2y = 6
-        let h00 = &hess[0][0].evaluate(&vars);
+        let h00 = &hess[0][0].evaluate(&vars, &HashMap::new());
         if let ExprKind::Number(n) = h00.kind {
             assert!(approx_eq(n, 6.0, EPSILON), "H[0][0] = 2y = 6, got {}", n);
         } else {
@@ -410,7 +408,7 @@ mod api_tests {
         }
 
         // H[0][1] = 2x = 4
-        let h01 = &hess[0][1].evaluate(&vars);
+        let h01 = &hess[0][1].evaluate(&vars, &HashMap::new());
         if let ExprKind::Number(n) = h01.kind {
             assert!(approx_eq(n, 4.0, EPSILON), "H[0][1] = 2x = 4, got {}", n);
         } else {
@@ -418,7 +416,7 @@ mod api_tests {
         }
 
         // H[1][1] = 6y = 18
-        let h11 = &hess[1][1].evaluate(&vars);
+        let h11 = &hess[1][1].evaluate(&vars, &HashMap::new());
         if let ExprKind::Number(n) = h11.kind {
             assert!(approx_eq(n, 18.0, EPSILON), "H[1][1] = 6y = 18, got {}", n);
         } else {
@@ -426,7 +424,7 @@ mod api_tests {
         }
 
         // Verify symmetry: H[0][1] = H[1][0]
-        let h10 = &hess[1][0].evaluate(&vars);
+        let h10 = &hess[1][0].evaluate(&vars, &HashMap::new());
         if let ExprKind::Number(n) = h10.kind {
             assert!(
                 approx_eq(n, 4.0, EPSILON),
@@ -442,7 +440,7 @@ mod api_tests {
     #[test]
     fn test_diff_custom_function_symbolic() {
         // Differentiate f(x)*g(x) where f and g are custom functions
-        let result = diff("f(x) * g(x)", "x", None, Some(&["f", "g"])).unwrap();
+        let result = diff("f(x) * g(x)", "x", &[], Some(&["f"])).unwrap();
 
         // Result should contain product rule: f'(x)*g(x) + f(x)*g'(x)
         assert!(
@@ -470,18 +468,18 @@ mod api_tests {
         let expr = x.clone() * x.clone() + y.clone() * y.clone();
 
         // Gradient: [2x, 2y]
-        let grad = gradient(&expr, &[&x_sym, &y_sym]);
+        let grad = gradient(&expr, &[&x_sym, &y_sym]).unwrap();
         assert_eq!(grad.len(), 2);
 
         // Evaluate at (3, 4)
         let vars: HashMap<&str, f64> = [("x", 3.0), ("y", 4.0)].iter().cloned().collect();
 
-        let gx = if let ExprKind::Number(n) = grad[0].evaluate(&vars).kind {
+        let gx = if let ExprKind::Number(n) = grad[0].evaluate(&vars, &HashMap::new()).kind {
             n
         } else {
             0.0
         };
-        let gy = if let ExprKind::Number(n) = grad[1].evaluate(&vars).kind {
+        let gy = if let ExprKind::Number(n) = grad[1].evaluate(&vars, &HashMap::new()).kind {
             n
         } else {
             0.0
@@ -960,7 +958,7 @@ mod function_accuracy_tests {
         ));
 
         // Test derivative: d/dx exp_polar(x) = exp_polar(x)
-        let deriv = diff("exp_polar(x)", "x", None, None).unwrap();
+        let deriv = diff("exp_polar(x)", "x", &[], None).unwrap();
         // Should be "exp_polar(x)" (or "1 * exp_polar(x)")
         assert!(
             deriv.contains("exp_polar"),
@@ -988,7 +986,7 @@ mod derivative_accuracy_tests {
         // d/dx(x^n) = n*x^(n-1)
         for n in 2..=5 {
             let formula = format!("x^{}", n);
-            let deriv = diff(&formula, "x", None, None).unwrap();
+            let deriv = diff(&formula, "x", &[], None).unwrap();
             // Evaluate at x=2
             let symbolic = eval_with(&deriv, &[("x", 2.0)]).unwrap_or(0.0);
             let expected = n as f64 * 2.0_f64.powi(n - 1);
@@ -1005,14 +1003,14 @@ mod derivative_accuracy_tests {
     #[test]
     fn test_trig_derivative_accuracy() {
         // d/dx(sin(x)) = cos(x)
-        let deriv_sin = diff("sin(x)", "x", None, None).unwrap();
+        let deriv_sin = diff("sin(x)", "x", &[], None).unwrap();
         let x = 0.5;
         let symbolic = eval_with(&deriv_sin, &[("x", x)]).unwrap_or(0.0);
         let expected = x.cos();
         assert!(approx_eq(symbolic, expected, LOOSE_EPSILON));
 
         // d/dx(cos(x)) = -sin(x)
-        let deriv_cos = diff("cos(x)", "x", None, None).unwrap();
+        let deriv_cos = diff("cos(x)", "x", &[], None).unwrap();
         let symbolic = eval_with(&deriv_cos, &[("x", x)]).unwrap_or(0.0);
         let expected = -x.sin();
         assert!(approx_eq(symbolic, expected, LOOSE_EPSILON));
@@ -1021,14 +1019,14 @@ mod derivative_accuracy_tests {
     #[test]
     fn test_exp_log_derivative_accuracy() {
         // d/dx(exp(x)) = exp(x)
-        let deriv_exp = diff("exp(x)", "x", None, None).unwrap();
+        let deriv_exp = diff("exp(x)", "x", &[], None).unwrap();
         let x = 1.0;
         let symbolic = eval_with(&deriv_exp, &[("x", x)]).unwrap_or(0.0);
         let expected = x.exp();
         assert!(approx_eq(symbolic, expected, LOOSE_EPSILON));
 
         // d/dx(ln(x)) = 1/x
-        let deriv_ln = diff("ln(x)", "x", None, None).unwrap();
+        let deriv_ln = diff("ln(x)", "x", &[], None).unwrap();
         let x = 2.0;
         let symbolic = eval_with(&deriv_ln, &[("x", x)]).unwrap_or(0.0);
         let expected = 1.0 / x;
@@ -1038,7 +1036,7 @@ mod derivative_accuracy_tests {
     #[test]
     fn test_chain_rule_accuracy() {
         // d/dx(sin(x^2)) = 2x*cos(x^2)
-        let deriv = diff("sin(x^2)", "x", None, None).unwrap();
+        let deriv = diff("sin(x^2)", "x", &[], None).unwrap();
         let x = 0.5;
         let symbolic = eval_with(&deriv, &[("x", x)]).unwrap_or(0.0);
         let expected = 2.0 * x * (x * x).cos();
@@ -1048,7 +1046,7 @@ mod derivative_accuracy_tests {
     #[test]
     fn test_product_rule_accuracy() {
         // d/dx(x*sin(x)) = sin(x) + x*cos(x)
-        let deriv = diff("x*sin(x)", "x", None, None).unwrap();
+        let deriv = diff("x*sin(x)", "x", &[], None).unwrap();
         let x = 1.0;
         let symbolic = eval_with(&deriv, &[("x", x)]).unwrap_or(0.0);
         let expected = x.sin() + x * x.cos();
@@ -1058,7 +1056,7 @@ mod derivative_accuracy_tests {
     #[test]
     fn test_quotient_rule_accuracy() {
         // d/dx(x/(1+x)) = 1/(1+x)^2
-        let deriv = diff("x/(1+x)", "x", None, None).unwrap();
+        let deriv = diff("x/(1+x)", "x", &[], None).unwrap();
         let x = 2.0;
         let symbolic = eval_with(&deriv, &[("x", x)]).unwrap_or(0.0);
         let expected = 1.0 / ((1.0 + x) * (1.0 + x));
@@ -1116,22 +1114,24 @@ mod edge_case_tests {
 }
 
 // ============================================================
-// PART 5: CustomFn Multi-Argument Differentiation Tests
+// PART 5: UserFunction Multi-Argument Differentiation Tests
 // ============================================================
 
 mod custom_fn_differentiation_tests {
-    use crate::api::builder::CustomFn;
+    use crate::core::unified_context::UserFunction;
     use crate::{Diff, Expr, symb};
 
-    /// Test basic CustomFn registration and differentiation
+    /// Test basic UserFunction registration and differentiation
     #[test]
     fn test_custom_fn_basic_differentiation() {
         use std::sync::Arc;
         // Define a custom 2-arg function: f(a, b) = a * b (for testing)
         // ∂f/∂a = b, ∂f/∂b = a
-        let custom_fn = CustomFn::new(2)
+        let custom_fn = UserFunction::new(2..=2)
             .partial(0, |args: &[Arc<Expr>]| Expr::from(&args[1])) // ∂f/∂a = b
-            .partial(1, |args: &[Arc<Expr>]| Expr::from(&args[0])); // ∂f/∂b = a
+            .expect("valid arg")
+            .partial(1, |args: &[Arc<Expr>]| Expr::from(&args[0])) // ∂f/∂b = a
+            .expect("valid arg");
 
         // Create expression: custom_mul(t, t^2)
         // d/dt custom_mul(t, t^2) = ∂f/∂a * dt/dt + ∂f/∂b * d(t^2)/dt
@@ -1148,13 +1148,13 @@ mod custom_fn_differentiation_tests {
         );
 
         let result = Diff::new()
-            .custom_fn_multi("custom_mul", custom_fn)
+            .user_fn("custom_mul", custom_fn)
             .differentiate(expr, &t)
             .unwrap();
 
         // The result should simplify to 3*t^2
         let result_str = format!("{}", result);
-        eprintln!("CustomFn derivative result: {}", result_str);
+        eprintln!("UserFunction derivative result: {}", result_str);
 
         // Verify result contains expected terms
         assert!(
@@ -1164,21 +1164,23 @@ mod custom_fn_differentiation_tests {
         );
     }
 
-    /// Test CustomFn with single partial derivative
+    /// Test UserFunction with single partial derivative
     #[test]
     fn test_custom_fn_single_partial() {
         use std::sync::Arc;
         // Define f(x) = custom function where ∂f/∂x = 2*x
-        let custom_fn = CustomFn::new(1).partial(0, |args: &[Arc<Expr>]| {
-            Expr::mul_expr(Expr::number(2.0), Expr::from(&args[0]))
-        });
+        let custom_fn = UserFunction::new(1..=1)
+            .partial(0, |args: &[Arc<Expr>]| {
+                Expr::mul_expr(Expr::number(2.0), Expr::from(&args[0]))
+            })
+            .expect("valid arg");
 
         let x = symb("x");
         let expr = Expr::call::<1>("custom_f", [Expr::symbol("x")]);
 
         // d/dx custom_f(x) = 2x * 1 = 2x
         let result = Diff::new()
-            .custom_fn_multi("custom_f", custom_fn)
+            .user_fn("custom_f", custom_fn)
             .differentiate(expr, &x)
             .unwrap();
 
@@ -1204,9 +1206,13 @@ mod custom_fn_differentiation_tests {
         //      = cos(2x) [by double angle formula]
 
         use std::sync::Arc;
-        let custom_fn = CustomFn::new(2)
-            .partial(0, |args: &[Arc<Expr>]| Expr::from(&args[1])) // ∂f/∂u = v
-            .partial(1, |args: &[Arc<Expr>]| Expr::from(&args[0])); // ∂f/∂v = u
+        let custom_fn = UserFunction::new(2..=2)
+            .partial(0, |args: &[Arc<Expr>]| Expr::from(&args[1]))
+            .expect("valid arg")
+            // ∂f/∂u = v
+            .partial(1, |args: &[Arc<Expr>]| Expr::from(&args[0]))
+            // ∂f/∂v = u
+            .expect("valid arg");
 
         let x = symb("x");
         let sin_x = Expr::func("sin", Expr::symbol("x"));
@@ -1214,7 +1220,7 @@ mod custom_fn_differentiation_tests {
         let f_call = Expr::call::<2>("my_func", [sin_x, cos_x]);
 
         let result = Diff::new()
-            .custom_fn_multi("my_func", custom_fn)
+            .user_fn("my_func", custom_fn)
             .differentiate(f_call, &x)
             .unwrap();
 
@@ -1232,7 +1238,7 @@ mod custom_fn_differentiation_tests {
         );
     }
 
-    /// Test CustomFn with constant argument (derivative should skip that term)
+    /// Test UserFunction with constant argument (derivative should skip that term)
     #[test]
     fn test_custom_fn_constant_arg() {
         // f(a, b) where ∂f/∂a = b, ∂f/∂b = a
@@ -1240,15 +1246,17 @@ mod custom_fn_differentiation_tests {
         // d/dx = b * 0 + a * 1 = a = 5
 
         use std::sync::Arc;
-        let custom_fn = CustomFn::new(2)
+        let custom_fn = UserFunction::new(2..=2)
             .partial(0, |args: &[Arc<Expr>]| Expr::from(&args[1]))
-            .partial(1, |args: &[Arc<Expr>]| Expr::from(&args[0]));
+            .expect("valid arg")
+            .partial(1, |args: &[Arc<Expr>]| Expr::from(&args[0]))
+            .expect("valid arg");
 
         let x = symb("x");
         let f_call = Expr::call::<2>("f", [Expr::number(5.0), Expr::symbol("x")]);
 
         let result = Diff::new()
-            .custom_fn_multi("f", custom_fn)
+            .user_fn("f", custom_fn)
             .differentiate(f_call, &x)
             .unwrap();
 
@@ -1263,19 +1271,21 @@ mod custom_fn_differentiation_tests {
         );
     }
 
-    /// Test CustomFn without all partials defined (should use symbolic notation)
+    /// Test UserFunction without all partials defined (should use symbolic notation)
     #[test]
     fn test_custom_fn_missing_partial() {
         use std::sync::Arc;
         // f(a, b) where only ∂f/∂a is defined
-        let custom_fn = CustomFn::new(2).partial(0, |args: &[Arc<Expr>]| Expr::from(&args[1]));
+        let custom_fn = UserFunction::new(2..=2)
+            .partial(0, |args: &[Arc<Expr>]| Expr::from(&args[1]))
+            .expect("valid arg");
         // Note: ∂f/∂b is NOT defined
 
         let x = symb("x");
         let f_call = Expr::call::<2>("g", [Expr::symbol("x"), Expr::symbol("x")]);
 
         let result = Diff::new()
-            .custom_fn_multi("g", custom_fn)
+            .user_fn("g", custom_fn)
             .differentiate(f_call, &x)
             .unwrap();
 

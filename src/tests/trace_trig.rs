@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::{Expr, ExprKind, simplification::simplify_expr};
-    use std::collections::HashSet;
+    use std::collections::{HashMap, HashSet};
     use std::f64::consts::PI;
 
     #[test]
@@ -14,7 +14,15 @@ mod tests {
                 Expr::product(vec![Expr::number(-1.0), Expr::symbol("x")]),
             ]),
         );
-        let simplified = simplify_expr(expr, HashSet::new());
+        let simplified = simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false,
+        );
         println!("sin(pi - x) -> {}", simplified);
         if let ExprKind::FunctionCall { name, args } = &simplified.kind {
             assert_eq!(name.as_str(), "sin");
@@ -25,7 +33,15 @@ mod tests {
 
         // cos(pi + x) = -cos(x)
         let expr = Expr::func("cos", Expr::sum(vec![Expr::number(PI), Expr::symbol("x")]));
-        let simplified = simplify_expr(expr, HashSet::new());
+        let simplified = simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false,
+        );
         println!("cos(pi + x) -> {}", simplified);
         if let ExprKind::Product(factors) = &simplified.kind {
             assert!(factors.len() == 2);
@@ -50,7 +66,15 @@ mod tests {
                 Expr::product(vec![Expr::number(-1.0), Expr::symbol("x")]),
             ]),
         );
-        let simplified = simplify_expr(expr, HashSet::new());
+        let simplified = simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false,
+        );
         println!("sin(3pi/2 - x) -> {}", simplified);
         if let ExprKind::Product(factors) = &simplified.kind {
             assert!(factors.iter().any(|f| **f == Expr::number(-1.0)));

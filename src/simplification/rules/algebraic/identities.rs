@@ -72,7 +72,7 @@ rule!(EPowLnRule, "e_pow_ln", 85, Algebraic, &[ExprKind::Pow], alters_domain: tr
     if let AstKind::Pow(base, exp) = &expr.kind
         && let AstKind::Symbol(s) = &base.kind
         && s.id() == *E
-        && !context.fixed_vars.contains("e")
+        && !context.known_symbols.contains("e")
         && let AstKind::FunctionCall { name, args } = &exp.kind
             && name.id() == *LN
             && args.len() == 1
@@ -86,7 +86,7 @@ rule!(EPowMulLnRule, "e_pow_mul_ln", 85, Algebraic, &[ExprKind::Pow], alters_dom
     if let AstKind::Pow(base, exp) = &expr.kind
         && let AstKind::Symbol(s) = &base.kind
         && s.id() == *E
-        && !context.fixed_vars.contains("e")
+        && !context.known_symbols.contains("e")
     {
         // Check if exponent is a Product containing ln(x)
         if let AstKind::Product(factors) = &exp.kind {

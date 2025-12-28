@@ -14,7 +14,7 @@
 use std::collections::HashMap;
 #[allow(unused_imports)]
 use symb_anafis::{
-    CovEntry, CovarianceMatrix, Diff, Expr, ExprKind, Simplify, Symbol, diff, evaluate_str,
+    CovEntry, CovarianceMatrix, Diff, Expr, Simplify, Symbol, UserFunction, diff, evaluate_str,
     gradient, gradient_str, hessian, hessian_str, jacobian, jacobian_str, relative_uncertainty,
     simplify, symb, uncertainty_propagation,
 };
@@ -53,38 +53,32 @@ fn part1_string_api() {
     println!("  1.1 Simple Differentiation: diff()");
     let formula = "x^3 + 2*x^2 - 5*x + 1";
     println!("      Formula: {}", formula);
-    let result = diff(formula, "x", None, None).unwrap();
+    let result = diff(formula, "x", &[], None).unwrap();
     println!("      d/dx:    {}\n", result);
 
     // 1.2 Simple simplify() function
     println!("  1.2 Simplification: simplify()");
     let ugly = "x + x + x + 0*y + 1*z";
     println!("      Before: {}", ugly);
-    let clean = simplify(ugly, None, None).unwrap();
+    let clean = simplify(ugly, &[], None).unwrap();
     println!("      After:  {}\n", clean);
 
     // 1.3 Diff builder with options
     println!("  1.3 Diff Builder with Options");
-    let a_sym = symb("a");
-    let b_sym = symb("b");
     let result = Diff::new()
         .domain_safe(true) // Enable domain safety checks
-        .fixed_var(&a_sym) // Treat 'a' as constant
-        .fixed_var(&b_sym) // Treat 'b' as constant
-        .diff_str("a*x^2 + b*x + c", "x")
+        .diff_str("alpha*x^2 + beta*x + c", "x", &["alpha", "beta"])
         .unwrap();
     println!(
-        "      d/dx [ax² + bx + c] with a,b as constants: {}\n",
+        "      d/dx [αx² + βx + c] with α,β as known symbols: {}\n",
         result
     );
 
     // 1.4 Simplify builder with options
     println!("  1.4 Simplify Builder with Options");
-    let k_sym = symb("k");
     let result = Simplify::new()
         .domain_safe(true) // Safe simplifications only
-        .fixed_var(&k_sym) // k is a constant
-        .simplify_str("k*x + k*y")
+        .simplify_str("k*x + k*y", &[])
         .unwrap();
     println!("      Simplified k*x + k*y: {}\n", result);
 }
@@ -144,14 +138,14 @@ fn part2_type_safe_api() {
     let df = Diff::new().differentiate(f, &x).unwrap();
     println!("      f'(x) = {}\n", df);
 
-    // 2.5 SymbolContext: Isolated Symbol Namespaces
-    println!("  2.5 SymbolContext: Isolated Symbol Namespaces");
-    println!("      Create isolated contexts to avoid name collisions:\n");
+    // 2.5 Context: Unified Context for Symbols and Functions
+    println!("  2.5 Context: Unified Context for Symbols and Functions");
+    println!("      Create isolated contexts for symbols, fixed vars, and custom functions:\n");
 
-    use symb_anafis::SymbolContext;
+    use symb_anafis::Context;
 
-    let ctx1 = SymbolContext::new();
-    let ctx2 = SymbolContext::new();
+    let ctx1 = Context::new().with_symbol("x").with_symbol("y");
+    let ctx2 = Context::new().with_symbol("x");
 
     // Same name, different contexts = different symbols!
     let x1 = ctx1.symb("x");
@@ -162,8 +156,10 @@ fn part2_type_safe_api() {
 
     // Context methods
     println!("\n      Context utilities:");
-    println!("        ctx1.contains(\"x\"): {}", ctx1.contains("x"));
-    println!("        ctx1.len(): {}", ctx1.len());
+    println!(
+        "        ctx1.contains_symbol(\"x\"): {}",
+        ctx1.contains_symbol("x")
+    );
     println!("        ctx1.symbol_names(): {:?}", ctx1.symbol_names());
 
     // Build expressions in context
@@ -200,9 +196,9 @@ fn part3_numerical_evaluation() {
     vars.insert("x", 3.0);
     vars.insert("y", 4.0);
 
-    let result = expr.evaluate(&vars);
+    let result = expr.evaluate(&vars, &HashMap::new());
     println!("      x² + y² at (x=3, y=4)");
-    if let ExprKind::Number(n) = result.into_kind() {
+    if let Some(n) = result.as_number() {
         println!("      Result: {} (expected: 25)\n", n);
     }
 
@@ -233,7 +229,7 @@ fn part4_multi_variable_calculus() {
     let f: Expr = x.clone().pow(2.0) * y + y.clone().pow(3.0);
     println!("      f(x,y) = x²y + y³");
 
-    let grad = gradient(&f, &[&x, &y]);
+    let grad = gradient(&f, &[&x, &y]).unwrap();
     println!("      ∂f/∂x = {}", grad[0]);
     println!("      ∂f/∂y = {}\n", grad[1]);
 
@@ -306,7 +302,7 @@ fn part5_all_functions() {
         ("lambertw(x)", "x"),
     ];
     for (expr, var) in &examples {
-        let result = diff(expr, var, None, None).unwrap();
+        let result = diff(expr, var, &[], None).unwrap();
         println!("    d/d{} [{}] = {}", var, expr, result);
     }
     println!();
@@ -323,14 +319,21 @@ fn part6_custom_derivatives() {
 
     let x = symb("x");
 
-    // 6.1 Custom Derivative Only
-    println!("  6.1 Custom Derivative Rule: custom_derivative()");
-    println!("      Define: my_func(u) with derivative: d/dx[my_func(u)] = 3u² · u'");
+    // 6.1 Custom Derivative with UserFunction
+    println!("  6.1 Custom Derivative Rule: user_fn()");
+    println!("      Define: my_func(u) with partial derivative: \u{2202}f/\u{2202}u = 3u\u{00b2}");
 
-    let custom_diff = Diff::new().custom_derivative("my_func", |inner_u, _var, u_prime| {
-        // d/dx[my_func(u)] = 3 * u^2 * u'
-        Expr::number(3.0) * inner_u.clone().pow_of(Expr::number(2.0)) * u_prime.clone()
-    });
+    use std::sync::Arc;
+    use symb_anafis::UserFunction;
+
+    let my_func_partial = UserFunction::new(1..=1)
+        .partial(0, |args: &[Arc<Expr>]| {
+            // \partial my_func / \partial u = 3 * u^2
+            Expr::number(3.0) * Expr::from(&args[0]).pow(Expr::number(2.0))
+        })
+        .expect("valid arg");
+
+    let custom_diff = Diff::new().user_fn("my_func", my_func_partial);
 
     let my_expr = Expr::func("my_func", x.clone().pow(2.0));
     println!("      Expression: {}", my_expr);
@@ -345,8 +348,6 @@ fn part6_custom_derivatives() {
     println!("  6.2 Custom Evaluation: custom_eval()");
     println!("      Define: f(x) = x² + 1 for numerical evaluation");
 
-    use std::sync::Arc;
-
     // Create f(x)
     let f_of_x = Expr::func("f", x.to_expr());
     println!("      Expression: {}", f_of_x);
@@ -354,7 +355,7 @@ fn part6_custom_derivatives() {
     // Without custom evaluator: f(3) stays as f(3)
     let mut vars: HashMap<&str, f64> = HashMap::new();
     vars.insert("x", 3.0);
-    let result_no_eval = f_of_x.evaluate(&vars);
+    let result_no_eval = f_of_x.evaluate(&vars, &HashMap::new());
     println!("      Without custom_eval: f(3) → {}", result_no_eval);
 
     // With custom evaluator: f(3) computes to 10
@@ -364,7 +365,7 @@ fn part6_custom_derivatives() {
         "f".to_string(),
         Arc::new(|args: &[f64]| Some(args[0].powi(2) + 1.0)), // f(x) = x² + 1
     );
-    let result_with_eval = f_of_x.evaluate_with_custom(&vars, &custom_evals);
+    let result_with_eval = f_of_x.evaluate(&vars, &custom_evals);
     println!(
         "      With custom_eval:    f(3) → {} (3² + 1 = 10)\n",
         result_with_eval
@@ -378,14 +379,19 @@ fn part6_custom_derivatives() {
     let g_of_xsq = Expr::func("g", x.clone().pow(2.0));
     println!("      Expression: {}", g_of_xsq);
 
-    // Setup differentiation with custom derivative
-    let diff_builder = Diff::new().custom_derivative("g", |inner, _var, inner_prime| {
-        // d/dx[g(u)] = 2·sin(u)·cos(u)·u'
-        Expr::number(2.0) * inner.clone().sin() * inner.clone().cos() * inner_prime.clone()
-    });
+    // Setup differentiation with user-defined function and partial
+    let g_fn = UserFunction::new(1..=1)
+        .partial(0, |args: &[Arc<Expr>]| {
+            // \partial g / \partial u = 2*sin(u)*cos(u)
+            let u = Expr::from(&args[0]);
+            Expr::number(2.0) * u.clone().sin() * u.cos()
+        })
+        .expect("valid arg");
+
+    let diff_builder = Diff::new().user_fn("g", g_fn);
 
     let derivative = diff_builder.differentiate(g_of_xsq.clone(), &x).unwrap();
-    println!("      d/dx[g(x²)] = {}", derivative);
+    println!("      d/dx[g(x\u{00b2})] = {}", derivative);
 
     // Setup evaluation: g(x) = sin²(x)
     let mut g_eval: HashMap<String, CustomEval> = HashMap::new();
@@ -398,7 +404,7 @@ fn part6_custom_derivatives() {
     let mut vars2: HashMap<&str, f64> = HashMap::new();
     let pi_over_4 = std::f64::consts::FRAC_PI_4;
     vars2.insert("x", pi_over_4);
-    let evaluated = g_of_xsq.evaluate_with_custom(&vars2, &g_eval);
+    let evaluated = g_of_xsq.evaluate(&vars2, &g_eval);
     println!("      g(x²) at x=π/4 = {}", evaluated);
     println!();
 }
@@ -450,17 +456,13 @@ fn part7_safety_features() {
     println!("      Prevents simplifications that could introduce undefined values");
     println!("      Example: √(x²) = |x| (not x, which fails for x < 0)\n");
 
-    // 7.4 Fixed Variables
-    println!("  7.4 Fixed Variables (Constants)");
-    let a_const = symb("a");
-    let b_const = symb("b");
+    // 7.4 Known Symbols (for parsing)
+    println!("  7.4 Known Symbols (Multi-char variable names)");
     let result = Diff::new()
-        .fixed_var(&a_const)
-        .fixed_var(&b_const)
-        .diff_str("a*x^2 + b*x + c", "x")
+        .diff_str("alpha*x^2 + beta*x + c", "x", &["alpha", "beta"])
         .unwrap();
-    println!("      With a, b as constants:");
-    println!("      d/dx [ax² + bx + c] = {}", result);
+    println!("      With alpha, beta as known symbols:");
+    println!("      d/dx [αx² + βx + c] = {}", result);
     println!();
 }
 

@@ -36,19 +36,13 @@ fn bench_diff_raw(c: &mut Criterion) {
     let mut group = c.benchmark_group("2_diff_raw");
     let empty = HashSet::new();
 
-    for (name, expr_str, var, fixed) in ALL_EXPRESSIONS {
+    for (name, expr_str, var, _fixed) in ALL_EXPRESSIONS {
         // Pre-parse the expression
         let expr = parse(expr_str, &empty, &empty, None).unwrap();
         let var_sym = symb(var);
 
-        // Build fixed var symbols
-        let fixed_syms: Vec<_> = fixed.iter().map(|s| symb(s)).collect();
-        let fixed_refs: Vec<_> = fixed_syms.iter().collect();
-
-        // Build Diff with fixed vars but skip simplification
-        let diff_builder = Diff::new()
-            .fixed_vars(&fixed_refs)
-            .skip_simplification(true);
+        // Build Diff with skip simplification
+        let diff_builder = Diff::new().skip_simplification(true);
 
         group.bench_with_input(BenchmarkId::new("symb_anafis", name), &expr, |b, expr| {
             b.iter(|| diff_builder.differentiate(black_box(expr.clone()), &var_sym))
@@ -66,19 +60,13 @@ fn bench_diff_simplified(c: &mut Criterion) {
     let mut group = c.benchmark_group("3_diff_simplified");
     let empty = HashSet::new();
 
-    for (name, expr_str, var, fixed) in ALL_EXPRESSIONS {
+    for (name, expr_str, var, _fixed) in ALL_EXPRESSIONS {
         // Pre-parse the expression
         let expr = parse(expr_str, &empty, &empty, None).unwrap();
         let var_sym = symb(var);
 
-        // Build fixed var symbols
-        let fixed_syms: Vec<_> = fixed.iter().map(|s| symb(s)).collect();
-        let fixed_refs: Vec<_> = fixed_syms.iter().collect();
-
         // SymbAnaFis: diff only (skip full simplification, similar to Symbolica)
-        let diff_light = Diff::new()
-            .fixed_vars(&fixed_refs)
-            .skip_simplification(true);
+        let diff_light = Diff::new().skip_simplification(true);
 
         group.bench_with_input(
             BenchmarkId::new("symb_anafis_diff_only", name),
@@ -87,7 +75,7 @@ fn bench_diff_simplified(c: &mut Criterion) {
         );
 
         // SymbAnaFis: diff + full simplification
-        let diff_full = Diff::new().fixed_vars(&fixed_refs);
+        let diff_full = Diff::new();
 
         group.bench_with_input(
             BenchmarkId::new("symb_anafis_diff+simplify", name),
@@ -107,20 +95,15 @@ fn bench_simplify_only(c: &mut Criterion) {
     let mut group = c.benchmark_group("4_simplify");
     let empty = HashSet::new();
 
-    for (name, expr_str, var, fixed) in ALL_EXPRESSIONS {
+    for (name, expr_str, var, _fixed) in ALL_EXPRESSIONS {
         // First differentiate to get a complex expression to simplify
         let expr = parse(expr_str, &empty, &empty, None).unwrap();
         let var_sym = symb(var);
 
-        let fixed_syms: Vec<_> = fixed.iter().map(|s| symb(s)).collect();
-        let fixed_refs: Vec<_> = fixed_syms.iter().collect();
-
-        let diff_builder = Diff::new()
-            .fixed_vars(&fixed_refs)
-            .skip_simplification(true);
+        let diff_builder = Diff::new().skip_simplification(true);
         let diff_result = diff_builder.differentiate(expr, &var_sym).unwrap();
 
-        let simplify_builder = Simplify::new().fixed_vars(&fixed_refs);
+        let simplify_builder = Simplify::new();
 
         group.bench_with_input(
             BenchmarkId::new("symb_anafis", name),
@@ -145,16 +128,11 @@ fn bench_compile(c: &mut Criterion) {
         let expr = parse(expr_str, &empty, &empty, None).unwrap();
         let var_sym = symb(var);
 
-        let fixed_syms: Vec<_> = fixed.iter().map(|s| symb(s)).collect();
-        let fixed_refs: Vec<_> = fixed_syms.iter().collect();
-
-        let diff_builder = Diff::new()
-            .fixed_vars(&fixed_refs)
-            .skip_simplification(true);
+        let diff_builder = Diff::new().skip_simplification(true);
         let diff_raw = diff_builder.differentiate(expr.clone(), &var_sym).unwrap();
 
         // Simplified result
-        let diff_simplified_str = symb_anafis::diff(expr_str, var, Some(fixed), None).unwrap();
+        let diff_simplified_str = symb_anafis::diff(expr_str, var, fixed, None).unwrap();
         let diff_simplified = parse(&diff_simplified_str, &empty, &empty, None).unwrap();
 
         // Benchmark: compile raw
@@ -189,15 +167,10 @@ fn bench_eval(c: &mut Criterion) {
         let expr = parse(expr_str, &empty, &empty, None).unwrap();
         let var_sym = symb(var);
 
-        let fixed_syms: Vec<_> = fixed.iter().map(|s| symb(s)).collect();
-        let fixed_refs: Vec<_> = fixed_syms.iter().collect();
-
-        let diff_builder = Diff::new()
-            .fixed_vars(&fixed_refs)
-            .skip_simplification(true);
+        let diff_builder = Diff::new().skip_simplification(true);
         let diff_raw = diff_builder.differentiate(expr, &var_sym).unwrap();
 
-        let diff_simplified_str = symb_anafis::diff(expr_str, var, Some(fixed), None).unwrap();
+        let diff_simplified_str = symb_anafis::diff(expr_str, var, fixed, None).unwrap();
         let diff_simplified = parse(&diff_simplified_str, &empty, &empty, None).unwrap();
 
         // Compile both versions
@@ -207,6 +180,9 @@ fn bench_eval(c: &mut Criterion) {
         // Benchmark: evaluate compiled (raw)
         if let Ok(ref evaluator) = compiled_raw {
             let param_count = evaluator.param_count();
+            let param_names = evaluator.param_names();
+            let var_idx = param_names.iter().position(|p| p == var).unwrap_or(0);
+
             group.bench_with_input(
                 BenchmarkId::new("compiled_raw", name),
                 &test_points,
@@ -216,7 +192,7 @@ fn bench_eval(c: &mut Criterion) {
                         for &x in points {
                             // Build values: x for var, 1.0 for all fixed
                             let mut values = vec![1.0; param_count];
-                            values[0] = x; // First param is usually the variable
+                            values[var_idx] = x;
                             sum += evaluator.evaluate(&values);
                         }
                         sum
@@ -228,6 +204,9 @@ fn bench_eval(c: &mut Criterion) {
         // Benchmark: evaluate compiled (simplified)
         if let Ok(ref evaluator) = compiled_simplified {
             let param_count = evaluator.param_count();
+            let param_names = evaluator.param_names();
+            let var_idx = param_names.iter().position(|p| p == var).unwrap_or(0);
+
             group.bench_with_input(
                 BenchmarkId::new("compiled_simplified", name),
                 &test_points,
@@ -236,7 +215,7 @@ fn bench_eval(c: &mut Criterion) {
                         let mut sum = 0.0;
                         for &x in points {
                             let mut values = vec![1.0; param_count];
-                            values[0] = x;
+                            values[var_idx] = x;
                             sum += evaluator.evaluate(&values);
                         }
                         sum
@@ -267,8 +246,7 @@ fn bench_full_pipeline(c: &mut Criterion) {
             |b, expr| {
                 b.iter(|| {
                     // Full pipeline
-                    let diff_str =
-                        symb_anafis::diff(black_box(expr), var, Some(fixed), None).unwrap();
+                    let diff_str = symb_anafis::diff(black_box(expr), var, fixed, None).unwrap();
                     let diff_expr = parse(&diff_str, &empty, &empty, None).unwrap();
                     let compiled = CompiledEvaluator::compile_auto(&diff_expr).unwrap();
 

@@ -8,33 +8,8 @@ use std::sync::{Arc, OnceLock};
 /// This struct defines how a function behaves numerically (via `eval`) and symbolically
 /// (via `derivative`). It is used by the function registry to look up function behavior
 /// during evaluation and differentiation.
-///
-/// # Creating Custom Functions
-///
-/// To create a custom function, use the `new()` constructor:
-///
-/// ```
-/// use symb_anafis::{Expr, FunctionDefinition};
-/// use std::sync::Arc;
-///
-/// let my_square = FunctionDefinition::new(
-///     "my_square",
-///     1..=1,  // exactly 1 argument
-///     |args| Some(args[0] * args[0]),  // numerical evaluation
-///     |args, derivs| {
-///         // d/dx[my_square(u)] = 2*u * u'
-///         let u = &args[0];
-///         let u_prime = &derivs[0];
-///         Expr::product(vec![
-///             Expr::number(2.0),
-///             (**u).clone(),
-///             u_prime.clone(),
-///         ])
-///     },
-/// );
-/// ```
 #[derive(Clone, Debug)]
-pub struct FunctionDefinition {
+pub(crate) struct FunctionDefinition {
     /// Canonical name of the function (e.g., "sin", "besselj")
     pub(crate) name: &'static str,
 
@@ -51,59 +26,6 @@ pub struct FunctionDefinition {
 }
 
 impl FunctionDefinition {
-    /// Create a new function definition.
-    ///
-    /// # Arguments
-    /// * `name` - Static string name of the function (e.g., "sin", "my_func")
-    /// * `arity` - Range of acceptable argument counts (e.g., `1..=1` for unary, `2..=3` for 2-3 args)
-    /// * `eval` - Numerical evaluation: takes argument values, returns computed result (or `None` for undefined)
-    /// * `derivative` - Symbolic differentiation: takes Arc arguments and their derivatives, returns combined derivative
-    ///
-    /// # Example
-    /// ```
-    /// use symb_anafis::{Expr, FunctionDefinition};
-    /// use std::sync::Arc;
-    ///
-    /// // Define cube(x) = x³ with derivative 3x²·x'
-    /// let cube_fn = FunctionDefinition::new(
-    ///     "cube",
-    ///     1..=1,
-    ///     |args| Some(args[0].powi(3)),
-    ///     |args, derivs| {
-    ///         // 3 * x^2 * x'
-    ///         Expr::product(vec![
-    ///             Expr::number(3.0),
-    ///             Expr::pow((**args.get(0).unwrap()).clone(), Expr::number(2.0)),
-    ///             derivs[0].clone(),
-    ///         ])
-    ///     },
-    /// );
-    /// assert_eq!(cube_fn.name(), "cube");
-    /// ```
-    pub fn new(
-        name: &'static str,
-        arity: RangeInclusive<usize>,
-        eval: fn(&[f64]) -> Option<f64>,
-        derivative: fn(&[Arc<Expr>], &[Expr]) -> Expr,
-    ) -> Self {
-        Self {
-            name,
-            arity,
-            eval,
-            derivative,
-        }
-    }
-
-    /// Get the function name
-    pub fn name(&self) -> &'static str {
-        self.name
-    }
-
-    /// Get the arity range (acceptable number of arguments)
-    pub fn arity(&self) -> &RangeInclusive<usize> {
-        &self.arity
-    }
-
     /// Helper to check if argument count is valid
     #[inline]
     pub(crate) fn validate_arity(&self, args: usize) -> bool {
@@ -111,7 +33,7 @@ impl FunctionDefinition {
     }
 }
 
-use crate::core::symbol::{InternedSymbol, get_or_intern};
+use crate::core::symbol::{InternedSymbol, symb_interned};
 
 /// Static registry storing all function definitions
 /// Maps symbol ID -> FunctionDefinition for fast O(1) lookup
@@ -124,7 +46,7 @@ fn init_registry() -> HashMap<u64, FunctionDefinition> {
     // Populate from definitions
     for def in crate::functions::definitions::all_definitions() {
         // Intern the name to get its ID
-        let sym = get_or_intern(def.name);
+        let sym = symb_interned(def.name);
         map.insert(sym.id(), def);
     }
 

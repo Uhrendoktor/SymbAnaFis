@@ -504,7 +504,7 @@ rule!(
     95,
     Numeric,
     &[ExprKind::Function],
-    |expr: &Expr, _context: &RuleContext| {
+    |expr: &Expr, context: &RuleContext| {
         if let AstKind::FunctionCall { name, args } = &expr.kind {
             // Check if all arguments are numbers
             let mut numeric_args = Vec::with_capacity(args.len());
@@ -512,12 +512,16 @@ rule!(
                 if let AstKind::Number(n) = &arg.kind {
                     numeric_args.push(*n);
                 } else {
+                    // Not all numeric - check if we have a body to expand symbolically
+                    if let Some(body_fn) = context.custom_bodies.get(name.as_str()) {
+                        // Expand the function body with the given arguments
+                        return Some(body_fn(args));
+                    }
                     return None;
                 }
             }
 
-            // Look up function in registry and evaluate
-            // Use ID-based lookup (via InternedSymbol) for speed
+            // Try built-in function registry first (via InternedSymbol ID)
             if let Some(func_def) = crate::functions::registry::Registry::get_by_symbol(name)
                 && let Some(result) = (func_def.eval)(&numeric_args)
             {
@@ -534,6 +538,12 @@ rule!(
 
                 // Non-integer result: keep symbolic form
                 return None;
+            }
+
+            // Fallback: check custom_bodies in context and expand symbolically
+            if let Some(body_fn) = context.custom_bodies.get(name.as_str()) {
+                // Expand the function body with the given arguments
+                return Some(body_fn(args));
             }
         }
         None

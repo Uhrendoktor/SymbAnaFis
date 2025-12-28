@@ -3,17 +3,17 @@
 //! This module provides lazily-initialized symbol IDs for common function names.
 //! Comparison is O(1) - just a u64 integer comparison.
 
-use crate::core::symbol::{InternedSymbol, get_or_intern, lookup_by_id};
+use crate::core::symbol::{InternedSymbol, lookup_by_id, symb_interned};
 use std::sync::LazyLock;
 
 /// Get the ID for an interned symbol (helper for the macro)
 fn intern_id(name: &str) -> u64 {
-    get_or_intern(name).id()
+    symb_interned(name).id()
 }
 
 /// Get the InternedSymbol for a known ID.
 /// Panics if the ID is not found (should never happen for known symbols).
-pub fn get_symbol(id: &LazyLock<u64>) -> InternedSymbol {
+pub(crate) fn get_symbol(id: &LazyLock<u64>) -> InternedSymbol {
     lookup_by_id(**id).expect("Known symbol ID not found in registry")
 }
 
@@ -107,4 +107,22 @@ define_symbol_ids! {
     // Constants sometimes used as symbols
     PI => "pi",
     E => "e",
+}
+
+/// Check if a name is a known mathematical constant (pi, e, etc.)
+/// Returns true for any case variation: "pi", "PI", "Pi", "e", "E"
+#[inline]
+pub(crate) fn is_known_constant(name: &str) -> bool {
+    matches!(name, "pi" | "PI" | "Pi" | "e" | "E")
+}
+
+/// Get the numeric value of a known constant, if it matches.
+/// Returns `Some(value)` for known constants, `None` otherwise.
+#[inline]
+pub(crate) fn get_constant_value(name: &str) -> Option<f64> {
+    match name {
+        "pi" | "PI" | "Pi" => Some(std::f64::consts::PI),
+        "e" | "E" => Some(std::f64::consts::E),
+        _ => None,
+    }
 }

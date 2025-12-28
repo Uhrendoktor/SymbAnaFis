@@ -28,7 +28,7 @@ fn bench_eval_methods(c: &mut Criterion) {
 
     for (name, expr_str, var, fixed) in ALL_EXPRESSIONS {
         // Get simplified derivative
-        let diff_str = symb_anafis::diff(expr_str, var, Some(fixed), None).unwrap();
+        let diff_str = symb_anafis::diff(expr_str, var, *fixed, None).unwrap();
         let diff_expr = parse(&diff_str, &empty, &empty, None).unwrap();
 
         // Use compile_auto to include all variables
@@ -68,7 +68,10 @@ fn bench_eval_methods(c: &mut Criterion) {
                     for &x in points {
                         vars.insert(*var, x);
                         // as_number() extracts f64 from Expr::Number
-                        sum += diff_expr.evaluate(&vars).as_number().unwrap_or(0.0);
+                        sum += diff_expr
+                            .evaluate(&vars, &std::collections::HashMap::new())
+                            .as_number()
+                            .unwrap_or(0.0);
                     }
                     black_box(sum)
                 })
@@ -107,7 +110,7 @@ fn bench_eval_methods(c: &mut Criterion) {
                     let columns: Vec<&[f64]> = vec![&points[..]];
                     let mut output = vec![0.0; points.len()];
                     b.iter(|| {
-                        evaluator.eval_batch(&columns, &mut output);
+                        evaluator.eval_batch(&columns, &mut output).unwrap();
                         black_box(output.iter().sum::<f64>())
                     })
                 },
@@ -131,7 +134,7 @@ fn bench_eval_scaling(c: &mut Criterion) {
     let expr_str = "1 / sqrt(1 - v^2)";
     let var = "v";
 
-    let diff_str = symb_anafis::diff(expr_str, var, None, None).unwrap();
+    let diff_str = symb_anafis::diff(expr_str, var, &[], None).unwrap();
     let diff_expr = parse(&diff_str, &empty, &empty, None).unwrap();
     let evaluator = CompiledEvaluator::compile(&diff_expr, &[var]).unwrap();
 
@@ -166,7 +169,7 @@ fn bench_eval_scaling(c: &mut Criterion) {
                 let columns: Vec<&[f64]> = vec![&points[..]];
                 let mut output = vec![0.0; points.len()];
                 b.iter(|| {
-                    evaluator.eval_batch(&columns, &mut output);
+                    evaluator.eval_batch(&columns, &mut output).unwrap();
                     black_box(output.iter().sum::<f64>())
                 })
             },
@@ -200,7 +203,7 @@ fn bench_multi_expr(c: &mut Criterion) {
     let mut test_data: Vec<Vec<f64>> = Vec::new();
 
     for (_, expr_str, var) in &exprs_str {
-        let diff_str = symb_anafis::diff(expr_str, var, None, None).unwrap();
+        let diff_str = symb_anafis::diff(expr_str, var, &[], None).unwrap();
         let diff_expr = parse(&diff_str, &empty, &empty, None).unwrap();
         if let Ok(eval) = CompiledEvaluator::compile(&diff_expr, &[var]) {
             diff_exprs.push(diff_expr);
@@ -247,7 +250,7 @@ fn bench_multi_expr(c: &mut Criterion) {
             let mut total = 0.0;
             for (i, eval) in evaluators.iter().enumerate() {
                 let columns: Vec<&[f64]> = vec![&test_data[i][..]];
-                eval.eval_batch(&columns, &mut outputs[i]);
+                eval.eval_batch(&columns, &mut outputs[i]).unwrap();
                 total += outputs[i].iter().sum::<f64>();
             }
             black_box(total)
@@ -284,7 +287,7 @@ fn bench_eval_apis(c: &mut Criterion) {
     let expr_str = "1 / sqrt(1 - v^2)";
     let var = "v";
 
-    let diff_str = symb_anafis::diff(expr_str, var, None, None).unwrap();
+    let diff_str = symb_anafis::diff(expr_str, var, &[], None).unwrap();
     let diff_expr = parse(&diff_str, &empty, &empty, None).unwrap();
 
     // Generate 10000 test points in valid domain

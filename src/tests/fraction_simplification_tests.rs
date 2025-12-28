@@ -2,6 +2,7 @@
 mod tests {
     use crate::simplification::simplify_expr;
     use crate::{Expr, ExprKind};
+    use std::collections::HashMap;
     use std::collections::HashSet;
 
     #[test]
@@ -11,7 +12,15 @@ mod tests {
             Expr::div_expr(Expr::symbol("x"), Expr::symbol("y")),
             Expr::div_expr(Expr::symbol("z"), Expr::symbol("a")),
         );
-        let simplified = simplify_expr(expr, HashSet::new());
+        let simplified = simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false,
+        );
 
         // Expected: (x*a) / (y*z) or Product([x, a]) / Product([y, z])
         if let ExprKind::Div(num, den) = &simplified.kind {
@@ -42,7 +51,15 @@ mod tests {
             Expr::symbol("x"),
             Expr::div_expr(Expr::symbol("y"), Expr::symbol("z")),
         );
-        let simplified = simplify_expr(expr, HashSet::new());
+        let simplified = simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false,
+        );
 
         // Expected: (x*z) / y
         if let ExprKind::Div(num, den) = &simplified.kind {
@@ -70,7 +87,15 @@ mod tests {
             Expr::div_expr(Expr::symbol("x"), Expr::symbol("y")),
             Expr::symbol("z"),
         );
-        let simplified = simplify_expr(expr, HashSet::new());
+        let simplified = simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false,
+        );
 
         // Expected: x / (y*z)
         if let ExprKind::Div(num, den) = &simplified.kind {
@@ -98,7 +123,15 @@ mod tests {
             Expr::div_expr(Expr::number(1.0), Expr::number(2.0)),
             Expr::div_expr(Expr::number(1.0), Expr::number(3.0)),
         );
-        let simplified = simplify_expr(expr, HashSet::new());
+        let simplified = simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false,
+        );
 
         if let ExprKind::Div(num, den) = &simplified.kind {
             if let (ExprKind::Number(n), ExprKind::Number(d)) = (&num.kind, &den.kind) {
@@ -122,7 +155,15 @@ mod tests {
                 Expr::pow(Expr::symbol("R"), Expr::number(2.0)),
             ]),
         );
-        let simplified = simplify_expr(expr, HashSet::new());
+        let simplified = simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false,
+        );
 
         // Expected: 1 / R
         if let ExprKind::Div(num, den) = &simplified.kind {

@@ -404,7 +404,7 @@ pub(crate) fn eval_lambert_w<T: MathScalar>(x: T) -> Option<T> {
     let e_inv = one / e;
 
     if x < -e_inv {
-        return Some(T::nan());
+        return None; // Domain error: W(x) undefined for x < -1/e
     }
     if x == T::zero() {
         return Some(T::zero());

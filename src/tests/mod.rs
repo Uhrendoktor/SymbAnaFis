@@ -1,6 +1,7 @@
 mod actual_division_bug;
 mod advanced_simplification_tests;
 mod advanced_tests;
+mod benchmark_tests;
 mod closure_check;
 mod comprehensive_api_tests;
 mod custom_functions;

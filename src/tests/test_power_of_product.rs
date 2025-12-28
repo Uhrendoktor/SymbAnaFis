@@ -1,14 +1,25 @@
 #[test]
 fn test_power_of_product() {
     use crate::{Expr, simplification::simplify_expr};
-    use std::collections::HashSet;
+    use std::collections::{HashMap, HashSet};
 
     // Test: (R * C)^2
     let product = Expr::product(vec![Expr::symbol("R"), Expr::symbol("C")]);
     let squared = Expr::pow(product, Expr::number(2.0));
 
     eprintln!("(R * C)^2 displays as: {}", squared);
-    eprintln!("Simplified: {}", simplify_expr(squared, HashSet::new()));
+    eprintln!(
+        "Simplified: {}",
+        simplify_expr(
+            squared,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false
+        )
+    );
     eprintln!("Expected: R^2 * C^2 or (R * C)^2");
 
     // Test: Something / (R * C)^2
@@ -21,6 +32,9 @@ fn test_power_of_product() {
     );
 
     eprintln!("\nX / (R * C)^2 displays as: {}", div);
-    eprintln!("Simplified: {}", simplify_expr(div, HashSet::new()));
+    eprintln!(
+        "Simplified: {}",
+        simplify_expr(div, HashSet::new(), HashMap::new(), None, None, None, false)
+    );
     eprintln!("Expected: X / (R^2 * C^2) or X / (R * C)^2");
 }

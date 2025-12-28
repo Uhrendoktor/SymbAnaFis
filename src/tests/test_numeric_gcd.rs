@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::{Expr, ExprKind, simplification::simplify_expr};
-    use std::collections::HashSet;
+    use std::collections::{HashMap, HashSet};
     use std::sync::Arc;
 
     #[test]
@@ -11,7 +11,15 @@ mod tests {
             Arc::new(Expr::number(2.0)),
             Arc::new(Expr::number(4.0)),
         ));
-        let simplified = simplify_expr(expr, HashSet::new());
+        let simplified = simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false,
+        );
         if let ExprKind::Div(num, den) = &simplified.kind {
             assert_eq!(**num, Expr::number(1.0));
             assert_eq!(**den, Expr::number(2.0));
@@ -24,7 +32,15 @@ mod tests {
             Arc::new(Expr::number(10.0)),
             Arc::new(Expr::number(2.0)),
         ));
-        let simplified = simplify_expr(expr, HashSet::new());
+        let simplified = simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false,
+        );
         assert_eq!(simplified, Expr::number(5.0));
 
         // 6/9 -> 2/3
@@ -32,7 +48,15 @@ mod tests {
             Arc::new(Expr::number(6.0)),
             Arc::new(Expr::number(9.0)),
         ));
-        let simplified = simplify_expr(expr, HashSet::new());
+        let simplified = simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false,
+        );
         if let ExprKind::Div(num, den) = &simplified.kind {
             assert_eq!(**num, Expr::number(2.0));
             assert_eq!(**den, Expr::number(3.0));

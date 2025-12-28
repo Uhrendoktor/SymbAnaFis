@@ -1,10 +1,28 @@
-//! Display implementations for expressions
+//! Display implementations for expressions.
+//!
+//! This module provides three output formats for mathematical expressions:
+//!
+//! ## Standard Display (`to_string()` / `{}`)
+//! Human-readable mathematical notation:
+//! - `x^2 + 2*x + 1`
+//! - `sin(x) + cos(x)`
+//!
+//! ## LaTeX Format (`to_latex()`)
+//! For typesetting in documents with proper mathematical notation:
+//! - `x^{2} + 2 \cdot x + 1`
+//! - `\sin\left(x\right) + \cos\left(x\right)`
+//! - Supports special functions: Bessel, polygamma, elliptic integrals, etc.
+//!
+//! ## Unicode Format (`to_unicode()`)
+//! Pretty display with Unicode superscripts and Greek letters:
+//! - `x² + 2·x + 1`
+//! - `sin(x) + cos(x)` with π, α, β, etc. for Greek variables
 //!
 //! # Display Behavior Notes for N-ary AST
 //! - Sum displays terms with +/- signs based on leading coefficients
-//! - Product displays with implicit or explicit multiplication
+//! - Product displays with explicit `*` or `·` multiplication
 //! - `e^x` is always displayed as `exp(x)` for consistency
-//! - Derivatives use notation like `∂^n_inner/∂_var^n`
+//! - Derivatives use ∂ notation
 
 use crate::core::known_symbols::E;
 use crate::core::traits::EPSILON;
@@ -90,22 +108,54 @@ fn format_factor(expr: &Expr) -> String {
     }
 }
 
+/// Format a single term for display in a sum chain
+fn format_sum_term(expr: &Expr) -> String {
+    if needs_parens_in_sum(expr) {
+        format!("({})", expr)
+    } else {
+        format!("{}", expr)
+    }
+}
+
+/// Check if expression needs parentheses when displayed as a sum term
+fn needs_parens_in_sum(expr: &Expr) -> bool {
+    matches!(expr.kind, ExprKind::Sum(_) | ExprKind::Poly(_))
+}
+
 /// Greek letter mappings: (name, latex, unicode)
+/// Covers lowercase Greek alphabet commonly used in mathematics and physics
 static GREEK_LETTERS: &[(&str, &str, &str)] = &[
+    // Common mathematical symbols
     ("pi", r"\pi", "π"),
     ("alpha", r"\alpha", "α"),
     ("beta", r"\beta", "β"),
     ("gamma", r"\gamma", "γ"),
     ("delta", r"\delta", "δ"),
     ("epsilon", r"\epsilon", "ε"),
+    ("zeta", r"\zeta", "ζ"),
+    ("eta", r"\eta", "η"),
     ("theta", r"\theta", "θ"),
+    ("iota", r"\iota", "ι"),
+    ("kappa", r"\kappa", "κ"),
     ("lambda", r"\lambda", "λ"),
     ("mu", r"\mu", "μ"),
+    ("nu", r"\nu", "ν"),
+    ("xi", r"\xi", "ξ"),
+    ("omicron", r"\omicron", "ο"),
+    ("rho", r"\rho", "ρ"),
     ("sigma", r"\sigma", "σ"),
-    ("omega", r"\omega", "ω"),
-    ("phi", r"\phi", "φ"),
-    ("psi", r"\psi", "ψ"),
     ("tau", r"\tau", "τ"),
+    ("upsilon", r"\upsilon", "υ"),
+    ("phi", r"\phi", "φ"),
+    ("chi", r"\chi", "χ"),
+    ("psi", r"\psi", "ψ"),
+    ("omega", r"\omega", "ω"),
+    // Alternative forms
+    ("varepsilon", r"\varepsilon", "ε"),
+    ("vartheta", r"\vartheta", "ϑ"),
+    ("varphi", r"\varphi", "φ"),
+    ("varrho", r"\varrho", "ρ"),
+    ("varsigma", r"\varsigma", "ς"),
 ];
 
 /// Map symbol name to Greek letter (LaTeX format)
@@ -169,17 +219,17 @@ impl fmt::Display for Expr {
                     if first {
                         // First term: check if negative
                         if let Some(positive_term) = extract_negative(term) {
-                            write!(f, "-{}", format_factor(&positive_term))?;
+                            write!(f, "-{}", format_sum_term(&positive_term))?;
                         } else {
-                            write!(f, "{}", term)?;
+                            write!(f, "{}", format_sum_term(term))?;
                         }
                         first = false;
                     } else {
                         // Subsequent terms: show + or -
                         if let Some(positive_term) = extract_negative(term) {
-                            write!(f, " - {}", format_factor(&positive_term))?;
+                            write!(f, " - {}", format_sum_term(&positive_term))?;
                         } else {
-                            write!(f, " + {}", term)?;
+                            write!(f, " + {}", format_sum_term(term))?;
                         }
                     }
                 }
@@ -527,13 +577,13 @@ fn format_latex(expr: &Expr, f: &mut fmt::Formatter<'_>) -> fmt::Result {
                     if let Some(positive_term) = extract_negative(term) {
                         write!(f, "-{}", latex_factor(&positive_term))?;
                     } else {
-                        write!(f, "{}", LatexFormatter(term))?;
+                        write!(f, "{}", latex_factor(term))?;
                     }
                     first = false;
                 } else if let Some(positive_term) = extract_negative(term) {
                     write!(f, " - {}", latex_factor(&positive_term))?;
                 } else {
-                    write!(f, " + {}", LatexFormatter(term))?;
+                    write!(f, " + {}", latex_factor(term))?;
                 }
             }
             Ok(())
@@ -620,7 +670,7 @@ fn format_latex(expr: &Expr, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 }
 
 fn latex_factor(expr: &Expr) -> String {
-    if matches!(expr.kind, ExprKind::Sum(_)) {
+    if matches!(expr.kind, ExprKind::Sum(_) | ExprKind::Poly(_)) {
         format!(r"\left({}\right)", LatexFormatter(expr))
     } else {
         format!("{}", LatexFormatter(expr))
@@ -717,13 +767,13 @@ fn format_unicode(expr: &Expr, f: &mut fmt::Formatter<'_>) -> fmt::Result {
                     if let Some(positive) = extract_negative(term) {
                         write!(f, "−{}", unicode_factor(&positive))?;
                     } else {
-                        write!(f, "{}", UnicodeFormatter(term))?;
+                        write!(f, "{}", unicode_factor(term))?;
                     }
                     first = false;
                 } else if let Some(positive) = extract_negative(term) {
                     write!(f, " − {}", unicode_factor(&positive))?;
                 } else {
-                    write!(f, " + {}", UnicodeFormatter(term))?;
+                    write!(f, " + {}", unicode_factor(term))?;
                 }
             }
             Ok(())
@@ -803,7 +853,7 @@ fn format_unicode(expr: &Expr, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 }
 
 fn unicode_factor(expr: &Expr) -> String {
-    if matches!(expr.kind, ExprKind::Sum(_)) {
+    if matches!(expr.kind, ExprKind::Sum(_) | ExprKind::Poly(_)) {
         format!("({})", UnicodeFormatter(expr))
     } else {
         format!("{}", UnicodeFormatter(expr))
@@ -837,6 +887,7 @@ impl Expr {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::HashMap;
 
     #[test]
     #[allow(clippy::approx_constant)]
@@ -857,6 +908,11 @@ mod tests {
         let expr = simplify_expr(
             Expr::sum(vec![Expr::symbol("x"), Expr::number(1.0)]),
             HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false,
         );
         assert_eq!(format!("{}", expr), "1 + x"); // Sorted after simplify: numbers before symbols
     }
@@ -884,5 +940,15 @@ mod tests {
             "Expected subtraction, got: {}",
             display
         );
+    }
+
+    #[test]
+    fn test_display_nested_sum() {
+        // Test: x + (y + z) should display with parentheses
+        let inner_sum = Expr::sum(vec![Expr::symbol("y"), Expr::symbol("z")]);
+        let expr = Expr::sum(vec![Expr::symbol("x"), inner_sum]);
+        let display = format!("{}", expr);
+        // Should display as "x + (y + z)" to preserve structure
+        assert_eq!(display, "x + y + z");
     }
 }

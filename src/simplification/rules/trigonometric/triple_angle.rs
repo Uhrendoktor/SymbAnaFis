@@ -1,5 +1,5 @@
 use crate::core::expr::{Expr, ExprKind as AstKind};
-use crate::core::known_symbols::{get_symbol, COS, SIN};
+use crate::core::known_symbols::{COS, SIN, get_symbol};
 use crate::simplification::rules::{ExprKind, Rule, RuleCategory, RuleContext};
 
 fn check_sin_triple(u: &Expr, v: &Expr, eps: f64) -> Option<Expr> {
@@ -185,9 +185,69 @@ rule!(
     "trig_triple_angle",
     70,
     Trigonometric,
-    &[ExprKind::Sum],
+    &[ExprKind::Sum, ExprKind::Poly],
     |expr: &Expr, _context: &RuleContext| {
         let eps = 1e-10;
+
+        // Handle Poly form: Poly(sin(x), [(1, 3.0), (3, -4.0)]) -> sin(3x)
+        if let AstKind::Poly(poly) = &expr.kind {
+            let base = poly.base();
+            let terms = poly.terms();
+
+            // Check if base is sin(x) or cos(x)
+            if let AstKind::FunctionCall { name, args } = &base.kind {
+                if args.len() != 1 {
+                    return None;
+                }
+                let x = &args[0];
+
+                // Check for sin triple angle: 3*sin(x) - 4*sin(x)^3
+                // terms should be [(1, 3.0), (3, -4.0)] or similar
+                if name.id() == *SIN && terms.len() == 2 {
+                    let mut has_linear_3 = false;
+                    let mut has_cubic_neg4 = false;
+
+                    for &(power, coeff) in terms {
+                        if power == 1 && (coeff - 3.0).abs() < eps {
+                            has_linear_3 = true;
+                        } else if power == 3 && (coeff + 4.0).abs() < eps {
+                            has_cubic_neg4 = true;
+                        }
+                    }
+
+                    if has_linear_3 && has_cubic_neg4 {
+                        return Some(Expr::func_symbol(
+                            get_symbol(&SIN),
+                            Expr::product(vec![Expr::number(3.0), (**x).clone()]),
+                        ));
+                    }
+                }
+
+                // Check for cos triple angle: 4*cos(x)^3 - 3*cos(x)
+                // terms should be [(1, -3.0), (3, 4.0)] or similar
+                if name.id() == *COS && terms.len() == 2 {
+                    let mut has_linear_neg3 = false;
+                    let mut has_cubic_4 = false;
+
+                    for &(power, coeff) in terms {
+                        if power == 1 && (coeff + 3.0).abs() < eps {
+                            has_linear_neg3 = true;
+                        } else if power == 3 && (coeff - 4.0).abs() < eps {
+                            has_cubic_4 = true;
+                        }
+                    }
+
+                    if has_linear_neg3 && has_cubic_4 {
+                        return Some(Expr::func_symbol(
+                            get_symbol(&COS),
+                            Expr::product(vec![Expr::number(3.0), (**x).clone()]),
+                        ));
+                    }
+                }
+            }
+        }
+
+        // Original Sum handling
         if let AstKind::Sum(terms) = &expr.kind
             && terms.len() == 2
         {

@@ -222,36 +222,33 @@ impl Polynomial {
     /// Try to add another polynomial to this one (in-place)
     /// Returns true if successful (compatible bases), false otherwise
     pub(crate) fn try_add_assign(&mut self, other: &Polynomial) -> bool {
-        if self.base != other.base {
-            // If one is constant, we can add it to the other?
-            // But self is the accumulator. If other is constant, we can add to self.
-            if other.is_constant()
-                && let Some(c) = other.as_constant()
-            {
-                self.add_term(0, c);
-                return true;
+        // Same base (by pointer or value): simple merge
+        if Arc::ptr_eq(&self.base, &other.base) || self.base == other.base {
+            for &(pow, coeff) in &other.terms {
+                self.add_term(pow, coeff);
             }
-            // If self is constant (and zero/const), maybe we should become other?
-            // But we can't change 'base' easily if we have terms?
-            // If self is effectively zero/constant, we could theoretically switch base,
-            // but 'base' is immutable in struct definition? No, we have &mut self.
-            // But struct definition is: base: Arc<Expr>.
-            if self.is_constant() {
-                // We are constant accumulator (e.g. valid for any base).
-                // Adopt other's base.
-                let my_const = self.as_constant().unwrap_or(0.0);
-                self.base = other.base.clone();
-                self.terms = other.terms.clone(); // Clone other's terms
-                self.add_term(0, my_const); // Add our constant
-                return true;
-            }
-            return false;
+            return true;
         }
 
-        for &(pow, coeff) in &other.terms {
-            self.add_term(pow, coeff);
+        // Other is constant: can add to any polynomial
+        if other.is_constant() {
+            self.add_term(0, other.as_constant().unwrap_or(0.0));
+            return true;
         }
-        true
+
+        // Self is constant: adopt other's base and terms, then add our constant
+        if self.is_constant() {
+            let my_const = self.as_constant().unwrap_or(0.0);
+            self.base = Arc::clone(&other.base);
+            self.terms.clone_from(&other.terms);
+            if my_const.abs() >= EPSILON {
+                self.add_term(0, my_const);
+            }
+            return true;
+        }
+
+        // Incompatible non-constant bases: cannot merge
+        false
     }
 
     /// Add two polynomials (must have same base)
@@ -492,9 +489,9 @@ impl Polynomial {
                     && n.fract().abs() < EPSILON
                 {
                     let pow = *n as u32;
-                    // base^pow is just one term
+                    // Reuse existing Arc instead of deep cloning
                     return Some(Polynomial {
-                        base: Arc::new((**base_expr).clone()),
+                        base: Arc::clone(base_expr),
                         terms: vec![(pow, 1.0)],
                     });
                 }
@@ -564,10 +561,11 @@ impl Polynomial {
             return Expr::number(coeff);
         }
 
+        // Use Arc-based constructors to avoid deep cloning
         let base_pow = if pow == 1 {
-            (*self.base).clone()
+            Expr::unwrap_arc(Arc::clone(&self.base))
         } else {
-            Expr::pow((*self.base).clone(), Expr::number(pow as f64))
+            Expr::pow_from_arcs(Arc::clone(&self.base), Arc::new(Expr::number(pow as f64)))
         };
 
         if (coeff - 1.0).abs() < EPSILON {
@@ -603,7 +601,7 @@ impl Polynomial {
         }
     }
 
-    /// Convert polynomial terms to Vec<Expr> (compatibility method)
+    /// Convert polynomial terms to `Vec<Expr>` (compatibility method)
     /// Returns each term as a separate expression: coeff * base^pow
     pub fn to_expr_terms(&self) -> Vec<Expr> {
         self.terms
@@ -756,7 +754,7 @@ mod tests {
     #[test]
     fn test_poly_roundtrip() {
         let expr = Expr::sum(vec![
-            Expr::pow(Expr::symbol("x"), Expr::number(2.0)),
+            Expr::pow_static(Expr::symbol("x"), Expr::number(2.0)),
             Expr::product(vec![Expr::number(2.0), Expr::symbol("x")]),
             Expr::number(1.0),
         ]);

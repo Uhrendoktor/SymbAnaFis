@@ -1,5 +1,5 @@
 use crate::core::expr::{Expr, ExprKind as AstKind};
-use crate::core::known_symbols::{get_symbol, CBRT, COSH, E, EXP, LN, LOG2, LOG10, SQRT};
+use crate::core::known_symbols::{CBRT, COSH, E, EXP, LN, LOG2, LOG10, SQRT, get_symbol};
 use crate::simplification::rules::{ExprKind, Rule, RuleCategory, RuleContext};
 use std::sync::Arc;
 
@@ -41,7 +41,7 @@ rule!(
             // Check for ln(e) where e is a symbol (and not a user-defined variable)
             if let AstKind::Symbol(s) = &args[0].kind
                 && s.id() == *E
-                && !context.fixed_vars.contains("e")
+                && !context.known_symbols.contains("e")
             {
                 return Some(Expr::number(1.0));
             }
@@ -235,7 +235,7 @@ rule!(
             && name.id() == *EXP
             && args.len() == 1
         {
-            return Some(Expr::pow(Expr::symbol("e"), (*args[0]).clone()));
+            return Some(Expr::pow_static(Expr::symbol("e"), (*args[0]).clone()));
         }
         None
     }

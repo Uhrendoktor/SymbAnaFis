@@ -156,6 +156,48 @@ pub enum DiffError {
     MaxDepthExceeded,
     /// The expression exceeded the maximum allowed node count.
     MaxNodesExceeded,
+
+    // Compilation errors (for CompiledEvaluator)
+    /// Expression contains unsupported constructs for numeric evaluation.
+    UnsupportedExpression(String),
+    /// Function not supported in compiled evaluation.
+    UnsupportedFunction(String),
+    /// Variable not found in parameter list during compilation.
+    UnboundVariable(String),
+    /// Expression requires too much stack depth.
+    StackOverflow {
+        /// Current stack depth.
+        depth: usize,
+        /// Maximum allowed stack depth.
+        limit: usize,
+    },
+
+    // Evaluation errors (for batch evaluation)
+    /// Column count doesn't match parameter count.
+    EvalColumnMismatch {
+        /// Expected number of columns.
+        expected: usize,
+        /// Got number of columns.
+        got: usize,
+    },
+    /// Column lengths are not all equal.
+    EvalColumnLengthMismatch,
+    /// Output buffer is too small.
+    EvalOutputTooSmall {
+        /// Number of data points needed.
+        needed: usize,
+        /// Output buffer size.
+        got: usize,
+    },
+
+    // UserFunction errors
+    /// Partial derivative index exceeds function arity.
+    InvalidPartialIndex {
+        /// The invalid argument index.
+        index: usize,
+        /// Maximum allowed arity.
+        max_arity: usize,
+    },
 }
 
 impl DiffError {
@@ -285,8 +327,141 @@ impl fmt::Display for DiffError {
             DiffError::MaxNodesExceeded => {
                 write!(f, "Expression size exceeds maximum node count limit")
             }
+            // Compile errors
+            DiffError::UnsupportedExpression(msg) => {
+                write!(f, "Unsupported expression: {}", msg)
+            }
+            DiffError::UnsupportedFunction(name) => {
+                write!(f, "Unsupported function for evaluation: {}", name)
+            }
+            DiffError::UnboundVariable(name) => {
+                write!(f, "Unbound variable: {}", name)
+            }
+            DiffError::StackOverflow { depth, limit } => {
+                write!(
+                    f,
+                    "Expression requires stack depth {} which exceeds limit {}",
+                    depth, limit
+                )
+            }
+            // Evaluation errors
+            DiffError::EvalColumnMismatch { expected, got } => {
+                write!(
+                    f,
+                    "Column count mismatch: expected {} columns, got {}",
+                    expected, got
+                )
+            }
+            DiffError::EvalColumnLengthMismatch => {
+                write!(f, "All columns must have the same length")
+            }
+            DiffError::EvalOutputTooSmall { needed, got } => {
+                write!(
+                    f,
+                    "Output buffer too small: need {} elements, got {}",
+                    needed, got
+                )
+            }
+            DiffError::InvalidPartialIndex { index, max_arity } => {
+                write!(
+                    f,
+                    "Partial derivative index {} exceeds maximum arity {}",
+                    index, max_arity
+                )
+            }
         }
     }
 }
 
 impl std::error::Error for DiffError {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_span_creation() {
+        let span = Span::new(5, 10);
+        assert_eq!(span.start(), 5);
+        assert_eq!(span.end(), 10);
+        assert!(span.is_valid());
+    }
+
+    #[test]
+    fn test_span_swap() {
+        let span = Span::new(10, 5);
+        assert_eq!(span.start(), 5);
+        assert_eq!(span.end(), 10);
+        assert!(span.is_valid());
+    }
+
+    #[test]
+    fn test_span_at() {
+        let span = Span::at(7);
+        assert_eq!(span.start(), 7);
+        assert_eq!(span.end(), 8);
+        assert!(span.is_valid());
+    }
+
+    #[test]
+    fn test_span_empty() {
+        let span = Span::empty();
+        assert_eq!(span.start(), 0);
+        assert_eq!(span.end(), 0);
+        assert!(!span.is_valid());
+    }
+
+    #[test]
+    fn test_span_display() {
+        let span = Span::new(4, 8);
+        assert_eq!(span.display(), " at positions 5-8");
+
+        let span = Span::at(9);
+        assert_eq!(span.display(), " at position 10");
+
+        let span = Span::empty();
+        assert_eq!(span.display(), "");
+    }
+
+    #[test]
+    fn test_diff_error_display() {
+        let err = DiffError::EmptyFormula;
+        assert_eq!(format!("{}", err), "Formula cannot be empty");
+
+        let err = DiffError::invalid_syntax("test message");
+        assert_eq!(format!("{}", err), "Invalid syntax: test message");
+
+        let err = DiffError::invalid_syntax_at("spanned message", Span::new(1, 3));
+        assert_eq!(
+            format!("{}", err),
+            "Invalid syntax: spanned message at positions 2-3"
+        );
+
+        let err = DiffError::MaxDepthExceeded;
+        assert_eq!(
+            format!("{}", err),
+            "Expression nesting depth exceeds maximum limit"
+        );
+    }
+
+    #[test]
+    fn test_diff_error_constructors() {
+        let err = DiffError::invalid_syntax("msg");
+        match err {
+            DiffError::InvalidSyntax { msg, span: None } => assert_eq!(msg, "msg"),
+            _ => panic!("Wrong error type"),
+        }
+
+        let err = DiffError::invalid_syntax_at("msg", Span::at(5));
+        match err {
+            DiffError::InvalidSyntax {
+                msg,
+                span: Some(span),
+            } => {
+                assert_eq!(msg, "msg");
+                assert_eq!(span.start(), 5);
+            }
+            _ => panic!("Wrong error type"),
+        }
+    }
+}

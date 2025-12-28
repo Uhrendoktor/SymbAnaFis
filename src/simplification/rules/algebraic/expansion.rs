@@ -35,7 +35,7 @@ rule!(
                     if useful {
                         let pow_factors: Vec<Expr> = base_factors
                             .iter()
-                            .map(|f| Expr::pow((**f).clone(), (**exp).clone()))
+                            .map(|f| Expr::pow_static((**f).clone(), (**exp).clone()))
                             .collect();
                         return Some(Expr::product(pow_factors));
                     }
@@ -98,7 +98,7 @@ rule!(
                 if has_simplifiable {
                     let factors: Vec<Expr> = base_factors
                         .iter()
-                        .map(|f| Expr::pow((**f).clone(), (**exp).clone()))
+                        .map(|f| Expr::pow_static((**f).clone(), (**exp).clone()))
                         .collect();
                     return Some(Expr::product(factors));
                 }
@@ -153,8 +153,8 @@ rule!(
 
                 // Only expand if numerator or denominator would simplify
                 if would_simplify(a) || would_simplify(b) {
-                    let a_pow = Expr::pow((**a).clone(), (**exp).clone());
-                    let b_pow = Expr::pow((**b).clone(), (**exp).clone());
+                    let a_pow = Expr::pow_static((**a).clone(), (**exp).clone());
+                    let b_pow = Expr::pow_static((**b).clone(), (**exp).clone());
                     return Some(Expr::div_expr(a_pow, b_pow));
                 }
             }
@@ -195,46 +195,46 @@ rule!(
                 match n_int {
                     2 => {
                         // (a + b)^2 = a^2 + 2*a*b + b^2
-                        let a2 = Expr::pow((**a).clone(), Expr::number(2.0));
-                        let b2 = Expr::pow((**b).clone(), Expr::number(2.0));
+                        let a2 = Expr::pow_static((**a).clone(), Expr::number(2.0));
+                        let b2 = Expr::pow_static((**b).clone(), Expr::number(2.0));
                         let ab2 =
                             Expr::product(vec![Expr::number(2.0), (**a).clone(), (**b).clone()]);
                         return Some(Expr::sum(vec![a2, ab2, b2]));
                     }
                     3 => {
                         // (a + b)^3 = a^3 + 3*a^2*b + 3*a*b^2 + b^3
-                        let a3 = Expr::pow((**a).clone(), Expr::number(3.0));
-                        let b3 = Expr::pow((**b).clone(), Expr::number(3.0));
+                        let a3 = Expr::pow_static((**a).clone(), Expr::number(3.0));
+                        let b3 = Expr::pow_static((**b).clone(), Expr::number(3.0));
                         let a2b = Expr::product(vec![
                             Expr::number(3.0),
-                            Expr::pow((**a).clone(), Expr::number(2.0)),
+                            Expr::pow_static((**a).clone(), Expr::number(2.0)),
                             (**b).clone(),
                         ]);
                         let ab2 = Expr::product(vec![
                             Expr::number(3.0),
                             (**a).clone(),
-                            Expr::pow((**b).clone(), Expr::number(2.0)),
+                            Expr::pow_static((**b).clone(), Expr::number(2.0)),
                         ]);
                         return Some(Expr::sum(vec![a3, a2b, ab2, b3]));
                     }
                     4 => {
                         // (a + b)^4 = a^4 + 4*a^3*b + 6*a^2*b^2 + 4*a*b^3 + b^4
-                        let a4 = Expr::pow((**a).clone(), Expr::number(4.0));
-                        let b4 = Expr::pow((**b).clone(), Expr::number(4.0));
+                        let a4 = Expr::pow_static((**a).clone(), Expr::number(4.0));
+                        let b4 = Expr::pow_static((**b).clone(), Expr::number(4.0));
                         let a3b = Expr::product(vec![
                             Expr::number(4.0),
-                            Expr::pow((**a).clone(), Expr::number(3.0)),
+                            Expr::pow_static((**a).clone(), Expr::number(3.0)),
                             (**b).clone(),
                         ]);
                         let a2b2 = Expr::product(vec![
                             Expr::number(6.0),
-                            Expr::pow((**a).clone(), Expr::number(2.0)),
-                            Expr::pow((**b).clone(), Expr::number(2.0)),
+                            Expr::pow_static((**a).clone(), Expr::number(2.0)),
+                            Expr::pow_static((**b).clone(), Expr::number(2.0)),
                         ]);
                         let ab3 = Expr::product(vec![
                             Expr::number(4.0),
                             (**a).clone(),
-                            Expr::pow((**b).clone(), Expr::number(3.0)),
+                            Expr::pow_static((**b).clone(), Expr::number(3.0)),
                         ]);
                         return Some(Expr::sum(vec![a4, a3b, a2b2, ab3, b4]));
                     }

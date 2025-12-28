@@ -8,6 +8,7 @@ This directory contains examples demonstrating SymbAnaFis capabilities.
 |---------|-------------|----------|
 | **quickstart** | Minimal 25-line demo | `cargo run --example quickstart` |
 | **api_showcase** | Complete API tour (10 parts) | `cargo run --example api_showcase` |
+| **dual_autodiff** | Automatic differentiation with dual numbers | `cargo run --example dual_autodiff` |
 | **applications** | Physics & engineering | `cargo run --example applications` |
 | **simplification_comparison** | Compare against Symbolica CAS | `cargo run --example simplification_comparison` |
 
@@ -39,6 +40,35 @@ Comprehensive demo of ALL features:
 ```bash
 cargo run --example api_showcase
 cargo run --example api_showcase --features parallel  # Include Part 10
+```
+
+## dual_autodiff.rs - Automatic Differentiation
+
+Demonstrates SymbAnaFis's `Dual<T>` number implementation for exact derivative computation through algebraic manipulation.
+
+**Features shown:**
+- Basic dual number arithmetic
+- Transcendental functions (sin, exp)
+- Higher-order derivatives
+- Chain rule application
+- Comparison with symbolic differentiation
+
+**Sample Output:**
+```text
+=== Quadratic Function: f(x) = x² + 3x + 1 ===
+f(2) = 11
+f'(2) = 7
+Expected: f(2) = 11, f'(2) = 7
+
+=== Transcendental Function: f(x) = sin(x) * exp(x) ===
+f(1) = 2.287355
+f'(1) = 5.435620
+Expected f'(1) = 5.435620
+Error: 0.00e0
+```
+
+```bash
+cargo run --example dual_autodiff
 ```
 
 ## applications.rs - Real-World Physics

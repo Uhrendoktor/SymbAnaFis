@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod rc_circuit_differentiation_bug {
-    use crate::{Expr, simplification::simplify_expr};
+    use crate::{Expr, core::unified_context::Context, simplification::simplify_expr};
     use std::collections::{HashMap, HashSet};
 
     #[test]
@@ -21,17 +21,25 @@ mod rc_circuit_differentiation_bug {
 
         println!("\nOriginal: V(t) = {}", rc_expr);
 
-        // Take derivative with respect to t, treating R, C, V0 as constants
-        let mut fixed_vars = HashSet::new();
-        fixed_vars.insert("R".to_string());
-        fixed_vars.insert("C".to_string());
-        fixed_vars.insert("V0".to_string());
-
-        let deriv = rc_expr.derive("t", &fixed_vars, &HashMap::new(), &HashMap::new());
+        // Take derivative with respect to t
+        // R, C, V0 are just symbols - differentiation treats all non-var symbols as constant automatically
+        let context = Context::new()
+            .with_symbol("R")
+            .with_symbol("C")
+            .with_symbol("V0");
+        let deriv = rc_expr.derive("t", Some(&context));
         println!("Derivative (raw): {}", deriv);
 
         // Simplify
-        let simplified = simplify_expr(deriv, fixed_vars);
+        let simplified = simplify_expr(
+            deriv,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false,
+        );
         println!("Derivative (simplified): {}", simplified);
 
         // Expected: -V0 * exp(-t / (R * C)) / (R * C)

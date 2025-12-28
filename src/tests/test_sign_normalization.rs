@@ -5,7 +5,7 @@ mod tests {
     #[test]
     fn test_sign_in_difference_of_squares() {
         // Test x^2 - 1 should factor to (x-1)(x+1)
-        let result = simplify("x^2 - 1", None, None).unwrap();
+        let result = simplify("x^2 - 1", &[], None).unwrap();
         let result_str = result.to_string();
         println!("x^2 - 1 = {}", result_str);
         assert!(
@@ -19,7 +19,7 @@ mod tests {
     #[test]
     fn test_reversed_difference_of_squares() {
         // Test 1 - x^2 should factor to (1-x)(1+x), NOT (x-1)(x+1)
-        let result = simplify("1 - x^2", None, None).unwrap();
+        let result = simplify("1 - x^2", &[], None).unwrap();
         let result_str = result.to_string();
         println!("1 - x^2 = {}", result_str);
 
@@ -42,7 +42,7 @@ mod tests {
     #[test]
     fn test_negative_form_difference_of_squares() {
         // Test -x^2 + 1 is same as 1 - x^2
-        let result = simplify("-x^2 + 1", None, None).unwrap();
+        let result = simplify("-x^2 + 1", &[], None).unwrap();
         let result_str = result.to_string();
         println!("-x^2 + 1 = {}", result_str);
 
@@ -65,7 +65,7 @@ mod tests {
     #[test]
     fn test_normalize_negative_in_denominator_number() {
         // Test x / -2 with negative number
-        let result = simplify("x / -2", None, None).unwrap();
+        let result = simplify("x / -2", &[], None).unwrap();
         let result_str = result.to_string();
         println!("x / -2 = {}", result_str);
 
@@ -81,7 +81,7 @@ mod tests {
     #[test]
     fn test_normalize_negative_in_denominator_mul() {
         // Test x / (-1 * y)
-        let result = simplify("x / (-1 * y)", None, None).unwrap();
+        let result = simplify("x / (-1 * y)", &[], None).unwrap();
         let result_str = result.to_string();
         println!("x / (-1 * y) = {}", result_str);
 
@@ -101,7 +101,7 @@ mod tests {
     #[test]
     fn test_normalize_negative_trailing_mul() {
         // Test x / (y * -1)
-        let result = simplify("x / (y * -1)", None, None).unwrap();
+        let result = simplify("x / (y * -1)", &[], None).unwrap();
         let result_str = result.to_string();
         println!("x / (y * -1) = {}", result_str);
 
@@ -116,7 +116,7 @@ mod tests {
     #[test]
     fn test_double_negative_in_division() {
         // Test -x / -y should become x / y
-        let result = simplify("(-1 * x) / (-1 * y)", None, None).unwrap();
+        let result = simplify("(-1 * x) / (-1 * y)", &[], None).unwrap();
         let result_str = result.to_string();
         println!("(-1 * x) / (-1 * y) = {}", result_str);
 

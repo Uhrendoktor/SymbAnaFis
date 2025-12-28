@@ -8,7 +8,7 @@
 pub(crate) mod builder;
 mod helpers;
 
-pub use builder::{CustomDerivativeFn, CustomFn, Diff, Simplify};
+pub use builder::{Diff, Simplify};
 pub use helpers::{
     evaluate_str, gradient, gradient_str, hessian, hessian_str, jacobian, jacobian_str,
 };

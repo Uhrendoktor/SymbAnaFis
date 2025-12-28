@@ -21,41 +21,13 @@
 //! assert!((result - (0.5_f64.sin() * 0.5_f64.cos() + 0.25)).abs() < 1e-10);
 //! ```
 
+use crate::core::error::DiffError;
 use crate::core::traits::EPSILON;
-use crate::functions::FunctionContext;
+use crate::core::unified_context::Context;
 use crate::{Expr, ExprKind};
 use std::collections::HashMap;
 use std::sync::Arc;
 use wide::f64x4;
-
-/// Error during expression compilation
-#[derive(Debug, Clone)]
-pub enum CompileError {
-    /// Expression contains unsupported constructs for numeric evaluation
-    UnsupportedExpression(String),
-    /// Function not supported in compiled evaluation
-    UnsupportedFunction(String),
-    /// Variable not found in parameter list
-    UnboundVariable(String),
-}
-
-impl std::fmt::Display for CompileError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            CompileError::UnsupportedExpression(msg) => {
-                write!(f, "Unsupported expression: {}", msg)
-            }
-            CompileError::UnsupportedFunction(name) => {
-                write!(f, "Unsupported function for evaluation: {}", name)
-            }
-            CompileError::UnboundVariable(name) => {
-                write!(f, "Unbound variable: {}", name)
-            }
-        }
-    }
-}
-
-impl std::error::Error for CompileError {}
 
 /// Bytecode instruction for stack-based evaluation
 #[derive(Clone, Copy, Debug)]
@@ -151,14 +123,6 @@ pub(crate) enum Instruction {
     Cube,
     /// 1/x - faster than LoadConst(1) + Div
     Recip,
-
-    /// Call an external function defined in the FunctionContext
-    /// id: Symbol ID of the function
-    /// arity: Number of arguments to pop from stack
-    CallExternal {
-        id: u64,
-        arity: usize,
-    },
 }
 
 // =============================================================================
@@ -206,7 +170,7 @@ macro_rules! stack_binop_fn {
 }
 /// Macro to process a single instruction
 /// $instr: The instruction to process
-/// $stack: The stack to operate on (Vec<f64>)
+/// $stack: The stack to operate on (`Vec<f64>`)
 /// $load_param: Closure/Expression to load a parameter by index: |idx| -> f64
 macro_rules! process_instruction {
     ($instr:expr, $stack:ident, $load_param:expr) => {
@@ -225,8 +189,6 @@ macro_rules! process_instruction {
                 let top = stack_top_mut!($stack);
                 *top = *top * *top;
             }
-            // Cannot handle CallExternal in process_instruction as it lacks context
-            Instruction::CallExternal { .. } => panic!("CallExternal not supported in process_instruction macro"),
             Instruction::Cube => {
                 let top = stack_top_mut!($stack);
                 let x = *top;
@@ -399,6 +361,9 @@ macro_rules! process_instruction {
                 *top = top.round();
             }
 
+            // Special functions - use safe access pattern since these have
+            // domain handling, error conditions, and the .unwrap() overhead
+            // is negligible compared to the function computation itself
             Instruction::Erf => {
                 *$stack.last_mut().unwrap() = crate::math::eval_erf(*$stack.last().unwrap())
             }
@@ -418,6 +383,7 @@ macro_rules! process_instruction {
                     crate::math::eval_trigamma(*$stack.last().unwrap()).unwrap_or(f64::NAN)
             }
             Instruction::Tetragamma => {
+                // Tetragamma is polygamma(3, x) - the 4th derivative of ln(Gamma(x))
                 *$stack.last_mut().unwrap() =
                     crate::math::eval_polygamma(3, *$stack.last().unwrap()).unwrap_or(f64::NAN)
             }
@@ -527,8 +493,8 @@ macro_rules! process_instruction {
 
 /// Macro for fast-path instruction dispatch (single evaluation)
 /// $instr: The instruction to process
-/// $stack: The stack Vec<f64>
-/// $params: The params slice &[f64]
+/// $stack: The stack `Vec<f64>`
+/// $params: The params slice `&[f64]`
 /// $self: Reference to CompiledEvaluator (for slow path fallback)
 macro_rules! single_fast_path {
     ($instr:expr, $stack:ident, $params:expr, $self_ref:expr) => {
@@ -584,8 +550,19 @@ macro_rules! single_fast_path {
                 let top = $stack.last_mut().unwrap();
                 *top = top.abs();
             }
-            Instruction::CallExternal { .. } => {
-                $self_ref.exec_slow_instruction_single($instr, &mut *$stack, $params)
+            // Fused operations
+            Instruction::Square => {
+                let top = $stack.last_mut().unwrap();
+                *top = *top * *top;
+            }
+            Instruction::Cube => {
+                let top = $stack.last_mut().unwrap();
+                let x = *top;
+                *top = x * x * x;
+            }
+            Instruction::Recip => {
+                let top = $stack.last_mut().unwrap();
+                *top = 1.0 / *top;
             }
             _ => $self_ref.exec_slow_instruction_single($instr, &mut *$stack, $params),
         }
@@ -594,8 +571,8 @@ macro_rules! single_fast_path {
 
 /// Macro for fast-path batch instruction dispatch (scalar, used for remainder)
 /// $instr: The instruction to process
-/// $stack: The stack Vec<f64>
-/// $columns: The columnar data &[&[f64]]
+/// $stack: The stack `Vec<f64>`
+/// $columns: The columnar data `&[&[f64]]`
 /// $point_idx: The current point index
 /// $self: Reference to CompiledEvaluator (for slow path fallback)
 macro_rules! batch_fast_path {
@@ -666,9 +643,6 @@ macro_rules! batch_fast_path {
                 let top = $stack.last_mut().unwrap();
                 *top = 1.0 / *top;
             }
-            Instruction::CallExternal { .. } => {
-                $self_ref.exec_slow_instruction($instr, &mut $stack)
-            }
             _ => $self_ref.exec_slow_instruction($instr, &mut $stack),
         }
     };
@@ -677,8 +651,8 @@ macro_rules! batch_fast_path {
 /// SIMD macro for fast-path batch instruction dispatch using f64x4
 /// Processes 4 f64 values simultaneously for ~2x speedup
 /// $instr: The instruction to process
-/// $stack: The stack Vec<f64x4>
-/// $columns: The columnar data &[&[f64]]
+/// $stack: The stack `Vec<f64x4>`
+/// $columns: The columnar data `&[&[f64]]`
 /// $base: Base index for the 4-point chunk
 /// $self: Reference to CompiledEvaluator (for slow path fallback)
 macro_rules! simd_batch_fast_path {
@@ -774,8 +748,6 @@ pub struct CompiledEvaluator {
     stack_size: usize,
     /// Parameter names in order (for mapping HashMap -> array)
     param_names: Arc<[String]>,
-    /// Function context for external calls
-    function_context: Option<FunctionContext>,
 }
 
 impl CompiledEvaluator {
@@ -783,7 +755,7 @@ impl CompiledEvaluator {
     ///
     /// The `param_order` specifies the order of parameters in the evaluation array.
     /// All variables in the expression must be in this list.
-    pub fn compile(expr: &Expr, param_order: &[&str]) -> Result<Self, CompileError> {
+    pub fn compile(expr: &Expr, param_order: &[&str]) -> Result<Self, DiffError> {
         Self::compile_with_context(expr, param_order, None)
     }
 
@@ -791,33 +763,137 @@ impl CompiledEvaluator {
     pub fn compile_with_context(
         expr: &Expr,
         param_order: &[&str],
-        context: Option<&FunctionContext>,
-    ) -> Result<Self, CompileError> {
+        context: Option<&Context>,
+    ) -> Result<Self, DiffError> {
+        // First, expand any user function calls with their body expressions
+        // This allows the compiled evaluator to evaluate them numerically
+        let expanded_expr = if let Some(ctx) = context {
+            let mut expanding = std::collections::HashSet::new();
+            Self::expand_user_functions(expr, ctx, &mut expanding, 0)
+        } else {
+            expr.clone()
+        };
+
         let mut compiler = Compiler::new(param_order, context);
-        compiler.compile_expr(expr)?;
+        compiler.compile_expr(&expanded_expr)?;
 
         Ok(Self {
             instructions: compiler.instructions.into(),
             stack_size: compiler.max_stack,
             param_names: param_order.iter().map(|s| s.to_string()).collect(),
-            function_context: context.cloned(),
         })
     }
 
+    /// Recursively expand user function calls with their body expressions.
+    ///
+    /// This substitutes `f(arg1, arg2, ...)` with the body expression where
+    /// formal parameters are replaced by the actual argument expressions.
+    ///
+    /// The `expanding` set tracks functions currently being expanded to prevent
+    /// infinite recursion from self-referential or mutually recursive functions.
+    /// The `depth` parameter limits recursion depth to prevent stack overflow.
+    fn expand_user_functions(
+        expr: &Expr,
+        ctx: &Context,
+        expanding: &mut std::collections::HashSet<String>,
+        depth: usize,
+    ) -> Expr {
+        const MAX_EXPANSION_DEPTH: usize = 100;
+
+        if depth > MAX_EXPANSION_DEPTH {
+            // Return unexpanded to prevent stack overflow
+            return expr.clone();
+        }
+
+        match &expr.kind {
+            ExprKind::Number(_) | ExprKind::Symbol(_) => expr.clone(),
+
+            ExprKind::Sum(terms) => {
+                let expanded: Vec<Expr> = terms
+                    .iter()
+                    .map(|t| Self::expand_user_functions(t, ctx, expanding, depth + 1))
+                    .collect();
+                Expr::sum(expanded)
+            }
+
+            ExprKind::Product(factors) => {
+                let expanded: Vec<Expr> = factors
+                    .iter()
+                    .map(|f| Self::expand_user_functions(f, ctx, expanding, depth + 1))
+                    .collect();
+                Expr::product(expanded)
+            }
+
+            ExprKind::Div(num, den) => {
+                let num_exp = Self::expand_user_functions(num, ctx, expanding, depth + 1);
+                let den_exp = Self::expand_user_functions(den, ctx, expanding, depth + 1);
+                Expr::div_expr(num_exp, den_exp)
+            }
+
+            ExprKind::Pow(base, exp) => {
+                let base_exp = Self::expand_user_functions(base, ctx, expanding, depth + 1);
+                let exp_exp = Self::expand_user_functions(exp, ctx, expanding, depth + 1);
+                Expr::pow_static(base_exp, exp_exp)
+            }
+
+            ExprKind::FunctionCall { name, args } => {
+                // First expand arguments
+                let expanded_args: Vec<Expr> = args
+                    .iter()
+                    .map(|a| Self::expand_user_functions(a, ctx, expanding, depth + 1))
+                    .collect();
+
+                let fn_name = name.as_str().to_string();
+
+                // Check for recursion and if this is a user function with a body
+                // Check for recursion and if this is a user function with a body
+                if !expanding.contains(&fn_name)
+                    && let Some(user_fn) = ctx.get_user_fn(&fn_name)
+                    && user_fn.accepts_arity(expanded_args.len())
+                    && let Some(body_fn) = &user_fn.body
+                {
+                    // Mark as expanding to prevent infinite recursion
+                    expanding.insert(fn_name.clone());
+
+                    let arc_args: Vec<Arc<Expr>> =
+                        expanded_args.iter().map(|a| Arc::new(a.clone())).collect();
+                    let body_expr = body_fn(&arc_args);
+                    let result = Self::expand_user_functions(&body_expr, ctx, expanding, depth + 1);
+
+                    expanding.remove(&fn_name);
+                    return result;
+                }
+
+                // Not expandable - return as-is with expanded args
+                Expr::func_multi(name.as_str(), expanded_args)
+            }
+
+            ExprKind::Poly(poly) => {
+                let poly_expr = poly.to_expr();
+                Self::expand_user_functions(&poly_expr, ctx, expanding, depth + 1)
+            }
+
+            ExprKind::Derivative { inner, var, order } => {
+                let expanded_inner = Self::expand_user_functions(inner, ctx, expanding, depth + 1);
+                Expr::derivative_interned(expanded_inner, var.clone(), *order)
+            }
+        }
+    }
+
     /// Compile an expression, automatically determining parameter order from variables
-    pub fn compile_auto(expr: &Expr) -> Result<Self, CompileError> {
+    pub fn compile_auto(expr: &Expr) -> Result<Self, DiffError> {
         Self::compile_auto_with_context(expr, None)
     }
 
     /// Compile auto with context
     pub fn compile_auto_with_context(
         expr: &Expr,
-        context: Option<&FunctionContext>,
-    ) -> Result<Self, CompileError> {
+        context: Option<&Context>,
+    ) -> Result<Self, DiffError> {
         let vars = expr.variables();
         let mut param_order: Vec<String> = vars
             .into_iter()
-            .filter(|v| !matches!(v.as_str(), "pi" | "PI" | "Pi" | "e" | "E"))
+            .filter(|v| !crate::core::known_symbols::is_known_constant(v.as_str()))
             .collect();
         param_order.sort(); // Consistent ordering
 
@@ -839,9 +915,96 @@ impl CompiledEvaluator {
     /// Panics if stack underflow (indicates compiler bug)
     #[inline]
     pub fn evaluate(&self, params: &[f64]) -> f64 {
-        // Use a small inline buffer for common cases, heap for large expressions
-        let mut stack: Vec<f64> = Vec::with_capacity(self.stack_size);
-        self.evaluate_with_stack(params, &mut stack)
+        // Fast path: use stack-allocated buffer for common expressions (stack_size <= 32)
+        // This avoids heap allocation entirely for most use cases
+        const INLINE_STACK_SIZE: usize = 32;
+
+        if self.stack_size <= INLINE_STACK_SIZE {
+            // Use a fixed-size array on the stack - zero allocation
+            let mut inline_stack = [0.0_f64; INLINE_STACK_SIZE];
+            let mut len = 0usize;
+
+            for instr in self.instructions.iter() {
+                // Inline the fast path operations directly to avoid Vec overhead
+                match *instr {
+                    Instruction::LoadConst(c) => {
+                        inline_stack[len] = c;
+                        len += 1;
+                    }
+                    Instruction::LoadParam(p) => {
+                        inline_stack[len] = params[p];
+                        len += 1;
+                    }
+                    Instruction::Add => {
+                        len -= 1;
+                        inline_stack[len - 1] += inline_stack[len];
+                    }
+                    Instruction::Mul => {
+                        len -= 1;
+                        inline_stack[len - 1] *= inline_stack[len];
+                    }
+                    Instruction::Div => {
+                        len -= 1;
+                        inline_stack[len - 1] /= inline_stack[len];
+                    }
+                    Instruction::Pow => {
+                        len -= 1;
+                        inline_stack[len - 1] = inline_stack[len - 1].powf(inline_stack[len]);
+                    }
+                    Instruction::Neg => {
+                        inline_stack[len - 1] = -inline_stack[len - 1];
+                    }
+                    Instruction::Sin => {
+                        inline_stack[len - 1] = inline_stack[len - 1].sin();
+                    }
+                    Instruction::Cos => {
+                        inline_stack[len - 1] = inline_stack[len - 1].cos();
+                    }
+                    Instruction::Sqrt => {
+                        inline_stack[len - 1] = inline_stack[len - 1].sqrt();
+                    }
+                    Instruction::Exp => {
+                        inline_stack[len - 1] = inline_stack[len - 1].exp();
+                    }
+                    Instruction::Ln => {
+                        inline_stack[len - 1] = inline_stack[len - 1].ln();
+                    }
+                    Instruction::Tan => {
+                        inline_stack[len - 1] = inline_stack[len - 1].tan();
+                    }
+                    Instruction::Abs => {
+                        inline_stack[len - 1] = inline_stack[len - 1].abs();
+                    }
+                    Instruction::Square => {
+                        let x = inline_stack[len - 1];
+                        inline_stack[len - 1] = x * x;
+                    }
+                    Instruction::Cube => {
+                        let x = inline_stack[len - 1];
+                        inline_stack[len - 1] = x * x * x;
+                    }
+                    Instruction::Recip => {
+                        inline_stack[len - 1] = 1.0 / inline_stack[len - 1];
+                    }
+                    _ => {
+                        // Slow path: expression uses uncommon instructions
+                        // Fall back to heap-allocated Vec evaluation
+                        let mut vec_stack: Vec<f64> = Vec::with_capacity(self.stack_size);
+                        return self.evaluate_with_stack(params, &mut vec_stack);
+                    }
+                }
+            }
+
+            if len > 0 {
+                inline_stack[len - 1]
+            } else {
+                f64::NAN
+            }
+        } else {
+            // Large expression: fall back to heap-allocated Vec
+            let mut stack: Vec<f64> = Vec::with_capacity(self.stack_size);
+            self.evaluate_with_stack(params, &mut stack)
+        }
     }
 
     /// Evaluate using an existing stack buffer (avoids allocation)
@@ -885,17 +1048,18 @@ impl CompiledEvaluator {
     ///   of parameter `param_idx` at data point `point_idx`
     /// - `output`: Mutable slice to write results, must have length >= number of data points
     ///
-    /// # Panics
-    /// - If `columns.len()` != `param_count()`
-    /// - If column lengths don't all match
-    /// - If `output.len()` < number of data points
+    /// # Errors
+    /// - `EvalColumnMismatch` if `columns.len()` != `param_count()`
+    /// - `EvalColumnLengthMismatch` if column lengths don't all match
+    /// - `EvalOutputTooSmall` if `output.len()` < number of data points
     #[inline]
-    pub fn eval_batch(&self, columns: &[&[f64]], output: &mut [f64]) {
-        debug_assert_eq!(
-            columns.len(),
-            self.param_names.len(),
-            "Column count must match parameter count"
-        );
+    pub fn eval_batch(&self, columns: &[&[f64]], output: &mut [f64]) -> Result<(), DiffError> {
+        if columns.len() != self.param_names.len() {
+            return Err(DiffError::EvalColumnMismatch {
+                expected: self.param_names.len(),
+                got: columns.len(),
+            });
+        }
 
         let n_points = if columns.is_empty() {
             1
@@ -903,14 +1067,15 @@ impl CompiledEvaluator {
             columns[0].len()
         };
 
-        debug_assert!(
-            columns.iter().all(|c| c.len() == n_points),
-            "All columns must have the same length"
-        );
-        debug_assert!(
-            output.len() >= n_points,
-            "Output buffer must be large enough for all data points"
-        );
+        if !columns.iter().all(|c| c.len() == n_points) {
+            return Err(DiffError::EvalColumnLengthMismatch);
+        }
+        if output.len() < n_points {
+            return Err(DiffError::EvalOutputTooSmall {
+                needed: n_points,
+                got: output.len(),
+            });
+        }
 
         // Process in chunks of 4 using SIMD
         let full_chunks = n_points / 4;
@@ -945,31 +1110,15 @@ impl CompiledEvaluator {
                 *out = scalar_stack.pop().unwrap_or(f64::NAN);
             }
         }
+        Ok(())
     }
 
     #[inline(never)]
     #[cold]
     fn exec_slow_instruction(&self, instr: &Instruction, stack: &mut Vec<f64>) {
-        if let Instruction::CallExternal { id, arity } = *instr {
-            let args_start = stack.len() - arity;
-            let args = &stack[args_start..];
-
-            if let Some(ctx) = &self.function_context
-                && let Some(def) = ctx.get(id)
-                && let Some(result) = (def.eval)(args)
-            {
-                stack.truncate(args_start);
-                stack.push(result);
-                return;
-            }
-            // Fallback (should not happen if compiled correctly)
-            stack.truncate(args_start);
-            stack.push(f64::NAN);
-        } else {
-            process_instruction!(instr, stack, |_| unreachable!(
-                "LoadParam should be handled in fast path"
-            ));
-        }
+        process_instruction!(instr, stack, |_| unreachable!(
+            "LoadParam should be handled in fast path"
+        ));
     }
 
     #[inline(never)]
@@ -980,23 +1129,7 @@ impl CompiledEvaluator {
         stack: &mut Vec<f64>,
         params: &[f64],
     ) {
-        if let Instruction::CallExternal { id, arity } = *instr {
-            let args_start = stack.len() - arity;
-            let args = &stack[args_start..];
-
-            if let Some(ctx) = &self.function_context
-                && let Some(def) = ctx.get(id)
-                && let Some(result) = (def.eval)(args)
-            {
-                stack.truncate(args_start);
-                stack.push(result);
-                return;
-            }
-            stack.truncate(args_start);
-            stack.push(f64::NAN);
-        } else {
-            process_instruction!(instr, stack, |i| params[i]);
-        }
+        process_instruction!(instr, stack, |i| params[i]);
     }
 
     /// SIMD slow path for handling less common instructions
@@ -1031,7 +1164,7 @@ impl CompiledEvaluator {
                 let top = stack.last_mut().unwrap();
                 let arr = top.to_array();
                 let acot = |x: f64| -> f64 {
-                    if x == 0.0 {
+                    if x.abs() < EPSILON {
                         std::f64::consts::PI / 2.0
                     } else if x > 0.0 {
                         (1.0 / x).atan()
@@ -1564,17 +1697,19 @@ impl CompiledEvaluator {
     /// # Returns
     /// Vec of evaluation results for each data point
     ///
-    /// # Panics
-    /// - If `columns.len()` != `param_count()`
+    /// # Errors
+    /// - `EvalColumnMismatch` if `columns.len()` != `param_count()`
+    /// - `EvalColumnLengthMismatch` if column lengths don't all match
     #[cfg(feature = "parallel")]
-    pub fn eval_batch_parallel(&self, columns: &[&[f64]]) -> Vec<f64> {
+    pub fn eval_batch_parallel(&self, columns: &[&[f64]]) -> Result<Vec<f64>, DiffError> {
         use rayon::prelude::*;
 
-        debug_assert_eq!(
-            columns.len(),
-            self.param_names.len(),
-            "Column count must match parameter count"
-        );
+        if columns.len() != self.param_names.len() {
+            return Err(DiffError::EvalColumnMismatch {
+                expected: self.param_names.len(),
+                got: columns.len(),
+            });
+        }
 
         let n_points = if columns.is_empty() {
             1
@@ -1582,17 +1717,16 @@ impl CompiledEvaluator {
             columns[0].len()
         };
 
-        debug_assert!(
-            columns.iter().all(|c| c.len() == n_points),
-            "All columns must have the same length"
-        );
+        if !columns.iter().all(|c| c.len() == n_points) {
+            return Err(DiffError::EvalColumnLengthMismatch);
+        }
 
         // For small point counts, fall back to sequential to avoid overhead
         const MIN_PARALLEL_SIZE: usize = 256;
         if n_points < MIN_PARALLEL_SIZE {
             let mut output = vec![0.0; n_points];
-            self.eval_batch(columns, &mut output);
-            return output;
+            self.eval_batch(columns, &mut output)?;
+            return Ok(output);
         }
 
         // Parallel chunked evaluation using SIMD-enabled eval_batch
@@ -1606,11 +1740,16 @@ impl CompiledEvaluator {
                 let end = start + chunk.len();
                 // Slice columns for this chunk
                 let col_slices: Vec<&[f64]> = columns.iter().map(|col| &col[start..end]).collect();
-                self.eval_batch(&col_slices, chunk);
+                // Note: eval_batch cannot fail here because we've already validated inputs
+                self.eval_batch(&col_slices, chunk)
+                    .expect("eval_batch failed in parallel chunk");
             });
-        output
+        Ok(output)
     }
 }
+
+/// Maximum allowed stack depth to prevent deeply nested expressions from causing issues
+const MAX_STACK_DEPTH: usize = 1024;
 
 /// Internal compiler state
 struct Compiler<'a> {
@@ -1618,11 +1757,11 @@ struct Compiler<'a> {
     param_map: HashMap<&'a str, usize>,
     current_stack: usize,
     max_stack: usize,
-    function_context: Option<&'a FunctionContext>,
+    function_context: Option<&'a Context>,
 }
 
 impl<'a> Compiler<'a> {
-    fn new(param_order: &[&'a str], context: Option<&'a FunctionContext>) -> Self {
+    fn new(param_order: &[&'a str], context: Option<&'a Context>) -> Self {
         let param_map: HashMap<&str, usize> = param_order
             .iter()
             .enumerate()
@@ -1638,9 +1777,16 @@ impl<'a> Compiler<'a> {
         }
     }
 
-    fn push(&mut self) {
+    fn push(&mut self) -> Result<(), DiffError> {
         self.current_stack += 1;
+        if self.current_stack > MAX_STACK_DEPTH {
+            return Err(DiffError::StackOverflow {
+                depth: self.current_stack,
+                limit: MAX_STACK_DEPTH,
+            });
+        }
         self.max_stack = self.max_stack.max(self.current_stack);
+        Ok(())
     }
 
     fn pop(&mut self) {
@@ -1656,11 +1802,7 @@ impl<'a> Compiler<'a> {
     fn try_eval_const(expr: &Expr) -> Option<f64> {
         match &expr.kind {
             ExprKind::Number(n) => Some(*n),
-            ExprKind::Symbol(s) => match s.as_str() {
-                "pi" | "PI" | "Pi" => Some(std::f64::consts::PI),
-                "e" | "E" => Some(std::f64::consts::E),
-                _ => None,
-            },
+            ExprKind::Symbol(s) => crate::core::known_symbols::get_constant_value(s.as_str()),
             ExprKind::Sum(terms) => {
                 let mut sum = 0.0;
                 for term in terms {
@@ -1712,48 +1854,39 @@ impl<'a> Compiler<'a> {
         }
     }
 
-    fn compile_expr(&mut self, expr: &Expr) -> Result<(), CompileError> {
+    fn compile_expr(&mut self, expr: &Expr) -> Result<(), DiffError> {
         // Try constant folding first - evaluate constant expressions at compile time
         if let Some(value) = Self::try_eval_const(expr) {
             self.emit(Instruction::LoadConst(value));
-            self.push();
+            self.push()?;
             return Ok(());
         }
 
         match &expr.kind {
             ExprKind::Number(n) => {
                 self.emit(Instruction::LoadConst(*n));
-                self.push();
+                self.push()?;
             }
 
             ExprKind::Symbol(s) => {
                 let name = s.as_str();
                 // Handle known constants
-                match name {
-                    "pi" | "PI" | "Pi" => {
-                        self.emit(Instruction::LoadConst(std::f64::consts::PI));
-                        self.push();
-                    }
-                    "e" | "E" => {
-                        self.emit(Instruction::LoadConst(std::f64::consts::E));
-                        self.push();
-                    }
-                    _ => {
-                        // Look up in parameter map
-                        if let Some(&idx) = self.param_map.get(name) {
-                            self.emit(Instruction::LoadParam(idx));
-                            self.push();
-                        } else {
-                            return Err(CompileError::UnboundVariable(name.to_string()));
-                        }
-                    }
+                if let Some(value) = crate::core::known_symbols::get_constant_value(name) {
+                    self.emit(Instruction::LoadConst(value));
+                    self.push()?;
+                } else if let Some(&idx) = self.param_map.get(name) {
+                    // Look up in parameter map
+                    self.emit(Instruction::LoadParam(idx));
+                    self.push()?;
+                } else {
+                    return Err(DiffError::UnboundVariable(name.to_string()));
                 }
             }
 
             ExprKind::Sum(terms) => {
                 if terms.is_empty() {
                     self.emit(Instruction::LoadConst(0.0));
-                    self.push();
+                    self.push()?;
                 } else {
                     // Compile first term
                     self.compile_expr(&terms[0])?;
@@ -1769,7 +1902,7 @@ impl<'a> Compiler<'a> {
             ExprKind::Product(factors) => {
                 if factors.is_empty() {
                     self.emit(Instruction::LoadConst(1.0));
-                    self.push();
+                    self.push()?;
                 } else {
                     // Check for negation pattern: Product([-1, x]) = -x
                     if factors.len() == 2
@@ -1949,27 +2082,30 @@ impl<'a> Compiler<'a> {
                             let sym = crate::core::symbol::symb(func_name);
                             let id = sym.id();
 
-                            if let Some(def) = ctx.get(id) {
-                                if def.validate_arity(args.len()) {
-                                    Instruction::CallExternal {
-                                        id,
-                                        arity: args.len(),
-                                    }
+                            if let Some(user_fn) = ctx.get_user_fn_by_id(id) {
+                                if user_fn.arity.contains(&args.len()) {
+                                    // User function exists but has no symbolic body,
+                                    // so we can't evaluate it numerically.
+                                    // Return an error at compile time instead of
+                                    // silently returning NaN at runtime.
+                                    return Err(DiffError::UnsupportedFunction(format!(
+                                        "{}: user function has no body for numeric evaluation. \
+                                         Define a body with `with_function(.., body: Some(expr))`",
+                                        func_name
+                                    )));
                                 } else {
-                                    return Err(CompileError::UnsupportedFunction(format!(
+                                    return Err(DiffError::UnsupportedFunction(format!(
                                         "{}: invalid arity (expected {:?}, got {})",
                                         func_name,
-                                        def.arity,
+                                        user_fn.arity,
                                         args.len()
                                     )));
                                 }
                             } else {
-                                return Err(CompileError::UnsupportedFunction(
-                                    func_name.to_string(),
-                                ));
+                                return Err(DiffError::UnsupportedFunction(func_name.to_string()));
                             }
                         } else {
-                            return Err(CompileError::UnsupportedFunction(func_name.to_string()));
+                            return Err(DiffError::UnsupportedFunction(func_name.to_string()));
                         }
                     }
                 };
@@ -1985,7 +2121,7 @@ impl<'a> Compiler<'a> {
                 let terms = poly.terms();
                 if terms.is_empty() {
                     self.emit(Instruction::LoadConst(0.0));
-                    self.push();
+                    self.push()?;
                     return Ok(());
                 }
 
@@ -2002,7 +2138,7 @@ impl<'a> Compiler<'a> {
                 let base_param_idx = if let ExprKind::Symbol(s) = &poly.base().kind {
                     let name = s.as_str();
                     match name {
-                        "pi" | "PI" | "Pi" | "e" | "E" => None, // Constants, not params
+                        _ if crate::core::known_symbols::is_known_constant(name) => None, // Constants, not params
                         _ => self.param_map.get(name).copied(),
                     }
                 } else {
@@ -2014,14 +2150,14 @@ impl<'a> Compiler<'a> {
                         // Fast path: base is a simple parameter, use Horner's method
                         // Start with highest coefficient
                         self.emit(Instruction::LoadConst(sorted_terms[0].1));
-                        self.push();
+                        self.push()?;
 
                         let mut term_iter = sorted_terms.iter().skip(1).peekable();
 
                         for pow in (0..max_pow).rev() {
                             // Multiply by x
                             self.emit(Instruction::LoadParam(idx));
-                            self.push();
+                            self.push()?;
                             self.emit(Instruction::Mul);
                             self.pop();
 
@@ -2029,7 +2165,7 @@ impl<'a> Compiler<'a> {
                             if term_iter.peek().is_some_and(|(p, _)| *p == pow) {
                                 let (_, coeff) = term_iter.next().unwrap();
                                 self.emit(Instruction::LoadConst(*coeff));
-                                self.push();
+                                self.push()?;
                                 self.emit(Instruction::Add);
                                 self.pop();
                             }
@@ -2065,7 +2201,7 @@ impl<'a> Compiler<'a> {
                         // First term
                         let (first_pow, first_coeff) = sorted_terms[0];
                         self.emit(Instruction::LoadConst(first_coeff));
-                        self.push();
+                        self.push()?;
 
                         // Replaying base: ensure we have enough stack space!
                         // We are at `current_stack`, and base needs `base_headroom` above that.
@@ -2075,10 +2211,10 @@ impl<'a> Compiler<'a> {
                             self.emit(*instr);
                         }
                         // Manually track the stack effect of the base expression (it pushes 1 value)
-                        self.push();
+                        self.push()?;
 
                         self.emit(Instruction::LoadConst(first_pow as f64));
-                        self.push();
+                        self.push()?;
                         self.emit(Instruction::Pow);
                         self.pop();
                         self.emit(Instruction::Mul);
@@ -2087,17 +2223,17 @@ impl<'a> Compiler<'a> {
                         // Remaining terms
                         for &(pow, coeff) in &sorted_terms[1..] {
                             self.emit(Instruction::LoadConst(coeff));
-                            self.push();
+                            self.push()?;
 
                             // Replay base again
                             self.max_stack = self.max_stack.max(self.current_stack + base_headroom);
                             for instr in &base_instrs {
                                 self.emit(*instr);
                             }
-                            self.push();
+                            self.push()?;
 
                             self.emit(Instruction::LoadConst(pow as f64));
-                            self.push();
+                            self.push()?;
                             self.emit(Instruction::Pow);
                             self.pop();
                             self.emit(Instruction::Mul);
@@ -2110,7 +2246,7 @@ impl<'a> Compiler<'a> {
             }
 
             ExprKind::Derivative { .. } => {
-                return Err(CompileError::UnsupportedExpression(
+                return Err(DiffError::UnsupportedExpression(
                     "Derivatives cannot be numerically evaluated - simplify first".to_string(),
                 ));
             }
@@ -2172,7 +2308,7 @@ mod tests {
     fn test_unbound_variable_error() {
         let expr = parse_expr("x + y");
         let result = CompiledEvaluator::compile(&expr, &["x"]);
-        assert!(matches!(result, Err(CompileError::UnboundVariable(_))));
+        assert!(matches!(result, Err(DiffError::UnboundVariable(_))));
     }
 
     #[test]
@@ -2181,5 +2317,239 @@ mod tests {
         let eval = CompiledEvaluator::compile_auto(&expr).unwrap();
         // Auto compilation sorts parameters alphabetically
         assert_eq!(eval.param_names(), &["x", "y"]);
+    }
+
+    // ===== Batch/SIMD Evaluation Tests =====
+
+    #[test]
+    fn test_eval_batch_simd_path() {
+        // Tests the SIMD path (4+ points processed with f64x4)
+        let expr = parse_expr("x^2 + 2*x + 1");
+        let eval = CompiledEvaluator::compile(&expr, &["x"]).unwrap();
+
+        // 8 points to ensure full SIMD chunks
+        let x_vals: Vec<f64> = (0..8).map(|i| i as f64).collect();
+        let columns: Vec<&[f64]> = vec![&x_vals];
+        let mut output = vec![0.0; 8];
+
+        eval.eval_batch(&columns, &mut output).unwrap();
+
+        // Verify each result: (x+1)^2
+        for (i, &result) in output.iter().enumerate() {
+            let x = i as f64;
+            let expected = (x + 1.0).powi(2);
+            assert!(
+                (result - expected).abs() < 1e-10,
+                "Mismatch at i={}: got {}, expected {}",
+                i,
+                result,
+                expected
+            );
+        }
+    }
+
+    #[test]
+    fn test_eval_batch_remainder_path() {
+        // Tests the scalar remainder path (points not divisible by 4)
+        let expr = parse_expr("sin(x) + cos(x)");
+        let eval = CompiledEvaluator::compile(&expr, &["x"]).unwrap();
+
+        // 6 points: 4 SIMD + 2 remainder
+        let x_vals: Vec<f64> = vec![0.0, 0.5, 1.0, 1.5, 2.0, 2.5];
+        let columns: Vec<&[f64]> = vec![&x_vals];
+        let mut output = vec![0.0; 6];
+
+        eval.eval_batch(&columns, &mut output).unwrap();
+
+        for (i, &result) in output.iter().enumerate() {
+            let x = x_vals[i];
+            let expected = x.sin() + x.cos();
+            assert!(
+                (result - expected).abs() < 1e-10,
+                "Mismatch at i={}: got {}, expected {}",
+                i,
+                result,
+                expected
+            );
+        }
+    }
+
+    #[test]
+    fn test_eval_batch_multi_var() {
+        // Tests batch evaluation with multiple variables
+        let expr = parse_expr("x * y + z");
+        let eval = CompiledEvaluator::compile(&expr, &["x", "y", "z"]).unwrap();
+
+        let x_vals = vec![1.0, 2.0, 3.0, 4.0, 5.0];
+        let y_vals = vec![2.0, 3.0, 4.0, 5.0, 6.0];
+        let z_vals = vec![0.5, 1.0, 1.5, 2.0, 2.5];
+        let columns: Vec<&[f64]> = vec![&x_vals, &y_vals, &z_vals];
+        let mut output = vec![0.0; 5];
+
+        eval.eval_batch(&columns, &mut output).unwrap();
+
+        for i in 0..5 {
+            let expected = x_vals[i] * y_vals[i] + z_vals[i];
+            assert!(
+                (output[i] - expected).abs() < 1e-10,
+                "Mismatch at i={}: got {}, expected {}",
+                i,
+                output[i],
+                expected
+            );
+        }
+    }
+
+    #[test]
+    fn test_eval_batch_special_functions() {
+        // Tests SIMD slow path for special functions
+        let expr = parse_expr("exp(x) + sqrt(x)");
+        let eval = CompiledEvaluator::compile(&expr, &["x"]).unwrap();
+
+        let x_vals: Vec<f64> = vec![1.0, 2.0, 3.0, 4.0];
+        let columns: Vec<&[f64]> = vec![&x_vals];
+        let mut output = vec![0.0; 4];
+
+        eval.eval_batch(&columns, &mut output).unwrap();
+
+        for (i, &result) in output.iter().enumerate() {
+            let x = x_vals[i];
+            let expected = x.exp() + x.sqrt();
+            assert!(
+                (result - expected).abs() < 1e-10,
+                "Mismatch at i={}: got {}, expected {}",
+                i,
+                result,
+                expected
+            );
+        }
+    }
+
+    #[test]
+    fn test_eval_batch_single_point() {
+        // Edge case: single point (no SIMD, just remainder)
+        let expr = parse_expr("x^2");
+        let eval = CompiledEvaluator::compile(&expr, &["x"]).unwrap();
+
+        let x_vals = vec![3.0];
+        let columns: Vec<&[f64]> = vec![&x_vals];
+        let mut output = vec![0.0; 1];
+
+        eval.eval_batch(&columns, &mut output).unwrap();
+
+        assert!((output[0] - 9.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn test_eval_batch_constant_expr() {
+        // Edge case: expression with no variables
+        let expr = parse_expr("pi * 2");
+        let eval = CompiledEvaluator::compile(&expr, &[]).unwrap();
+
+        let columns: Vec<&[f64]> = vec![];
+        let mut output = vec![0.0; 1];
+
+        eval.eval_batch(&columns, &mut output).unwrap();
+
+        let expected = std::f64::consts::PI * 2.0;
+        assert!((output[0] - expected).abs() < 1e-10);
+    }
+
+    #[test]
+    fn test_eval_batch_vs_single() {
+        // Verify batch and single evaluation produce identical results
+        let expr = parse_expr("sin(x) * cos(y) + exp(x/y)");
+        let eval = CompiledEvaluator::compile(&expr, &["x", "y"]).unwrap();
+
+        let x_vals: Vec<f64> = (1..=8).map(|i| i as f64 * 0.5).collect();
+        let y_vals: Vec<f64> = (1..=8).map(|i| i as f64 * 0.3 + 0.1).collect();
+        let columns: Vec<&[f64]> = vec![&x_vals, &y_vals];
+        let mut batch_output = vec![0.0; 8];
+
+        eval.eval_batch(&columns, &mut batch_output).unwrap();
+
+        // Compare with single evaluations
+        for i in 0..8 {
+            let single_result = eval.evaluate(&[x_vals[i], y_vals[i]]);
+            assert!(
+                (batch_output[i] - single_result).abs() < 1e-10,
+                "Batch/single mismatch at i={}: batch={}, single={}",
+                i,
+                batch_output[i],
+                single_result
+            );
+        }
+    }
+
+    #[test]
+    fn test_user_function_expansion() {
+        use crate::core::unified_context::{Context, UserFunction};
+
+        // Define f(x) = x^2 + 1
+        let ctx = Context::new().with_function(
+            "f",
+            UserFunction::new(1..=1).body(|args| {
+                let x = (*args[0]).clone();
+                x.pow(2.0) + 1.0
+            }),
+        );
+
+        // Create expression: f(x) + 2
+        let x = crate::symb("x");
+        let expr = Expr::func("f", x.to_expr()) + 2.0;
+
+        // Compile with context - user function should be expanded
+        let eval = CompiledEvaluator::compile_with_context(&expr, &["x"], Some(&ctx)).unwrap();
+
+        // f(3) + 2 = (3^2 + 1) + 2 = 10 + 2 = 12
+        let result = eval.evaluate(&[3.0]);
+        assert!(
+            (result - 12.0).abs() < 1e-10,
+            "Expected 12.0, got {}",
+            result
+        );
+
+        // f(0) + 2 = (0^2 + 1) + 2 = 1 + 2 = 3
+        let result2 = eval.evaluate(&[0.0]);
+        assert!(
+            (result2 - 3.0).abs() < 1e-10,
+            "Expected 3.0, got {}",
+            result2
+        );
+    }
+
+    #[test]
+    fn test_nested_user_function_expansion() {
+        use crate::core::unified_context::{Context, UserFunction};
+
+        // Define g(x) = 2*x
+        // Define f(x) = g(x) + 1  (nested call)
+        let ctx = Context::new()
+            .with_function(
+                "g",
+                UserFunction::new(1..=1).body(|args| 2.0 * (*args[0]).clone()),
+            )
+            .with_function(
+                "f",
+                UserFunction::new(1..=1).body(|args| {
+                    // f(x) = g(x) + 1
+                    Expr::func("g", (*args[0]).clone()) + 1.0
+                }),
+            );
+
+        // Create expression: f(x)
+        let x = crate::symb("x");
+        let expr = Expr::func("f", x.to_expr());
+
+        // Compile with context - nested function calls should be expanded
+        let eval = CompiledEvaluator::compile_with_context(&expr, &["x"], Some(&ctx)).unwrap();
+
+        // f(5) = g(5) + 1 = 2*5 + 1 = 11
+        let result = eval.evaluate(&[5.0]);
+        assert!(
+            (result - 11.0).abs() < 1e-10,
+            "Expected 11.0, got {}",
+            result
+        );
     }
 }

@@ -11,6 +11,9 @@ use std::sync::Arc;
 /// Implement this trait to define custom behavior when traversing expressions.
 /// Each method returns a boolean indicating whether to continue visiting children.
 ///
+/// N-ary operations (Sum, Product) have dedicated `visit_sum` and `visit_product` methods.
+/// Binary operations (Div, Pow) use `visit_binary`.
+///
 /// # Example
 /// ```
 /// use symb_anafis::symb;
@@ -35,6 +38,18 @@ pub trait ExprVisitor {
     /// Visit a binary operation (+, -, *, /, ^), returns true to visit operands
     fn visit_binary(&mut self, op: &str, left: &Expr, right: &Expr) -> bool;
 
+    /// Visit an N-ary sum, returns true to visit all terms.
+    /// Default: returns true (continue traversal). Override to inspect the sum.
+    fn visit_sum(&mut self, _terms: &[Arc<Expr>]) -> bool {
+        true
+    }
+
+    /// Visit an N-ary product, returns true to visit all factors.
+    /// Default: returns true (continue traversal). Override to inspect the product.
+    fn visit_product(&mut self, _factors: &[Arc<Expr>]) -> bool {
+        true
+    }
+
     /// Visit a derivative expression, returns true to visit inner expression
     fn visit_derivative(&mut self, inner: &Expr, var: &str, order: u32) -> bool;
 }
@@ -43,7 +58,28 @@ pub trait ExprVisitor {
 ///
 /// Visits nodes in pre-order (parent before children).
 /// The visitor methods return true to continue walking children, false to skip.
+///
+/// # Safety
+/// This function uses recursion and may cause stack overflow on very deeply
+/// nested expressions. For safety, expressions are limited to reasonable depth
+/// in normal usage, but extremely deep expressions should be handled carefully.
 pub fn walk_expr<V: ExprVisitor>(expr: &Expr, visitor: &mut V) {
+    walk_expr_with_depth(expr, visitor, 0)
+}
+
+/// Internal recursive walker with depth tracking
+fn walk_expr_with_depth<V: ExprVisitor>(expr: &Expr, visitor: &mut V, depth: usize) {
+    // Prevent stack overflow on extremely deep expressions
+    const MAX_DEPTH: usize = 1000;
+    if depth > MAX_DEPTH {
+        // In debug builds, panic to catch issues early
+        debug_assert!(false, "Expression depth exceeds maximum safe limit");
+        // In release builds, skip further traversal to prevent stack overflow
+        return;
+    }
+
+    // All ExprKind variants are handled below. If new variants are added to ExprKind,
+    // this match statement must be updated accordingly.
     match &expr.kind {
         ExprKind::Number(n) => {
             visitor.visit_number(*n);
@@ -54,56 +90,47 @@ pub fn walk_expr<V: ExprVisitor>(expr: &Expr, visitor: &mut V) {
         ExprKind::FunctionCall { name, args } => {
             if visitor.visit_function(name.as_str(), args) {
                 for arg in args {
-                    walk_expr(arg, visitor);
+                    walk_expr_with_depth(arg, visitor, depth + 1);
                 }
             }
         }
-        // N-ary Sum - visit as "+" with first two terms, then recurse through all
+        // N-ary Sum - use dedicated visit_sum method
         ExprKind::Sum(terms) => {
-            if terms.len() >= 2 {
-                // Visit binary for compatibility, then walk all children
-                if visitor.visit_binary("+", &terms[0], &terms[1]) {
-                    for term in terms {
-                        walk_expr(term, visitor);
-                    }
+            if visitor.visit_sum(terms) {
+                for term in terms {
+                    walk_expr_with_depth(term, visitor, depth + 1);
                 }
-            } else if terms.len() == 1 {
-                walk_expr(&terms[0], visitor);
             }
         }
-        // N-ary Product - visit as "*" with first two factors, then recurse through all
+        // N-ary Product - use dedicated visit_product method
         ExprKind::Product(factors) => {
-            if factors.len() >= 2 {
-                if visitor.visit_binary("*", &factors[0], &factors[1]) {
-                    for factor in factors {
-                        walk_expr(factor, visitor);
-                    }
+            if visitor.visit_product(factors) {
+                for factor in factors {
+                    walk_expr_with_depth(factor, visitor, depth + 1);
                 }
-            } else if factors.len() == 1 {
-                walk_expr(&factors[0], visitor);
             }
         }
         ExprKind::Div(l, r) => {
             if visitor.visit_binary("/", l, r) {
-                walk_expr(l, visitor);
-                walk_expr(r, visitor);
+                walk_expr_with_depth(l, visitor, depth + 1);
+                walk_expr_with_depth(r, visitor, depth + 1);
             }
         }
         ExprKind::Pow(l, r) => {
             if visitor.visit_binary("^", l, r) {
-                walk_expr(l, visitor);
-                walk_expr(r, visitor);
+                walk_expr_with_depth(l, visitor, depth + 1);
+                walk_expr_with_depth(r, visitor, depth + 1);
             }
         }
         ExprKind::Derivative { inner, var, order } => {
-            if visitor.visit_derivative(inner, var, *order) {
-                walk_expr(inner, visitor);
+            if visitor.visit_derivative(inner, var.as_str(), *order) {
+                walk_expr_with_depth(inner, visitor, depth + 1);
             }
         }
         // Poly: walk the base expression directly (avoid to_expr_terms() allocation)
         ExprKind::Poly(poly) => {
             // Walk the base expression which contains all variables
-            walk_expr(poly.base(), visitor);
+            walk_expr_with_depth(poly.base(), visitor, depth + 1);
         }
     }
 }
@@ -132,6 +159,16 @@ impl ExprVisitor for NodeCounter {
     }
 
     fn visit_binary(&mut self, _op: &str, _left: &Expr, _right: &Expr) -> bool {
+        self.count += 1;
+        true
+    }
+
+    fn visit_sum(&mut self, _terms: &[Arc<Expr>]) -> bool {
+        self.count += 1;
+        true
+    }
+
+    fn visit_product(&mut self, _factors: &[Arc<Expr>]) -> bool {
         self.count += 1;
         true
     }
@@ -198,5 +235,21 @@ mod tests {
         assert!(collector.variables.contains("x"));
         assert!(collector.variables.contains("y"));
         assert_eq!(collector.variables.len(), 2);
+    }
+
+    #[test]
+    #[should_panic(expected = "Expression depth exceeds maximum safe limit")]
+    fn test_depth_limit() {
+        // Create a deeply nested expression that exceeds MAX_DEPTH
+        let x = symb("x");
+        let mut expr = x.sin(); // Start with Expr
+        for _ in 0..1200 {
+            // Exceed the 1000 limit
+            expr = expr.sin();
+        }
+
+        let mut counter = NodeCounter::default();
+        // This should panic in debug builds to prevent stack overflow
+        walk_expr(&expr, &mut counter);
     }
 }

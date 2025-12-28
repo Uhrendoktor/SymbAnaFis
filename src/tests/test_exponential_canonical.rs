@@ -11,7 +11,7 @@ mod tests {
     #[test]
     fn test_exp_power_simplification() {
         // exp(b)^a → exp(a*b) - this rule is still valid
-        let result = simplify_string("exp(x)^2", None, None).unwrap();
+        let result = simplify_string("exp(x)^2", &[], None).unwrap();
 
         if let Ok(ast) = parse(&result, &HashSet::new(), &HashSet::new(), None) {
             match ast.kind {

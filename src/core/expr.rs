@@ -1,14 +1,52 @@
-//! Abstract Syntax Tree for mathematical expressions
+//! Abstract Syntax Tree for mathematical expressions.
 //!
-//! N-ary Sum/Product architecture for efficient simplification.
-//! Phase-specific epoch tracking for skip-if-already-processed optimization.
+//! This module defines the core [`Expr`] and [`ExprKind`] types that represent
+//! mathematical expressions as an Abstract Syntax Tree (AST).
+//!
+//! # Architecture
+//!
+//! The expression system uses several key design decisions for performance:
+//!
+//! ## N-ary Sum/Product
+//! Instead of binary `Add(left, right)`, we use N-ary `Sum(Vec<Arc<Expr>>)`.
+//! This allows efficient simplification without deep recursion:
+//! - `a + b + c + d` is `Sum([a, b, c, d])` not `Add(Add(Add(a,b),c),d)`
+//! - Flattening happens automatically in constructors
+//! - Like-term combination is O(N) instead of O(N²)
+//!
+//! ## Structural Hashing
+//! Each `Expr` has a pre-computed `hash` field for O(1) equality rejection.
+//! Two expressions with different hashes are definitely not equal, avoiding
+//! expensive recursive comparisons in the common case.
+//!
+//! ## Symbol Interning
+//! Variables use [`InternedSymbol`] with numeric IDs for O(1) equality comparison
+//! instead of O(N) string comparison.
+//!
+//! ## Polynomial Optimization
+//! When 3+ terms form a pure polynomial (e.g., `x² + 2x + 1`), they are
+//! automatically converted to [`Poly`](ExprKind::Poly) for O(N) differentiation
+//! instead of O(N²) term-by-term processing.
+//!
+//! # Usage
+//!
+//! ```
+//! use symb_anafis::{symb, Expr};
+//!
+//! // Create expressions using symbols and operators
+//! let x = symb("x");
+//! let expr = x.pow(2.0) + x.sin();  // x² + sin(x)
+//!
+//! // Or use constructors directly
+//! let sum = Expr::sum(vec![Expr::symbol("a"), Expr::symbol("b")]);
+//! ```
 
 use std::cmp::Ordering as CmpOrdering;
 use std::ops::Deref;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use crate::core::symbol::{InternedSymbol, get_or_intern};
+use crate::core::symbol::{InternedSymbol, symb_interned};
 
 /// Type alias for custom evaluation functions map
 pub(crate) type CustomEvalMap =
@@ -18,7 +56,7 @@ pub(crate) type CustomEvalMap =
 use crate::core::traits::EPSILON;
 
 // =============================================================================
-// EXPRESSION ID COUNTER
+// EXPRESSION ID COUNTER AND CACHED CONSTANTS
 // =============================================================================
 
 static EXPR_ID_COUNTER: AtomicU64 = AtomicU64::new(0);
@@ -27,9 +65,16 @@ fn next_id() -> u64 {
     EXPR_ID_COUNTER.fetch_add(1, Ordering::Relaxed)
 }
 
-/// Cached Expr for number 1.0 to avoid repeated allocations in comparisons
+/// Cached hash for number 1.0 (used in comparisons)
 static EXPR_ONE_HASH: std::sync::LazyLock<u64> =
     std::sync::LazyLock::new(|| compute_expr_hash(&ExprKind::Number(1.0)));
+
+/// Cached Expr for number 1.0 to avoid repeated allocations in comparison hot path
+static EXPR_ONE: std::sync::LazyLock<Expr> = std::sync::LazyLock::new(|| Expr {
+    id: 0, // ID doesn't matter for comparison (not used in eq/hash)
+    hash: *EXPR_ONE_HASH,
+    kind: ExprKind::Number(1.0),
+});
 
 // =============================================================================
 // EXPR - The main expression type
@@ -131,11 +176,14 @@ pub enum ExprKind {
     Pow(Arc<Expr>, Arc<Expr>),
 
     /// Partial derivative notation: ∂^order/∂var^order of inner expression
+    ///
+    /// Uses `InternedSymbol` for the variable to enable O(1) comparison
+    /// instead of O(N) string comparison.
     Derivative {
         /// The expression being differentiated.
         inner: Arc<Expr>,
-        /// The variable to differentiate with respect to.
-        var: String,
+        /// The variable to differentiate with respect to (interned for O(1) comparison).
+        var: InternedSymbol,
         /// The order of differentiation (1 = first derivative, 2 = second, etc.)
         order: u32,
     },
@@ -232,10 +280,10 @@ fn compute_expr_hash(kind: &ExprKind) -> u64 {
                 args.iter().fold(h, |acc, arg| hash_u64(acc, arg.hash))
             }
 
-            // Derivative: var + order + inner
+            // Derivative: var symbol ID + order + inner
             ExprKind::Derivative { inner, var, order } => {
                 let h = hash_byte(hash, b'D');
-                let h = var.as_bytes().iter().fold(h, |acc, &b| hash_byte(acc, b));
+                let h = hash_u64(h, var.id()); // Use symbol ID directly
                 let h = hash_u64(h, *order as u64);
                 hash_u64(h, inner.hash)
             }
@@ -330,7 +378,7 @@ impl Expr {
 
     /// Create a symbol expression (auto-interned)
     pub fn symbol(s: impl AsRef<str>) -> Self {
-        Expr::new(ExprKind::Symbol(get_or_intern(s.as_ref())))
+        Expr::new(ExprKind::Symbol(symb_interned(s.as_ref())))
     }
 
     /// Create from an already-interned symbol
@@ -364,54 +412,63 @@ impl Expr {
     // -------------------------------------------------------------------------
 }
 
-/// Extract the polynomial base hash from a term (x, x^2, 3*x^3 all have base "x")
-/// Returns None if term is not polynomial-like (contains functions, etc.)
+/// Extract the polynomial base structural hash from a term.
+/// For polynomial-like terms (x, x^2, 3*x^3, sin(x)^2, 2*cos(x)), returns a hash
+/// that identifies the base expression so adjacent terms with the same base can be merged.
+/// Returns None if term is not polynomial-like.
 fn get_poly_base_hash(expr: &Expr) -> Option<u64> {
     match &expr.kind {
-        // Symbol x → hash of x
-        ExprKind::Symbol(s) => Some(s.id()),
+        // Symbol x → use its structural hash
+        ExprKind::Symbol(_) => Some(expr.hash),
+
+        // FunctionCall like sin(x) → use its structural hash as base
+        ExprKind::FunctionCall { .. } => Some(expr.hash),
+
+        // base^n where n is a positive integer → base's hash
         ExprKind::Pow(base, exp) => {
             if let ExprKind::Number(n) = &exp.kind
                 && *n >= 1.0
                 && n.fract().abs() < EPSILON
-                && let ExprKind::Symbol(s) = &base.kind
             {
-                return Some(s.id());
+                return Some(base.hash);
             }
             None
         }
-        // c*x^n → hash of x
+
+        // c*base or c*base^n → extract the non-numeric base's hash
         ExprKind::Product(factors) => {
             let mut base_hash = None;
             for f in factors.iter() {
                 match &f.kind {
                     ExprKind::Number(_) => {} // Skip coefficients
-                    ExprKind::Symbol(s) => {
+                    ExprKind::Symbol(_) | ExprKind::FunctionCall { .. } => {
                         if base_hash.is_some() {
-                            return None;
-                        } // Multiple variables
-                        base_hash = Some(s.id());
+                            return None; // Multiple bases
+                        }
+                        base_hash = Some(f.hash);
                     }
                     ExprKind::Pow(b, exp) => {
                         if let ExprKind::Number(n) = &exp.kind
                             && *n >= 1.0
                             && n.fract().abs() < EPSILON
-                            && let ExprKind::Symbol(s) = &b.kind
                         {
                             if base_hash.is_some() {
-                                return None;
+                                return None; // Multiple bases
                             }
-                            base_hash = Some(s.id());
+                            base_hash = Some(b.hash);
                             continue;
                         }
                         return None;
                     }
-                    _ => return None, // Functions or other complex expressions
+                    _ => return None, // Other complex expressions
                 }
             }
             base_hash
         }
-        ExprKind::Number(_) => Some(0), // Constants have "base" 0 (can combine with any polynomial)
+
+        // Constants have "base" 0 (can combine with any polynomial)
+        ExprKind::Number(_) => Some(0),
+
         _ => None,
     }
 }
@@ -670,6 +727,18 @@ impl Expr {
     ///
     /// Optimization: If both operands are Poly with same base, use fast O(N*M) polynomial multiplication
     pub fn mul_expr(left: Expr, right: Expr) -> Self {
+        // Optimization: 0 * x = 0, x * 0 = 0
+        if left.is_zero_num() || right.is_zero_num() {
+            return Expr::number(0.0);
+        }
+        // Optimization: 1 * x = x, x * 1 = x
+        if left.is_one_num() {
+            return right;
+        }
+        if right.is_one_num() {
+            return left;
+        }
+
         // Fast path: Poly * Poly with same base uses polynomial multiplication
         if let (ExprKind::Poly(p1), ExprKind::Poly(p2)) = (&left.kind, &right.kind) {
             // Only use polynomial mul if bases match
@@ -704,8 +773,10 @@ impl Expr {
         Expr::new(ExprKind::Div(left, right))
     }
 
-    /// Create power expression
-    pub fn pow(base: Expr, exponent: Expr) -> Self {
+    /// Create power expression (static constructor form)
+    ///
+    /// For the method form `expr.pow(exp)`, see the `pow` method on Expr.
+    pub fn pow_static(base: Expr, exponent: Expr) -> Self {
         Expr::new(ExprKind::Pow(Arc::new(base), Arc::new(exponent)))
     }
 
@@ -719,7 +790,7 @@ impl Expr {
     /// Accepts `Expr`, `Arc<Expr>`, or `&Arc<Expr>` as the content parameter.
     pub fn func(name: impl AsRef<str>, content: impl Into<Expr>) -> Self {
         Expr::new(ExprKind::FunctionCall {
-            name: get_or_intern(name.as_ref()),
+            name: symb_interned(name.as_ref()),
             args: vec![Arc::new(content.into())],
         })
     }
@@ -727,7 +798,7 @@ impl Expr {
     /// Create a multi-argument function call
     pub fn func_multi(name: impl AsRef<str>, args: Vec<Expr>) -> Self {
         Expr::new(ExprKind::FunctionCall {
-            name: get_or_intern(name.as_ref()),
+            name: symb_interned(name.as_ref()),
             args: args.into_iter().map(Arc::new).collect(),
         })
     }
@@ -735,7 +806,7 @@ impl Expr {
     /// Create a function call from Arc arguments (avoids cloning)
     pub fn func_multi_from_arcs(name: impl AsRef<str>, args: Vec<Arc<Expr>>) -> Self {
         Expr::new(ExprKind::FunctionCall {
-            name: get_or_intern(name.as_ref()),
+            name: symb_interned(name.as_ref()),
             args,
         })
     }
@@ -751,7 +822,16 @@ impl Expr {
     }
 
     /// Create a partial derivative expression
-    pub fn derivative(inner: Expr, var: String, order: u32) -> Self {
+    pub fn derivative(inner: Expr, var: impl AsRef<str>, order: u32) -> Self {
+        Expr::new(ExprKind::Derivative {
+            inner: Arc::new(inner),
+            var: symb_interned(var.as_ref()),
+            order,
+        })
+    }
+
+    /// Create a partial derivative expression with an already-interned symbol
+    pub(crate) fn derivative_interned(inner: Expr, var: InternedSymbol, order: u32) -> Self {
         Expr::new(ExprKind::Derivative {
             inner: Arc::new(inner),
             var,
@@ -817,11 +897,8 @@ impl Expr {
                 l.contains_var_id(var_id) || r.contains_var_id(var_id)
             }
             ExprKind::Derivative { inner, var: v, .. } => {
-                // Lookup the derivative var symbol by name to get its ID
-                let matches = crate::core::symbol::global_context()
-                    .get(v)
-                    .is_some_and(|s| s.id() == var_id);
-                matches || inner.contains_var_id(var_id)
+                // Compare derivative var symbol ID directly (O(1))
+                v.id() == var_id || inner.contains_var_id(var_id)
             }
             ExprKind::Poly(poly) => poly.base().contains_var_id(var_id),
         }
@@ -831,7 +908,7 @@ impl Expr {
     /// Uses ID comparison when possible, falls back to string matching
     pub fn contains_var(&self, var: &str) -> bool {
         // Try to look up the symbol ID first for O(1) comparison
-        if let Some(sym) = crate::core::symbol::global_context().get(var) {
+        if let Ok(sym) = crate::core::symbol::symb_get(var) {
             self.contains_var_id(sym.id())
         } else {
             // Symbol not in global context - fall back to string matching
@@ -851,7 +928,9 @@ impl Expr {
             ExprKind::Div(l, r) | ExprKind::Pow(l, r) => {
                 l.contains_var_str(var) || r.contains_var_str(var)
             }
-            ExprKind::Derivative { inner, var: v, .. } => v == var || inner.contains_var_str(var),
+            ExprKind::Derivative { inner, var: v, .. } => {
+                v.as_str() == var || inner.contains_var_str(var)
+            }
             ExprKind::Poly(poly) => poly.base().contains_var_str(var),
         }
     }
@@ -870,7 +949,8 @@ impl Expr {
                 args.iter().any(|arg| arg.has_free_variables(excluded))
             }
             ExprKind::Derivative { inner, var, .. } => {
-                !excluded.contains(var) || inner.has_free_variables(excluded)
+                let var_str = var.as_str().to_string();
+                !excluded.contains(&var_str) || inner.has_free_variables(excluded)
             }
             ExprKind::Poly(poly) => poly.base().has_free_variables(excluded),
         }
@@ -910,7 +990,7 @@ impl Expr {
                 r.collect_variables(vars);
             }
             ExprKind::Derivative { inner, var, .. } => {
-                vars.insert(var.clone());
+                vars.insert(var.as_str().to_string());
                 inner.collect_variables(vars);
             }
             ExprKind::Number(_) => {}
@@ -945,7 +1025,9 @@ impl Expr {
                 Expr::new(ExprKind::Product(cloned))
             }
             ExprKind::Div(a, b) => Expr::div_expr(a.as_ref().deep_clone(), b.as_ref().deep_clone()),
-            ExprKind::Pow(a, b) => Expr::pow(a.as_ref().deep_clone(), b.as_ref().deep_clone()),
+            ExprKind::Pow(a, b) => {
+                Expr::pow_static(a.as_ref().deep_clone(), b.as_ref().deep_clone())
+            }
             ExprKind::Derivative { inner, var, order } => {
                 Expr::derivative(inner.as_ref().deep_clone(), var.clone(), *order)
             }
@@ -987,10 +1069,7 @@ impl Expr {
     /// let result_at_3 = evaluator.evaluate(&[3.0]); // 3^2 + 2*3 = 15
     /// assert!((result_at_3 - 15.0).abs() < 1e-10);
     /// ```
-    pub fn compile(
-        &self,
-    ) -> Result<crate::core::evaluator::CompiledEvaluator, crate::core::evaluator::CompileError>
-    {
+    pub fn compile(&self) -> Result<crate::core::evaluator::CompiledEvaluator, crate::DiffError> {
         crate::core::evaluator::CompiledEvaluator::compile_auto(self)
     }
 
@@ -1000,8 +1079,7 @@ impl Expr {
     pub fn compile_with_params(
         &self,
         param_order: &[&str],
-    ) -> Result<crate::core::evaluator::CompiledEvaluator, crate::core::evaluator::CompileError>
-    {
+    ) -> Result<crate::core::evaluator::CompiledEvaluator, crate::DiffError> {
         crate::core::evaluator::CompiledEvaluator::compile(self, param_order)
     }
 
@@ -1049,7 +1127,7 @@ impl Expr {
                 Expr::new(ExprKind::Product(mapped))
             }
             ExprKind::Div(a, b) => Expr::div_expr(a.map(f), b.map(f)),
-            ExprKind::Pow(a, b) => Expr::pow(a.map(f), b.map(f)),
+            ExprKind::Pow(a, b) => Expr::pow_static(a.map(f), b.map(f)),
             ExprKind::Derivative { inner, var, order } => {
                 Expr::derivative(inner.map(f), var.clone(), *order)
             }
@@ -1073,13 +1151,38 @@ impl Expr {
         })
     }
 
-    /// Evaluate expression with given variable values
-    pub fn evaluate(&self, vars: &std::collections::HashMap<&str, f64>) -> Expr {
-        self.evaluate_with_custom(vars, &std::collections::HashMap::new())
-    }
-
-    /// Evaluate with custom function evaluators
-    pub fn evaluate_with_custom(
+    /// Partially evaluate expression by substituting known variable values.
+    ///
+    /// This substitutes numeric values for variables and evaluates any subexpressions
+    /// that become fully numeric. Unknown variables are left as-is in the result.
+    ///
+    /// Returns an `Expr` (not `f64`) because the result may still contain symbolic parts.
+    /// Use [`as_number()`](Self::as_number) on the result to extract a numeric value if fully evaluated.
+    ///
+    /// # Arguments
+    /// * `vars` - Map of variable names to their numeric values
+    /// * `custom_evals` - Optional custom evaluation functions for user-defined functions
+    ///
+    /// # Example
+    /// ```
+    /// use symb_anafis::{symb, Expr};
+    /// use std::collections::HashMap;
+    ///
+    /// let x = symb("x");
+    /// let y = symb("y");
+    /// let expr = x + y;  // x + y
+    ///
+    /// // Partial evaluation: only x is known
+    /// let mut vars = HashMap::new();
+    /// vars.insert("x", 3.0);
+    /// let result = expr.evaluate(&vars, &HashMap::new());  // 3 + y (still an Expr)
+    ///
+    /// // Full evaluation: both variables known
+    /// vars.insert("y", 2.0);
+    /// let result = expr.evaluate(&vars, &HashMap::new());  // 5.0 as Expr
+    /// assert_eq!(result.as_number(), Some(5.0));
+    /// ```
+    pub fn evaluate(
         &self,
         vars: &std::collections::HashMap<&str, f64>,
         custom_evals: &CustomEvalMap,
@@ -1093,20 +1196,18 @@ impl Expr {
                 {
                     return Expr::number(val);
                 }
-                // Check for mathematical constants: pi and e
-                if let Some(name) = s.name() {
-                    match name {
-                        "pi" | "PI" | "Pi" => return Expr::number(std::f64::consts::PI),
-                        "e" | "E" => return Expr::number(std::f64::consts::E),
-                        _ => {}
-                    }
+                // Check for mathematical constants using centralized helper
+                if let Some(name) = s.name()
+                    && let Some(value) = crate::core::known_symbols::get_constant_value(name)
+                {
+                    return Expr::number(value);
                 }
                 self.clone()
             }
             ExprKind::FunctionCall { name, args } => {
                 let eval_args: Vec<Expr> = args
                     .iter()
-                    .map(|a| a.evaluate_with_custom(vars, custom_evals))
+                    .map(|a| a.evaluate(vars, custom_evals))
                     .collect();
 
                 let numeric_args: Option<Vec<f64>> =
@@ -1138,7 +1239,7 @@ impl Expr {
                 let mut others: Option<Vec<Expr>> = None;
 
                 for t in terms {
-                    let eval_t = t.evaluate_with_custom(vars, custom_evals);
+                    let eval_t = t.evaluate(vars, custom_evals);
                     if let ExprKind::Number(n) = eval_t.kind {
                         num_sum += n;
                     } else {
@@ -1167,7 +1268,7 @@ impl Expr {
                 let mut others: Option<Vec<Expr>> = None;
 
                 for f in factors {
-                    let eval_f = f.evaluate_with_custom(vars, custom_evals);
+                    let eval_f = f.evaluate(vars, custom_evals);
                     if let ExprKind::Number(n) = eval_f.kind {
                         if n == 0.0 {
                             return Expr::number(0.0); // Early exit
@@ -1193,29 +1294,27 @@ impl Expr {
                 }
             }
             ExprKind::Div(a, b) => {
-                let ea = a.evaluate_with_custom(vars, custom_evals);
-                let eb = b.evaluate_with_custom(vars, custom_evals);
+                let ea = a.evaluate(vars, custom_evals);
+                let eb = b.evaluate(vars, custom_evals);
                 match (&ea.kind, &eb.kind) {
                     (ExprKind::Number(x), ExprKind::Number(y)) if *y != 0.0 => Expr::number(x / y),
                     _ => Expr::div_expr(ea, eb),
                 }
             }
             ExprKind::Pow(a, b) => {
-                let ea = a.evaluate_with_custom(vars, custom_evals);
-                let eb = b.evaluate_with_custom(vars, custom_evals);
+                let ea = a.evaluate(vars, custom_evals);
+                let eb = b.evaluate(vars, custom_evals);
                 match (&ea.kind, &eb.kind) {
                     (ExprKind::Number(x), ExprKind::Number(y)) => Expr::number(x.powf(*y)),
-                    _ => Expr::pow(ea, eb),
+                    _ => Expr::pow_static(ea, eb),
                 }
             }
-            ExprKind::Derivative { inner, var, order } => Expr::derivative(
-                inner.evaluate_with_custom(vars, custom_evals),
-                var.clone(),
-                *order,
-            ),
+            ExprKind::Derivative { inner, var, order } => {
+                Expr::derivative(inner.evaluate(vars, custom_evals), var.clone(), *order)
+            }
             ExprKind::Poly(poly) => {
                 // Polynomial evaluation: evaluate P(base) where base is evaluated first
-                let base_result = poly.base().evaluate_with_custom(vars, custom_evals);
+                let base_result = poly.base().evaluate(vars, custom_evals);
                 // If base evaluates to a number, compute the polynomial value
                 if let ExprKind::Number(base_val) = &base_result.kind {
                     let mut total = 0.0;
@@ -1295,12 +1394,7 @@ fn expr_cmp(a: &Expr, b: &Expr) -> CmpOrdering {
 
     // If one has explicit exponent and one implied 1:
     // x (1) vs x^2 (2) -> 1 < 2 -> Less
-    // Use cached hash for 1.0 to avoid repeated Expr allocations
-    let one_expr = Expr {
-        id: 0, // ID doesn't matter for comparison
-        hash: *EXPR_ONE_HASH,
-        kind: ExprKind::Number(1.0),
-    };
+    // Use statically cached EXPR_ONE to avoid allocations in this hot path
     match (exp_a, exp_b) {
         (Some(e_a), Some(e_b)) => {
             let exp_cmp = expr_cmp(e_a, e_b);
@@ -1309,15 +1403,15 @@ fn expr_cmp(a: &Expr, b: &Expr) -> CmpOrdering {
             }
         }
         (Some(e_a), None) => {
-            // Compare expr e_a vs 1.0 (using cached one_expr)
-            let exp_cmp = expr_cmp(e_a, &one_expr);
+            // Compare expr e_a vs 1.0 (using static cached EXPR_ONE)
+            let exp_cmp = expr_cmp(e_a, &EXPR_ONE);
             if exp_cmp != CmpOrdering::Equal {
                 return exp_cmp;
             }
         }
         (None, Some(e_b)) => {
-            // Compare 1.0 vs e_b (using cached one_expr)
-            let exp_cmp = expr_cmp(&one_expr, e_b);
+            // Compare 1.0 vs e_b (using static cached EXPR_ONE)
+            let exp_cmp = expr_cmp(&EXPR_ONE, e_b);
             if exp_cmp != CmpOrdering::Equal {
                 return exp_cmp;
             }

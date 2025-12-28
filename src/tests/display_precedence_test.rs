@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::Expr;
+    use std::collections::HashMap;
     use std::collections::HashSet;
 
     #[test]
@@ -49,7 +50,15 @@ mod tests {
         );
 
         println!("Original: {}", expr);
-        let simplified = simplify_expr(expr.clone(), HashSet::new());
+        let simplified = simplify_expr(
+            expr.clone(),
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false,
+        );
         println!("Simplified: {}", simplified);
 
         // With exp factor
@@ -70,7 +79,15 @@ mod tests {
         );
 
         println!("Full Original: {}", expr_full);
-        let simplified_full = simplify_expr(expr_full, HashSet::new());
+        let simplified_full = simplify_expr(
+            expr_full,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false,
+        );
         println!("Full Simplified: {}", simplified_full);
 
         // Expected display: -V0 * exp(t) / R

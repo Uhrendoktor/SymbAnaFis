@@ -78,11 +78,11 @@ fn test_expr_clone_equality() {
     // Clone should evaluate to same values
     let vars: HashMap<&str, f64> = [("x", 2.0)].into_iter().collect();
 
-    let v1 = match &expr.evaluate(&vars).kind {
+    let v1 = match &expr.evaluate(&vars, &HashMap::new()).kind {
         ExprKind::Number(n) => *n,
         _ => panic!("Expected number"),
     };
-    let v2 = match &cloned.evaluate(&vars).kind {
+    let v2 = match &cloned.evaluate(&vars, &HashMap::new()).kind {
         ExprKind::Number(n) => *n,
         _ => panic!("Expected number"),
     };
@@ -101,11 +101,11 @@ fn test_expr_display_parse_roundtrip() {
         // Should evaluate to same values
         let vars: HashMap<&str, f64> = [("x", 2.0), ("y", 3.0)].into_iter().collect();
 
-        let v1 = match &expr.evaluate(&vars).kind {
+        let v1 = match &expr.evaluate(&vars, &HashMap::new()).kind {
             ExprKind::Number(n) => *n,
             other => panic!("Expected number, got {:?}", other),
         };
-        let v2 = match &reparsed.evaluate(&vars).kind {
+        let v2 = match &reparsed.evaluate(&vars, &HashMap::new()).kind {
             ExprKind::Number(n) => *n,
             other => panic!("Expected number, got {:?}", other),
         };
@@ -127,7 +127,7 @@ fn test_expr_display_parse_roundtrip() {
 
 #[test]
 fn test_diff_builder_basic() {
-    let result = Diff::new().diff_str("x^3", "x").unwrap();
+    let result = Diff::new().diff_str("x^3", "x", &[]).unwrap();
     assert!(result.contains("3") && result.contains("x"));
 }
 
@@ -142,7 +142,7 @@ fn test_diff_builder_order() {
 
     // d²/dx²[x³] = 6x, at x=2: 12
     let vars: HashMap<&str, f64> = [("x_diff_order", 2.0)].into_iter().collect();
-    let d2_val = match &d2.evaluate(&vars).kind {
+    let d2_val = match &d2.evaluate(&vars, &HashMap::new()).kind {
         ExprKind::Number(n) => *n,
         _ => panic!("Expected number"),
     };
@@ -152,10 +152,10 @@ fn test_diff_builder_order() {
 #[test]
 fn test_diff_function_vs_builder() {
     // String API
-    let str_result = diff("x^2", "x", None, None).unwrap();
+    let str_result = diff("x^2", "x", &[], None).unwrap();
 
     // Builder API
-    let builder_result = Diff::new().diff_str("x^2", "x").unwrap();
+    let builder_result = Diff::new().diff_str("x^2", "x", &[]).unwrap();
 
     // Should evaluate to same
     let str_expr = parser_parse(&str_result, &HashSet::new(), &HashSet::new(), None).unwrap();
@@ -164,11 +164,11 @@ fn test_diff_function_vs_builder() {
 
     let vars: HashMap<&str, f64> = [("x", 3.0)].into_iter().collect();
 
-    let str_val = match &str_expr.evaluate(&vars).kind {
+    let str_val = match &str_expr.evaluate(&vars, &HashMap::new()).kind {
         ExprKind::Number(n) => *n,
         _ => panic!("Expected number"),
     };
-    let builder_val = match &builder_expr.evaluate(&vars).kind {
+    let builder_val = match &builder_expr.evaluate(&vars, &HashMap::new()).kind {
         ExprKind::Number(n) => *n,
         _ => panic!("Expected number"),
     };
@@ -188,7 +188,7 @@ fn test_simplify_builder_basic() {
     let vars: HashMap<&str, f64> = [("x", 5.0)].into_iter().collect();
 
     // Should evaluate to 10
-    let val = match &simplified.evaluate(&vars).kind {
+    let val = match &simplified.evaluate(&vars, &HashMap::new()).kind {
         ExprKind::Number(n) => *n,
         _ => panic!("Expected number"),
     };
@@ -207,11 +207,11 @@ fn test_simplify_idempotence() {
         // Simplifying twice should give same result
         let vars: HashMap<&str, f64> = [("x", 1.5)].into_iter().collect();
 
-        let v1 = match &s1.evaluate(&vars).kind {
+        let v1 = match &s1.evaluate(&vars, &HashMap::new()).kind {
             ExprKind::Number(n) => *n,
             _ => panic!("Expected number"),
         };
-        let v2 = match &s2.evaluate(&vars).kind {
+        let v2 = match &s2.evaluate(&vars, &HashMap::new()).kind {
             ExprKind::Number(n) => *n,
             _ => panic!("Expected number"),
         };
@@ -263,7 +263,7 @@ fn test_evaluate_with_all_variables() {
     let expr = parser_parse("x + y", &HashSet::new(), &HashSet::new(), None).unwrap();
 
     let vars: HashMap<&str, f64> = [("x", 1.0), ("y", 2.0)].into_iter().collect();
-    let result = expr.evaluate(&vars);
+    let result = expr.evaluate(&vars, &HashMap::new());
 
     if let ExprKind::Number(n) = &result.kind {
         assert!((*n - 3.0).abs() < 1e-10);
@@ -278,7 +278,7 @@ fn test_evaluate_extra_variables_ok() {
     let expr = parser_parse("x", &HashSet::new(), &HashSet::new(), None).unwrap();
 
     let vars: HashMap<&str, f64> = [("x", 5.0), ("y", 999.0)].into_iter().collect();
-    let result = expr.evaluate(&vars);
+    let result = expr.evaluate(&vars, &HashMap::new());
 
     if let ExprKind::Number(n) = &result.kind {
         assert!((*n - 5.0).abs() < 1e-10);

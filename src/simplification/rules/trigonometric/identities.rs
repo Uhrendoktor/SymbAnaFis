@@ -1,5 +1,5 @@
 use crate::core::expr::{Expr, ExprKind as AstKind};
-use crate::core::known_symbols::{get_symbol, COS, COT, CSC, SEC, SIN, TAN};
+use crate::core::known_symbols::{COS, COT, CSC, SEC, SIN, TAN, get_symbol};
 use crate::simplification::helpers;
 use crate::simplification::rules::{ExprKind, Rule, RuleCategory, RuleContext};
 
@@ -102,7 +102,7 @@ rule!(
                 if let Some((name, arg)) = helpers::get_fn_pow_symbol(&negated, 2.0)
                     && name.id() == *COS
                 {
-                    return Some(Expr::pow(
+                    return Some(Expr::pow_static(
                         Expr::func_symbol(get_symbol(&SIN), arg),
                         Expr::number(2.0),
                     ));
@@ -110,7 +110,7 @@ rule!(
                 if let Some((name, arg)) = helpers::get_fn_pow_symbol(&negated, 2.0)
                     && name.id() == *SIN
                 {
-                    return Some(Expr::pow(
+                    return Some(Expr::pow_static(
                         Expr::func_symbol(get_symbol(&COS), arg),
                         Expr::number(2.0),
                     ));
@@ -124,7 +124,7 @@ rule!(
                 if let Some((name, arg)) = helpers::get_fn_pow_symbol(&negated, 2.0)
                     && name.id() == *COS
                 {
-                    return Some(Expr::pow(
+                    return Some(Expr::pow_static(
                         Expr::func_symbol(get_symbol(&SIN), arg),
                         Expr::number(2.0),
                     ));
@@ -132,7 +132,7 @@ rule!(
                 if let Some((name, arg)) = helpers::get_fn_pow_symbol(&negated, 2.0)
                     && name.id() == *SIN
                 {
-                    return Some(Expr::pow(
+                    return Some(Expr::pow_static(
                         Expr::func_symbol(get_symbol(&COS), arg),
                         Expr::number(2.0),
                     ));
@@ -165,7 +165,7 @@ rule!(
                 && name.id() == *TAN
                 && matches!(&rhs.kind, AstKind::Number(n) if *n == 1.0)
             {
-                return Some(Expr::pow(
+                return Some(Expr::pow_static(
                     Expr::func_symbol(get_symbol(&SEC), arg),
                     Expr::number(2.0),
                 ));
@@ -176,7 +176,7 @@ rule!(
                 && let Some((name, arg)) = helpers::get_fn_pow_symbol(rhs, 2.0)
                 && name.id() == *TAN
             {
-                return Some(Expr::pow(
+                return Some(Expr::pow_static(
                     Expr::func_symbol(get_symbol(&SEC), arg),
                     Expr::number(2.0),
                 ));
@@ -187,7 +187,7 @@ rule!(
                 && name.id() == *COT
                 && matches!(&rhs.kind, AstKind::Number(n) if *n == 1.0)
             {
-                return Some(Expr::pow(
+                return Some(Expr::pow_static(
                     Expr::func_symbol(get_symbol(&CSC), arg),
                     Expr::number(2.0),
                 ));
@@ -198,7 +198,7 @@ rule!(
                 && let Some((name, arg)) = helpers::get_fn_pow_symbol(rhs, 2.0)
                 && name.id() == *COT
             {
-                return Some(Expr::pow(
+                return Some(Expr::pow_static(
                     Expr::func_symbol(get_symbol(&CSC), arg),
                     Expr::number(2.0),
                 ));

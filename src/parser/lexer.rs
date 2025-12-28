@@ -629,8 +629,9 @@ fn parse_derivative_notation(
 
     // Parse order from left (defaults to 1 if not specified)
     // e.g., "∂^n" -> n, "∂" -> 1
+    // Note: '∂' is 3 bytes in UTF-8, '^' is 1 byte = 4 bytes total to skip
     let order_str = if left_parts[0].starts_with("∂^") {
-        &left_parts[0][3..] // Skip "∂^"
+        &left_parts[0][4..] // Skip "∂^" (3 + 1 = 4 bytes)
     } else if left_parts[0] == "∂" {
         "1"
     } else {

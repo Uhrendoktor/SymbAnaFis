@@ -5,34 +5,59 @@ mod patterns;
 mod rules;
 
 use crate::Expr;
+use crate::core::unified_context::{BodyFn, Context};
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
-/// Simplify an expression with user-specified fixed variables
-/// Fixed variables are treated as constants (e.g., "e" as a variable, not Euler's constant)
-pub(crate) fn simplify_expr(expr: Expr, fixed_vars: HashSet<String>) -> Expr {
-    let mut current = expr;
+/// Type alias for custom body function map (symbolic expansion)
+pub(crate) type CustomBodyMap = HashMap<String, BodyFn>;
 
-    // Use the new rule-based simplification engine with fixed vars
-    current = engine::simplify_expr_with_fixed_vars(current, fixed_vars);
+/// Simplify an expression with user-specified options
+///
+/// # Arguments
+/// - `expr`: The expression to simplify
+/// - `known_symbols`: known symbol names (passed through for simplifier context)
+/// - `custom_bodies`: custom function body definitions for symbolic expansion
+/// - `max_depth`: maximum tree depth during simplification (None = use default 50)
+/// - `max_iterations`: maximum simplification iterations (None = use default 1000)
+/// - `context`: optional unified Context (merges its function bodies)
+/// - `domain_safe`: if true, avoids transformations that can change expression domain
+pub(crate) fn simplify_expr(
+    expr: Expr,
+    known_symbols: HashSet<String>,
+    mut custom_bodies: CustomBodyMap,
+    max_depth: Option<usize>,
+    max_iterations: Option<usize>,
+    context: Option<&Context>,
+    domain_safe: bool,
+) -> Expr {
+    // Merge Context's values if provided
+    if let Some(ctx) = context {
+        // Context symbols are parsing hints, not simplification constants
+        // But we still merge function bodies
+        for name in ctx.function_names() {
+            if let Some(body) = ctx.get_body(&name) {
+                custom_bodies.insert(name, body.clone());
+            }
+        }
+    }
 
-    // Prettify roots (x^0.5 -> sqrt(x)) for display
-    // This must be done AFTER simplification to avoid fighting with normalize_roots
-    current = helpers::prettify_roots(current);
-
-    current
-}
-
-/// Simplify an expression with domain safety and user-specified fixed variables
-/// Fixed variables are treated as constants (e.g., "e" as a variable, not Euler's constant)
-pub(crate) fn simplify_domain_safe(expr: Expr, fixed_vars: HashSet<String>) -> Expr {
-    let mut current = expr;
+    let variables = expr.variables();
 
     let mut simplifier = engine::Simplifier::new()
-        .with_domain_safe(true)
-        .with_fixed_vars(fixed_vars);
-    current = simplifier.simplify(current);
+        .with_domain_safe(domain_safe)
+        .with_variables(variables)
+        .with_known_symbols(known_symbols)
+        .with_custom_bodies(custom_bodies);
 
+    if let Some(depth) = max_depth {
+        simplifier = simplifier.with_max_depth(depth);
+    }
+    if let Some(iters) = max_iterations {
+        simplifier = simplifier.with_max_iterations(iters);
+    }
+
+    let mut current = simplifier.simplify(expr);
     current = helpers::prettify_roots(current);
     current
 }

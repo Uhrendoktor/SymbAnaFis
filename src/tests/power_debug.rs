@@ -33,7 +33,7 @@ mod power_regression_tests {
     #[test]
     fn test_power_of_product_simplification() {
         // (2*z)^x should stay as (2*z)^x, not become 2*z^x
-        let result = simplify("(2*z)^x", None, None).unwrap();
+        let result = simplify("(2*z)^x", &[], None).unwrap();
 
         assert!(
             result.contains("(2*z)") || result == "(2*z)^x",
@@ -46,7 +46,7 @@ mod power_regression_tests {
     fn test_power_of_sum_negative_exponent() {
         // (z+z)^(-y) should become (2*z)^(-y) or 1/(2*z)^y
         // NOT 1/2*z^y which is mathematically different
-        let result = simplify("(z+z)^(-y)", None, None).unwrap();
+        let result = simplify("(z+z)^(-y)", &[], None).unwrap();
 
         // The coefficient 2 should be inside the power base, not outside
         // Valid outputs: (2*z)^(-y), 1/(2*z)^y
@@ -68,9 +68,9 @@ mod sign_regression_tests {
     fn test_negative_product_sign() {
         // (-y)*y should be -y², not +y²
         // Full expression: (-y * y) - (y + y) = -y² - 2y
-        let result = simplify("((-y) * y) - (y + y)", None, None).unwrap();
+        let result = simplify("((-y) * y) - (y + y)", &[], None).unwrap();
         println!("Result: {}", result);
-        
+
         // The y² term should be negative
         // Valid: -y^2 - 2*y, -(y^2 + 2*y), etc.
         // Invalid: y^2 - 2*y, -2*y + y^2

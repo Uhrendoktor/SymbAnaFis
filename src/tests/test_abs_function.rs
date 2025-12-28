@@ -8,7 +8,7 @@ fn test_abs_function_simplification() {
     println!("Parsed expr: {:?}", expr);
 
     let expr_str = expr.to_string();
-    let simplified = simplify(&expr_str, None, None).unwrap();
+    let simplified = simplify(&expr_str, &[], None).unwrap();
     println!("Simplified expr: {}", simplified);
 
     // Check that abs(sigma) stays as a function call
@@ -31,7 +31,7 @@ fn test_abs_in_product() {
     println!("Parsed expr: {:?}", expr);
 
     let expr_str = expr.to_string();
-    let simplified = simplify(&expr_str, None, None).unwrap();
+    let simplified = simplify(&expr_str, &[], None).unwrap();
     println!("Simplified expr: {}", simplified);
 
     // Check that it simplifies correctly - accept equivalent orderings

@@ -22,7 +22,7 @@ fn eval_expr(expr_str: &str, vars: &[(&str, f64)]) -> Option<f64> {
     let custom_funcs = HashSet::new();
     let expr = parse(expr_str, &fixed_vars, &custom_funcs, None).ok()?;
     let var_map: HashMap<&str, f64> = vars.iter().cloned().collect();
-    let result = expr.evaluate(&var_map);
+    let result = expr.evaluate(&var_map, &HashMap::new());
     if let ExprKind::Number(n) = &result.kind {
         Some(*n)
     } else {
@@ -385,7 +385,7 @@ fn test_partial_evaluation() {
     let expr = parse("sin(x) + cos(0)", &fixed_vars, &custom_funcs, None).unwrap();
     let vars = HashMap::new();
     // Don't provide x, only evaluate cos(0)
-    let result = expr.evaluate(&vars);
+    let result = expr.evaluate(&vars, &HashMap::new());
 
     // Result should be sin(x) + 1 (cos(0) = 1)
     // We can't easily test this without more infrastructure, so just ensure no panic
@@ -400,7 +400,7 @@ fn test_unknown_function_preserved() {
     custom_funcs.insert("my_custom_func".to_string()); // Register as custom function
     let expr = parse("my_custom_func(2, 3)", &fixed_vars, &custom_funcs, None).unwrap();
     let vars = HashMap::new();
-    let result = expr.evaluate(&vars);
+    let result = expr.evaluate(&vars, &HashMap::new());
 
     // The function call should be preserved (args evaluated to numbers, function name kept)
     match &result.kind {

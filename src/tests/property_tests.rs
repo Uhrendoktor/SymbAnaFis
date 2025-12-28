@@ -231,7 +231,7 @@ mod algebraic_property_tests {
             }
 
             // Build x + 0
-            let result = simplify("x + 0", None, None).unwrap();
+            let result = simplify("x + 0", &[], None).unwrap();
 
             // After simplification, should evaluate to x
             let fixed = HashSet::new();
@@ -239,12 +239,12 @@ mod algebraic_property_tests {
             let expr = parser::parse(&result, &fixed, &custom, None).unwrap();
             let vars: HashMap<&str, f64> = [("x", x_val)].iter().cloned().collect();
 
-            if let ExprKind::Number(n) = expr.evaluate(&vars).kind {
+            if let ExprKind::Number(n) = expr.evaluate(&vars, &HashMap::new()).kind {
                 TestResult::from_bool(approx_eq(n, x_val))
             } else {
                 // Result is symbolic, check that it evaluated correctly
                 let orig = parser::parse("x", &fixed, &custom, None).unwrap();
-                let orig_result = orig.evaluate(&vars);
+                let orig_result = orig.evaluate(&vars, &HashMap::new());
                 if let ExprKind::Number(n) = orig_result.kind {
                     TestResult::from_bool(approx_eq(n, x_val))
                 } else {
@@ -265,13 +265,13 @@ mod algebraic_property_tests {
                 return TestResult::discard();
             }
 
-            let result = simplify("x * 1", None, None).unwrap();
+            let result = simplify("x * 1", &[], None).unwrap();
             let fixed = HashSet::new();
             let custom = HashSet::new();
             let expr = parser::parse(&result, &fixed, &custom, None).unwrap();
             let vars: HashMap<&str, f64> = [("x", x_val)].iter().cloned().collect();
 
-            if let ExprKind::Number(n) = expr.evaluate(&vars).kind {
+            if let ExprKind::Number(n) = expr.evaluate(&vars, &HashMap::new()).kind {
                 TestResult::from_bool(approx_eq(n, x_val))
             } else {
                 TestResult::passed()
@@ -290,13 +290,13 @@ mod algebraic_property_tests {
                 return TestResult::discard();
             }
 
-            let result = simplify("x * 0", None, None).unwrap();
+            let result = simplify("x * 0", &[], None).unwrap();
             let fixed = HashSet::new();
             let custom = HashSet::new();
             let expr = parser::parse(&result, &fixed, &custom, None).unwrap();
             let vars: HashMap<&str, f64> = [("x", x_val)].iter().cloned().collect();
 
-            if let ExprKind::Number(n) = expr.evaluate(&vars).kind {
+            if let ExprKind::Number(n) = expr.evaluate(&vars, &HashMap::new()).kind {
                 TestResult::from_bool(approx_eq(n, 0.0))
             } else {
                 TestResult::passed()
@@ -315,13 +315,13 @@ mod algebraic_property_tests {
                 return TestResult::discard();
             }
 
-            let result = simplify("x^1", None, None).unwrap();
+            let result = simplify("x^1", &[], None).unwrap();
             let fixed = HashSet::new();
             let custom = HashSet::new();
             let expr = parser::parse(&result, &fixed, &custom, None).unwrap();
             let vars: HashMap<&str, f64> = [("x", x_val)].iter().cloned().collect();
 
-            if let ExprKind::Number(n) = expr.evaluate(&vars).kind {
+            if let ExprKind::Number(n) = expr.evaluate(&vars, &HashMap::new()).kind {
                 TestResult::from_bool(approx_eq(n, x_val))
             } else {
                 TestResult::passed()
@@ -340,13 +340,13 @@ mod algebraic_property_tests {
                 return TestResult::discard();
             }
 
-            let result = simplify("x^0", None, None).unwrap();
+            let result = simplify("x^0", &[], None).unwrap();
             let fixed = HashSet::new();
             let custom = HashSet::new();
             let expr = parser::parse(&result, &fixed, &custom, None).unwrap();
             let vars: HashMap<&str, f64> = [("x", x_val)].iter().cloned().collect();
 
-            if let ExprKind::Number(n) = expr.evaluate(&vars).kind {
+            if let ExprKind::Number(n) = expr.evaluate(&vars, &HashMap::new()).kind {
                 TestResult::from_bool(approx_eq(n, 1.0))
             } else {
                 TestResult::passed()
@@ -365,13 +365,13 @@ mod algebraic_property_tests {
                 return TestResult::discard();
             }
 
-            let result = simplify("x - x", None, None).unwrap();
+            let result = simplify("x - x", &[], None).unwrap();
             let fixed = HashSet::new();
             let custom = HashSet::new();
             let expr = parser::parse(&result, &fixed, &custom, None).unwrap();
             let vars: HashMap<&str, f64> = [("x", x_val)].iter().cloned().collect();
 
-            if let ExprKind::Number(n) = expr.evaluate(&vars).kind {
+            if let ExprKind::Number(n) = expr.evaluate(&vars, &HashMap::new()).kind {
                 TestResult::from_bool(approx_eq(n, 0.0))
             } else {
                 TestResult::passed()
@@ -390,13 +390,13 @@ mod algebraic_property_tests {
                 return TestResult::discard();
             }
 
-            let result = simplify("x / x", None, None).unwrap();
+            let result = simplify("x / x", &[], None).unwrap();
             let fixed = HashSet::new();
             let custom = HashSet::new();
             let expr = parser::parse(&result, &fixed, &custom, None).unwrap();
             let vars: HashMap<&str, f64> = [("x", x_val)].iter().cloned().collect();
 
-            if let ExprKind::Number(n) = expr.evaluate(&vars).kind {
+            if let ExprKind::Number(n) = expr.evaluate(&vars, &HashMap::new()).kind {
                 TestResult::from_bool(approx_eq(n, 1.0))
             } else {
                 TestResult::passed()
@@ -420,7 +420,7 @@ mod algebraic_property_tests {
             let expr = parser::parse("sin(x)^2 + cos(x)^2", &fixed, &custom, None).unwrap();
             let vars: HashMap<&str, f64> = [("x", x_val)].iter().cloned().collect();
 
-            if let ExprKind::Number(n) = expr.evaluate(&vars).kind {
+            if let ExprKind::Number(n) = expr.evaluate(&vars, &HashMap::new()).kind {
                 TestResult::from_bool(approx_eq(n, 1.0))
             } else {
                 TestResult::passed()
@@ -444,7 +444,7 @@ mod algebraic_property_tests {
             let expr = parser::parse("exp(ln(x))", &fixed, &custom, None).unwrap();
             let vars: HashMap<&str, f64> = [("x", x_val)].iter().cloned().collect();
 
-            if let ExprKind::Number(n) = expr.evaluate(&vars).kind {
+            if let ExprKind::Number(n) = expr.evaluate(&vars, &HashMap::new()).kind {
                 TestResult::from_bool(approx_eq(n, x_val))
             } else {
                 TestResult::passed()
@@ -469,7 +469,7 @@ mod algebraic_property_tests {
             let expr = parser::parse("ln(exp(x))", &fixed, &custom, None).unwrap();
             let vars: HashMap<&str, f64> = [("x", x_val)].iter().cloned().collect();
 
-            if let ExprKind::Number(n) = expr.evaluate(&vars).kind {
+            if let ExprKind::Number(n) = expr.evaluate(&vars, &HashMap::new()).kind {
                 TestResult::from_bool(approx_eq(n, x_val))
             } else {
                 TestResult::passed()
@@ -493,14 +493,14 @@ mod algebraic_property_tests {
             }
 
             let expr_str = format!("x^{}", n);
-            let derivative = diff(&expr_str, "x", None, None).unwrap();
+            let derivative = diff(&expr_str, "x", &[], None).unwrap();
 
             let fixed = HashSet::new();
             let custom = HashSet::new();
             let deriv_expr = parser::parse(&derivative, &fixed, &custom, None).unwrap();
             let vars: HashMap<&str, f64> = [("x", x_val)].iter().cloned().collect();
 
-            if let ExprKind::Number(result) = deriv_expr.evaluate(&vars).kind {
+            if let ExprKind::Number(result) = deriv_expr.evaluate(&vars, &HashMap::new()).kind {
                 let expected = (n as f64) * x_val.powi(n as i32 - 1);
                 let tolerance = 1e-6 * expected.abs().max(1.0);
                 TestResult::from_bool((result - expected).abs() < tolerance)
@@ -529,7 +529,10 @@ mod algebraic_property_tests {
 
             let vars: HashMap<&str, f64> = [("x", x), ("y", y)].iter().cloned().collect();
 
-            match (&expr1.evaluate(&vars).kind, &expr2.evaluate(&vars).kind) {
+            match (
+                &expr1.evaluate(&vars, &HashMap::new()).kind,
+                &expr2.evaluate(&vars, &HashMap::new()).kind,
+            ) {
                 (ExprKind::Number(n1), ExprKind::Number(n2)) => {
                     TestResult::from_bool(approx_eq(*n1, *n2))
                 }
@@ -557,7 +560,10 @@ mod algebraic_property_tests {
 
             let vars: HashMap<&str, f64> = [("x", x), ("y", y)].iter().cloned().collect();
 
-            match (&expr1.evaluate(&vars).kind, &expr2.evaluate(&vars).kind) {
+            match (
+                &expr1.evaluate(&vars, &HashMap::new()).kind,
+                &expr2.evaluate(&vars, &HashMap::new()).kind,
+            ) {
                 (ExprKind::Number(n1), ExprKind::Number(n2)) => {
                     TestResult::from_bool(approx_eq(*n1, *n2))
                 }
@@ -596,7 +602,7 @@ mod simplification_oracle_tests {
             };
 
             // 3. Simplify (with timeout protection via engine limits)
-            let simplified_str = match simplify(&expr_str, None, None) {
+            let simplified_str = match simplify(&expr_str, &[], None) {
                 Ok(s) => s,
                 Err(_) => return TestResult::discard(), // Simplification can fail on edge cases
             };
@@ -611,8 +617,8 @@ mod simplification_oracle_tests {
             vars.insert("y", 0.762);
             vars.insert("z", 1.234);
 
-            let res_orig = original.evaluate(&vars);
-            let res_simp = simplified.evaluate(&vars);
+            let res_orig = original.evaluate(&vars, &HashMap::new());
+            let res_simp = simplified.evaluate(&vars, &HashMap::new());
 
             if let (ExprKind::Number(n1), ExprKind::Number(n2)) = (&res_orig.kind, &res_simp.kind) {
                 // Ignore NaNs/Infinities (singularities are hard to test generically)
@@ -648,12 +654,12 @@ mod simplification_oracle_tests {
             let custom = HashSet::new();
 
             // First simplification
-            let Ok(first) = simplify(&expr_str, None, None) else {
+            let Ok(first) = simplify(&expr_str, &[], None) else {
                 return TestResult::discard();
             };
 
             // Second simplification
-            let Ok(second) = simplify(&first, None, None) else {
+            let Ok(second) = simplify(&first, &[], None) else {
                 return TestResult::discard();
             };
 
@@ -671,8 +677,8 @@ mod simplification_oracle_tests {
             vars.insert("y", 0.7);
             vars.insert("z", 1.1);
 
-            let res1 = first_expr.evaluate(&vars);
-            let res2 = second_expr.evaluate(&vars);
+            let res1 = first_expr.evaluate(&vars, &HashMap::new());
+            let res2 = second_expr.evaluate(&vars, &HashMap::new());
 
             if let (ExprKind::Number(n1), ExprKind::Number(n2)) = (&res1.kind, &res2.kind)
                 && n1.is_finite()
@@ -734,7 +740,7 @@ mod rule_conflict_tests {
 
         for (expr_str, description) in dangerous_exprs {
             // These should not panic or hang
-            let result = simplify(expr_str, None, None);
+            let result = simplify(expr_str, &[], None);
             assert!(
                 result.is_ok(),
                 "Rule conflict in '{}' ({}): {:?}",
@@ -771,7 +777,7 @@ mod rule_conflict_tests {
 
         for expr_str in cycle_prone {
             // Use standard simplify - engine has built-in iteration limits
-            let result = simplify(expr_str, None, None);
+            let result = simplify(expr_str, &[], None);
             assert!(
                 result.is_ok(),
                 "Cycle/error in '{}': {:?}",

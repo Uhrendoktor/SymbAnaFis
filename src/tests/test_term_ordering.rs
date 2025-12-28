@@ -5,7 +5,7 @@ use crate::{Expr, ExprKind};
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::collections::HashSet;
+    use std::collections::{HashMap, HashSet};
 
     #[test]
     fn test_cosh_reversed_order() {
@@ -22,7 +22,15 @@ mod tests {
             Expr::number(2.0),
         );
 
-        let simplified = simplify_expr(expr, HashSet::new());
+        let simplified = simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false,
+        );
         if let ExprKind::FunctionCall { name, args } = &simplified.kind {
             assert_eq!(name.as_str(), "cosh");
             assert_eq!(*args[0], Expr::symbol("x"));
@@ -46,7 +54,15 @@ mod tests {
             Expr::number(2.0),
         );
 
-        let simplified = simplify_expr(expr, HashSet::new());
+        let simplified = simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false,
+        );
         if let ExprKind::FunctionCall { name, args } = &simplified.kind {
             assert_eq!(name.as_str(), "cosh");
             assert_eq!(*args[0], Expr::symbol("x"));
@@ -78,7 +94,15 @@ mod tests {
         ]);
         let expr = Expr::div_expr(numerator, denominator);
 
-        let simplified = simplify_expr(expr, HashSet::new());
+        let simplified = simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false,
+        );
         if let ExprKind::FunctionCall { name, args } = &simplified.kind {
             assert_eq!(name.as_str(), "coth");
             assert_eq!(*args[0], Expr::symbol("x"));
@@ -110,7 +134,15 @@ mod tests {
         ]);
         let expr = Expr::div_expr(numerator, denominator);
 
-        let simplified = simplify_expr(expr, HashSet::new());
+        let simplified = simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false,
+        );
         if let ExprKind::FunctionCall { name, args } = &simplified.kind {
             assert_eq!(name.as_str(), "tanh");
             assert_eq!(*args[0], Expr::symbol("x"));
@@ -134,7 +166,15 @@ mod tests {
             ]),
         );
 
-        let simplified = simplify_expr(expr, HashSet::new());
+        let simplified = simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false,
+        );
         if let ExprKind::FunctionCall { name, args } = &simplified.kind {
             assert_eq!(name.as_str(), "sech");
             assert_eq!(*args[0], Expr::symbol("x"));
@@ -160,7 +200,15 @@ mod tests {
             Expr::number(2.0),
         );
 
-        let simplified = simplify_expr(expr, HashSet::new());
+        let simplified = simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false,
+        );
         if let ExprKind::FunctionCall { name, args } = &simplified.kind {
             assert_eq!(name.as_str(), "sinh");
             assert_eq!(*args[0], Expr::symbol("x"));
@@ -187,7 +235,15 @@ mod tests {
             Expr::number(2.0),
         );
 
-        let simplified = simplify_expr(expr, HashSet::new());
+        let simplified = simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false,
+        );
         if let ExprKind::FunctionCall { name, args } = &simplified.kind {
             assert_eq!(name.as_str(), "sinh");
             assert_eq!(*args[0], Expr::symbol("x"));

@@ -30,7 +30,7 @@ const CHUNK_SIZE: usize = 256;
 /// - `data`: Columnar data for each expression. `data[expr_idx][var_idx][point_idx]`
 ///
 /// # Returns
-/// A Vec of Vec<f64> where `result[expr_idx][point_idx]` is the evaluation result.
+/// A `Vec` of `Vec<f64>` where `result[expr_idx][point_idx]` is the evaluation result.
 ///
 /// # Errors
 /// Returns `DiffError` if compilation fails (e.g., unsupported functions).
@@ -83,7 +83,7 @@ fn eval_single_expr_chunked<V: AsRef<str>>(
 
     // For very small datasets, use sequential eval_batch directly
     if n_points < CHUNK_SIZE {
-        evaluator.eval_batch(columns, &mut output);
+        evaluator.eval_batch(columns, &mut output)?;
     } else {
         // Parallel chunked evaluation using sliced eval_batch (SIMD-enabled)
         // 1. Splits output into mutable chunks
@@ -96,7 +96,9 @@ fn eval_single_expr_chunked<V: AsRef<str>>(
                 let end = start + chunk.len();
                 // Slice columns for this chunk
                 let col_slices: Vec<&[f64]> = columns.iter().map(|col| &col[start..end]).collect();
-                evaluator.eval_batch(&col_slices, chunk);
+                evaluator
+                    .eval_batch(&col_slices, chunk)
+                    .expect("eval_batch failed in parallel chunk");
             });
     }
 

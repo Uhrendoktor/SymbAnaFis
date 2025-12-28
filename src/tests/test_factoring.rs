@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::{Expr, ExprKind, simplification::simplify_expr};
-    use std::collections::HashSet;
+    use std::collections::{HashMap, HashSet};
 
     #[test]
     fn test_perfect_square_factoring() {
@@ -11,7 +11,15 @@ mod tests {
             Expr::product(vec![Expr::number(2.0), Expr::symbol("x")]),
             Expr::number(1.0),
         ]);
-        let simplified = simplify_expr(expr, HashSet::new());
+        let simplified = simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false,
+        );
         println!("Simplified: {:?}", simplified);
 
         // Must be factored to (x + 1)^2

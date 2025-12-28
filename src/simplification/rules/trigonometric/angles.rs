@@ -1,5 +1,5 @@
 use crate::core::expr::{Expr, ExprKind as AstKind};
-use crate::core::known_symbols::{get_symbol, COS, SIN};
+use crate::core::known_symbols::{COS, SIN, get_symbol};
 use crate::simplification::helpers;
 use crate::simplification::patterns::common::extract_coefficient;
 use crate::simplification::rules::{ExprKind, Rule, RuleCategory, RuleContext};
@@ -81,7 +81,10 @@ rule!(
                 // sin^2(x) - cos^2(x) = -cos(2x)
                 return Some(Expr::product(vec![
                     Expr::number(-1.0),
-                    Expr::func_symbol(get_symbol(&COS), Expr::product(vec![Expr::number(2.0), arg1])),
+                    Expr::func_symbol(
+                        get_symbol(&COS),
+                        Expr::product(vec![Expr::number(2.0), arg1]),
+                    ),
                 ]));
             }
         }

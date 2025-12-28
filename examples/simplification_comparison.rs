@@ -63,14 +63,14 @@ fn main() {
         // SymbAnaFis - Raw Differentiation (No Simplification)
         match Diff::new()
             .skip_simplification(true)
-            .diff_str(expr_str, var)
+            .diff_str(expr_str, var, &[])
         {
             Ok(s) => println!("SymbAnaFis (Raw):        {}", s),
             Err(e) => println!("SymbAnaFis (Raw):        Error: {:?}", e),
         };
 
         // SymbAnaFis - Simplified Differentiation (Default)
-        match Diff::new().diff_str(expr_str, var) {
+        match Diff::new().diff_str(expr_str, var, &[]) {
             Ok(s) => println!("SymbAnaFis (Simplified): {}", s),
             Err(e) => println!("SymbAnaFis (Simplified): Error: {:?}", e),
         };

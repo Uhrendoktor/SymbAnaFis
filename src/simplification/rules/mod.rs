@@ -5,6 +5,7 @@
 
 use crate::Expr;
 use crate::ExprKind as AstKind;
+use crate::core::unified_context::BodyFn;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
@@ -228,6 +229,7 @@ impl ExprKind {
 pub(crate) trait Rule {
     fn name(&self) -> &'static str;
     fn priority(&self) -> i32;
+    #[allow(dead_code)]
     fn category(&self) -> RuleCategory;
 
     fn alters_domain(&self) -> bool {
@@ -242,11 +244,12 @@ pub(crate) trait Rule {
     }
 
     /// Apply this rule to an expression. Returns Some(new_expr) if transformation applied.
-    /// Takes &Arc<Expr> for efficient sub-expression cloning (Arc::clone is cheap).
+    /// Takes &`Arc<Expr>` for efficient sub-expression cloning (Arc::clone is cheap).
     fn apply(&self, expr: &Arc<Expr>, context: &RuleContext) -> Option<Arc<Expr>>;
 }
 
 /// Categories of simplification rules
+#[allow(dead_code)]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub(crate) enum RuleCategory {
     Numeric,   // Constant folding, identities
@@ -267,6 +270,7 @@ pub(crate) const ALL_EXPR_KINDS: &[ExprKind] = &[
     ExprKind::Pow,
     ExprKind::Function,
     ExprKind::Derivative,
+    ExprKind::Poly,
 ];
 
 /// Priority ranges for different types of operations:
@@ -276,13 +280,29 @@ pub(crate) const ALL_EXPR_KINDS: &[ExprKind] = &[
 /// - 1-39: Canonicalization rules (sort terms, normalize display form)
 ///
 /// Context passed to rules during application
-/// Uses Arc<HashSet> for cheap cloning (context is cloned per-node)
-#[derive(Clone, Debug, Default)]
+/// Uses `Arc<HashSet>` for cheap cloning (context is cloned per-node)
+#[derive(Clone, Default)]
 pub(crate) struct RuleContext {
     pub depth: usize,
     pub variables: Arc<HashSet<String>>,
-    pub fixed_vars: Arc<HashSet<String>>, // User-specified fixed variables (constants)
+    pub known_symbols: Arc<HashSet<String>>, // User-specified known symbols (parsing hints)
     pub domain_safe: bool,
+    pub custom_bodies: Arc<HashMap<String, BodyFn>>, // Custom function body definitions
+}
+
+impl std::fmt::Debug for RuleContext {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("RuleContext")
+            .field("depth", &self.depth)
+            .field("variables", &self.variables)
+            .field("known_symbols", &self.known_symbols)
+            .field("domain_safe", &self.domain_safe)
+            .field(
+                "custom_bodies",
+                &format!("<{} functions>", self.custom_bodies.len()),
+            )
+            .finish()
+    }
 }
 
 impl RuleContext {
@@ -297,8 +317,13 @@ impl RuleContext {
         self
     }
 
-    pub fn with_fixed_vars(mut self, fixed_vars: HashSet<String>) -> Self {
-        self.fixed_vars = Arc::new(fixed_vars);
+    pub fn with_known_symbols(mut self, known_symbols: HashSet<String>) -> Self {
+        self.known_symbols = Arc::new(known_symbols);
+        self
+    }
+
+    pub fn with_custom_bodies(mut self, custom_bodies: HashMap<String, BodyFn>) -> Self {
+        self.custom_bodies = Arc::new(custom_bodies);
         self
     }
 }
@@ -344,21 +369,7 @@ impl RuleRegistry {
         self.rules.extend(exponential::get_exponential_rules());
         self.rules.extend(root::get_root_rules());
         self.rules.extend(hyperbolic::get_hyperbolic_rules());
-
-        // Sort by category, then by priority (higher first)
-        self.rules.sort_by_key(|r| {
-            (
-                match r.category() {
-                    RuleCategory::Numeric => 0,
-                    RuleCategory::Algebraic => 1,
-                    RuleCategory::Trigonometric => 2,
-                    RuleCategory::Hyperbolic => 3,
-                    RuleCategory::Exponential => 4,
-                    RuleCategory::Root => 5,
-                },
-                -r.priority(), // Negative for descending order
-            )
-        });
+        // Note: Rules are sorted by priority in order_by_dependencies()
     }
 
     /// Build the kind index after ordering rules

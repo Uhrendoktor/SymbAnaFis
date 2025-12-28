@@ -99,8 +99,16 @@ impl Simplifier {
         self
     }
 
-    pub fn with_fixed_vars(mut self, fixed_vars: HashSet<String>) -> Self {
-        self.context = self.context.with_fixed_vars(fixed_vars);
+    pub fn with_known_symbols(mut self, known_symbols: HashSet<String>) -> Self {
+        self.context = self.context.with_known_symbols(known_symbols);
+        self
+    }
+
+    pub fn with_custom_bodies(
+        mut self,
+        custom_bodies: HashMap<String, crate::core::unified_context::BodyFn>,
+    ) -> Self {
+        self.context = self.context.with_custom_bodies(custom_bodies);
         self
     }
 
@@ -329,16 +337,4 @@ impl Simplifier {
 
         current
     }
-}
-
-/// Convenience function with user-specified fixed variables
-pub(crate) fn simplify_expr_with_fixed_vars(expr: Expr, fixed_vars: HashSet<String>) -> Expr {
-    let variables = expr.variables();
-    // Skip verification for performance - just simplify directly
-    let mut simplifier = Simplifier::new()
-        .with_max_iterations(1000)
-        .with_max_depth(50)
-        .with_variables(variables)
-        .with_fixed_vars(fixed_vars);
-    simplifier.simplify(expr)
 }

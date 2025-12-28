@@ -2,7 +2,7 @@
 mod simplification_advanced {
     use crate::simplification::simplify_expr;
     use crate::{Expr, ExprKind};
-    use std::collections::HashSet;
+    use std::collections::{HashMap, HashSet};
 
     #[test]
     fn test_nested_add_zero() {
@@ -11,7 +11,15 @@ mod simplification_advanced {
             Expr::sum(vec![Expr::symbol("x"), Expr::number(0.0)]),
             Expr::sum(vec![Expr::number(0.0), Expr::symbol("y")]),
         ]);
-        let result = simplify_expr(expr, HashSet::new());
+        let result = simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false,
+        );
         // Should have no zeros
         assert!(!format!("{:?}", result).contains("0.0"));
     }
@@ -23,7 +31,15 @@ mod simplification_advanced {
             Expr::sum(vec![Expr::symbol("x"), Expr::number(1.0)]),
             Expr::number(0.0),
         ]);
-        let result = simplify_expr(expr, HashSet::new());
+        let result = simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false,
+        );
         assert_eq!(result, Expr::number(0.0));
     }
 
@@ -34,7 +50,15 @@ mod simplification_advanced {
             Expr::sum(vec![Expr::number(2.0), Expr::number(3.0)]),
             Expr::sum(vec![Expr::number(4.0), Expr::number(1.0)]),
         ]);
-        let result = simplify_expr(expr, HashSet::new());
+        let result = simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false,
+        );
         assert_eq!(result, Expr::number(25.0));
     }
 
@@ -46,7 +70,15 @@ mod simplification_advanced {
             Expr::pow(Expr::symbol("y"), Expr::number(1.0)),
             Expr::pow(Expr::symbol("z"), Expr::number(2.0)),
         ]);
-        let result = simplify_expr(expr, HashSet::new());
+        let result = simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false,
+        );
         // x^0 = 1, y^1 = y, so should have y and z
         assert!(format!("{:?}", result).contains("z"));
     }
@@ -58,7 +90,15 @@ mod simplification_advanced {
             Expr::pow(Expr::symbol("x"), Expr::number(2.0)),
             Expr::pow(Expr::symbol("x"), Expr::number(2.0)),
         );
-        let result = simplify_expr(expr, HashSet::new());
+        let result = simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false,
+        );
         assert_eq!(result, Expr::number(1.0));
     }
 
@@ -70,7 +110,15 @@ mod simplification_advanced {
             Expr::pow(base.clone(), Expr::number(3.0)),
             Expr::pow(base, Expr::number(2.0)),
         );
-        let result = simplify_expr(expr, HashSet::new());
+        let result = simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false,
+        );
         // Should simplify to (x+1)^1, which should further simplify to (x+1)
         // Due to canonical ordering by degree, it becomes x + 1
         let expected = Expr::sum(vec![Expr::symbol("x"), Expr::number(1.0)]);
@@ -89,7 +137,15 @@ mod simplification_advanced {
             Expr::pow(base.clone(), Expr::number(4.0)),
             Expr::pow(base, Expr::number(2.0)),
         );
-        let result = simplify_expr(expr, HashSet::new());
+        let result = simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false,
+        );
         // Should simplify to (x^2 + y)^2
         // Due to canonical ordering by degree, it becomes x^2 + y
         let expected_base = Expr::sum(vec![
@@ -108,7 +164,15 @@ mod simplification_advanced {
             Expr::pow(base.clone(), Expr::number(3.0)),
             Expr::pow(base, Expr::number(2.0)),
         );
-        let result = simplify_expr(expr, HashSet::new());
+        let result = simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false,
+        );
         // Should simplify to sin(x)^1, which should further simplify to sin(x)
         let expected = Expr::func("sin", Expr::symbol("x"));
         assert_eq!(result, expected);
@@ -121,7 +185,15 @@ mod simplification_advanced {
             Expr::sum(vec![Expr::symbol("x"), Expr::symbol("y")]),
             Expr::number(1.0),
         );
-        let result = simplify_expr(expr, HashSet::new());
+        let result = simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false,
+        );
         // Should not contain Div anymore
         assert!(!matches!(result.kind, ExprKind::Div(_, _)));
     }
@@ -130,7 +202,15 @@ mod simplification_advanced {
     fn test_div_zero() {
         // 0 / x should become 0
         let expr = Expr::div_expr(Expr::number(0.0), Expr::symbol("x"));
-        let result = simplify_expr(expr, HashSet::new());
+        let result = simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false,
+        );
         assert_eq!(result, Expr::number(0.0));
     }
 
@@ -141,7 +221,15 @@ mod simplification_advanced {
             Expr::symbol("x"),
             Expr::product(vec![Expr::number(-1.0), Expr::number(0.0)]),
         ]);
-        let result = simplify_expr(expr, HashSet::new());
+        let result = simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false,
+        );
         assert_eq!(result, Expr::symbol("x"));
     }
 
@@ -149,7 +237,15 @@ mod simplification_advanced {
     fn test_constant_div() {
         // 10 / 2 should become 5
         let expr = Expr::div_expr(Expr::number(10.0), Expr::number(2.0));
-        let result = simplify_expr(expr, HashSet::new());
+        let result = simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false,
+        );
         assert_eq!(result, Expr::number(5.0));
     }
 
@@ -160,7 +256,15 @@ mod simplification_advanced {
             Expr::number(10.0),
             Expr::product(vec![Expr::number(-1.0), Expr::number(3.0)]),
         ]);
-        let result = simplify_expr(expr, HashSet::new());
+        let result = simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false,
+        );
         assert_eq!(result, Expr::number(7.0));
     }
 }
@@ -172,7 +276,7 @@ mod real_world_expressions {
     #[test]
     fn test_quadratic_derivative() {
         // d/dx[ax^2 + bx + c] = 2ax + b
-        let result = diff("a*x^2 + b*x + c", "x", Some(&["a", "b", "c"]), None);
+        let result = diff("a*x^2 + b*x + c", "x", &["a", "b"], None);
         assert!(result.is_ok());
         let deriv = result.unwrap();
         assert!(deriv.contains("a") && deriv.contains("x") && deriv.contains("b"));
@@ -181,14 +285,14 @@ mod real_world_expressions {
     #[test]
     fn test_rational_function() {
         // d/dx[(x^2 + 1)/(x - 1)]
-        let result = diff("(x^2 + 1)/(x - 1)", "x", None, None);
+        let result = diff("(x^2 + 1)/(x - 1)", "x", &[], None);
         assert!(result.is_ok());
     }
 
     #[test]
     fn test_exponential_growth() {
         // d/dx[a * exp(k*x)]
-        let result = diff("a*exp(k*x)", "x", Some(&["a", "k"]), None);
+        let result = diff("a*exp(k*x)", "x", &["a", "k"], None);
         assert!(result.is_ok());
         let deriv = result.unwrap();
         assert!(deriv.contains("exp") && deriv.contains("k"));
@@ -197,28 +301,28 @@ mod real_world_expressions {
     #[test]
     fn test_trig_identity_input() {
         // d/dx[sin(x)^2 + cos(x)^2] should work (even if not simplified to 0)
-        let result = diff("sin(x)^2 + cos(x)^2", "x", None, None);
+        let result = diff("sin(x)^2 + cos(x)^2", "x", &[], None);
         assert!(result.is_ok());
     }
 
     #[test]
     fn test_product_of_three() {
         // d/dx[x * sin(x) * exp(x)]
-        let result = diff("x*sin(x)*exp(x)", "x", None, None);
+        let result = diff("x*sin(x)*exp(x)", "x", &[], None);
         assert!(result.is_ok());
     }
 
     #[test]
     fn test_chain_rule_triple() {
         // d/dx[sin(exp(ln(x)))]
-        let result = diff("sin(exp(ln(x)))", "x", None, None);
+        let result = diff("sin(exp(ln(x)))", "x", &[], None);
         assert!(result.is_ok());
     }
 
     #[test]
     fn test_hyperbolic_combo() {
         // d/dx[sinh(x) * cosh(x)]
-        let result = diff("sinh(x)*cosh(x)", "x", None, None);
+        let result = diff("sinh(x)*cosh(x)", "x", &[], None);
         assert!(result.is_ok());
         let deriv = result.unwrap();
         assert!(deriv.contains("sinh") || deriv.contains("cosh"));
@@ -227,7 +331,7 @@ mod real_world_expressions {
     #[test]
     fn test_implicit_with_division() {
         // d/dx[y(x)/x] where y is custom function
-        let result = diff("y(x)/x", "x", None, Some(&["y"]));
+        let result = diff("y(x)/x", "x", &[], Some(&["y"]));
         assert!(result.is_ok());
     }
 }
@@ -238,20 +342,20 @@ mod boundary_conditions {
 
     #[test]
     fn test_single_char_fixed_var() {
-        let result = diff("a", "x", Some(&["a"]), None).unwrap();
+        let result = diff("a", "x", &["a"], None).unwrap();
         assert_eq!(result, "0");
     }
 
     #[test]
     fn test_unicode_identifier() {
         // Greek letters should work
-        let result = diff("α + β", "x", Some(&["α", "β"]), None).unwrap();
+        let result = diff("α + β", "x", &["α", "β"], None).unwrap();
         assert_eq!(result, "0");
     }
 
     #[test]
     fn test_underscore_in_name() {
-        let result = diff("var_1*x", "x", Some(&["var_1"]), None).unwrap();
+        let result = diff("var_1*x", "x", &["var_1"], None).unwrap();
         assert!(result.contains("var_1"));
     }
 
@@ -262,7 +366,7 @@ mod boundary_conditions {
         for _ in 0..50 {
             formula = format!("({})", formula);
         }
-        let result = diff(&formula, "x", None, None);
+        let result = diff(&formula, "x", &[], None);
         assert!(result.is_ok());
     }
 }

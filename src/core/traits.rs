@@ -15,8 +15,27 @@ pub(crate) const EPSILON: f64 = 1e-14;
 /// A trait comprising all operations required for mathematical scalars
 /// in the SymbAnaFis library.
 ///
-/// This aggregates `num_traits::Float` (providing sin, cos, exp, etc.),
-/// `FloatConst` (PI, E), and standard arithmetic/debug traits.
+/// This trait aggregates essential numeric operations needed for symbolic computation:
+/// - `num_traits::Float`: Trigonometric, exponential, and logarithmic functions
+/// - `FloatConst`: Mathematical constants (π, e)
+/// - Standard arithmetic operations and comparisons
+/// - Display and debugging traits
+///
+/// # Implementations
+/// Automatically implemented for any type satisfying all the bounds.
+/// The primary implementation is for `f64`.
+///
+/// # Usage
+/// This trait enables generic programming over numeric types, particularly
+/// useful for dual number arithmetic and other mathematical abstractions.
+///
+/// ```
+/// use symb_anafis::MathScalar;
+///
+/// fn compute<T: MathScalar>(x: T) -> T {
+///     x.sin() * x.exp()  // Works for f64, Dual<f64>, etc.
+/// }
+/// ```
 pub trait MathScalar:
     Float
     + FloatConst

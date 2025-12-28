@@ -5,7 +5,7 @@ use std::collections::HashSet;
 #[test]
 fn test_quotient_rule_sign_distribution() {
     // Derivative of (x^2 + 1)/(x - 1)
-    let result = diff("(x^2 + 1) / (x - 1)", "x", None, None).unwrap();
+    let result = diff("(x^2 + 1) / (x - 1)", "x", &[], None).unwrap();
     // Quick checks on the printed result to assert the quotient layout is correct
     // Expect denominator squared
     assert!(
@@ -31,7 +31,7 @@ fn test_orbital_denominator_squared() {
     let result = diff(
         "a*(1 - e^2) / (1 + e*cos(theta))",
         "theta",
-        Some(&["a", "e"]),
+        &["a", "e"],
         None,
     )
     .unwrap();

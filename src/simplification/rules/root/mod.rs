@@ -1,5 +1,5 @@
 use crate::core::expr::{Expr, ExprKind as AstKind};
-use crate::core::known_symbols::{get_symbol, ABS, CBRT, SQRT};
+use crate::core::known_symbols::{ABS, CBRT, SQRT, get_symbol};
 use crate::simplification::rules::{ExprKind, Rule, RuleCategory, RuleContext};
 use std::sync::Arc;
 
@@ -52,7 +52,7 @@ rule!(
                 return Some(base.as_ref().clone());
             }
 
-            let result = Expr::pow(base.as_ref().clone(), simplified_exp.clone());
+            let result = Expr::pow_static(base.as_ref().clone(), simplified_exp.clone());
 
             return Some(result);
         }
@@ -101,7 +101,7 @@ rule!(
                 return Some(base.as_ref().clone());
             }
 
-            return Some(Expr::pow(base.as_ref().clone(), simplified_exp));
+            return Some(Expr::pow_static(base.as_ref().clone(), simplified_exp));
         }
         None
     }
@@ -187,12 +187,12 @@ rule!(
             && args.len() == 1
         {
             if name.id() == *SQRT {
-                return Some(Expr::pow(
+                return Some(Expr::pow_static(
                     (*args[0]).clone(),
                     Expr::div_expr(Expr::number(1.0), Expr::number(2.0)),
                 ));
             } else if name.id() == *CBRT {
-                return Some(Expr::pow(
+                return Some(Expr::pow_static(
                     (*args[0]).clone(),
                     Expr::div_expr(Expr::number(1.0), Expr::number(3.0)),
                 ));

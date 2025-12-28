@@ -14,7 +14,7 @@ fn test_gaussian_2d_diff_cycle() {
 
     // Test 1: Using high-level diff() which includes simplification
     // This is where the cycle is happening (max iterations exceeded)
-    let result = diff(expr_str, var, Some(&fixed), None);
+    let result = diff(expr_str, var, &fixed, None);
 
     assert!(result.is_ok(), "Differentiation failed: {:?}", result.err());
     let result_str = result.unwrap();
@@ -23,21 +23,17 @@ fn test_gaussian_2d_diff_cycle() {
     // Test 2: Step-by-step to see where it cycles
     let expr = parse(expr_str, &HashSet::new(), &HashSet::new(), None).unwrap();
     let x = symb("x");
-    let fixed_syms: Vec<_> = fixed.iter().map(|s| symb(s)).collect();
-    let fixed_refs: Vec<_> = fixed_syms.iter().collect();
 
     // 2a. Raw differentiation
     println!("\nRaw differentiation...");
-    let diff_builder = Diff::new()
-        .fixed_vars(&fixed_refs)
-        .skip_simplification(true);
+    let diff_builder = Diff::new().skip_simplification(true);
 
     let diff_raw = diff_builder.differentiate(expr, &x).unwrap();
     println!("Raw diff nodes: {}", diff_raw.node_count());
 
     // 2b. Simplify with tracing
     println!("\nSimplifying...");
-    let simplify_builder = Simplify::new().fixed_vars(&fixed_refs);
+    let simplify_builder = Simplify::new();
 
     // We can enable debug print in Simplify if needed, but for now
     // let's just assert it finishes

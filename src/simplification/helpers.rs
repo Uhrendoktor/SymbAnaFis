@@ -5,6 +5,7 @@
 
 use crate::core::known_symbols::{ABS, ABS_CAP, COSH, EXP, PI as PI_SYM, SQRT};
 use crate::core::symbol::InternedSymbol;
+use crate::core::traits::EPSILON;
 use crate::{Expr, ExprKind};
 use std::collections::HashSet;
 use std::sync::Arc;
@@ -23,15 +24,16 @@ pub(crate) fn get_fn_pow_symbol(expr: &Expr, power: f64) -> Option<(InternedSymb
 
 // Floating point approx equality used for numeric pattern matching
 pub(crate) fn approx_eq(a: f64, b: f64) -> bool {
-    (a - b).abs() < 1e-10
+    (a - b).abs() < EPSILON
 }
 
-// Get numeric value from expression if it's a Number
-pub(crate) fn get_numeric_value(expr: &Expr) -> f64 {
+/// Get numeric value from expression if it's a Number.
+/// Returns None if the expression is not a Number.
+pub(crate) fn get_numeric_value(expr: &Expr) -> Option<f64> {
     if let ExprKind::Number(n) = &expr.kind {
-        *n
+        Some(*n)
     } else {
-        f64::NAN
+        None
     }
 }
 
@@ -39,6 +41,13 @@ pub(crate) fn get_numeric_value(expr: &Expr) -> f64 {
 use std::f64::consts::PI;
 pub(crate) fn is_multiple_of_two_pi(expr: &Expr) -> bool {
     if let ExprKind::Number(n) = &expr.kind {
+        // Fix: If n is too large, we lose fractional precision,
+        // so we can't possibly know if it's a multiple of 2pi.
+        // 1e15 is slightly below the 2^53 limit (9e15).
+        if n.abs() > 1e15 {
+            return false;
+        }
+
         let two_pi = 2.0 * PI;
         let k = n / two_pi;
         return approx_eq(k, k.round());
@@ -64,15 +73,45 @@ pub(crate) fn is_multiple_of_two_pi(expr: &Expr) -> bool {
 }
 
 pub(crate) fn is_pi(expr: &Expr) -> bool {
+    // Check numeric pi
     if let ExprKind::Number(n) = &expr.kind {
-        return (n - PI).abs() < 1e-10;
+        return (n - PI).abs() < EPSILON;
+    }
+    // Check symbolic pi
+    if let ExprKind::Symbol(s) = &expr.kind {
+        return s.id() == *PI_SYM;
     }
     false
 }
 
 pub(crate) fn is_three_pi_over_two(expr: &Expr) -> bool {
+    // Check numeric 3π/2
     if let ExprKind::Number(n) = &expr.kind {
-        return (n - 3.0 * PI / 2.0).abs() < 1e-10;
+        return (n - 3.0 * PI / 2.0).abs() < EPSILON;
+    }
+    // Check symbolic 3*pi/2 or (3/2)*pi
+    if let ExprKind::Div(num, den) = &expr.kind
+        && let ExprKind::Number(d) = &den.kind
+        && (*d - 2.0).abs() < EPSILON
+    {
+        // Check if numerator is 3*pi
+        if let ExprKind::Product(factors) = &num.kind {
+            let mut has_three = false;
+            let mut has_pi = false;
+            for f in factors {
+                if let ExprKind::Number(n) = &f.kind
+                    && (*n - 3.0).abs() < EPSILON
+                {
+                    has_three = true;
+                }
+                if let ExprKind::Symbol(s) = &f.kind
+                    && s.id() == *PI_SYM
+                {
+                    has_pi = true;
+                }
+            }
+            return has_three && has_pi;
+        }
     }
     false
 }
@@ -266,7 +305,7 @@ pub(crate) fn prettify_roots(expr: Expr) -> Expr {
             }
             // x^0.5 -> sqrt(x)
             if let ExprKind::Number(n) = &exp_pretty.kind
-                && (n - 0.5).abs() < 1e-10
+                && (n - 0.5).abs() < EPSILON
             {
                 return Expr::func("sqrt", base_pretty);
             }
@@ -337,13 +376,19 @@ pub(crate) fn is_known_non_negative(expr: &Expr) -> bool {
         ExprKind::Number(n) => *n >= 0.0,
 
         // x^2, x^4, x^6, ... are always non-negative
-        ExprKind::Pow(_, exp) => {
+        // Also: (non_negative_expr)^(positive) is non-negative
+        ExprKind::Pow(base, exp) => {
             if let ExprKind::Number(n) = &exp.kind {
-                // Even positive integer exponents
-                *n > 0.0 && n.fract() == 0.0 && (*n as i64) % 2 == 0
-            } else {
-                false
+                // Even positive integer exponents: x^2, x^4, etc.
+                if *n > 0.0 && n.fract() == 0.0 && (*n as i64) % 2 == 0 {
+                    return true;
+                }
+                // Non-negative base with any positive exponent: (x^2)^0.5, abs(x)^1.5
+                if *n > 0.0 && is_known_non_negative(base) {
+                    return true;
+                }
             }
+            false
         }
 
         // abs(x) is always non-negative
@@ -406,16 +451,15 @@ pub(crate) fn is_fractional_root_exponent(expr: &Expr) -> bool {
     }
 }
 
-/// Simple GCD implementation for integers
 pub(crate) fn gcd(a: i64, b: i64) -> i64 {
-    let mut a = a.abs();
-    let mut b = b.abs();
+    let mut a = a.unsigned_abs();
+    let mut b = b.unsigned_abs();
     while b != 0 {
         let t = b;
         b = a % b;
         a = t;
     }
-    a
+    a as i64
 }
 
 /// Check if an expression contains a specific factor
@@ -573,11 +617,8 @@ pub(crate) fn get_term_hash(expr: &Expr) -> u64 {
             ExprKind::Derivative { inner, var, order } => {
                 let h = hash_one_byte(hash, b'D');
 
-                // Var is a String here (not InternedSymbol yet), so hash bytes
-                let mut h = h;
-                for byte in var.as_bytes() {
-                    h = hash_one_byte(h, *byte);
-                }
+                // Use var.id() for O(1) hashing (InternedSymbol)
+                let h = hash_u64(h, var.id());
 
                 let h = hash_u64(h, *order as u64);
                 hash_term_inner(h, inner)
@@ -645,15 +686,18 @@ pub(crate) fn normalize_for_comparison(expr: &Expr) -> Expr {
             if non_numeric.is_empty() {
                 return Expr::number(coeff);
             }
-            // Check if nothing changed
-            let changed = norm_factors
-                .iter()
-                .zip(factors.iter())
-                .any(|(new, old)| new.id != old.id);
-            if !changed {
-                return expr.clone();
+            // Build the normalized product: coeff * non_numeric_factors
+            if (coeff - 1.0).abs() < 1e-14 {
+                // Coefficient is 1, just return non-numeric factors
+                if non_numeric.len() == 1 {
+                    return non_numeric.into_iter().next().unwrap();
+                }
+                return Expr::product(non_numeric);
             }
-            Expr::product(norm_factors)
+            // Include the combined coefficient
+            let mut result = vec![Expr::number(coeff)];
+            result.extend(non_numeric);
+            Expr::product(result)
         }
         ExprKind::Div(a, b) => {
             let norm_a = normalize_for_comparison(a);

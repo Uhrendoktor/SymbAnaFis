@@ -9,7 +9,7 @@
 //! ```
 //!
 //! # Example
-//! ```ignore
+//! ```rust
 //! use symb_anafis::{eval_parallel, symb};
 //! use symb_anafis::parallel::SKIP;
 //!
@@ -290,7 +290,7 @@ pub fn evaluate_parallel(
 
             let n_vars = vars.len();
             if n_vars == 0 {
-                let result = expr.evaluate(&HashMap::new());
+                let result = expr.evaluate(&HashMap::new(), &HashMap::new());
                 return vec![if *was_string {
                     EvalResult::String(result.to_string())
                 } else {
@@ -329,18 +329,6 @@ pub fn evaluate_parallel(
                     // Run eval_batch (SIMD)
                     const CHUNK_SIZE: usize = 256;
 
-                    // We need to initialize the vector with placeholders to allow parallel random access writing
-                    // But since we are returning a Vec from map, we can just use par_chunks on indices
-                    // to generate sub-vectors and flatten them.
-
-                    // Actually, simpler approach: use par_iter on chunks of indices/range
-                    // But rayon doesn't have a direct par_chunks for Range.
-
-                    // Let's use split logic similar to eval_f64 but adapted for Map-Reduce style here
-                    // Since we are inside a map(), we are already in a parallel task.
-                    // IMPORTANT: We are already inside a `map` of a `par_iter` (parallel across expressions).
-                    // If we use `par_iter` again here, rayon handles it fine (work stealing).
-
                     let chunks: Vec<Vec<EvalResult>> = (0..n_points)
                         .step_by(CHUNK_SIZE)
                         .par_bridge() // Enable parallelism for chunks
@@ -378,7 +366,9 @@ pub fn evaluate_parallel(
                             let mut chunk_out = vec![0.0; len];
 
                             // 2. SIMD Batch Eval
-                            evaluator.eval_batch(&col_refs, &mut chunk_out);
+                            evaluator
+                                .eval_batch(&col_refs, &mut chunk_out)
+                                .expect("eval_batch failed in parallel chunk");
 
                             // 3. Convert back to EvalResult
                             chunk_out
@@ -529,7 +519,7 @@ fn evaluate_slow_point(
     }
 
     // Evaluate numerics
-    let evaluated = result.evaluate(&var_map);
+    let evaluated = result.evaluate(&var_map, &HashMap::new());
 
     // Convert to appropriate result type
     if was_string {
@@ -582,7 +572,7 @@ macro_rules! __parse_values_inner {
 /// Parallel evaluation macro with clean syntax.
 ///
 /// # Example
-/// ```ignore
+/// ```rust
 /// use symb_anafis::{eval_parallel, symb};
 /// use symb_anafis::parallel::SKIP;
 ///
@@ -596,7 +586,7 @@ macro_rules! __parse_values_inner {
 ///         [[1.0, 2.0], [3.0, 4.0]],
 ///         [[1.0, 2.0, SKIP]]
 ///     ]
-/// )?;
+/// ).unwrap();
 ///
 /// // results[0] is Vec<EvalResult::String>
 /// // results[1] is Vec<EvalResult::Expr>

@@ -13,11 +13,12 @@ A comprehensive guide to the symb_anafis symbolic mathematics library.
 7. [Custom Functions](#custom-functions)
 8. [Evaluation](#evaluation)
 9. [Vector Calculus](#vector-calculus)
-10. [Parallel Evaluation](#parallel-evaluation)
-11. [Compilation & Performance](#compilation--performance)
-12. [Built-in Functions](#built-in-functions)
-13. [Expression Syntax](#expression-syntax)
-14. [Error Handling](#error-handling)
+10. [Automatic Differentiation](#automatic-differentiation)
+11. [Parallel Evaluation](#parallel-evaluation)
+12. [Compilation & Performance](#compilation--performance)
+13. [Built-in Functions](#built-in-functions)
+14. [Expression Syntax](#expression-syntax)
+15. [Error Handling](#error-handling)
 
 ---
 
@@ -29,11 +30,11 @@ A comprehensive guide to the symb_anafis symbolic mathematics library.
 use symb_anafis::{diff, simplify};
 
 // Differentiate
-let result = diff("x^3 + sin(x)", "x", None, None)?;
+let result = diff("x^3 + sin(x)", "x", &[], None)?;
 // Result: "3x^2 + cos(x)"
 
 // Simplify
-let result = simplify("sin(x)^2 + cos(x)^2", None, None)?;
+let result = simplify("sin(x)^2 + cos(x)^2", &[], None)?;
 // Result: "1"
 ```
 
@@ -106,16 +107,16 @@ remove_symbol("x");  // Returns true if removed
 clear_symbols();
 ```
 
-### SymbolContext: Isolated Symbol Registries
+### Context: Isolated Environments
 
-For isolated symbol namespaces (useful for testing, avoiding collisions, or multi-tenant systems):
+For isolated symbol namespaces and unified function registries (useful for testing, avoiding collisions, or multi-tenant systems):
 
 ```rust
-use symb_anafis::SymbolContext;
+use symb_anafis::Context;
 
 // Create isolated contexts
-let ctx1 = SymbolContext::new();
-let ctx2 = SymbolContext::new();
+let ctx1 = Context::new();
+let ctx2 = Context::new();
 
 // Same name, different contexts = DIFFERENT symbols!
 let x1 = ctx1.symb("x");  // id: 1234
@@ -131,31 +132,25 @@ let diff = Diff::new()
     .diff_str("x^2 + y", "x")?;
 ```
 
-**SymbolContext API:**
+**Context API:**
 
 | Method | Description |
 |--------|-------------|
-| `SymbolContext::new()` | Create new isolated context |
-| `ctx.symb("x")` | Get or create symbol |
-| `ctx.symb_new("x")` | Create only (errors if exists) |
-| `ctx.get("x")` | Get if exists (returns `Option<Symbol>`) |
-| `ctx.contains("x")` | Check if symbol exists |
-| `ctx.len()` | Count symbols in context |
-| `ctx.is_empty()` | Check if context has no symbols |
+| `Context::new()` | Create new isolated context |
+| `ctx.symb("x")` | Get or create isolated symbol |
+| `ctx.get_symbol("x")` | Get if exists (returns `Option<Symbol>`) |
+| `ctx.contains_symbol("x")` | Check if symbol exists |
+| `ctx.symbol_count()` | Count symbols in context |
+| `ctx.is_empty()` | Check if context has no symbols or functions |
 | `ctx.symbol_names()` | List all symbol names |
-| `ctx.remove("x")` | Remove a symbol |
-| `ctx.clear()` | Remove all symbols |
-| `ctx.anon()` | Create anonymous symbol (unique ID, no name) |
+| `ctx.remove_symbol("x")` | Remove a symbol |
+| `ctx.clear_all()` | Remove all symbols and functions |
+| `ctx.with_function("f", func)` | Register a user function |
 
 **Global Context Accessor:**
 
-```rust
-use symb_anafis::global_context;
+Warning: `global_context()` is deprecated or internal. Use explicit `Context` or global functions.
 
-// Get the singleton global context
-let ctx = global_context();
-let x = ctx.symb("x");  // Equivalent to symb("x")
-```
 
 ---
 
@@ -169,21 +164,21 @@ Differentiate an expression with respect to a variable.
 |-----------|------|-------------|
 | `formula` | `&str` | Expression to differentiate |
 | `var` | `&str` | Variable to differentiate with respect to |
-| `fixed_vars` | `Option<&[&str]>` | Constants (won't be differentiated) |
+| `known_symbols` | `&[&str]` | Known symbols (e.g., multi-char variables) |
 | `custom_functions` | `Option<&[&str]>` | User-defined function names |
 
 ```rust
-// Treat "a" as a constant
-diff("a * x^2", "x", Some(&["a"]), None)?;
-// Result: "2*a*x"
+// Treat "alpha" as a single symbol (not a*l*p*h*a)
+diff("alpha * x^2", "x", &["alpha"], None)?;
+// Result: "2*alpha*x"
 ```
 
-### `simplify(formula, fixed_vars, custom_functions)`
+### `simplify(formula, known_symbols, custom_functions)`
 
 Simplify an expression algebraically.
 
 ```rust
-simplify("x^2 + 2*x + 1", None, None)?;
+simplify("x^2 + 2*x + 1", &[], None)?;
 // Result: "(x + 1)^2"
 ```
 
@@ -229,12 +224,10 @@ let result = Diff::new()
 | `fixed_var(&Symbol)` | Registers a variable as constant during differentiation. |
 | `fixed_vars(&[&Symbol])` | Registers multiple constants. |
 | `custom_fn(name)` | Registers a custom function name so the parser recognizes it. |
-| `custom_derivative(name, fn)` | Defines a derivative rule for a custom function. |
+| `user_fn(name, UserFunction)` | Defines a custom function with derivative and evaluation rules. |
 | `custom_eval(name, fn)` | Defines a numeric evaluation rule for a custom function. |
 | `custom_fn_multi(name, fn)` | Defines a multi-argument custom function with partial derivatives. |
-| `with_context(&SymbolContext)` | Sets the symbol context for variable resolution. |
-| `max_depth(usize)` | Sets the limit for expression tree depth (prevents stack overflow). |
-| `max_nodes(usize)` | Sets the limit for total nodes (prevents DoS). |
+| `with_context(&Context)` | Sets the symbol context for variable resolution. |
 ```
 
 ### `Simplify` Builder
@@ -259,7 +252,7 @@ let result = Simplify::new()
 | `fixed_vars(&[&Symbol])` | Registers multiple constants. |
 | `custom_fn(name)` | Registers a custom function name. |
 | `custom_eval(name, fn)` | Defines a numeric evaluation rule for a custom function. |
-| `with_context(&SymbolContext)` | Sets the symbol context. |
+| `with_context(&Context)` | Sets the symbol context. |
 | `max_depth(usize)` | Sets the limit for expression tree depth. |
 | `max_nodes(usize)` | Sets the limit for total nodes. |
 ```
@@ -456,13 +449,16 @@ let rel = relative_uncertainty(&expr, &["x", "y"], None)?;
 Define how to differentiate `f(u)`:
 
 ```rust
-use symb_anafis::{Diff, Expr};
+use symb_anafis::{Diff, Expr, UserFunction};
 
-let diff = Diff::new()
-    .custom_derivative("f", |inner, _var, inner_prime| {
-        // d/dx[f(u)] = 2u * u'  (chain rule automatic!)
-        Expr::number(2.0) * inner.clone() * inner_prime.clone()
-    });
+let my_func = UserFunction::new(1..=1)
+    .partial(0, |args: &[Arc<Expr>]| {
+        // ∂f/∂u = 2u
+        Expr::number(2.0) * Expr::from(&args[0])
+    })
+    .expect("valid arg");
+
+let diff = Diff::new().user_fn("f", my_func);
 
 diff.diff_str("f(x^2)", "x")?;  // Result: 4x³
 ```
@@ -477,11 +473,20 @@ diff.diff_str("f(x^2)", "x")?;  // Result: 4x³
 Allow `f(3)` to evaluate to a number:
 
 ```rust
-let diff = Diff::new()
-    .custom_eval("f", |args| Some(args[0].powi(2) + 1.0))  // f(x) = x² + 1
-    .custom_derivative("f", |inner, _var, inner_prime| {
-        Expr::number(2.0) * inner.clone() * inner_prime.clone()
-    });
+use symb_anafis::{Diff, Expr, UserFunction};
+
+let my_func = UserFunction::new(1..=1)
+    .body(|args: &[Arc<Expr>]| {
+        // f(x) = x² + 1
+        args[0].pow(2.0) + 1.0
+    })
+    .partial(0, |args: &[Arc<Expr>]| {
+        // ∂f/∂x = 2x
+        Expr::number(2.0) * Expr::from(&args[0])
+    })
+    .expect("valid arg");
+
+let diff = Diff::new().user_fn("f", my_func);
 ```
 
 ### Multi-Argument Custom Functions
@@ -489,19 +494,27 @@ let diff = Diff::new()
 For functions with 2+ arguments, define **partial derivatives**:
 
 ```rust
-use symb_anafis::{Diff, CustomFn, Expr};
+use symb_anafis::{Diff, UserFunction, Expr};
 
 // F(x, y) = x * sin(y)
-let my_fn = CustomFn::new(2)  // 2-arity
-    .eval(|args| Some(args[0] * args[1].sin()))
-    .partial(0, |args| Expr::func("sin", args[1].clone()))      // ∂F/∂x
-    .partial(1, |args| args[0].clone() * Expr::func("cos", args[1].clone()));  // ∂F/∂y
+let my_func = UserFunction::new(2..=2)  // exactly 2 arguments
+    .body(|args: &[Arc<Expr>]| {
+        // F(x, y) = x * sin(y)
+        Expr::from(&args[0]) * Expr::from(&args[1]).sin()
+    })
+    .partial(0, |args: &[Arc<Expr>]| {
+        // ∂F/∂x = sin(y)
+        Expr::from(&args[1]).sin()
+    })
+    .expect("valid arg")
+    .partial(1, |args: &[Arc<Expr>]| {
+        // ∂F/∂y = x * cos(y)
+        Expr::from(&args[0]) * Expr::from(&args[1]).cos()
+    })
+    .expect("valid arg");
 
-let diff = Diff::new().custom_fn_multi("F", my_fn);
+let diff = Diff::new().user_fn("F", my_func);
 diff.diff_str("F(t, t^2)", "t")?;  // Chain rule applied automatically
-
-// Inspect arity
-assert_eq!(my_fn.arity(), 2);
 ```
 
 ### Nested Custom Functions
@@ -509,22 +522,47 @@ assert_eq!(my_fn.arity(), 2);
 **Yes, custom functions can call other custom functions!**
 
 ```rust
-use symb_anafis::{Diff, Expr};
+use symb_anafis::{Diff, UserFunction, Expr};
+
+let f_func = UserFunction::new(1..=1)
+    .partial(0, |args: &[Arc<Expr>]| {
+        // ∂f/∂u = 2u
+        Expr::number(2.0) * Expr::from(&args[0])
+    })
+    .expect("valid arg");
+
+let g_func = UserFunction::new(1..=1)
+    .partial(0, |args: &[Arc<Expr>]| {
+        // ∂g/∂u = 3u²
+        Expr::number(3.0) * Expr::from(&args[0]).pow(2.0)
+    })
+    .expect("valid arg");
 
 let diff = Diff::new()
-    .custom_derivative("f", |inner, _var, inner_prime| {
-        // d/dx[f(u)] = 2u * u'
-        Expr::number(2.0) * inner.clone() * inner_prime.clone()
-    })
-    .custom_derivative("g", |inner, _var, inner_prime| {
-        // d/dx[g(u)] = 3u² * u'
-        Expr::number(3.0) * inner.clone().pow_of(2.0) * inner_prime.clone()
-    });
+    .user_fn("f", f_func)
+    .user_fn("g", g_func);
 
 // f(g(x)) differentiates using chain rule:
 // d/dx[f(g(x))] = f'(g(x)) * g'(x)
 diff.diff_str("f(g(x))", "x")?;
 ```
+
+### Helper Trait: `ArcExprExt`
+
+For cleaner syntax in custom function definitions, the `ArcExprExt` trait allows calling mathematical methods directly on `Arc<Expr>` (the type of `args` elements):
+
+```rust
+use symb_anafis::ArcExprExt;
+
+// f(x) = x^2 + sin(x)
+let f = UserFunction::new(1..=1)
+    .body(|args| {
+        // Direct method calls on Arc<Expr>:
+        args[0].pow(2.0) + args[0].sin()
+    });
+```
+
+Available methods include basic math (`pow`, `sqrt`), trigonometry (`sin`, `cos`, ...), hyperbolic functions, and special functions.
 
 ---
 
@@ -617,6 +655,112 @@ let grad = gradient(&expr, &[&x, &y]);  // Vec<Expr>
 
 ---
 
+## Automatic Differentiation
+
+SymbAnaFis provides dual number arithmetic for exact derivative computation through algebraic manipulation.
+
+### Dual Numbers
+
+Dual numbers extend real numbers with an infinitesimal `ε` where `ε² = 0`. A dual number `a + bε` carries both a value (`a`) and its derivative (`b`).
+
+```rust
+use symb_anafis::math::dual::Dual;
+
+// f(x) = x² + 3x + 1, f'(x) = 2x + 3
+let x = Dual::new(2.0, 1.0);  // x + 1ε
+let fx = x * x + Dual::new(3.0, 0.0) * x + Dual::new(1.0, 0.0);
+
+println!("f(2) = {}", fx.val);   // 11.0
+println!("f'(2) = {}", fx.eps);  // 7.0
+```
+
+### Transcendental Functions
+
+All standard mathematical functions work with dual numbers:
+
+```rust
+use symb_anafis::math::dual::Dual;
+
+// f(x) = sin(x) * exp(x), f'(x) = cos(x) * exp(x) + sin(x) * exp(x)
+let x = Dual::new(1.0, 1.0);
+let fx = x.sin() * x.exp();
+
+println!("f(1) = {:.6}", fx.val);   // 2.287355
+println!("f'(1) = {:.6}", fx.eps);  // 3.756049
+```
+
+### Chain Rule
+
+Dual numbers automatically apply the chain rule:
+
+```rust
+use symb_anafis::math::dual::Dual;
+
+// f(x) = sin(x² + 1), f'(x) = cos(x² + 1) * 2x
+let x = Dual::new(1.5, 1.0);
+let inner = x * x + Dual::new(1.0, 0.0);  // x² + 1
+let fx = inner.sin();
+
+println!("f(1.5) = {:.6}", fx.val);   // -0.108195
+println!("f'(1.5) = {:.6}", fx.eps);  // -2.982389
+```
+
+### Comparison with Symbolic Differentiation
+
+```rust
+use symb_anafis::{symb, Diff, math::dual::Dual};
+
+// Symbolic differentiation
+let x = symb("x");
+let expr = x.pow(3.0) + 2.0 * x.pow(2.0) + x + 1.0;
+let symbolic_deriv = Diff::new().differentiate(expr, &x).unwrap();
+
+// Dual number differentiation
+let x_dual = Dual::new(2.0, 1.0);
+let fx = x_dual.powi(3) + Dual::new(2.0, 0.0) * x_dual.powi(2) + x_dual + Dual::new(1.0, 0.0);
+
+println!("Symbolic: d/dx(x³ + 2x² + x + 1) = {}", symbolic_deriv);
+println!("Dual numbers: f'(2) = {}", fx.eps);  // Both give 21
+```
+
+### Python API
+
+```python
+import symb_anafis
+
+# f(x) = x² + 3x + 1, f'(x) = 2x + 3
+x = symb_anafis.Dual(2.0, 1.0)  # x + 1ε
+fx = x * x + symb_anafis.Dual.constant(3.0) * x + symb_anafis.Dual.constant(1.0)
+
+print(f"f(2) = {fx.val}")   # 11.0
+print(f"f'(2) = {fx.eps}")  # 7.0
+
+# Transcendental functions
+x = symb_anafis.Dual(1.0, 1.0)
+fx = x.sin() * x.exp()
+print(f"f(1) = {fx.val:.6f}")   # 2.287355
+print(f"f'(1) = {fx.eps:.6f}")  # 3.756049
+
+# Chain rule
+x = symb_anafis.Dual(1.5, 1.0)
+inner = x * x + symb_anafis.Dual.constant(1.0)  # x² + 1
+fx = inner.sin()
+print(f"f(1.5) = {fx.val:.6f}")   # -0.108195
+print(f"f'(1.5) = {fx.eps:.6f}")  # -2.982389
+```
+
+### Key Benefits
+
+- **Exact derivatives** (no numerical approximation errors)
+- **Handles complex expressions** automatically
+- **Chain rule applied algebraically** (no explicit implementation needed)
+- **Higher-order derivatives** possible
+- **Composable** with other numeric operations
+
+See `examples/dual_autodiff.rs` (Rust) and `examples/dual_autodiff.py` (Python) for comprehensive demonstrations.
+
+---
+
 ## Parallel Evaluation
 
 > Requires `parallel` feature: `symb_anafis = { features = ["parallel"] }`
@@ -690,6 +834,28 @@ let results = evaluate_parallel(
 );
 ```
 
+### High-Performance Numeric Evaluation: `eval_f64`
+
+For pure numeric workloads (f64 inputs -> f64 outputs), `eval_f64` offers maximum performance using chunked parallel SIMD evaluation:
+
+```rust
+use symb_anafis::{eval_f64, symb};
+
+let x = symb("x");
+let expr = x.pow(2.0);
+
+let x_data = vec![1.0, 2.0, 3.0, 4.0];
+// Data layout: [expr_idx][var_idx][column_data]
+let results = eval_f64(
+    &[&expr],
+    &[&["x"]],
+    &[&[&x_data]]
+).unwrap();
+// results[0] = [1.0, 4.0, 9.0, 16.0]
+```
+
+This function is optimized for large datasets and strictly numeric evaluation.
+
 ---
 
 ## Compilation & Performance
@@ -715,36 +881,28 @@ let result = compiled.evaluate(&[0.5]); // Result at x=0.5
 | Method | Description |
 |--------|-------------|
 | `compile(expr, params)` | Compile an expression for given parameters. |
+| `compile_auto(expr)` | Compile, auto-detecting variables from the expression. |
 | `compile_with_context(expr, params, ctx)` | Compile with a custom function context. |
 | `evaluate(args)` | Evaluate at a single point. |
 | `eval_batch(cols, out)` | Evaluate multiple points (SIMD logic). |
 
-### `FunctionContext` (Custom Functions in Compiler)
+### Using `Context` with Compiler
 
-To use custom functions within compiled expressions, register them in a `FunctionContext`.
+To use custom functions within compiled expressions, register them in a `Context` with a body definition.
 
 ```rust
-use symb_anafis::{FunctionContext, FunctionDefinition};
+use symb_anafis::{Context, UserFunction, CompiledEvaluator, Expr, symb};
 
-// 1. Create a context
-let ctx = FunctionContext::new();
+// 1. Create a context with a function body
+// Note: 'body' is required for compilation (defines the logic to compile)
+let ctx = Context::new()
+    .with_function("my_sq", UserFunction::new(1..=1)
+        .body(|args| args[0].pow(2.0))); 
 
-// 2. Register a function
-ctx.register("my_sq", FunctionDefinition {
-    name: "my_sq",
-    arity: 1..=1,
-    // Numeric evaluation logic
-    eval: |args| Some(args[0] * args[0]),
-    // Derivative logic (required by struct, though mostly used by Diff)
-    derivative: |args, _| crate::Expr::number(0.0), // Simplified for example
-})?;
-
-// 3. Compile with context
-// Note: Requires manual parsing or construction if using custom fns not in default parser
-// (Parser needs custom_functions context too)
-// For manual construction:
+// 2. Create expression using the function
 let expr = Expr::func("my_sq", symb("x"));
 
+// 3. Compile with context
 let compiled = CompiledEvaluator::compile_with_context(
     &expr, 
     &["x"], 
@@ -844,5 +1002,20 @@ match diff.diff_str("invalid syntax ((", "x") {
     Err(e) => println!("Other error: {:?}", e),
 }
 ```
+
+**`DiffError` Variants:**
+
+| Variant | Description |
+|---------|-------------|
+| `EmptyFormula` | Input was empty or whitespace only |
+| `InvalidSyntax { msg, span }` | General syntax error |
+| `InvalidNumber { value, span }` | Could not parse number literal |
+| `InvalidToken { token, span }` | Unrecognized token |
+| `UnexpectedToken { expected, got, span }` | Wrong token at position |
+| `UnexpectedEndOfInput` | Input ended prematurely |
+| `InvalidFunctionCall { name, expected, got }` | Function called with wrong number of arguments |
+| `VariableInBothFixedAndDiff { var }` | Variable is both fixed and differentiation target |
+| `NameCollision { name }` | Name used for both variable and function |
+| `UnsupportedOperation(String)` | Operation not supported |
 
 ---

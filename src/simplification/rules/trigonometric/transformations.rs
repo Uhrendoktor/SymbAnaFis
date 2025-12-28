@@ -1,5 +1,5 @@
 use crate::core::expr::{Expr, ExprKind as AstKind};
-use crate::core::known_symbols::{get_symbol, COS, COT, CSC, SEC, SIN, TAN};
+use crate::core::known_symbols::{COS, COT, CSC, SEC, SIN, TAN, get_symbol};
 use crate::simplification::helpers;
 use crate::simplification::patterns::trigonometric::get_trig_function;
 use crate::simplification::rules::{ExprKind, Rule, RuleCategory, RuleContext};
@@ -26,10 +26,8 @@ rule!(
                     if let AstKind::Div(num, den) = &e.kind {
                         helpers::is_pi(num) && matches!(&den.kind, AstKind::Number(n) if *n == 2.0)
                     } else {
-                        helpers::approx_eq(
-                            helpers::get_numeric_value(e),
-                            std::f64::consts::PI / 2.0,
-                        )
+                        helpers::get_numeric_value(e)
+                            .is_some_and(|v| helpers::approx_eq(v, std::f64::consts::PI / 2.0))
                     }
                 };
 

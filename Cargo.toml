@@ -17,7 +17,7 @@ categories = ["mathematics", "science"]
 
 [lib]
 name = "symb_anafis"
-crate-type = ["rlib", "cdylib"]
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 num-traits = "0.2.19"

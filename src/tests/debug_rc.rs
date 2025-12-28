@@ -1,6 +1,6 @@
 #[test]
 fn debug_rc_derivative() {
-    use crate::{Expr, simplification::simplify_expr};
+    use crate::{Expr, core::unified_context::Context, simplification::simplify_expr};
     use std::collections::{HashMap, HashSet};
 
     // Simplified RC test using n-ary Product
@@ -18,15 +18,25 @@ fn debug_rc_derivative() {
     eprintln!("===== RC CIRCUIT DERIVATIVE TEST =====");
     eprintln!("Original: {}", rc);
 
-    let mut fixed = HashSet::new();
-    fixed.insert("R".to_string());
-    fixed.insert("C".to_string());
-    fixed.insert("V0".to_string());
+    let known_symbols = HashSet::new();
 
-    let deriv = rc.derive("t", &fixed, &HashMap::new(), &HashMap::new());
+    // Use with_symbols for known symbols (or just use Context::new() if none needed)
+    let context = Context::new()
+        .with_symbol("R")
+        .with_symbol("C")
+        .with_symbol("V0");
+    let deriv = rc.derive("t", Some(&context));
     eprintln!("Raw derivative: {}", deriv);
 
-    let simplified = simplify_expr(deriv, fixed);
+    let simplified = simplify_expr(
+        deriv,
+        known_symbols,
+        HashMap::new(),
+        None,
+        None,
+        None,
+        false,
+    );
     eprintln!("Simplified: {}", simplified);
     eprintln!("Simplified Debug: {:#?}", simplified);
     eprintln!("Expected: -V0 * exp(-t / (R * C)) / (R * C)");

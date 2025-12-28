@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::{Expr, ExprKind, simplification::simplify_expr};
-    use std::collections::HashSet;
+    use std::collections::{HashMap, HashSet};
 
     // Rule 1: Pull Out Common Factors
     #[test]
@@ -11,7 +11,15 @@ mod tests {
             Expr::product(vec![Expr::symbol("x"), Expr::symbol("y")]),
             Expr::product(vec![Expr::symbol("x"), Expr::symbol("z")]),
         ]);
-        let simplified = simplify_expr(expr, HashSet::new());
+        let simplified = simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false,
+        );
         // Expected: x * (y + z) or (y + z) * x
         if let ExprKind::Product(factors) = &simplified.kind {
             let has_x = factors
@@ -40,7 +48,15 @@ mod tests {
             Expr::product(vec![ex.clone(), cosx.clone()]),
         ]);
 
-        let simplified = simplify_expr(expr, HashSet::new());
+        let simplified = simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false,
+        );
         // Expected: e^x * (sin(x) + cos(x))
         if let ExprKind::Product(factors) = &simplified.kind {
             // Should contain e^x and a sum
@@ -64,7 +80,15 @@ mod tests {
             Expr::div_expr(Expr::symbol("A"), Expr::symbol("C")),
             Expr::div_expr(Expr::symbol("B"), Expr::symbol("C")),
         ]);
-        let simplified = simplify_expr(expr, HashSet::new());
+        let simplified = simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false,
+        );
         // Expected: (A+B)/C
         if let ExprKind::Div(num, den) = &simplified.kind {
             assert_eq!(**den, Expr::symbol("C"));
@@ -92,7 +116,15 @@ mod tests {
                 Expr::product(vec![Expr::number(-1.0), Expr::symbol("B")]),
             ]),
         ]);
-        let simplified = simplify_expr(expr, HashSet::new());
+        let simplified = simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false,
+        );
         // Expected: B - A or Sum([B, Product([-1, A])])
         let display = format!("{}", simplified);
         println!("Got display: {}", display);
@@ -110,7 +142,15 @@ mod tests {
                 Expr::product(vec![Expr::number(-1.0), Expr::symbol("B")]),
             ]),
         ]);
-        let simplified = simplify_expr(expr, HashSet::new());
+        let simplified = simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false,
+        );
         let display = format!("{}", simplified);
         println!("Got display: {}", display);
         assert!(display.contains("A") && display.contains("B"));
@@ -123,7 +163,15 @@ mod tests {
             Expr::product(vec![Expr::number(-1.0), Expr::symbol("A")]),
             Expr::product(vec![Expr::number(-1.0), Expr::symbol("B")]),
         );
-        let simplified = simplify_expr(expr, HashSet::new());
+        let simplified = simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false,
+        );
         if let ExprKind::Div(num, den) = &simplified.kind {
             assert_eq!(**num, Expr::symbol("A"));
             assert_eq!(**den, Expr::symbol("B"));
@@ -140,7 +188,15 @@ mod tests {
             Expr::number(2.0),
             Expr::pow(Expr::number(2.0), Expr::symbol("x")),
         ]);
-        let simplified = simplify_expr(expr, HashSet::new());
+        let simplified = simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false,
+        );
         if let ExprKind::Pow(base, exp) = &simplified.kind {
             assert_eq!(**base, Expr::number(2.0));
             if let ExprKind::Sum(terms) = &exp.kind {
@@ -168,7 +224,15 @@ mod tests {
             Expr::product(vec![sinx.clone(), ex.clone()]),
         ]);
 
-        let simplified = simplify_expr(expr, HashSet::new());
+        let simplified = simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false,
+        );
 
         // Expected: e^x * (1 + sin(x))
         if let ExprKind::Product(factors) = &simplified.kind {

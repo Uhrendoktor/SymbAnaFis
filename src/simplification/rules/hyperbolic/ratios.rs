@@ -1,5 +1,5 @@
 use crate::core::expr::{Expr, ExprKind as AstKind};
-use crate::core::known_symbols::{get_symbol, COSH, COTH, CSCH, SECH, SINH, TANH};
+use crate::core::known_symbols::{COSH, COTH, CSCH, SECH, SINH, TANH, get_symbol};
 use crate::simplification::rules::{ExprKind, Rule, RuleCategory, RuleContext};
 
 rule!(

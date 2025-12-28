@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod division_bug_tests {
     use crate::{Expr, simplification::simplify_expr};
+    use std::collections::HashMap;
     use std::collections::HashSet;
 
     #[test]
@@ -39,7 +40,15 @@ mod division_bug_tests {
         );
 
         println!("Original:   {}", expr);
-        let simplified = simplify_expr(expr, HashSet::new());
+        let simplified = simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false,
+        );
         println!("Simplified: {}", simplified);
 
         // Expected: -V0/R

@@ -2,6 +2,7 @@
 mod tests {
     use crate::simplification::simplify_expr;
     use crate::{Expr, ExprKind};
+    use std::collections::HashMap;
     use std::collections::HashSet;
 
     #[test]
@@ -11,7 +12,15 @@ mod tests {
             Expr::pow(Expr::symbol("x"), Expr::number(2.0)),
             Expr::number(2.0),
         );
-        let simplified = simplify_expr(expr, HashSet::new());
+        let simplified = simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false,
+        );
 
         // Expected: x^4
         if let ExprKind::Pow(base, exp) = &simplified.kind {
@@ -37,7 +46,15 @@ mod tests {
             Expr::pow(Expr::symbol("x"), Expr::symbol("a")),
             Expr::symbol("b"),
         );
-        let simplified = simplify_expr(expr, HashSet::new());
+        let simplified = simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false,
+        );
 
         // Expected: x^(a*b) or x^Product([a, b])
         if let ExprKind::Pow(base, exp) = &simplified.kind {
@@ -66,7 +83,15 @@ mod tests {
             Expr::pow(Expr::symbol("sigma"), Expr::number(2.0)),
             Expr::number(2.0),
         );
-        let simplified = simplify_expr(expr, HashSet::new());
+        let simplified = simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false,
+        );
 
         // Expected: sigma^4
         if let ExprKind::Pow(base, exp) = &simplified.kind {

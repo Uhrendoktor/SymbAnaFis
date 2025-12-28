@@ -250,7 +250,7 @@ rule!(
                 && let Some((name, arg)) = get_hyperbolic_power(&negated, 2.0)
                 && name.id() == *TANH
             {
-                return Some(Expr::pow(
+                return Some(Expr::pow_static(
                     Expr::func_symbol(get_symbol(&SECH), arg),
                     Expr::number(2.0),
                 ));
@@ -261,7 +261,7 @@ rule!(
                 && n1.id() == *COTH
                 && (*num + 1.0).abs() < 1e-10
             {
-                return Some(Expr::pow(
+                return Some(Expr::pow_static(
                     Expr::func_symbol(get_symbol(&CSCH), a1),
                     Expr::number(2.0),
                 ));
@@ -270,7 +270,7 @@ rule!(
                 && n2.id() == *COTH
                 && (*num + 1.0).abs() < 1e-10
             {
-                return Some(Expr::pow(
+                return Some(Expr::pow_static(
                     Expr::func_symbol(get_symbol(&CSCH), a2),
                     Expr::number(2.0),
                 ));
@@ -361,29 +361,86 @@ rule!(
     "hyperbolic_triple_angle",
     70,
     Hyperbolic,
-    &[ExprKind::Sum],
+    &[ExprKind::Sum, ExprKind::Poly],
     |expr: &Expr, _context: &RuleContext| {
+        let eps = 1e-10;
+
+        // Handle Poly form: Poly(sinh(x), [(1, 3.0), (3, 4.0)]) -> sinh(3x)
+        if let AstKind::Poly(poly) = &expr.kind {
+            let base = poly.base();
+            let terms = poly.terms();
+
+            // Check if base is sinh(x) or cosh(x)
+            if let AstKind::FunctionCall { name, args } = &base.kind {
+                if args.len() != 1 {
+                    return None;
+                }
+                let x = &args[0];
+
+                // Check for sinh triple angle: 4*sinh(x)^3 + 3*sinh(x)
+                // terms should be [(1, 3.0), (3, 4.0)] or similar
+                if name.id() == *SINH && terms.len() == 2 {
+                    let mut has_linear_3 = false;
+                    let mut has_cubic_4 = false;
+
+                    for &(power, coeff) in terms {
+                        if power == 1 && (coeff - 3.0).abs() < eps {
+                            has_linear_3 = true;
+                        } else if power == 3 && (coeff - 4.0).abs() < eps {
+                            has_cubic_4 = true;
+                        }
+                    }
+
+                    if has_linear_3 && has_cubic_4 {
+                        return Some(Expr::func_symbol(
+                            get_symbol(&SINH),
+                            Expr::product(vec![Expr::number(3.0), (**x).clone()]),
+                        ));
+                    }
+                }
+
+                // Check for cosh triple angle: 4*cosh(x)^3 - 3*cosh(x)
+                // terms should be [(1, -3.0), (3, 4.0)] or similar
+                if name.id() == *COSH && terms.len() == 2 {
+                    let mut has_linear_neg3 = false;
+                    let mut has_cubic_4 = false;
+
+                    for &(power, coeff) in terms {
+                        if power == 1 && (coeff + 3.0).abs() < eps {
+                            has_linear_neg3 = true;
+                        } else if power == 3 && (coeff - 4.0).abs() < eps {
+                            has_cubic_4 = true;
+                        }
+                    }
+
+                    if has_linear_neg3 && has_cubic_4 {
+                        return Some(Expr::func_symbol(
+                            get_symbol(&COSH),
+                            Expr::product(vec![Expr::number(3.0), (**x).clone()]),
+                        ));
+                    }
+                }
+            }
+        }
+
+        // Original Sum handling
         if let AstKind::Sum(terms) = &expr.kind
             && terms.len() == 2
         {
             let u = &terms[0];
             let v = &terms[1];
 
-            // 4*sinh(x)^3 + 3*sinh(x) -> sinh(3x)
             if let (Some((c1, arg1, p1)), Some((c2, arg2, p2))) = (
                 parse_fn_term(u, get_symbol(&SINH)),
                 parse_fn_term(v, get_symbol(&SINH)),
             ) && arg1 == arg2
+                && ((c1 - 4.0).abs() < eps && p1 == 3.0 && c2 == 3.0 && p2 == 1.0
+                    || (c2 - 4.0).abs() < eps && p2 == 3.0 && c1 == 3.0 && p1 == 1.0)
             {
-                let eps = 1e-10;
-                if ((c1 - 4.0).abs() < eps && p1 == 3.0 && c2 == 3.0 && p2 == 1.0)
-                    || ((c2 - 4.0).abs() < eps && p2 == 3.0 && c1 == 3.0 && p1 == 1.0)
-                {
-                    return Some(Expr::func_symbol(
-                        get_symbol(&SINH),
-                        Expr::product(vec![Expr::number(3.0), arg1]),
-                    ));
-                }
+                return Some(Expr::func_symbol(
+                    get_symbol(&SINH),
+                    Expr::product(vec![Expr::number(3.0), arg1]),
+                ));
             }
 
             // 4*cosh(x)^3 + (-3*cosh(x)) -> cosh(3x) (subtraction represented as sum with negated term)
@@ -391,7 +448,6 @@ rule!(
                 && let Some((c2, arg2, p2)) = parse_fn_term(v, get_symbol(&COSH))
                 && arg1 == arg2
             {
-                let eps = 1e-10;
                 // 4*cosh^3(x) - 3*cosh(x) -> cosh(3x)
                 if (c1 - 4.0).abs() < eps && p1 == 3.0 && c2 == -3.0 && p2 == 1.0 {
                     return Some(Expr::func_symbol(

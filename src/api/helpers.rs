@@ -14,39 +14,43 @@ fn empty_context() -> (HashSet<String>, HashSet<String>) {
     (HashSet::new(), HashSet::new())
 }
 
+/// Helper to extract variable names from Symbol slices
+#[inline]
+fn extract_var_names(vars: &[&Symbol]) -> Vec<String> {
+    vars.iter().filter_map(|s| s.name()).collect()
+}
+
+/// Helper to convert variable names to &str slices
+#[inline]
+fn var_names_to_str_refs(var_names: &[String]) -> Vec<&str> {
+    var_names.iter().map(|s| s.as_str()).collect()
+}
+
 /// Internal gradient implementation using &str variable names
 /// This is the core implementation - public APIs wrap this
-fn gradient_internal(expr: &Expr, vars: &[&str]) -> Vec<Expr> {
+fn gradient_internal(expr: &Expr, vars: &[&str]) -> Result<Vec<Expr>, DiffError> {
     let diff = Diff::new();
     vars.iter()
-        .map(|var| {
-            // Use differentiate_by_name to avoid creating Symbol from &str
-            diff.differentiate_by_name(expr.clone(), var)
-                .unwrap_or_else(|_| Expr::number(0.0))
-        })
+        .map(|var| diff.differentiate_by_name(expr.clone(), var))
         .collect()
 }
 
 /// Internal hessian implementation using &str variable names
-fn hessian_internal(expr: &Expr, vars: &[&str]) -> Vec<Vec<Expr>> {
+fn hessian_internal(expr: &Expr, vars: &[&str]) -> Result<Vec<Vec<Expr>>, DiffError> {
     let diff = Diff::new();
-    let grad = gradient_internal(expr, vars);
+    let grad = gradient_internal(expr, vars)?;
 
     grad.iter()
         .map(|partial| {
             vars.iter()
-                .map(|var| {
-                    // Use differentiate_by_name to avoid creating Symbol from &str
-                    diff.differentiate_by_name(partial.clone(), var)
-                        .unwrap_or_else(|_| Expr::number(0.0))
-                })
-                .collect()
+                .map(|var| diff.differentiate_by_name(partial.clone(), var))
+                .collect::<Result<Vec<_>, _>>()
         })
         .collect()
 }
 
 /// Internal jacobian implementation using &str variable names
-fn jacobian_internal(exprs: &[Expr], vars: &[&str]) -> Vec<Vec<Expr>> {
+fn jacobian_internal(exprs: &[Expr], vars: &[&str]) -> Result<Vec<Vec<Expr>>, DiffError> {
     exprs
         .iter()
         .map(|expr| gradient_internal(expr, vars))
@@ -64,12 +68,12 @@ fn jacobian_internal(exprs: &[Expr], vars: &[&str]) -> Vec<Vec<Expr>> {
 /// let x = symb("gradient_x");
 /// let y = symb("gradient_y");
 /// let expr = x.pow(2.0) + y.pow(2.0);
-/// let grad = gradient(&expr, &[&x, &y]);
+/// let grad = gradient(&expr, &[&x, &y]).unwrap();
 /// assert_eq!(grad.len(), 2);
 /// ```
-pub fn gradient(expr: &Expr, vars: &[&Symbol]) -> Vec<Expr> {
-    let var_names: Vec<String> = vars.iter().filter_map(|s| s.name()).collect();
-    let var_refs: Vec<&str> = var_names.iter().map(|s| s.as_str()).collect();
+pub fn gradient(expr: &Expr, vars: &[&Symbol]) -> Result<Vec<Expr>, DiffError> {
+    let var_names = extract_var_names(vars);
+    let var_refs = var_names_to_str_refs(&var_names);
     gradient_internal(expr, &var_refs)
 }
 
@@ -83,13 +87,13 @@ pub fn gradient(expr: &Expr, vars: &[&Symbol]) -> Vec<Expr> {
 /// let x = symb("hessian_x");
 /// let y = symb("hessian_y");
 /// let expr = x.pow(2.0) * &y;
-/// let hess = hessian(&expr, &[&x, &y]);
+/// let hess = hessian(&expr, &[&x, &y]).unwrap();
 /// assert_eq!(hess.len(), 2);
 /// assert_eq!(hess[0].len(), 2);
 /// ```
-pub fn hessian(expr: &Expr, vars: &[&Symbol]) -> Vec<Vec<Expr>> {
-    let var_names: Vec<String> = vars.iter().filter_map(|s| s.name()).collect();
-    let var_refs: Vec<&str> = var_names.iter().map(|s| s.as_str()).collect();
+pub fn hessian(expr: &Expr, vars: &[&Symbol]) -> Result<Vec<Vec<Expr>>, DiffError> {
+    let var_names = extract_var_names(vars);
+    let var_refs = var_names_to_str_refs(&var_names);
     hessian_internal(expr, &var_refs)
 }
 
@@ -103,17 +107,24 @@ pub fn hessian(expr: &Expr, vars: &[&Symbol]) -> Vec<Vec<Expr>> {
 /// let y = symb("jacobian_y");
 /// let f1 = x.pow(2.0) + &y;
 /// let f2 = &x * &y;
-/// let jac = jacobian(&[f1, f2], &[&x, &y]);
+/// let jac = jacobian(&[f1, f2], &[&x, &y]).unwrap();
 /// assert_eq!(jac.len(), 2);
 /// assert_eq!(jac[0].len(), 2);
 /// ```
-pub fn jacobian(exprs: &[Expr], vars: &[&Symbol]) -> Vec<Vec<Expr>> {
+pub fn jacobian(exprs: &[Expr], vars: &[&Symbol]) -> Result<Vec<Vec<Expr>>, DiffError> {
     let var_names: Vec<String> = vars.iter().filter_map(|s| s.name()).collect();
     let var_refs: Vec<&str> = var_names.iter().map(|s| s.as_str()).collect();
     jacobian_internal(exprs, &var_refs)
 }
 
 // ===== String-based API =====
+
+/// Helper to parse a formula string with empty context
+#[inline]
+fn parse_formula(formula: &str) -> Result<Expr, DiffError> {
+    let (fixed_vars, custom_fns) = empty_context();
+    parser::parse(formula, &fixed_vars, &custom_fns, None)
+}
 
 /// Compute gradient from a formula string
 ///
@@ -125,11 +136,8 @@ pub fn jacobian(exprs: &[Expr], vars: &[&Symbol]) -> Vec<Vec<Expr>> {
 /// assert_eq!(grad[0], "2*x");
 /// ```
 pub fn gradient_str(formula: &str, vars: &[&str]) -> Result<Vec<String>, DiffError> {
-    let (fixed_vars, custom_fns) = empty_context();
-    let expr = parser::parse(formula, &fixed_vars, &custom_fns, None)?;
-
-    // Call internal directly - no Symbol conversion needed!
-    let grad = gradient_internal(&expr, vars);
+    let expr = parse_formula(formula)?;
+    let grad = gradient_internal(&expr, vars)?;
     Ok(grad.iter().map(|e| e.to_string()).collect())
 }
 
@@ -143,15 +151,22 @@ pub fn gradient_str(formula: &str, vars: &[&str]) -> Result<Vec<String>, DiffErr
 /// assert_eq!(hess[0][0], "2");
 /// ```
 pub fn hessian_str(formula: &str, vars: &[&str]) -> Result<Vec<Vec<String>>, DiffError> {
-    let (fixed_vars, custom_fns) = empty_context();
-    let expr = parser::parse(formula, &fixed_vars, &custom_fns, None)?;
-
-    // Call internal directly - no Symbol conversion needed!
-    let hess = hessian_internal(&expr, vars);
+    let expr = parse_formula(formula)?;
+    let hess = hessian_internal(&expr, vars)?;
     Ok(hess
         .iter()
         .map(|row| row.iter().map(|e| e.to_string()).collect())
         .collect())
+}
+
+/// Helper to parse multiple formula strings with empty context
+#[inline]
+fn parse_formulas(formulas: &[&str]) -> Result<Vec<Expr>, DiffError> {
+    let (fixed_vars, custom_fns) = empty_context();
+    formulas
+        .iter()
+        .map(|f| parser::parse(f, &fixed_vars, &custom_fns, None))
+        .collect()
 }
 
 /// Compute Jacobian matrix from formula strings
@@ -164,15 +179,8 @@ pub fn hessian_str(formula: &str, vars: &[&str]) -> Result<Vec<Vec<String>>, Dif
 /// assert_eq!(jac[0][0], "2*x");
 /// ```
 pub fn jacobian_str(formulas: &[&str], vars: &[&str]) -> Result<Vec<Vec<String>>, DiffError> {
-    let (fixed_vars, custom_fns) = empty_context();
-
-    let exprs: Vec<Expr> = formulas
-        .iter()
-        .map(|f| parser::parse(f, &fixed_vars, &custom_fns, None))
-        .collect::<Result<Vec<_>, _>>()?;
-
-    // Call internal directly - no Symbol conversion needed!
-    let jac = jacobian_internal(&exprs, vars);
+    let exprs = parse_formulas(formulas)?;
+    let jac = jacobian_internal(&exprs, vars)?;
     Ok(jac
         .iter()
         .map(|row| row.iter().map(|e| e.to_string()).collect())
@@ -197,7 +205,7 @@ pub fn evaluate_str(formula: &str, vars: &[(&str, f64)]) -> Result<String, DiffE
     let expr = parser::parse(formula, &fixed_vars, &custom_fns, None)?;
 
     let var_map: std::collections::HashMap<&str, f64> = vars.iter().cloned().collect();
-    let result = expr.evaluate(&var_map);
+    let result = expr.evaluate(&var_map, &std::collections::HashMap::new());
     Ok(result.to_string())
 }
 

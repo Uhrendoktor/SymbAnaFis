@@ -2,7 +2,7 @@
 mod tests {
     use crate::Expr;
     use crate::simplification::simplify_expr;
-    use std::collections::HashSet;
+    use std::collections::{HashMap, HashSet};
 
     #[test]
     fn test_polynomial_term_adjacency() {
@@ -17,6 +17,11 @@ mod tests {
         let sum = simplify_expr(
             Expr::sum(vec![y.clone(), x2.clone(), x.clone(), y2.clone()]),
             HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false,
         );
         // With Poly, terms may be in different format. Check all expected parts are present
         let full_str = sum.to_string();
@@ -40,7 +45,15 @@ mod tests {
             Expr::pow(x.clone(), Expr::number(2.0)),
         ]);
 
-        let sum = simplify_expr(Expr::sum(vec![term4, term2, term1, term3]), HashSet::new());
+        let sum = simplify_expr(
+            Expr::sum(vec![term4, term2, term1, term3]),
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false,
+        );
 
         // Accept combined form (3*x + 4*x^2), Poly format, or factored form (x*(3 + 4x))
         let result_str = sum.to_string();

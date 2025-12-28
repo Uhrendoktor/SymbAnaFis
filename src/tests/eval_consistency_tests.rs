@@ -12,13 +12,13 @@ fn numerical_derivative(expr_str: &str, var: &str, point: f64, h: f64) -> f64 {
     let expr = parser_parse(expr_str, &HashSet::new(), &HashSet::new(), None).unwrap();
 
     let vars_plus: HashMap<&str, f64> = [(var, point + h)].into_iter().collect();
-    let f_plus = match &expr.evaluate(&vars_plus).kind {
+    let f_plus = match &expr.evaluate(&vars_plus, &HashMap::new()).kind {
         ExprKind::Number(n) => *n,
         _ => panic!("Expected number"),
     };
 
     let vars_minus: HashMap<&str, f64> = [(var, point - h)].into_iter().collect();
-    let f_minus = match &expr.evaluate(&vars_minus).kind {
+    let f_minus = match &expr.evaluate(&vars_minus, &HashMap::new()).kind {
         ExprKind::Number(n) => *n,
         _ => panic!("Expected number"),
     };
@@ -28,12 +28,12 @@ fn numerical_derivative(expr_str: &str, var: &str, point: f64, h: f64) -> f64 {
 
 /// Evaluate symbolic derivative at a point
 fn symbolic_derivative_at(expr_str: &str, var: &str, point: f64) -> f64 {
-    let derivative = diff(expr_str, var, None, None).unwrap();
+    let derivative = diff(expr_str, var, &[], None).unwrap();
     let expr = parser_parse(&derivative, &HashSet::new(), &HashSet::new(), None).unwrap();
     let simplified = Simplify::new().simplify(expr).unwrap();
 
     let vars: HashMap<&str, f64> = [(var, point)].into_iter().collect();
-    match &simplified.evaluate(&vars).kind {
+    match &simplified.evaluate(&vars, &HashMap::new()).kind {
         ExprKind::Number(n) => *n,
         _ => panic!("Expected number"),
     }
@@ -153,19 +153,19 @@ fn test_consistency_second_derivative() {
         let expr = parser_parse(expr_str, &HashSet::new(), &HashSet::new(), None).unwrap();
 
         let vars_plus: HashMap<&str, f64> = [(var, point + h)].into_iter().collect();
-        let f_plus = match &expr.evaluate(&vars_plus).kind {
+        let f_plus = match &expr.evaluate(&vars_plus, &HashMap::new()).kind {
             ExprKind::Number(n) => *n,
             _ => panic!("Expected number"),
         };
 
         let vars_center: HashMap<&str, f64> = [(var, point)].into_iter().collect();
-        let f_center = match &expr.evaluate(&vars_center).kind {
+        let f_center = match &expr.evaluate(&vars_center, &HashMap::new()).kind {
             ExprKind::Number(n) => *n,
             _ => panic!("Expected number"),
         };
 
         let vars_minus: HashMap<&str, f64> = [(var, point - h)].into_iter().collect();
-        let f_minus = match &expr.evaluate(&vars_minus).kind {
+        let f_minus = match &expr.evaluate(&vars_minus, &HashMap::new()).kind {
             ExprKind::Number(n) => *n,
             _ => panic!("Expected number"),
         };
@@ -174,13 +174,13 @@ fn test_consistency_second_derivative() {
     }
 
     fn symbolic_second_at(expr_str: &str, var: &str, point: f64) -> f64 {
-        let d1 = diff(expr_str, var, None, None).unwrap();
-        let d2 = diff(&d1, var, None, None).unwrap();
+        let d1 = diff(expr_str, var, &[], None).unwrap();
+        let d2 = diff(&d1, var, &[], None).unwrap();
         let expr = parser_parse(&d2, &HashSet::new(), &HashSet::new(), None).unwrap();
         let simplified = Simplify::new().simplify(expr).unwrap();
 
         let vars: HashMap<&str, f64> = [(var, point)].into_iter().collect();
-        match &simplified.evaluate(&vars).kind {
+        match &simplified.evaluate(&vars, &HashMap::new()).kind {
             ExprKind::Number(n) => *n,
             _ => panic!("Expected number"),
         }
@@ -231,7 +231,7 @@ fn test_compiled_vs_tree_walking() {
         for &x in &test_points {
             let vars: HashMap<&str, f64> = [("x", x)].into_iter().collect();
 
-            let tree_result = match &expr.evaluate(&vars).kind {
+            let tree_result = match &expr.evaluate(&vars, &HashMap::new()).kind {
                 ExprKind::Number(n) => *n,
                 _ => panic!("Expected number"),
             };

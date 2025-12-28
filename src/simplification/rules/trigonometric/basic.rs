@@ -1,5 +1,5 @@
 use crate::core::expr::{Expr, ExprKind as AstKind};
-use crate::core::known_symbols::{get_symbol, COS, COT, CSC, SEC, SIN, SQRT, TAN};
+use crate::core::known_symbols::{COS, COT, CSC, SEC, SIN, SQRT, TAN, get_symbol};
 use crate::simplification::helpers;
 use crate::simplification::rules::{ExprKind, Rule, RuleCategory, RuleContext};
 use std::f64::consts::PI;
@@ -145,7 +145,7 @@ rule!(
             && args.len() == 1
         {
             let arg = &args[0];
-            let arg_val = helpers::get_numeric_value(arg);
+            let arg_val = helpers::get_numeric_value(arg).unwrap_or(f64::NAN);
             let is_numeric_input = matches!(arg.kind, AstKind::Number(_));
 
             match name {
@@ -255,7 +255,7 @@ rule!(
                 && name.id() == *COS
                 && args.len() == 1
             {
-                return Some(Expr::pow(
+                return Some(Expr::pow_static(
                     Expr::func_symbol(get_symbol(&SEC), (*args[0]).clone()),
                     (**exp).clone(),
                 ));
@@ -289,7 +289,7 @@ rule!(
                 && name.id() == *SIN
                 && args.len() == 1
             {
-                return Some(Expr::pow(
+                return Some(Expr::pow_static(
                     Expr::func_symbol(get_symbol(&CSC), (*args[0]).clone()),
                     (**exp).clone(),
                 ));

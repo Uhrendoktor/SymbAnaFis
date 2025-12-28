@@ -1,29 +1,65 @@
 //! Core types for symbolic mathematics
 //!
-//! This module contains the fundamental types:
-//! - `Expr` / `ExprKind` - Expression AST
-//! - `Symbol` / `InternedSymbol` - Symbol system
-//! - `Polynomial` - Polynomial representation
-//! - `DiffError` - Error types
-//! - `CompiledEvaluator` - Fast bytecode-based evaluation
-//! - Display formatting (to_string, to_latex, to_unicode)
-//! - Visitor pattern for AST traversal
+//! This module contains the fundamental public types:
+//!
+//! ## Expression Types
+//! - [`Expr`] - The main expression type (AST node)
+//! - [`ExprKind`] - Enum of expression variants (Number, Symbol, Add, etc.)
+//! - [`Span`] - Source location information for error messages
+//!
+//! ## Symbol System
+//! - [`Symbol`] - Lightweight, copyable symbol reference
+//!
+//! ## Evaluation
+//! - [`CompiledEvaluator`] - Fast bytecode-based numeric evaluation
+//!
+//! ## Error Handling
+//! - [`DiffError`] - Error type for differentiation and parsing
+//! - [`SymbolError`] - Error type for symbol operations
+//!
+//! ## AST Traversal
+//! - [`visitor`] module - Visitor pattern for walking the AST
+//!
+//! ## Display Formatting
+//! Expressions support multiple output formats via methods:
+//! - `to_string()` - Standard mathematical notation
+//! - `to_latex()` - LaTeX formatted output
+//! - `to_unicode()` - Unicode mathematical symbols
 
-mod display; // Display implementations for Expr
+// ============================================================================
+// Internal Modules
+// ============================================================================
+
+pub(crate) mod display; // Display implementations for Expr
 pub(crate) mod error; // Error types (DiffError, Span)
 pub(crate) mod evaluator; // Compiled evaluator for fast numeric evaluation
 pub(crate) mod expr; // Expression AST (Expr, ExprKind)
 pub(crate) mod known_symbols; // Well-known symbol IDs (pi, e, etc.)
-pub(crate) mod poly; // Polynomial representation
+pub(crate) mod poly; // Polynomial representation (internal)
 pub(crate) mod symbol; // Symbol interning system
-pub(crate) mod traits; // Common traits
+pub mod traits; // Common traits (MathScalar, epsilon helpers)
+pub(crate) mod unified_context; // Unified context for symbols and functions
+
+// ============================================================================
+// Public Modules
+// ============================================================================
+
 pub mod visitor; // Public visitor pattern for AST traversal
 
-// Public re-exports (for external API)
+// ============================================================================
+// Public Re-exports
+// ============================================================================
+
+// --- Error Types ---
 pub use error::{DiffError, Span};
-pub use evaluator::{CompileError, CompiledEvaluator};
+pub use symbol::SymbolError;
+
+// --- Expression Types ---
+pub use evaluator::CompiledEvaluator;
 pub use expr::{Expr, ExprKind};
+
+// --- Symbol Management ---
 pub use symbol::{
-    Symbol, SymbolContext, SymbolError, clear_symbols, global_context, remove_symbol, symb,
-    symb_get, symb_new, symbol_count, symbol_exists, symbol_names,
+    ArcExprExt, Symbol, clear_symbols, remove_symbol, symb, symb_get, symb_new, symbol_count,
+    symbol_exists, symbol_names,
 };

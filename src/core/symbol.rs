@@ -26,191 +26,14 @@ use crate::Expr;
 use std::collections::HashMap;
 use std::ops::{Add, Div, Mul, Neg, Sub};
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::{Arc, OnceLock, RwLock};
-
-// ============================================================================
-// Symbol Context - Isolated Symbol Registries
-// ============================================================================
-
-/// Global counter for context IDs
-static NEXT_CONTEXT_ID: AtomicU64 = AtomicU64::new(1);
-
-/// An isolated symbol context with its own registry
-///
-/// Each context maintains its own set of symbols, independent of other contexts.
-/// This is useful for:
-/// - Isolating symbol namespaces between different computations
-/// - Avoiding name collisions in long-running applications
-/// - Testing with fresh symbol tables
-///
-/// # Example
-/// ```
-/// use symb_anafis::SymbolContext;
-///
-/// let ctx = SymbolContext::new();
-/// let x = ctx.symb("x");
-/// let y = ctx.symb("y");
-/// let expr = x + y;  // Uses symbols from this context
-/// assert!(format!("{}", expr).contains("x"));
-/// ```
-#[derive(Debug)]
-pub struct SymbolContext {
-    id: u64,
-    inner: Arc<RwLock<ContextInner>>,
-}
-
-#[derive(Debug, Default)]
-struct ContextInner {
-    symbols: HashMap<String, InternedSymbol>,
-}
-
-impl SymbolContext {
-    /// Create a new empty symbol context
-    pub fn new() -> Self {
-        SymbolContext {
-            id: NEXT_CONTEXT_ID.fetch_add(1, Ordering::Relaxed),
-            inner: Arc::new(RwLock::new(ContextInner::default())),
-        }
-    }
-
-    /// Get the context's unique ID
-    pub fn id(&self) -> u64 {
-        self.id
-    }
-
-    /// Create or get a symbol in this context
-    ///
-    /// If a symbol with this name already exists in the context, returns it.
-    /// Otherwise, creates a new symbol and registers it.
-    pub fn symb(&self, name: &str) -> Symbol {
-        let mut inner = self.inner.write().unwrap();
-
-        if let Some(existing) = inner.symbols.get(name) {
-            return Symbol(existing.id());
-        }
-
-        // Create a new symbol with this name but a unique ID (context isolation)
-        let interned = InternedSymbol::new_named_isolated(name);
-        let id = interned.id();
-
-        // Register in ID registry so Symbol::name works globally
-        let mut id_registry = get_id_registry_mut();
-        id_registry.insert(id, interned.clone());
-
-        // Save in local context for name lookup
-        inner.symbols.insert(name.to_string(), interned);
-
-        Symbol(id)
-    }
-
-    /// Check if a symbol exists in this context
-    pub fn contains(&self, name: &str) -> bool {
-        self.inner.read().unwrap().symbols.contains_key(name)
-    }
-
-    /// Get an existing symbol by name (returns None if not found)
-    pub fn get(&self, name: &str) -> Option<Symbol> {
-        self.inner
-            .read()
-            .unwrap()
-            .symbols
-            .get(name)
-            .map(|s| Symbol(s.id()))
-    }
-
-    /// Get the number of symbols in this context
-    pub fn len(&self) -> usize {
-        self.inner.read().unwrap().symbols.len()
-    }
-
-    /// Check if context is empty
-    pub fn is_empty(&self) -> bool {
-        self.inner.read().unwrap().symbols.is_empty()
-    }
-
-    /// Clear all symbols from this context
-    pub fn clear(&self) {
-        let mut inner = self.inner.write().unwrap();
-        inner.symbols.clear();
-    }
-
-    /// List all symbol names in this context
-    pub fn symbol_names(&self) -> Vec<String> {
-        self.inner.read().unwrap().symbols.keys().cloned().collect()
-    }
-
-    /// Create a new symbol in this context (errors if name already exists)
-    ///
-    /// Unlike `symb()`, this will return an error if the symbol already exists.
-    /// Use this for strict control over symbol creation.
-    pub fn symb_new(&self, name: &str) -> Result<Symbol, SymbolError> {
-        let mut inner = self.inner.write().unwrap();
-
-        if inner.symbols.contains_key(name) {
-            return Err(SymbolError::DuplicateName(name.to_string()));
-        }
-
-        if symbol_exists(name) {
-            return Err(SymbolError::DuplicateName(name.to_string()));
-        }
-
-        let interned = get_or_intern(name);
-        inner.symbols.insert(name.to_string(), interned.clone());
-
-        Ok(Symbol(interned.id()))
-    }
-
-    /// Remove a symbol from this context
-    ///
-    /// Returns true if the symbol was removed, false if it didn't exist.
-    pub fn remove(&self, name: &str) -> bool {
-        let mut inner = self.inner.write().unwrap();
-        inner.symbols.remove(name).is_some()
-    }
-
-    /// Create an anonymous symbol in this context
-    ///
-    /// Anonymous symbols have unique IDs but no name. They cannot be retrieved
-    /// by name and are useful for temporary computations.
-    pub fn anon(&self) -> Symbol {
-        Symbol::anon()
-    }
-}
-
-impl Default for SymbolContext {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl Clone for SymbolContext {
-    fn clone(&self) -> Self {
-        // Cloning shares the underlying registry (like Arc behavior)
-        SymbolContext {
-            id: self.id,
-            inner: Arc::clone(&self.inner),
-        }
-    }
-}
-
-// ============================================================================
-// Global Context (lazy singleton)
-// ============================================================================
-
-/// The global symbol context, created lazily on first use
-static GLOBAL_CONTEXT: OnceLock<SymbolContext> = OnceLock::new();
-
-/// Get a reference to the global symbol context
-pub fn global_context() -> &'static SymbolContext {
-    GLOBAL_CONTEXT.get_or_init(SymbolContext::new)
-}
+use std::sync::{Arc, RwLock};
 
 // ============================================================================
 // Global Symbol Registry
 // ============================================================================
 
-/// Global counter for symbol IDs
-static NEXT_SYMBOL_ID: AtomicU64 = AtomicU64::new(1);
+/// Global counter for symbol IDs (shared across modules)
+pub(crate) static NEXT_SYMBOL_ID: AtomicU64 = AtomicU64::new(1);
 
 /// Global symbol registry: name -> InternedSymbol
 static SYMBOL_REGISTRY: std::sync::LazyLock<RwLock<HashMap<String, InternedSymbol>>> =
@@ -246,9 +69,15 @@ where
 }
 
 /// Look up InternedSymbol by ID (for Symbol -> Expr conversion and known_symbols)
-pub fn lookup_by_id(id: u64) -> Option<InternedSymbol> {
+pub(crate) fn lookup_by_id(id: u64) -> Option<InternedSymbol> {
     let guard = get_id_registry_read();
     guard.get(&id).cloned()
+}
+
+/// Register an InternedSymbol in the ID registry (for Context integration)
+pub(crate) fn register_in_id_registry(id: u64, interned: InternedSymbol) {
+    let mut id_registry = get_id_registry_mut();
+    id_registry.insert(id, interned);
 }
 
 // ============================================================================
@@ -317,14 +146,10 @@ impl InternedSymbol {
         }
     }
 
-    /// Create a new named symbol for isolated contexts.
-    ///
-    /// Note: The implementation is identical to `new_named()`, but this is used
-    /// by `SymbolContext::symb()` which only registers in the ID registry (not
-    /// the global name registry), providing true context isolation.
-    fn new_named_isolated(name: &str) -> Self {
+    /// Create a new named symbol for Context (uses external counter for isolation).
+    pub(crate) fn new_named_for_context(name: &str, counter: &AtomicU64) -> Self {
         InternedSymbol {
-            id: NEXT_SYMBOL_ID.fetch_add(1, Ordering::Relaxed),
+            id: counter.fetch_add(1, Ordering::Relaxed),
             name: Some(Arc::from(name)),
         }
     }
@@ -420,6 +245,14 @@ impl Ord for InternedSymbol {
 pub struct Symbol(u64); // Just the ID - lightweight and Copy!
 
 impl Symbol {
+    /// Create a Symbol from a raw ID.
+    ///
+    /// This is used by Context to create symbols from its isolated registry.
+    #[inline]
+    pub(crate) fn from_id(id: u64) -> Self {
+        Symbol(id)
+    }
+
     /// Create a new anonymous symbol (always succeeds)
     ///
     /// Anonymous symbols have a unique ID but no string name.
@@ -451,11 +284,6 @@ impl Symbol {
         lookup_by_id(self.0).and_then(|s| s.name)
     }
 
-    /// Get the name as an owned String
-    pub fn name_owned(&self) -> Option<String> {
-        self.name()
-    }
-
     /// Convert to an Expr
     pub fn to_expr(&self) -> Expr {
         // Look up the InternedSymbol from registry
@@ -470,7 +298,7 @@ impl Symbol {
 
     /// Raise to a power (Copy means no clone needed)
     pub fn pow(&self, exp: impl Into<Expr>) -> Expr {
-        Expr::pow(self.to_expr(), exp.into())
+        Expr::pow_static(self.to_expr(), exp.into())
     }
 
     // === Parametric special functions ===
@@ -608,8 +436,8 @@ pub fn clear_symbols() {
 /// Remove a specific symbol from the registry
 ///
 /// Returns true if the symbol was removed, false if it didn't exist.
-/// Use with caution - any existing Symbol instances with this name will
-/// still work but won't match newly created ones.
+/// This completely removes the symbol from both name and ID registries.
+/// Use with caution - any existing Symbol instances will become invalid.
 ///
 /// # Example
 /// ```
@@ -620,15 +448,39 @@ pub fn clear_symbols() {
 /// assert!(!symbol_exists("remove_symbol_doc_x"));
 /// ```
 pub fn remove_symbol(name: &str) -> bool {
-    let mut guard = get_registry_mut();
-    guard.remove(name).is_some()
+    with_registry_mut(|name_registry, id_registry| {
+        if let Some(interned) = name_registry.remove(name) {
+            // Also remove from ID registry to prevent inconsistent state
+            id_registry.remove(&interned.id());
+            true
+        } else {
+            false
+        }
+    })
+}
+
+/// Create or get a Symbol (main public API)
+///
+/// This is the primary way to create symbols. It gets an existing symbol with the given
+/// name or creates a new one if it doesn't exist.
+///
+/// # Example
+/// ```
+/// use symb_anafis::symb;
+/// let x = symb("x");
+/// let y = symb("y");
+/// let expr = x + y;
+/// ```
+pub fn symb(name: &str) -> Symbol {
+    let interned = symb_interned(name);
+    Symbol(interned.id())
 }
 
 /// Get or create an interned symbol (internal use for parser)
 ///
 /// Unlike `symb()`, this does NOT error on duplicates - it returns the existing symbol.
 /// This is used by the parser to ensure parsed expressions use the same symbols.
-pub(crate) fn get_or_intern(name: &str) -> InternedSymbol {
+pub(crate) fn symb_interned(name: &str) -> InternedSymbol {
     with_registry_mut(|registry, id_registry| {
         if let Some(existing) = registry.get(name) {
             return existing.clone();
@@ -639,20 +491,6 @@ pub(crate) fn get_or_intern(name: &str) -> InternedSymbol {
         id_registry.insert(id, interned.clone());
         interned
     })
-}
-
-// Legacy compatibility - use sym as alias that doesn't require error handling
-// by using get_or_intern internally
-
-/// Convenience function to create or get a Symbol (legacy compatibility)
-///
-/// This is a convenience wrapper that uses get-or-create semantics.
-/// For strict control, use `symb()` and `symb_get()` instead.
-///
-/// Note: Unlike `symb()`, this does NOT error on duplicate names.
-pub fn symb(name: &str) -> Symbol {
-    let interned = get_or_intern(name);
-    Symbol(interned.id())
 }
 
 // ============================================================================
@@ -687,7 +525,6 @@ macro_rules! impl_math_functions_owned {
     };
 }
 
-// Define the function list once
 macro_rules! math_function_list_ref {
     ($macro_name:ident, $type:ty, $converter:expr) => {
         $macro_name!($type, $converter,
@@ -716,7 +553,7 @@ macro_rules! math_function_list_ref {
             digamma => "digamma", trigamma => "trigamma", tetragamma => "tetragamma",
             zeta => "zeta", lambertw => "lambertw",
             elliptic_k => "elliptic_k", elliptic_e => "elliptic_e",
-            exp_polar => "exp_polar",
+            exp_polar => "exp_polar"
         );
     };
 }
@@ -749,7 +586,7 @@ macro_rules! math_function_list_owned {
             digamma => "digamma", trigamma => "trigamma", tetragamma => "tetragamma",
             zeta => "zeta", lambertw => "lambertw",
             elliptic_k => "elliptic_k", elliptic_e => "elliptic_e",
-            exp_polar => "exp_polar",
+            exp_polar => "exp_polar"
         );
     };
 }
@@ -911,6 +748,20 @@ impl Mul<Symbol> for f64 {
     }
 }
 
+impl Add<Symbol> for f64 {
+    type Output = Expr;
+    fn add(self, rhs: Symbol) -> Expr {
+        Expr::add_expr(Expr::number(self), rhs.to_expr())
+    }
+}
+
+impl Div<Symbol> for f64 {
+    type Output = Expr;
+    fn div(self, rhs: Symbol) -> Expr {
+        Expr::div_expr(Expr::number(self), rhs.to_expr())
+    }
+}
+
 // f64 on left side with &Expr
 impl Add<&Expr> for f64 {
     type Output = Expr;
@@ -956,6 +807,323 @@ impl From<&Arc<Expr>> for Expr {
     }
 }
 
+// =============================================================================
+// Arc<Expr> ergonomic operations via extension trait
+// =============================================================================
+// Note: Due to Rust's orphan rules, we cannot:
+// - Implement traits like `Add<Arc<Expr>> for f64` (both are foreign types)
+// - Add inherent methods to `Arc<Expr>` (foreign type)
+//
+// Instead, we provide an extension trait `ArcExprExt` with methods like:
+//   args[0].pow(2.0), args[0].sin(), args[0].cos(), etc.
+//
+// Recommended patterns in UserFunction body/partial closures:
+//   .body(|args| args[0].pow(2.0) + 1.0)           // method chaining via trait
+//   .body(|args| 2.0 * Expr::from(&args[0]))       // using From trait
+//   .body(|args| args[0].sin() * args[1].cos())    // multiple args
+
+/// Extension trait for `Arc<Expr>` providing ergonomic math operations.
+///
+/// This trait is automatically in scope when using the library, allowing
+/// you to call methods like `.pow()`, `.sin()`, `.cos()` directly on `Arc<Expr>`.
+///
+/// # Example
+/// ```
+/// use symb_anafis::{UserFunction, Expr, ArcExprExt};
+/// use std::sync::Arc;
+///
+/// // f(x) = x^2 + sin(x)
+/// let f = UserFunction::new(1..=1)
+///     .body(|args| args[0].pow(2.0) + args[0].sin());
+/// ```
+pub trait ArcExprExt {
+    /// Raise to a power: `args[0].pow(2.0)` → `args[0]^2`
+    fn pow(&self, exp: impl Into<Expr>) -> Expr;
+
+    // Trigonometric
+    fn sin(&self) -> Expr;
+    fn cos(&self) -> Expr;
+    fn tan(&self) -> Expr;
+    fn cot(&self) -> Expr;
+    fn sec(&self) -> Expr;
+    fn csc(&self) -> Expr;
+
+    // Inverse trigonometric
+    fn asin(&self) -> Expr;
+    fn acos(&self) -> Expr;
+    fn atan(&self) -> Expr;
+    fn acot(&self) -> Expr;
+    fn asec(&self) -> Expr;
+    fn acsc(&self) -> Expr;
+
+    // Hyperbolic
+    fn sinh(&self) -> Expr;
+    fn cosh(&self) -> Expr;
+    fn tanh(&self) -> Expr;
+    fn coth(&self) -> Expr;
+    fn sech(&self) -> Expr;
+    fn csch(&self) -> Expr;
+
+    // Inverse hyperbolic
+    fn asinh(&self) -> Expr;
+    fn acosh(&self) -> Expr;
+    fn atanh(&self) -> Expr;
+    fn acoth(&self) -> Expr;
+    fn asech(&self) -> Expr;
+    fn acsch(&self) -> Expr;
+
+    // Exponential/logarithmic
+    fn exp(&self) -> Expr;
+    fn ln(&self) -> Expr;
+    fn log(&self) -> Expr;
+    fn log10(&self) -> Expr;
+    fn log2(&self) -> Expr;
+    fn sqrt(&self) -> Expr;
+    fn cbrt(&self) -> Expr;
+
+    // Rounding
+    fn floor(&self) -> Expr;
+    fn ceil(&self) -> Expr;
+    fn round(&self) -> Expr;
+
+    // Special functions
+    fn abs(&self) -> Expr;
+    fn signum(&self) -> Expr;
+    fn sinc(&self) -> Expr;
+    fn erf(&self) -> Expr;
+    fn erfc(&self) -> Expr;
+    fn gamma(&self) -> Expr;
+    fn digamma(&self) -> Expr;
+    fn trigamma(&self) -> Expr;
+    fn tetragamma(&self) -> Expr;
+    fn zeta(&self) -> Expr;
+    fn lambertw(&self) -> Expr;
+    fn elliptic_k(&self) -> Expr;
+    fn elliptic_e(&self) -> Expr;
+    fn exp_polar(&self) -> Expr;
+}
+
+impl ArcExprExt for Arc<Expr> {
+    fn pow(&self, exp: impl Into<Expr>) -> Expr {
+        Expr::pow_static(Expr::from(self), exp.into())
+    }
+
+    // Trigonometric
+    fn sin(&self) -> Expr {
+        Expr::func("sin", Expr::from(self))
+    }
+    fn cos(&self) -> Expr {
+        Expr::func("cos", Expr::from(self))
+    }
+    fn tan(&self) -> Expr {
+        Expr::func("tan", Expr::from(self))
+    }
+    fn cot(&self) -> Expr {
+        Expr::func("cot", Expr::from(self))
+    }
+    fn sec(&self) -> Expr {
+        Expr::func("sec", Expr::from(self))
+    }
+    fn csc(&self) -> Expr {
+        Expr::func("csc", Expr::from(self))
+    }
+
+    // Inverse trigonometric
+    fn asin(&self) -> Expr {
+        Expr::func("asin", Expr::from(self))
+    }
+    fn acos(&self) -> Expr {
+        Expr::func("acos", Expr::from(self))
+    }
+    fn atan(&self) -> Expr {
+        Expr::func("atan", Expr::from(self))
+    }
+    fn acot(&self) -> Expr {
+        Expr::func("acot", Expr::from(self))
+    }
+    fn asec(&self) -> Expr {
+        Expr::func("asec", Expr::from(self))
+    }
+    fn acsc(&self) -> Expr {
+        Expr::func("acsc", Expr::from(self))
+    }
+
+    // Hyperbolic
+    fn sinh(&self) -> Expr {
+        Expr::func("sinh", Expr::from(self))
+    }
+    fn cosh(&self) -> Expr {
+        Expr::func("cosh", Expr::from(self))
+    }
+    fn tanh(&self) -> Expr {
+        Expr::func("tanh", Expr::from(self))
+    }
+    fn coth(&self) -> Expr {
+        Expr::func("coth", Expr::from(self))
+    }
+    fn sech(&self) -> Expr {
+        Expr::func("sech", Expr::from(self))
+    }
+    fn csch(&self) -> Expr {
+        Expr::func("csch", Expr::from(self))
+    }
+
+    // Inverse hyperbolic
+    fn asinh(&self) -> Expr {
+        Expr::func("asinh", Expr::from(self))
+    }
+    fn acosh(&self) -> Expr {
+        Expr::func("acosh", Expr::from(self))
+    }
+    fn atanh(&self) -> Expr {
+        Expr::func("atanh", Expr::from(self))
+    }
+    fn acoth(&self) -> Expr {
+        Expr::func("acoth", Expr::from(self))
+    }
+    fn asech(&self) -> Expr {
+        Expr::func("asech", Expr::from(self))
+    }
+    fn acsch(&self) -> Expr {
+        Expr::func("acsch", Expr::from(self))
+    }
+
+    // Exponential/logarithmic
+    fn exp(&self) -> Expr {
+        Expr::func("exp", Expr::from(self))
+    }
+    fn ln(&self) -> Expr {
+        Expr::func("ln", Expr::from(self))
+    }
+    fn log(&self) -> Expr {
+        Expr::func("log", Expr::from(self))
+    }
+    fn log10(&self) -> Expr {
+        Expr::func("log10", Expr::from(self))
+    }
+    fn log2(&self) -> Expr {
+        Expr::func("log2", Expr::from(self))
+    }
+    fn sqrt(&self) -> Expr {
+        Expr::func("sqrt", Expr::from(self))
+    }
+    fn cbrt(&self) -> Expr {
+        Expr::func("cbrt", Expr::from(self))
+    }
+
+    // Rounding
+    fn floor(&self) -> Expr {
+        Expr::func("floor", Expr::from(self))
+    }
+    fn ceil(&self) -> Expr {
+        Expr::func("ceil", Expr::from(self))
+    }
+    fn round(&self) -> Expr {
+        Expr::func("round", Expr::from(self))
+    }
+
+    // Special functions
+    fn abs(&self) -> Expr {
+        Expr::func("abs", Expr::from(self))
+    }
+    fn signum(&self) -> Expr {
+        Expr::func("signum", Expr::from(self))
+    }
+    fn sinc(&self) -> Expr {
+        Expr::func("sinc", Expr::from(self))
+    }
+    fn erf(&self) -> Expr {
+        Expr::func("erf", Expr::from(self))
+    }
+    fn erfc(&self) -> Expr {
+        Expr::func("erfc", Expr::from(self))
+    }
+    fn gamma(&self) -> Expr {
+        Expr::func("gamma", Expr::from(self))
+    }
+    fn digamma(&self) -> Expr {
+        Expr::func("digamma", Expr::from(self))
+    }
+    fn trigamma(&self) -> Expr {
+        Expr::func("trigamma", Expr::from(self))
+    }
+    fn tetragamma(&self) -> Expr {
+        Expr::func("tetragamma", Expr::from(self))
+    }
+    fn zeta(&self) -> Expr {
+        Expr::func("zeta", Expr::from(self))
+    }
+    fn lambertw(&self) -> Expr {
+        Expr::func("lambertw", Expr::from(self))
+    }
+    fn elliptic_k(&self) -> Expr {
+        Expr::func("elliptic_k", Expr::from(self))
+    }
+    fn elliptic_e(&self) -> Expr {
+        Expr::func("elliptic_e", Expr::from(self))
+    }
+    fn exp_polar(&self) -> Expr {
+        Expr::func("exp_polar", Expr::from(self))
+    }
+}
+
+// --- Expr with Arc<Expr> (Expr on left side works due to local type) ---
+impl Add<Arc<Expr>> for Expr {
+    type Output = Expr;
+    fn add(self, rhs: Arc<Expr>) -> Expr {
+        Expr::add_expr(self, Expr::from(rhs))
+    }
+}
+
+impl Add<&Arc<Expr>> for Expr {
+    type Output = Expr;
+    fn add(self, rhs: &Arc<Expr>) -> Expr {
+        Expr::add_expr(self, Expr::from(rhs))
+    }
+}
+
+impl Sub<Arc<Expr>> for Expr {
+    type Output = Expr;
+    fn sub(self, rhs: Arc<Expr>) -> Expr {
+        Expr::sub_expr(self, Expr::from(rhs))
+    }
+}
+
+impl Sub<&Arc<Expr>> for Expr {
+    type Output = Expr;
+    fn sub(self, rhs: &Arc<Expr>) -> Expr {
+        Expr::sub_expr(self, Expr::from(rhs))
+    }
+}
+
+impl Mul<Arc<Expr>> for Expr {
+    type Output = Expr;
+    fn mul(self, rhs: Arc<Expr>) -> Expr {
+        Expr::mul_expr(self, Expr::from(rhs))
+    }
+}
+
+impl Mul<&Arc<Expr>> for Expr {
+    type Output = Expr;
+    fn mul(self, rhs: &Arc<Expr>) -> Expr {
+        Expr::mul_expr(self, Expr::from(rhs))
+    }
+}
+
+impl Div<Arc<Expr>> for Expr {
+    type Output = Expr;
+    fn div(self, rhs: Arc<Expr>) -> Expr {
+        Expr::div_expr(self, Expr::from(rhs))
+    }
+}
+
+impl Div<&Arc<Expr>> for Expr {
+    type Output = Expr;
+    fn div(self, rhs: &Arc<Expr>) -> Expr {
+        Expr::div_expr(self, Expr::from(rhs))
+    }
+}
+
 impl Neg for Symbol {
     type Output = Expr;
     fn neg(self) -> Expr {
@@ -989,16 +1157,21 @@ impl Neg for &Symbol {
 // ============================================================================
 
 impl Expr {
-    /// Raise to a power
+    /// Raise to a power (method form, consumes self)
+    ///
+    /// This is the ergonomic method form for chaining. Accepts any type
+    /// that can be converted to Expr (f64, i32, Symbol, Expr).
+    ///
+    /// # Example
+    /// ```
+    /// use symb_anafis::symb;
+    /// let x = symb("pow_method_x");
+    /// let expr = x.sin().pow(2.0);  // sin(x)^2
+    /// assert_eq!(format!("{}", expr), "sin(pow_method_x)^2");
+    /// ```
     #[inline]
-    pub fn pow_expr(self, exp: impl Into<Expr>) -> Expr {
-        Expr::pow(self, exp.into())
-    }
-
-    /// Alias for pow_expr
-    #[inline]
-    pub fn pow_of(self, exp: impl Into<Expr>) -> Expr {
-        self.pow_expr(exp)
+    pub fn pow(self, exp: impl Into<Expr>) -> Expr {
+        Expr::pow_static(self, exp.into())
     }
 
     // === Parametric special functions ===
@@ -1157,129 +1330,5 @@ mod tests {
         // Mixed with functions (which take &self)
         let expr3 = a.sin() + a.cos() + a;
         assert!(format!("{}", expr3).contains("test_copy_a"));
-    }
-
-    // =========================================================================
-    // SymbolContext Tests
-    // =========================================================================
-
-    #[test]
-    fn test_context_creation() {
-        let ctx1 = SymbolContext::new();
-        let ctx2 = SymbolContext::new();
-
-        // Each context has unique ID
-        assert_ne!(ctx1.id(), ctx2.id());
-
-        // New contexts are empty
-        assert!(ctx1.is_empty());
-        assert_eq!(ctx1.len(), 0);
-    }
-
-    #[test]
-    fn test_context_symb() {
-        let ctx = SymbolContext::new();
-
-        let x = ctx.symb("ctx_x");
-        let y = ctx.symb("ctx_y");
-
-        // Symbols have different IDs
-        assert_ne!(x.id(), y.id());
-
-        // Same name returns same symbol
-        let x2 = ctx.symb("ctx_x");
-        assert_eq!(x.id(), x2.id());
-
-        // Context tracks symbols
-        assert_eq!(ctx.len(), 2);
-        assert!(!ctx.is_empty());
-    }
-
-    #[test]
-    fn test_context_isolation() {
-        let ctx1 = SymbolContext::new();
-        let ctx2 = SymbolContext::new();
-
-        let x1 = ctx1.symb("isolated_x");
-        let x2 = ctx2.symb("isolated_x");
-
-        // Same name in different contexts = different symbols!
-        assert_ne!(x1.id(), x2.id());
-
-        // Each context independently tracks its symbols
-        assert!(ctx1.contains("isolated_x"));
-        assert!(ctx2.contains("isolated_x"));
-        assert!(!ctx1.contains("nonexistent"));
-    }
-
-    #[test]
-    fn test_context_get() {
-        let ctx = SymbolContext::new();
-
-        // Before creation, get returns None
-        assert!(ctx.get("get_x").is_none());
-
-        // After creation, get returns the symbol
-        let x = ctx.symb("get_x");
-        let x2 = ctx.get("get_x").unwrap();
-        assert_eq!(x.id(), x2.id());
-    }
-
-    #[test]
-    fn test_context_clear() {
-        let ctx = SymbolContext::new();
-        ctx.symb("clear_x");
-        ctx.symb("clear_y");
-
-        assert_eq!(ctx.len(), 2);
-
-        ctx.clear();
-
-        assert!(ctx.is_empty());
-        assert_eq!(ctx.len(), 0);
-        assert!(!ctx.contains("clear_x"));
-    }
-
-    #[test]
-    fn test_context_symbol_names() {
-        let ctx = SymbolContext::new();
-        ctx.symb("names_a");
-        ctx.symb("names_b");
-        ctx.symb("names_c");
-
-        let names = ctx.symbol_names();
-        assert_eq!(names.len(), 3);
-        assert!(names.contains(&"names_a".to_string()));
-        assert!(names.contains(&"names_b".to_string()));
-        assert!(names.contains(&"names_c".to_string()));
-    }
-
-    #[test]
-    fn test_context_expressions() {
-        let ctx = SymbolContext::new();
-        let x = ctx.symb("expr_x");
-        let y = ctx.symb("expr_y");
-
-        // Build expression using context symbols
-        let expr = x + y;
-        assert!(format!("{}", expr).contains("expr_x"));
-        assert!(format!("{}", expr).contains("expr_y"));
-
-        // Functions work too
-        let expr2 = x.sin() + y.cos();
-        assert!(format!("{}", expr2).contains("sin"));
-        assert!(format!("{}", expr2).contains("cos"));
-    }
-
-    #[test]
-    fn test_global_context() {
-        use crate::global_context;
-
-        // Global context is a singleton
-        let ctx1 = global_context();
-        let ctx2 = global_context();
-
-        // Same context
-        assert_eq!(ctx1.id(), ctx2.id());
     }
 }

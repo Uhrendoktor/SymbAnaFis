@@ -2,6 +2,7 @@
 mod tests {
     use crate::simplification::simplify_expr;
     use crate::{Expr, ExprKind};
+    use std::collections::HashMap;
     use std::collections::HashSet;
 
     #[test]
@@ -11,7 +12,15 @@ mod tests {
             Expr::pow(Expr::symbol("x"), Expr::number(2.0)),
             Expr::pow(Expr::symbol("y"), Expr::number(2.0)),
         ]);
-        let simplified = simplify_expr(expr, HashSet::new());
+        let simplified = simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false,
+        );
 
         // Expected: (x*y)^2
         if let ExprKind::Pow(base, exp) = &simplified.kind {
@@ -40,7 +49,15 @@ mod tests {
             Expr::pow(Expr::symbol("x"), Expr::number(2.0)),
             Expr::pow(Expr::symbol("y"), Expr::number(2.0)),
         );
-        let simplified = simplify_expr(expr, HashSet::new());
+        let simplified = simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false,
+        );
 
         // Expected: (x/y)^2
         if let ExprKind::Pow(base, exp) = &simplified.kind {
@@ -76,7 +93,15 @@ mod tests {
             Expr::symbol("x"),
             Expr::div_expr(Expr::number(1.0), Expr::number(2.0)),
         );
-        let simplified = simplify_expr(expr, HashSet::new());
+        let simplified = simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false,
+        );
 
         if let ExprKind::FunctionCall { name, args } = &simplified.kind {
             assert_eq!(name.as_str(), "sqrt");
@@ -95,7 +120,15 @@ mod tests {
     fn test_root_conversion_sqrt_decimal() {
         // x^0.5 -> sqrt(x)
         let expr = Expr::pow(Expr::symbol("x"), Expr::number(0.5));
-        let simplified = simplify_expr(expr, HashSet::new());
+        let simplified = simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false,
+        );
 
         if let ExprKind::FunctionCall { name, args } = &simplified.kind {
             assert_eq!(name.as_str(), "sqrt");
@@ -117,7 +150,15 @@ mod tests {
             Expr::symbol("x"),
             Expr::div_expr(Expr::number(1.0), Expr::number(3.0)),
         );
-        let simplified = simplify_expr(expr, HashSet::new());
+        let simplified = simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false,
+        );
 
         if let ExprKind::FunctionCall { name, args } = &simplified.kind {
             assert_eq!(name.as_str(), "cbrt");

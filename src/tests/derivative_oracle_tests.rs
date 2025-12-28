@@ -11,7 +11,7 @@ use std::collections::{HashMap, HashSet};
 fn eval_at(expr_str: &str, val: f64) -> f64 {
     let expr = parser_parse(expr_str, &HashSet::new(), &HashSet::new(), None).unwrap();
     let vars: HashMap<&str, f64> = [("x", val)].into_iter().collect();
-    match &expr.evaluate(&vars).kind {
+    match &expr.evaluate(&vars, &HashMap::new()).kind {
         ExprKind::Number(n) => *n,
         other => panic!("Expected number, got {:?}", other),
     }
@@ -19,7 +19,7 @@ fn eval_at(expr_str: &str, val: f64) -> f64 {
 
 /// Test derivative and verify both symbolic form and numerical value
 fn test_derivative(expr: &str, var: &str, expected_symbolic: &str, test_points: &[(f64, f64)]) {
-    let result = diff(expr, var, None, None).unwrap();
+    let result = diff(expr, var, &[], None).unwrap();
 
     // Verify numerical accuracy at test points
     for (x_val, expected_val) in test_points {
@@ -456,8 +456,8 @@ fn test_oracle_nested_exp() {
 #[test]
 fn test_oracle_second_derivative_x3() {
     // d²/dx²[x^3] = 6*x
-    let d1 = diff("x^3", "x", None, None).unwrap();
-    let d2 = diff(&d1, "x", None, None).unwrap();
+    let d1 = diff("x^3", "x", &[], None).unwrap();
+    let d2 = diff(&d1, "x", &[], None).unwrap();
     let val = eval_at(&d2, 2.0);
     assert!((val - 12.0).abs() < 1e-10);
 }
@@ -465,8 +465,8 @@ fn test_oracle_second_derivative_x3() {
 #[test]
 fn test_oracle_second_derivative_sin() {
     // d²/dx²[sin(x)] = -sin(x)
-    let d1 = diff("sin(x)", "x", None, None).unwrap();
-    let d2 = diff(&d1, "x", None, None).unwrap();
+    let d1 = diff("sin(x)", "x", &[], None).unwrap();
+    let d2 = diff(&d1, "x", &[], None).unwrap();
     let x = 1.0_f64;
     let val = eval_at(&d2, x);
     assert!((val - (-x.sin())).abs() < 1e-10);
@@ -475,8 +475,8 @@ fn test_oracle_second_derivative_sin() {
 #[test]
 fn test_oracle_second_derivative_exp() {
     // d²/dx²[exp(x)] = exp(x)
-    let d1 = diff("exp(x)", "x", None, None).unwrap();
-    let d2 = diff(&d1, "x", None, None).unwrap();
+    let d1 = diff("exp(x)", "x", &[], None).unwrap();
+    let d2 = diff(&d1, "x", &[], None).unwrap();
     let x = 1.0_f64;
     let val = eval_at(&d2, x);
     assert!((val - x.exp()).abs() < 1e-10);

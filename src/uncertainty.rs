@@ -39,7 +39,7 @@ impl CovEntry {
     pub fn is_zero(&self) -> bool {
         match self {
             CovEntry::Num(n) => n.abs() < EPSILON,
-            CovEntry::Symbolic(_) => false,
+            CovEntry::Symbolic(e) => e.is_zero_num(), // Also check symbolic zero
         }
     }
 }
@@ -119,7 +119,8 @@ impl CovarianceMatrix {
         let mut entries = vec![vec![CovEntry::Num(0.0); n]; n];
         for (i, name) in var_names.iter().enumerate() {
             // Create σ² symbol for each variable
-            let sigma_sq = Expr::pow(Expr::symbol(format!("sigma_{}", name)), Expr::number(2.0));
+            let sigma_sq =
+                Expr::pow_static(Expr::symbol(format!("sigma_{}", name)), Expr::number(2.0));
             entries[i][i] = CovEntry::Symbolic(sigma_sq);
         }
         // Skip validation for diagonal (guaranteed symmetric)
@@ -136,6 +137,15 @@ impl CovarianceMatrix {
     #[inline]
     pub fn dim(&self) -> usize {
         self.entries.len()
+    }
+}
+
+impl Default for CovarianceMatrix {
+    /// Creates an empty 0x0 covariance matrix
+    fn default() -> Self {
+        CovarianceMatrix {
+            entries: Vec::new(),
+        }
     }
 }
 
@@ -239,10 +249,7 @@ pub fn uncertainty_propagation(
         }
     }
 
-    let variance = terms
-        .into_iter()
-        .reduce(Expr::add_expr)
-        .unwrap_or_else(|| Expr::number(0.0));
+    let variance = Expr::sum(terms);
 
     // Simplify the variance, then wrap in sqrt for σ_f = sqrt(σ_f²)
     let simplified_variance = variance.simplified()?;
@@ -254,6 +261,10 @@ pub fn uncertainty_propagation(
 /// Compute relative uncertainty expression: σ_f / |f|
 ///
 /// Returns the symbolic expression for the relative uncertainty.
+///
+/// # Warning
+/// Returns undefined/infinity when the expression `f` evaluates to zero.
+/// The caller should ensure `f` is non-zero at the evaluation point.
 pub fn relative_uncertainty(
     expr: &Expr,
     variables: &[&str],

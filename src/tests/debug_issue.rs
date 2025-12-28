@@ -2,6 +2,7 @@
 mod tests {
     use crate::parser::parse;
     use crate::simplify;
+    use std::collections::HashMap;
 
     #[test]
     fn debug_numerator_simplification() {
@@ -10,19 +11,19 @@ mod tests {
         // Should be: x^2 + 2x - 1 (after expanding 2x(x+1) = 2x^2 + 2x)
 
         let expr = "-x^2 + 2*x*(x + 1) - 1";
-        let result = simplify(expr, None, None).unwrap();
+        let result = simplify(expr, &[], None).unwrap();
         println!("Input: {}", expr);
         println!("Result: {}", result);
 
         // Expanded form
         let expanded = "-x^2 + 2*x^2 + 2*x - 1";
-        let result2 = simplify(expanded, None, None).unwrap();
+        let result2 = simplify(expanded, &[], None).unwrap();
         println!("\nExpanded input: {}", expanded);
         println!("Result: {}", result2);
 
         // Target form
         let target = "x^2 + 2*x - 1";
-        let result3 = simplify(target, None, None).unwrap();
+        let result3 = simplify(target, &[], None).unwrap();
         println!("\nTarget: {}", target);
         println!("Result: {}", result3);
     }
@@ -40,7 +41,7 @@ mod tests {
         println!("Parsed AST: {:?}", parsed);
 
         // Direct simplification with trace
-        let result = simplify_expr(parsed, empty);
+        let result = simplify_expr(parsed, empty, HashMap::new(), None, None, None, false);
         println!("Result AST: {:?}", result);
         println!("Result: {}", result);
     }

@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod actual_bug_test {
     use crate::{Expr, simplification::simplify_expr};
-    use std::collections::HashSet;
+    use std::collections::{HashMap, HashSet};
 
     #[test]
     fn test_rc_derivative_actual_bug() {
@@ -41,7 +41,15 @@ mod actual_bug_test {
         println!("\nOriginal expression:");
         println!("{}", expr);
 
-        let simplified = simplify_expr(expr, HashSet::new());
+        let simplified = simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false,
+        );
 
         println!("\nSimplified expression:");
         println!("{}", simplified);
@@ -77,7 +85,15 @@ mod actual_bug_test {
 
         println!("\nSimple test:");
         println!("Original:   {}", expr);
-        let simplified = simplify_expr(expr, HashSet::new());
+        let simplified = simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false,
+        );
         println!("Simplified: {}", simplified);
         println!("Expected:   -1/R");
 

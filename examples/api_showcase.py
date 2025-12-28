@@ -271,20 +271,21 @@ def part6_custom_derivatives():
     print("━" * 66 + "\n")
 
     # 6.1 Custom Derivative Rule
-    print("  6.1 Custom Derivative Rule: custom_derivative()")
+    print("  6.1 Custom Derivative Rule: user_fn()")
     print("      Define: my_func(u) with derivative: d/dx[my_func(u)] = 3u² · u'")
 
-    def my_func_derivative(inner, var, inner_prime):
-        # d/dx[my_func(u)] = 3 * u^2 * u'
-        three = Expr("3")
-        return three * inner.pow(2) * inner_prime
+    def my_func_partial(args):
+        # For f(u), return ∂f/∂u = 3u²
+        # args[0] is the first argument expression
+        return 3 * args[0] ** 2
 
     x = Expr("x")
-    custom_diff = Diff().custom_derivative("my_func", my_func_derivative)
+    custom_diff = Diff().user_fn("my_func", 1, my_func_partial)
 
-    # Create my_func(x^2) - we'd need to build it via parsing
-    # For now, show string-based approach
-    print("      (Custom derivative callbacks work with Diff builder)")
+    # Test the custom derivative
+    result = custom_diff.diff_str("my_func(x^2)", "x")
+    print(f"      d/dx[my_func(x²)] = {result}")
+    print("      Expected: 3*(x^2)^2 * 2*x = 3*x^4 * 2*x = 6*x^5")
     print()
 
 

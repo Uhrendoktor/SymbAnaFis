@@ -14,17 +14,64 @@ use std::ops::{
 };
 
 #[derive(Copy, Clone, Debug, PartialEq, PartialOrd)]
+/// Dual number for automatic differentiation
+///
+/// A dual number `a + bε` represents both a value (`a`) and its derivative (`b`),
+/// where `ε` is an infinitesimal satisfying `ε² = 0`.
+///
+/// # Automatic Differentiation
+/// Dual numbers enable exact derivative computation through algebraic manipulation:
+/// ```
+/// use symb_anafis::Dual;
+///
+/// // f(x) = x², f'(x) = 2x
+/// let x = Dual::new(3.0, 1.0);  // x + 1ε (derivative w.r.t. x is 1)
+/// let fx = x * x;               // (x + ε)² = x² + 2xε
+/// assert_eq!(fx.val, 9.0);      // f(3) = 9
+/// assert_eq!(fx.eps, 6.0);      // f'(3) = 6
+/// ```
+///
+/// # Type Parameters
+/// * `T`: The scalar type (typically `f64`), must implement [`MathScalar`]
+///
+/// # Fields
+/// * `val`: The real value component
+/// * `eps`: The infinitesimal derivative component
 pub struct Dual<T: MathScalar> {
+    /// The real value component
     pub val: T,
+    /// The infinitesimal derivative component
     pub eps: T,
 }
 
 impl<T: MathScalar> Dual<T> {
+    /// Create a new dual number
+    ///
+    /// # Arguments
+    /// * `val` - The real value component
+    /// * `eps` - The infinitesimal derivative component
+    ///
+    /// # Example
+    /// ```
+    /// use symb_anafis::Dual;
+    /// let x = Dual::new(2.0, 1.0);  // Represents x + ε
+    /// ```
     #[inline]
     pub fn new(val: T, eps: T) -> Self {
         Self { val, eps }
     }
 
+    /// Create a constant dual number (derivative = 0)
+    ///
+    /// # Arguments
+    /// * `val` - The constant value
+    ///
+    /// # Example
+    /// ```
+    /// use symb_anafis::Dual;
+    /// let c = Dual::constant(5.0);  // Represents 5 + 0ε
+    /// assert_eq!(c.eps, 0.0);
+    /// ```
     #[inline]
     pub fn constant(val: T) -> Self {
         Self {

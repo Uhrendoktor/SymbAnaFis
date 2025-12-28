@@ -1,67 +1,52 @@
 use crate::Expr;
-use crate::functions::{FunctionContext, FunctionDefinition};
-
-/// Helper to create a simple function definition: f(x) = x * 2.0
-fn make_times_two() -> FunctionDefinition {
-    FunctionDefinition {
-        name: "times_two",
-        arity: 1..=1,
-        eval: |args| args.first().map(|x| x * 2.0),
-        derivative: |_, _| Expr::number(2.0),
-    }
-}
-
-/// Helper to create a simple function definition: add(a, b) = a + b
-fn make_add_custom() -> FunctionDefinition {
-    FunctionDefinition {
-        name: "add_custom",
-        arity: 2..=2,
-        eval: |args| {
-            if args.len() == 2 {
-                Some(args[0] + args[1])
-            } else {
-                None
-            }
-        },
-        derivative: |_, _| Expr::number(0.0), // Dummy derivative
-    }
-}
+use crate::core::unified_context::Context;
 
 #[test]
 fn test_context_registration() {
-    let ctx = FunctionContext::new();
-    assert!(ctx.is_empty());
+    use crate::core::unified_context::UserFunction;
 
-    let def = make_times_two();
-    ctx.register("times_two", def).unwrap();
-    assert_eq!(ctx.len(), 1);
+    // times_two(x) = 2*x  (body is symbolic Expr)
+    let user_fn = UserFunction::new(1..=1)
+        .body(|args| 2.0 * (*args[0]).clone())
+        .partial(0, |_args| Expr::number(2.0))
+        .expect("valid arg");
 
-    // Verify lookup via ID
-    let sym = crate::core::symbol::symb("times_two");
-    let fetched = ctx.get(sym.id()).expect("Should find registered function");
-    assert_eq!(fetched.name, "times_two");
+    let ctx = Context::new().with_function("times_two", user_fn);
+
+    // Verify the function is registered
+    assert!(ctx.has_function("times_two"));
 }
 
 #[test]
 fn test_context_isolation() {
-    let ctx1 = FunctionContext::new();
-    let ctx2 = FunctionContext::new();
+    use crate::core::unified_context::UserFunction;
 
-    ctx1.register("f", make_times_two()).unwrap();
+    // f(x) = 2*x
+    let user_fn = UserFunction::new(1..=1)
+        .body(|args| 2.0 * (*args[0]).clone())
+        .partial(0, |_args| Expr::number(2.0))
+        .expect("valid arg");
 
-    let sym = crate::core::symbol::symb("f");
-    assert!(ctx1.get(sym.id()).is_some());
-    assert!(ctx2.get(sym.id()).is_none());
+    let ctx1 = Context::new().with_function("f", user_fn);
+    let ctx2 = Context::new();
+
+    assert!(ctx1.has_function("f"));
+    assert!(!ctx2.has_function("f"));
 }
 
 #[test]
 fn test_compiled_evaluation_with_context() {
-    let ctx = FunctionContext::new();
-    ctx.register("times_two", make_times_two()).unwrap();
+    use crate::core::unified_context::UserFunction;
+
+    // times_two(x) = 2*x
+    let user_fn = UserFunction::new(1..=1)
+        .body(|args| 2.0 * (*args[0]).clone())
+        .partial(0, |_args| Expr::number(2.0))
+        .expect("valid arg");
+
+    let ctx = Context::new().with_function("times_two", user_fn);
 
     // Expression: times_two(x) + 1
-    // We construct it manually or parse it (if parser supports it)
-    // Since parser support isn't strictly enforced yet, let's build Expr manually
     let x = crate::symb("x");
     let expr = crate::Expr::func("times_two", x) + crate::Expr::number(1.0);
 
@@ -90,8 +75,24 @@ fn test_compiled_evaluation_missing_context() {
 
 #[test]
 fn test_arity_check() {
-    let ctx = FunctionContext::new();
-    ctx.register("add2", make_add_custom()).unwrap();
+    use crate::core::unified_context::UserFunction;
+
+    // add2(x, y) = x + y
+    // Note: the body must handle the case when called with wrong arity during expansion
+    let user_fn = UserFunction::new(2..=2)
+        .body(|args| {
+            if args.len() >= 2 {
+                (*args[0]).clone() + (*args[1]).clone()
+            } else {
+                Expr::number(f64::NAN) // Fallback for invalid arity
+            }
+        })
+        .partial(0, |_args| Expr::number(1.0))
+        .expect("valid arg")
+        .partial(1, |_args| Expr::number(1.0))
+        .expect("valid arg");
+
+    let ctx = Context::new().with_function("add2", user_fn);
 
     // Correct arity: add2(x, y)
     let x = crate::symb("x");
@@ -102,9 +103,11 @@ fn test_arity_check() {
         crate::CompiledEvaluator::compile_with_context(&expr_ok, &["x", "y"], Some(&ctx))
             .expect("Should compile with correct arity");
     let res = evaluator.evaluate(&[2.0, 3.0]);
-    assert_eq!(res, 5.0);
+    assert!((res - 5.0).abs() < 1e-10, "Expected 5.0, got {}", res);
 
     // Incorrect arity: add2(x)
+    // The function won't be expanded because arity doesn't match,
+    // but the compiler should still fail because the external function call remains
     let expr_bad = crate::Expr::func_multi("add2", vec![x.into()]);
     let result = crate::CompiledEvaluator::compile_with_context(&expr_bad, &["x"], Some(&ctx));
     assert!(result.is_err(), "Should fail with invalid arity");

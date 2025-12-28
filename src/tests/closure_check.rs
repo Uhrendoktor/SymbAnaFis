@@ -7,12 +7,12 @@ mod tests {
     fn test_zeta_closure() {
         // d/ds zeta(s) -> zeta_deriv(1, s)
         // d^2/ds^2 zeta(s) -> zeta_deriv(2, s)
-        let d1 = diff("zeta(s)", "s", None, None).unwrap();
+        let d1 = diff("zeta(s)", "s", &[], None).unwrap();
         println!("d1 string: {}", d1);
         assert!(d1.contains("zeta_deriv"));
 
         // Differentiate result again
-        let d2 = diff(&d1, "s", None, None).unwrap();
+        let d2 = diff(&d1, "s", &[], None).unwrap();
         println!("d2 string: {}", d2);
 
         // Evaluate d2 at s=3.0 (safe region)
@@ -29,7 +29,7 @@ mod tests {
         let mut vars = HashMap::new();
         vars.insert("s", 3.0);
 
-        let val = expr.evaluate(&vars);
+        let val = expr.evaluate(&vars, &HashMap::new());
         if let ExprKind::Number(n) = val.kind {
             assert!(n.is_finite());
         } else {
@@ -40,9 +40,9 @@ mod tests {
     #[test]
     fn test_gamma_polygamma_closure() {
         // gamma -> gamma*digamma -> ... -> polygamma
-        let d1 = diff("gamma(x)", "x", None, None).unwrap();
-        let d2 = diff(&d1, "x", None, None).unwrap();
-        let d3 = diff(&d2, "x", None, None).unwrap();
+        let d1 = diff("gamma(x)", "x", &[], None).unwrap();
+        let d2 = diff(&d1, "x", &[], None).unwrap();
+        let d3 = diff(&d2, "x", &[], None).unwrap();
 
         // Should eventually involve polygamma
         // d/dx digamma -> trigamma -> tetragamma -> polygamma(3, x)

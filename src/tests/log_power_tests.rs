@@ -2,13 +2,22 @@
 mod tests {
     use crate::simplification::simplify_expr;
     use crate::{Expr, ExprKind};
+    use std::collections::HashMap;
     use std::collections::HashSet;
 
     #[test]
     fn test_ln_power() {
         // ln(x^2) -> 2 * ln(abs(x)) (mathematically correct for all x ≠ 0)
         let expr = Expr::func("ln", Expr::pow(Expr::symbol("x"), Expr::number(2.0)));
-        let simplified = simplify_expr(expr, HashSet::new());
+        let simplified = simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false,
+        );
 
         // Expected: 2 * ln(abs(x))
         if let ExprKind::Product(factors) = &simplified.kind {
@@ -41,7 +50,15 @@ mod tests {
     fn test_log10_power_odd() {
         // log10(x^3) -> 3 * log10(x) (odd power, no abs needed but assumes x > 0)
         let expr = Expr::func("log10", Expr::pow(Expr::symbol("x"), Expr::number(3.0)));
-        let simplified = simplify_expr(expr, HashSet::new());
+        let simplified = simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false,
+        );
 
         // Expected: 3 * log10(x)
         if let ExprKind::Product(factors) = &simplified.kind {
@@ -65,7 +82,15 @@ mod tests {
     fn test_log10_power_even() {
         // log10(x^4) -> 4 * log10(abs(x)) (even power, needs abs)
         let expr = Expr::func("log10", Expr::pow(Expr::symbol("x"), Expr::number(4.0)));
-        let simplified = simplify_expr(expr, HashSet::new());
+        let simplified = simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false,
+        );
 
         // Expected: 4 * log10(abs(x))
         if let ExprKind::Product(factors) = &simplified.kind {
@@ -94,7 +119,15 @@ mod tests {
     fn test_log2_power() {
         // log2(x^0.5) -> 0.5 * log2(x)
         let expr = Expr::func("log2", Expr::pow(Expr::symbol("x"), Expr::number(0.5)));
-        let simplified = simplify_expr(expr, HashSet::new());
+        let simplified = simplify_expr(
+            expr,
+            HashSet::new(),
+            HashMap::new(),
+            None,
+            None,
+            None,
+            false,
+        );
 
         // Expected: log2(x) / 2
         // Or 0.5 * log2(x)

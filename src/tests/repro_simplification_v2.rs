@@ -7,7 +7,7 @@ mod tests {
         // sigma * sqrt(pi) * sigma^2 -> sigma^3 * sqrt(pi)
         // The issue is that they might be separated by sqrt(pi)
         let expr = "sigma * sqrt(pi) * sigma^2";
-        let simplified = simplify(expr, Some(&["pi", "sigma"]), None).unwrap();
+        let simplified = simplify(expr, &["pi", "sigma"], None).unwrap();
         println!("Quantum Mechanics: {}", simplified);
         // Expect sigma^3 * sqrt(pi) (order might vary, but sigma terms should be combined)
         assert!(simplified.contains("sigma^3"));
@@ -18,7 +18,7 @@ mod tests {
     fn test_heat_conduction_power_expansion() {
         // (x / (2 * sqrt(alpha) * sqrt(t)))^2 -> x^2 / (4 * alpha * t)
         let expr = "(x / (2 * sqrt(alpha) * sqrt(t)))^2";
-        let simplified = simplify(expr, Some(&["alpha", "t"]), None).unwrap();
+        let simplified = simplify(expr, &["alpha", "t"], None).unwrap();
         println!("Heat Conduction: {}", simplified);
         assert_eq!(simplified, "x^2/(4*alpha*t)");
     }
@@ -26,7 +26,7 @@ mod tests {
     fn test_sqrt_combination() {
         // sqrt(2) * sqrt(pi) -> sqrt(2 * pi)
         let expr = "sqrt(2) * sqrt(pi)";
-        let simplified = simplify(expr, Some(&["pi", "sigma"]), None).unwrap();
+        let simplified = simplify(expr, &["pi", "sigma"], None).unwrap();
         println!("Sqrt Combination: {}", simplified);
         assert_eq!(simplified, "sqrt(2*pi)");
     }
@@ -35,7 +35,7 @@ mod tests {
         // sqrt(sigma * sqrt(pi)) / (sigma^3 * sqrt(pi)^0.5 * (pi * sigma)^0.5)
         // This is a complex nested sqrt expression that should simplify
         let expr = "sqrt(sigma * sqrt(pi)) / (sigma^3 * sqrt(pi)^0.5 * (pi * sigma)^0.5)";
-        let simplified = simplify(expr, Some(&["sigma", "pi"]), None).unwrap();
+        let simplified = simplify(expr, &["sigma", "pi"], None).unwrap();
         println!("Nested Sqrt: {}", simplified);
 
         // The expression should simplify to something involving sigma^3 in the denominator
@@ -64,7 +64,7 @@ mod tests {
         // Normal PDF: f(x) = exp(-(x - mu)^2 / (2 * sigma^2)) / sqrt(2 * pi * sigma^2)
         // This caused stack overflow in applications example
         let expr = "exp(-(x - mu)^2 / (2 * sigma^2)) / sqrt(2 * pi * sigma^2)";
-        let simplified = simplify(expr, Some(&["mu", "sigma", "pi"]), None).unwrap();
+        let simplified = simplify(expr, &["mu", "sigma", "pi"], None).unwrap();
         println!("Normal PDF Simplified: {}", simplified);
     }
 }

@@ -6,12 +6,12 @@
 use crate::parser::tokens::{Operator, Token};
 use crate::{DiffError, Expr};
 
-use crate::core::symbol::SymbolContext;
+use crate::core::unified_context::Context;
 
 /// Parse tokens into an AST using Pratt parsing algorithm
 pub(crate) fn parse_expression(
     tokens: &[Token],
-    context: Option<&SymbolContext>,
+    context: Option<&Context>,
 ) -> Result<Expr, DiffError> {
     if tokens.is_empty() {
         return Err(DiffError::UnexpectedEndOfInput);
@@ -29,7 +29,7 @@ pub(crate) fn parse_expression(
 struct Parser<'a> {
     tokens: &'a [Token],
     pos: usize,
-    context: Option<&'a SymbolContext>,
+    context: Option<&'a Context>,
 }
 
 impl<'a> Parser<'a> {
@@ -334,7 +334,7 @@ impl<'a> Parser<'a> {
                     Operator::Sub => Expr::sub_expr(left, right),
                     Operator::Mul => Expr::mul_expr(left, right),
                     Operator::Div => Expr::div_expr(left, right),
-                    Operator::Pow => Expr::pow(left, right),
+                    Operator::Pow => Expr::pow_static(left, right),
                     _ => {
                         return Err(DiffError::invalid_token(format!(
                             "operator '{}'",

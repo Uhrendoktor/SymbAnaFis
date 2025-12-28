@@ -4,8 +4,7 @@
 
 ### Goal
 Improve differentiation performance through targeted optimizations especially on the simplification engine
-
----
+clean architecture as much as possible and make sure it is easy to extend.
 
 ## v0.6.0 - Equation Solving
 
