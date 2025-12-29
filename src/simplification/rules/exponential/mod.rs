@@ -119,13 +119,19 @@ rule!(
     90,
     Exponential,
     &[ExprKind::Function],
-    targets: &["ln", "log10", "log2"],
+    targets: &["ln", "log10", "log2", "log"],
     |expr: &Expr, context: &RuleContext| {
         if let AstKind::FunctionCall { name, args } = &expr.kind
-            && args.len() == 1
-            && (name.id() == *LN || name.id() == *LOG10 || name.id() == *LOG2)
+            && (name.id() == *LN || name.id() == *LOG10 || name.id() == *LOG2 || name.as_str() == "log")
         {
-            let content = &args[0];
+            let content = if args.len() == 1 {
+                &args[0]
+            } else if args.len() == 2 {
+                &args[1]
+            } else {
+                return None;
+            };
+
             // log(x^n) = n * log(x)
             if let AstKind::Pow(base, exp) = &content.kind {
                 // Check if exponent is an even integer
@@ -137,7 +143,11 @@ rule!(
                         // ln(x^2) = 2*ln(|x|) - always correct for x ≠ 0
                         return Some(Expr::product(vec![
                             (**exp).clone(),
-                            Expr::func(name.clone(), Expr::func("abs", (**base).clone())),
+                            match args.len() {
+                                1 => Expr::func_multi_from_arcs_symbol(name.clone(), vec![Arc::new(Expr::func_multi_from_arcs("abs", vec![base.clone()]))]),
+                                2 => Expr::func_multi_from_arcs_symbol(name.clone(), vec![args[0].clone(), Arc::new(Expr::func_multi_from_arcs("abs", vec![base.clone()]))]),
+                                _ => unreachable!(),
+                            }
                         ]));
                     } else if is_odd_int {
                         // ln(x^3) = 3*ln(x) - only valid for x > 0
@@ -152,7 +162,11 @@ rule!(
                         }
                         return Some(Expr::product(vec![
                             (**exp).clone(),
-                            Expr::func(name.clone(), (**base).clone()),
+                            match args.len() {
+                                1 => Expr::func_multi_from_arcs_symbol(name.clone(), vec![base.clone()]),
+                                2 => Expr::func_multi_from_arcs_symbol(name.clone(), vec![args[0].clone(), base.clone()]),
+                                _ => unreachable!(),
+                            }
                         ]));
                     }
                 }
@@ -164,7 +178,11 @@ rule!(
 
                 return Some(Expr::product(vec![
                     (**exp).clone(),
-                    Expr::func(name.clone(), (**base).clone()),
+                    match args.len() {
+                        1 => Expr::func_multi_from_arcs_symbol(name.clone(), vec![base.clone()]),
+                        2 => Expr::func_multi_from_arcs_symbol(name.clone(), vec![args[0].clone(), base.clone()]),
+                        _ => unreachable!(),
+                    }
                 ]));
             }
             // log(sqrt(x)) = 0.5 * log(x) - only for x > 0
@@ -179,7 +197,11 @@ rule!(
                     }
                     return Some(Expr::product(vec![
                         Expr::number(0.5),
-                        Expr::func(name.clone(), (*inner_args[0]).clone()),
+                        match args.len() {
+                            1 => Expr::func_multi_from_arcs_symbol(name.clone(), vec![inner_args[0].clone()]),
+                            2 => Expr::func_multi_from_arcs_symbol(name.clone(), vec![args[0].clone(), inner_args[0].clone()]),
+                            _ => unreachable!(),
+                        }
                     ]));
                 }
                 // log(cbrt(x)) = (1/3) * log(x)
@@ -189,7 +211,11 @@ rule!(
                     }
                     return Some(Expr::product(vec![
                         Expr::div_expr(Expr::number(1.0), Expr::number(3.0)),
-                        Expr::func(name.clone(), (*inner_args[0]).clone()),
+                        match args.len() {
+                            1 => Expr::func_multi_from_arcs_symbol(name.clone(), vec![inner_args[0].clone()]),
+                            2 => Expr::func_multi_from_arcs_symbol(name.clone(), vec![args[0].clone(), inner_args[0].clone()]),
+                            _ => unreachable!(),
+                        }
                     ]));
                 }
             }
@@ -204,12 +230,11 @@ rule!(
     95,
     Exponential,
     &[ExprKind::Function],
-    targets: &["log10", "log2"],
+    targets: &["log10", "log2", "log"],
     |expr: &Expr, _context: &RuleContext| {
-        if let AstKind::FunctionCall { name, args } = &expr.kind
-            && args.len() == 1
-        {
-            if name.id() == *LOG10 {
+        if let AstKind::FunctionCall { name, args } = &expr.kind {
+            if args.len() == 1 {
+                if name.id() == *LOG10 {
                 if matches!(&args[0].kind, AstKind::Number(n) if *n == 1.0) {
                     return Some(Expr::number(0.0));
                 }
@@ -224,6 +249,16 @@ rule!(
                     return Some(Expr::number(1.0));
                 }
             }
+        } else if args.len() == 2 && name.as_str() == "log" {
+            // log(base, 1) = 0
+            if matches!(&args[1].kind, AstKind::Number(n) if *n == 1.0) {
+                 return Some(Expr::number(0.0));
+            }
+            // log(base, base) = 1
+            if args[0] == args[1] {
+                return Some(Expr::number(1.0));
+            }
+        }
         }
         None
     }
@@ -241,7 +276,7 @@ rule!(
             && name.id() == *EXP
             && args.len() == 1
         {
-            return Some(Expr::pow_static(Expr::symbol("e"), (*args[0]).clone()));
+            return Some(Expr::pow_from_arcs(Arc::new(Expr::symbol("e")), args[0].clone()));
         }
         None
     }

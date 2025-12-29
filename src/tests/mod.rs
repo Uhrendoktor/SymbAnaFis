@@ -24,6 +24,7 @@ mod fraction_simplification_tests;
 mod hyperbolic_conversion_tests;
 mod integration_tests;
 mod log_power_tests;
+mod log_simplification_tests;
 mod numerical_accuracy_tests;
 mod power_debug;
 mod power_root_tests;

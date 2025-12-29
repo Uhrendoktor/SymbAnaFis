@@ -371,14 +371,14 @@ These handle logarithmic and exponential function identities.
 
 #### Power Rules (Priority 90)
 
-- **`log_power`** (priority: 90) - Rule for `log(x^n) = n * log(x)`
+- **`log_power`** (priority: 90) - Rule for `ln(x^n) = n * ln(x)` (also supports `log10`, `log2`, and generic `log(b, x)`)
   - For even integer exponents, uses abs: `log(x^2) = 2*log(abs(x))`
   - Respects domain-safe mode for odd exponents
   - Handles Pow correctly
 
 #### Base Values (Priority 95)
 
-- **`log_base_values`** (priority: 95) - Rule for specific log values: `log10(1)=0`, `log10(10)=1`, `log2(1)=0`, `log2(2)=1`
+- **`log_base_values`** (priority: 95) - Rule for specific log values: `log10(1)=0`, `log10(10)=1`, `log2(1)=0`, `log2(2)=1`. Also supports `log(b, 1)=0` and `log(b, b)=1`.
 
 #### Combination (Priority 85)
 

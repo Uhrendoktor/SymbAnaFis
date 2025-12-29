@@ -124,7 +124,7 @@ SymbAnaFis supports over 50 built-in mathematical functions:
 |----------|-------------------|
 | **Trigonometric** | `sin`, `cos`, `tan`, `cot`, `sec`, `csc`, `asin`, `acos`, ... |
 | **Hyperbolic** | `sinh`, `cosh`, `tanh`, `coth`, `asinh`, `acosh`, ... |
-| **Exponential** | `exp`, `ln`, `log10`, `log2`, `pow` |
+| **Exponential** | `exp`, `ln`, `log`, `log10`, `log2`, `pow` |
 | **Special** | `gamma`, `beta`, `erf`, `besselj`, `zeta`, `LambertW` |
 | **Utility** | `sqrt`, `cbrt`, `abs`, `sign`, `floor`, `ceil` |
 

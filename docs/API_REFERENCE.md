@@ -922,7 +922,7 @@ let result = compiled.evaluate(&[3.0]); // 9.0
 | **Inverse Trig** | `asin`, `acos`, `atan`, `acot`, `asec`, `acsc` |
 | **Hyperbolic** | `sinh`, `cosh`, `tanh`, `coth`, `sech`, `csch` |
 | **Inverse Hyperbolic** | `asinh`, `acosh`, `atanh`, `acoth`, `asech`, `acsch` |
-| **Exp/Log** | `exp`, `ln`, `log`, `log10`, `log2`, `exp_polar` |
+| **Exp/Log** | `exp`, `ln`, `log(b, x)`, `log10`, `log2`, `exp_polar` |
 | **Roots** | `sqrt`, `cbrt` |
 | **Error Functions** | `erf`, `erfc` |
 | **Gamma Family** | `gamma`, `digamma`, `trigamma`, `tetragamma`, `polygamma(n, x)`, `beta(a, b)` |
@@ -973,7 +973,7 @@ let result = Diff::new().diff_str("besselj(0, x)", "x")?;
 | Multiplication | `*` | `x * y` |
 | Division | `/` | `x / y` |
 | Power | `^` | `x^2` |
-| Function calls | `name(args)` | `sin(x)`, `log(x, 10)` |
+| Function calls | `name(args)` | `sin(x)`, `log(10, x)` |
 | Constants | `pi`, `e` | Auto-recognized |
 | Implicit mult | Adjacent terms | `2x`, `(x+1)(x-1)` |
 | Partial derivative | `∂_f(x)/∂_x` | Output notation |

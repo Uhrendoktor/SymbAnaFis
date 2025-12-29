@@ -277,7 +277,7 @@ fn part5_all_functions() {
     println!("    asinh(x), acosh(x), atanh(x), acoth(x), asech(x), acsch(x)\n");
 
     println!("  EXPONENTIAL & LOGARITHMIC:");
-    println!("    exp(x), ln(x), log(x), log10(x), log2(x)\n");
+    println!("    exp(x), ln(x), log(b, x), log10(x), log2(x)\n");
 
     println!("  POWERS & ROOTS:");
     println!("    sqrt(x), cbrt(x), x^n, x^(1/n)\n");
