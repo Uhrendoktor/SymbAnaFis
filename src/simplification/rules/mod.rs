@@ -579,11 +579,6 @@ impl RuleRegistry {
             .unwrap_or(&[])
     }
 
-    /// Get rules for a specific function name (Specific + Generic)
-    /// Returns iterator or we need a way to combine them efficiently.
-    /// Since we can't return a reference to a combined slice typically,
-    /// we'll expose specific and generic separately or use a callback in the engine.
-    /// For now, we'll let the engine call two getters.
     #[inline]
     pub fn get_specific_func_rules(&self, func_id: u64) -> &[Arc<dyn Rule + Send + Sync>] {
         self.rules_by_func
