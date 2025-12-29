@@ -28,9 +28,6 @@ use crate::core::traits::MathScalar;
 
 pub mod dual;
 
-#[cfg(test)]
-mod validation;
-
 /// Exponential function for polar representation
 ///
 /// Currently just wraps `exp()`. This function exists as a placeholder
