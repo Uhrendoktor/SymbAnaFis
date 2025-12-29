@@ -9,6 +9,7 @@ rule!(
     95,
     Exponential,
     &[ExprKind::Function],
+    targets: &["ln"],
     |expr: &Expr, _context: &RuleContext| {
         if let AstKind::FunctionCall { name, args } = &expr.kind
             && name.id() == *LN
@@ -27,6 +28,7 @@ rule!(
     95,
     Exponential,
     &[ExprKind::Function],
+    targets: &["ln"],
     |expr: &Expr, context: &RuleContext| {
         if let AstKind::FunctionCall { name, args } = &expr.kind
             && name.id() == *LN
@@ -56,6 +58,7 @@ rule!(
     95,
     Exponential,
     &[ExprKind::Function],
+    targets: &["exp"],
     |expr: &Expr, _context: &RuleContext| {
         if let AstKind::FunctionCall { name, args } = &expr.kind
             && name.id() == *EXP
@@ -68,7 +71,7 @@ rule!(
     }
 );
 
-rule!(ExpLnIdentityRule, "exp_ln_identity", 90, Exponential, &[ExprKind::Function], alters_domain: true, |expr: &Expr, _context: &RuleContext| {
+rule!(ExpLnIdentityRule, "exp_ln_identity", 90, Exponential, &[ExprKind::Function], alters_domain: true, targets: &["exp"], |expr: &Expr, _context: &RuleContext| {
     if let AstKind::FunctionCall { name, args } = &expr.kind
         && name.id() == *EXP
         && args.len() == 1
@@ -84,7 +87,7 @@ rule!(ExpLnIdentityRule, "exp_ln_identity", 90, Exponential, &[ExprKind::Functio
     None
 });
 
-rule!(LnExpIdentityRule, "ln_exp_identity", 90, Exponential, &[ExprKind::Function], alters_domain: true, |expr: &Expr, _context: &RuleContext| {
+rule!(LnExpIdentityRule, "ln_exp_identity", 90, Exponential, &[ExprKind::Function], alters_domain: true, targets: &["ln"], |expr: &Expr, _context: &RuleContext| {
     if let AstKind::FunctionCall { name, args } = &expr.kind
         && name.id() == *LN
         && args.len() == 1
@@ -116,6 +119,7 @@ rule!(
     90,
     Exponential,
     &[ExprKind::Function],
+    targets: &["ln", "log10", "log2"],
     |expr: &Expr, context: &RuleContext| {
         if let AstKind::FunctionCall { name, args } = &expr.kind
             && args.len() == 1
@@ -200,6 +204,7 @@ rule!(
     95,
     Exponential,
     &[ExprKind::Function],
+    targets: &["log10", "log2"],
     |expr: &Expr, _context: &RuleContext| {
         if let AstKind::FunctionCall { name, args } = &expr.kind
             && args.len() == 1
@@ -230,6 +235,7 @@ rule!(
     95,
     Exponential,
     &[ExprKind::Function],
+    targets: &["exp"],
     |expr: &Expr, _context: &RuleContext| {
         if let AstKind::FunctionCall { name, args } = &expr.kind
             && name.id() == *EXP

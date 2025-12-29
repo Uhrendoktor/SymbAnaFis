@@ -502,7 +502,7 @@ fn test_trig_exact_values_extended() {
 
 #[test]
 fn test_double_angle_formulas() {
-    // sin(2x) = 2*sin(x)*cos(x)
+    // sin(2x) stays as sin(2x) - contraction is the canonical form
     let expr = Expr::func(
         "sin",
         Expr::product(vec![Expr::number(2.0), Expr::symbol("x")]),
@@ -516,32 +516,22 @@ fn test_double_angle_formulas() {
         None,
         false,
     );
-    // Should be Product([2, cos(x), sin(x)]) or similar
-    if let ExprKind::Product(factors) = &simplified.kind {
-        let has_2 = factors
-            .iter()
-            .any(|f| matches!(&f.kind, ExprKind::Number(n) if *n == 2.0));
-        let has_sin = factors.iter().any(|f| {
-            if let ExprKind::FunctionCall { name, args } = &f.kind {
-                name.as_str() == "sin" && *args[0] == Expr::symbol("x")
-            } else {
-                false
-            }
-        });
-        let has_cos = factors.iter().any(|f| {
-            if let ExprKind::FunctionCall { name, args } = &f.kind {
-                name.as_str() == "cos" && *args[0] == Expr::symbol("x")
-            } else {
-                false
-            }
-        });
-        assert!(
-            has_2 && has_sin && has_cos,
-            "Expected 2*sin(x)*cos(x), got {:?}",
-            simplified
-        );
+    // Should stay as sin(2*x) (not expand to 2*sin(x)*cos(x))
+    if let ExprKind::FunctionCall { name, args } = &simplified.kind {
+        assert_eq!(name.as_str(), "sin");
+        if let ExprKind::Product(factors) = &args[0].kind {
+            let has_2 = factors
+                .iter()
+                .any(|f| matches!(&f.kind, ExprKind::Number(n) if *n == 2.0));
+            let has_x = factors
+                .iter()
+                .any(|f| matches!(&f.kind, ExprKind::Symbol(s) if s.as_str() == "x"));
+            assert!(has_2 && has_x);
+        } else {
+            panic!("Expected 2*x inside sin");
+        }
     } else {
-        panic!("Expected Product, got {:?}", simplified);
+        panic!("Expected sin(2*x), got {:?}", simplified);
     }
 
     // cos(2x) stays as cos(2x) (no expansion for simplification)

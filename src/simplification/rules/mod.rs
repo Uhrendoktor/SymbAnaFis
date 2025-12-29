@@ -11,181 +11,319 @@ use std::sync::Arc;
 
 /// Macro to define a simplification rule with minimal boilerplate
 ///
-/// Basic usage:
-/// ```no_run
-/// # use symb_anafis::rule;
-/// # use symb_anafis::Expr;
-/// // rule!(RuleName, "rule_name", priority, Category, &[ExprKind::Type], |expr, context| { logic })
-/// ```
-///
-/// With alters_domain:
-/// ```no_run
-/// # use symb_anafis::rule;
-/// // rule!(RuleName, "rule_name", priority, Category, &[ExprKind::Type], alters_domain: true, |expr, context| { logic })
-/// ```
-///
-/// With helper functions (use rule_with_helpers! instead for complex cases)
+/// Supports 4 forms:
+/// - Basic: `rule!(Name, "name", priority, Category, &[ExprKind::...], |expr, ctx| { ... })`
+/// - With targets: `rule!(Name, "name", priority, Category, &[ExprKind::...], targets: &["fn"], |expr, ctx| { ... })`
+/// - With alters_domain: `rule!(Name, "name", priority, Category, &[ExprKind::...], alters_domain: true, |expr, ctx| { ... })`
+/// - Both: `rule!(Name, "name", priority, Category, &[ExprKind::...], alters_domain: true, targets: &["fn"], |expr, ctx| { ... })`
 #[macro_export]
 macro_rules! rule {
-    // Basic form without alters_domain
+    // Basic form
     ($name:ident, $rule_name:expr, $priority:expr, $category:ident, $applies_to:expr, $logic:expr) => {
         pub struct $name;
-
         impl Rule for $name {
             fn name(&self) -> &'static str {
                 $rule_name
             }
-
             fn priority(&self) -> i32 {
                 $priority
             }
-
             fn category(&self) -> RuleCategory {
                 RuleCategory::$category
             }
-
             fn applies_to(&self) -> &'static [ExprKind] {
                 $applies_to
             }
-
             fn apply(
                 &self,
                 expr: &std::sync::Arc<Expr>,
                 context: &RuleContext,
             ) -> Option<std::sync::Arc<Expr>> {
-                // Suppress unused variable warning when context isn't used
                 let _ = context;
-                // Adapter: closure works with &Expr, we wrap result in Arc
                 ($logic)(expr.as_ref(), context).map(std::sync::Arc::new)
             }
         }
     };
-
-    // Form with alters_domain
-    ($name:ident, $rule_name:expr, $priority:expr, $category:ident, $applies_to:expr, alters_domain: $alters:expr, $logic:expr) => {
+    // With targets
+    ($name:ident, $rule_name:expr, $priority:expr, $category:ident, $applies_to:expr, targets: $targets:expr, $logic:expr) => {
         pub struct $name;
-
         impl Rule for $name {
             fn name(&self) -> &'static str {
                 $rule_name
             }
-
             fn priority(&self) -> i32 {
                 $priority
             }
-
             fn category(&self) -> RuleCategory {
                 RuleCategory::$category
             }
-
-            fn alters_domain(&self) -> bool {
-                $alters
-            }
-
             fn applies_to(&self) -> &'static [ExprKind] {
                 $applies_to
             }
-
+            fn target_functions(&self) -> &'static [&'static str] {
+                $targets
+            }
             fn apply(
                 &self,
                 expr: &std::sync::Arc<Expr>,
                 context: &RuleContext,
             ) -> Option<std::sync::Arc<Expr>> {
-                // Suppress unused variable warning when context isn't used
                 let _ = context;
-                // Adapter: closure works with &Expr, we wrap result in Arc
+                ($logic)(expr.as_ref(), context).map(std::sync::Arc::new)
+            }
+        }
+    };
+    // With alters_domain
+    ($name:ident, $rule_name:expr, $priority:expr, $category:ident, $applies_to:expr, alters_domain: $alters:expr, $logic:expr) => {
+        pub struct $name;
+        impl Rule for $name {
+            fn name(&self) -> &'static str {
+                $rule_name
+            }
+            fn priority(&self) -> i32 {
+                $priority
+            }
+            fn category(&self) -> RuleCategory {
+                RuleCategory::$category
+            }
+            fn alters_domain(&self) -> bool {
+                $alters
+            }
+            fn applies_to(&self) -> &'static [ExprKind] {
+                $applies_to
+            }
+            fn apply(
+                &self,
+                expr: &std::sync::Arc<Expr>,
+                context: &RuleContext,
+            ) -> Option<std::sync::Arc<Expr>> {
+                let _ = context;
+                ($logic)(expr.as_ref(), context).map(std::sync::Arc::new)
+            }
+        }
+    };
+    // With alters_domain AND targets
+    ($name:ident, $rule_name:expr, $priority:expr, $category:ident, $applies_to:expr, alters_domain: $alters:expr, targets: $targets:expr, $logic:expr) => {
+        pub struct $name;
+        impl Rule for $name {
+            fn name(&self) -> &'static str {
+                $rule_name
+            }
+            fn priority(&self) -> i32 {
+                $priority
+            }
+            fn category(&self) -> RuleCategory {
+                RuleCategory::$category
+            }
+            fn alters_domain(&self) -> bool {
+                $alters
+            }
+            fn applies_to(&self) -> &'static [ExprKind] {
+                $applies_to
+            }
+            fn target_functions(&self) -> &'static [&'static str] {
+                $targets
+            }
+            fn apply(
+                &self,
+                expr: &std::sync::Arc<Expr>,
+                context: &RuleContext,
+            ) -> Option<std::sync::Arc<Expr>> {
+                let _ = context;
                 ($logic)(expr.as_ref(), context).map(std::sync::Arc::new)
             }
         }
     };
 }
 
-/// Macro for rules that need helper functions defined inside apply()
-/// The helpers block is inserted at the start of apply()
-///
-/// Usage:
-/// ```no_run
-/// # use symb_anafis::rule_with_helpers;
-/// // rule_with_helpers!(RuleName, "rule_name", priority, Category, &[ExprKind::Type],
-/// //     helpers: {
-/// //         fn my_helper(x: &Expr) -> bool { ... }
-/// //     },
-/// //     |expr, context| { logic using my_helper }
-/// // )
-/// ```
+/// Macro to define a simplification rule that returns `Option<Arc<Expr>>` directly.
+/// This avoids unnecessary wrapping when the result is already an Arc.
 #[macro_export]
-macro_rules! rule_with_helpers {
-    ($name:ident, $rule_name:expr, $priority:expr, $category:ident, $applies_to:expr,
-     helpers: { $($helper:item)* },
-     $logic:expr) => {
+macro_rules! rule_arc {
+    // Basic form
+    ($name:ident, $rule_name:expr, $priority:expr, $category:ident, $applies_to:expr, $logic:expr) => {
         pub struct $name;
-
         impl Rule for $name {
             fn name(&self) -> &'static str {
                 $rule_name
             }
-
             fn priority(&self) -> i32 {
                 $priority
             }
-
             fn category(&self) -> RuleCategory {
                 RuleCategory::$category
             }
-
             fn applies_to(&self) -> &'static [ExprKind] {
                 $applies_to
             }
-
-            fn apply(&self, expr: &std::sync::Arc<Expr>, context: &RuleContext) -> Option<std::sync::Arc<Expr>> {
-                // Suppress unused variable warning when context isn't used
+            fn apply(
+                &self,
+                expr: &std::sync::Arc<Expr>,
+                context: &RuleContext,
+            ) -> Option<std::sync::Arc<Expr>> {
                 let _ = context;
+                ($logic)(expr.as_ref(), context)
+            }
+        }
+    };
+    // With targets
+    ($name:ident, $rule_name:expr, $priority:expr, $category:ident, $applies_to:expr, targets: $targets:expr, $logic:expr) => {
+        pub struct $name;
+        impl Rule for $name {
+            fn name(&self) -> &'static str {
+                $rule_name
+            }
+            fn priority(&self) -> i32 {
+                $priority
+            }
+            fn category(&self) -> RuleCategory {
+                RuleCategory::$category
+            }
+            fn applies_to(&self) -> &'static [ExprKind] {
+                $applies_to
+            }
+            fn target_functions(&self) -> &'static [&'static str] {
+                $targets
+            }
+            fn apply(
+                &self,
+                expr: &std::sync::Arc<Expr>,
+                context: &RuleContext,
+            ) -> Option<std::sync::Arc<Expr>> {
+                let _ = context;
+                ($logic)(expr.as_ref(), context)
+            }
+        }
+    };
+    // With alters_domain
+    ($name:ident, $rule_name:expr, $priority:expr, $category:ident, $applies_to:expr, alters_domain: $alters:expr, $logic:expr) => {
+        pub struct $name;
+        impl Rule for $name {
+            fn name(&self) -> &'static str {
+                $rule_name
+            }
+            fn priority(&self) -> i32 {
+                $priority
+            }
+            fn category(&self) -> RuleCategory {
+                RuleCategory::$category
+            }
+            fn alters_domain(&self) -> bool {
+                $alters
+            }
+            fn applies_to(&self) -> &'static [ExprKind] {
+                $applies_to
+            }
+            fn apply(
+                &self,
+                expr: &std::sync::Arc<Expr>,
+                context: &RuleContext,
+            ) -> Option<std::sync::Arc<Expr>> {
+                let _ = context;
+                ($logic)(expr.as_ref(), context)
+            }
+        }
+    };
+    // With alters_domain AND targets
+    ($name:ident, $rule_name:expr, $priority:expr, $category:ident, $applies_to:expr, alters_domain: $alters:expr, targets: $targets:expr, $logic:expr) => {
+        pub struct $name;
+        impl Rule for $name {
+            fn name(&self) -> &'static str {
+                $rule_name
+            }
+            fn priority(&self) -> i32 {
+                $priority
+            }
+            fn category(&self) -> RuleCategory {
+                RuleCategory::$category
+            }
+            fn alters_domain(&self) -> bool {
+                $alters
+            }
+            fn applies_to(&self) -> &'static [ExprKind] {
+                $applies_to
+            }
+            fn target_functions(&self) -> &'static [&'static str] {
+                $targets
+            }
+            fn apply(
+                &self,
+                expr: &std::sync::Arc<Expr>,
+                context: &RuleContext,
+            ) -> Option<std::sync::Arc<Expr>> {
+                let _ = context;
+                ($logic)(expr.as_ref(), context)
+            }
+        }
+    };
+}
 
-                // Helper functions
+/// Macro for rules with helpers that return Option<Arc<Expr>> directly
+#[macro_export]
+macro_rules! rule_with_helpers_arc {
+    // Basic form
+    ($name:ident, $rule_name:expr, $priority:expr, $category:ident, $applies_to:expr, helpers: { $($helper:item)* }, $logic:expr) => {
+        pub struct $name;
+        impl Rule for $name {
+            fn name(&self) -> &'static str { $rule_name }
+            fn priority(&self) -> i32 { $priority }
+            fn category(&self) -> RuleCategory { RuleCategory::$category }
+            fn applies_to(&self) -> &'static [ExprKind] { $applies_to }
+            fn apply(&self, expr: &std::sync::Arc<Expr>, context: &RuleContext) -> Option<std::sync::Arc<Expr>> {
                 $($helper)*
+                let _ = context;
+                ($logic)(expr.as_ref(), context)
+            }
+        }
+    };
+    // With alters_domain
+    ($name:ident, $rule_name:expr, $priority:expr, $category:ident, $applies_to:expr, alters_domain: $alters:expr, helpers: { $($helper:item)* }, $logic:expr) => {
+        pub struct $name;
+        impl Rule for $name {
+            fn name(&self) -> &'static str { $rule_name }
+            fn priority(&self) -> i32 { $priority }
+            fn category(&self) -> RuleCategory { RuleCategory::$category }
+            fn alters_domain(&self) -> bool { $alters }
+            fn applies_to(&self) -> &'static [ExprKind] { $applies_to }
+            fn apply(&self, expr: &std::sync::Arc<Expr>, context: &RuleContext) -> Option<std::sync::Arc<Expr>> {
+                $($helper)*
+                let _ = context;
+                ($logic)(expr.as_ref(), context)
+            }
+        }
+    };
+}
 
-                // Adapter: closure works with &Expr, we wrap result in Arc
+/// Macro for rules with helpers that wrap result in Arc
+#[macro_export]
+macro_rules! rule_with_helpers {
+    // Basic form
+    ($name:ident, $rule_name:expr, $priority:expr, $category:ident, $applies_to:expr, helpers: { $($helper:item)* }, $logic:expr) => {
+        pub struct $name;
+        impl Rule for $name {
+            fn name(&self) -> &'static str { $rule_name }
+            fn priority(&self) -> i32 { $priority }
+            fn category(&self) -> RuleCategory { RuleCategory::$category }
+            fn applies_to(&self) -> &'static [ExprKind] { $applies_to }
+            fn apply(&self, expr: &std::sync::Arc<Expr>, context: &RuleContext) -> Option<std::sync::Arc<Expr>> {
+                let _ = context;
+                $($helper)*
                 ($logic)(expr.as_ref(), context).map(std::sync::Arc::new)
             }
         }
     };
-
     // With alters_domain
-    ($name:ident, $rule_name:expr, $priority:expr, $category:ident, $applies_to:expr,
-     alters_domain: $alters:expr,
-     helpers: { $($helper:item)* },
-     $logic:expr) => {
+    ($name:ident, $rule_name:expr, $priority:expr, $category:ident, $applies_to:expr, alters_domain: $alters:expr, helpers: { $($helper:item)* }, $logic:expr) => {
         pub struct $name;
-
         impl Rule for $name {
-            fn name(&self) -> &'static str {
-                $rule_name
-            }
-
-            fn priority(&self) -> i32 {
-                $priority
-            }
-
-            fn category(&self) -> RuleCategory {
-                RuleCategory::$category
-            }
-
-            fn alters_domain(&self) -> bool {
-                $alters
-            }
-
-            fn applies_to(&self) -> &'static [ExprKind] {
-                $applies_to
-            }
-
+            fn name(&self) -> &'static str { $rule_name }
+            fn priority(&self) -> i32 { $priority }
+            fn category(&self) -> RuleCategory { RuleCategory::$category }
+            fn alters_domain(&self) -> bool { $alters }
+            fn applies_to(&self) -> &'static [ExprKind] { $applies_to }
             fn apply(&self, expr: &std::sync::Arc<Expr>, context: &RuleContext) -> Option<std::sync::Arc<Expr>> {
-                // Suppress unused variable warning when context isn't used
                 let _ = context;
-
-                // Helper functions
                 $($helper)*
-
-                // Adapter: closure works with &Expr, we wrap result in Arc
                 ($logic)(expr.as_ref(), context).map(std::sync::Arc::new)
             }
         }
@@ -241,6 +379,13 @@ pub(crate) trait Rule {
     /// Default: all kinds (for backwards compatibility during migration)
     fn applies_to(&self) -> &'static [ExprKind] {
         ALL_EXPR_KINDS
+    }
+
+    /// Optimized Dispatch: List of function names this rule targets.
+    /// If non-empty, the rule is ONLY checked for FunctionCall nodes with these names.
+    /// If empty, it is checked for ALL FunctionCall nodes (generic rules).
+    fn target_functions(&self) -> &'static [&'static str] {
+        &[]
     }
 
     /// Apply this rule to an expression. Returns Some(new_expr) if transformation applied.
@@ -351,6 +496,11 @@ pub(crate) struct RuleRegistry {
     pub(crate) rules: Vec<Arc<dyn Rule + Send + Sync>>,
     /// Rules indexed by expression kind for fast lookup
     rules_by_kind: HashMap<ExprKind, Vec<Arc<dyn Rule + Send + Sync>>>,
+    /// Rules indexed by function name ID (u64) for O(1) dispatch
+    /// Maps function symbol ID -> List of rules that target it SPECIFICALLY
+    rules_by_func: HashMap<u64, Vec<Arc<dyn Rule + Send + Sync>>>,
+    /// Generic function rules that must run for ALL functions
+    generic_func_rules: Vec<Arc<dyn Rule + Send + Sync>>,
 }
 
 impl RuleRegistry {
@@ -358,6 +508,8 @@ impl RuleRegistry {
         Self {
             rules: Vec::new(),
             rules_by_kind: HashMap::new(),
+            rules_by_func: HashMap::new(),
+            generic_func_rules: Vec::new(),
         }
     }
 
@@ -396,8 +548,26 @@ impl RuleRegistry {
                 if let Some(rules) = self.rules_by_kind.get_mut(&kind) {
                     rules.push(rule.clone());
                 }
+
+                // Special indexing for Function kind
+                if kind == ExprKind::Function {
+                    let targets = rule.target_functions();
+                    if targets.is_empty() {
+                        self.generic_func_rules.push(rule.clone());
+                    } else {
+                        for &fname in targets {
+                            let sym = crate::core::symbol::symb_interned(fname);
+                            self.rules_by_func
+                                .entry(sym.id())
+                                .or_default()
+                                .push(rule.clone());
+                        }
+                    }
+                }
             }
         }
+
+        // Ensure generic rules are also sorted? They are processed in insertion order which is priority sorted.
     }
 
     /// Get only rules that apply to a specific expression kind
@@ -407,5 +577,24 @@ impl RuleRegistry {
             .get(&kind)
             .map(|v| v.as_slice())
             .unwrap_or(&[])
+    }
+
+    /// Get rules for a specific function name (Specific + Generic)
+    /// Returns iterator or we need a way to combine them efficiently.
+    /// Since we can't return a reference to a combined slice typically,
+    /// we'll expose specific and generic separately or use a callback in the engine.
+    /// For now, we'll let the engine call two getters.
+
+    #[inline]
+    pub fn get_specific_func_rules(&self, func_id: u64) -> &[Arc<dyn Rule + Send + Sync>] {
+        self.rules_by_func
+            .get(&func_id)
+            .map(|v| v.as_slice())
+            .unwrap_or(&[])
+    }
+
+    #[inline]
+    pub fn get_generic_func_rules(&self) -> &[Arc<dyn Rule + Send + Sync>] {
+        &self.generic_func_rules
     }
 }

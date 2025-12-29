@@ -50,7 +50,6 @@ pub(crate) fn get_algebraic_rules() -> Vec<Arc<dyn Rule + Send + Sync>> {
         // Expansion rules
         Arc::new(expansion::ExpandPowerForCancellationRule),
         Arc::new(expansion::PowerExpansionRule),
-        Arc::new(expansion::PolynomialExpansionRule),
         // Factoring rules
         Arc::new(factoring::FractionCancellationRule),
         Arc::new(factoring::PerfectSquareRule),

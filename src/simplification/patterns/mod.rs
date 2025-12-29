@@ -4,36 +4,7 @@
 
 use crate::{Expr, ExprKind};
 
-/// Common pattern matching utilities for simplification rules
-pub(crate) mod common {
-    use super::*;
-
-    /// Extract coefficient and base from a multiplication term
-    /// Returns (coefficient, base) where base is normalized
-    pub fn extract_coefficient(expr: &Expr) -> (f64, Expr) {
-        match &expr.kind {
-            ExprKind::Number(n) => (*n, Expr::number(1.0)),
-            ExprKind::Product(factors) => {
-                // Check if first factor is a number coefficient
-                if let Some(first) = factors.first()
-                    && let ExprKind::Number(n) = &first.kind
-                {
-                    // Return coefficient and remaining factors
-                    let rest: Vec<_> = factors.iter().skip(1).map(|f| (**f).clone()).collect();
-                    if rest.is_empty() {
-                        return (*n, Expr::number(1.0));
-                    } else if rest.len() == 1 {
-                        return (*n, rest.into_iter().next().unwrap());
-                    } else {
-                        return (*n, Expr::product(rest));
-                    }
-                }
-                (1.0, expr.clone())
-            }
-            _ => (1.0, expr.clone()),
-        }
-    }
-}
+// Common pattern matching utilities have been moved to helpers.rs
 
 /// Trigonometric pattern matching utilities
 pub(crate) mod trigonometric {

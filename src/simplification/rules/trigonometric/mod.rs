@@ -35,10 +35,10 @@ pub(crate) fn get_trigonometric_rules() -> Vec<Arc<dyn Rule + Send + Sync>> {
         Arc::new(transformations::TrigThreePiOverTwoRule),
         Arc::new(transformations::TrigNegArgRule),
         // Angle-based: double angle, sum/difference, product-to-sum
-        Arc::new(angles::TrigDoubleAngleRule),
         Arc::new(angles::CosDoubleAngleDifferenceRule),
         Arc::new(angles::TrigSumDifferenceRule),
         Arc::new(angles::TrigProductToDoubleAngleRule),
+        Arc::new(angles::SinProductToDoubleAngleRule),
         // Triple angle formulas
         Arc::new(triple_angle::TrigTripleAngleRule),
         // Ratio rules: convert fractions to canonical trig functions

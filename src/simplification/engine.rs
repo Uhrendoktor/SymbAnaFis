@@ -187,24 +187,28 @@ impl Simplifier {
             return expr;
         }
 
+        // Helper: map over children lazily, only allocating if something changed
+        // Returns Some(new_vec) if any child changed, None otherwise
+        let map_lazy = |items: &[Arc<Expr>], simplifier: &mut Self| -> Option<Vec<Arc<Expr>>> {
+            let mut result: Option<Vec<Arc<Expr>>> = None;
+            for (i, item) in items.iter().enumerate() {
+                let simplified = simplifier.apply_rules_bottom_up(item.clone(), depth + 1);
+                if !Arc::ptr_eq(&simplified, item) && result.is_none() {
+                    let mut v = Vec::with_capacity(items.len());
+                    v.extend(items[..i].iter().cloned());
+                    result = Some(v);
+                }
+                if let Some(ref mut v) = result {
+                    v.push(simplified);
+                }
+            }
+            result
+        };
+
         match &expr.kind {
             // N-ary Sum - simplify all terms
             AstKind::Sum(terms) => {
-                let mut simplified_terms: Option<Vec<Arc<Expr>>> = None;
-
-                for (i, term) in terms.iter().enumerate() {
-                    let simplified = self.apply_rules_bottom_up(term.clone(), depth + 1);
-                    if !Arc::ptr_eq(&simplified, term) && simplified_terms.is_none() {
-                        let mut v = Vec::with_capacity(terms.len());
-                        v.extend(terms[..i].iter().cloned());
-                        simplified_terms = Some(v);
-                    }
-                    if let Some(ref mut v) = simplified_terms {
-                        v.push(simplified);
-                    }
-                }
-
-                if let Some(v) = simplified_terms {
+                if let Some(v) = map_lazy(terms, self) {
                     let new_expr = Arc::new(Expr::sum_from_arcs(v));
                     self.apply_rules_to_node(new_expr, depth)
                 } else {
@@ -214,21 +218,7 @@ impl Simplifier {
 
             // N-ary Product - simplify all factors
             AstKind::Product(factors) => {
-                let mut simplified_factors: Option<Vec<Arc<Expr>>> = None;
-
-                for (i, factor) in factors.iter().enumerate() {
-                    let simplified = self.apply_rules_bottom_up(factor.clone(), depth + 1);
-                    if !Arc::ptr_eq(&simplified, factor) && simplified_factors.is_none() {
-                        let mut v = Vec::with_capacity(factors.len());
-                        v.extend(factors[..i].iter().cloned());
-                        simplified_factors = Some(v);
-                    }
-                    if let Some(ref mut v) = simplified_factors {
-                        v.push(simplified);
-                    }
-                }
-
-                if let Some(v) = simplified_factors {
+                if let Some(v) = map_lazy(factors, self) {
                     let new_expr = Arc::new(Expr::product_from_arcs(v));
                     self.apply_rules_to_node(new_expr, depth)
                 } else {
@@ -259,21 +249,7 @@ impl Simplifier {
                 }
             }
             AstKind::FunctionCall { name, args } => {
-                let mut simplified_args: Option<Vec<Arc<Expr>>> = None;
-
-                for (i, arg) in args.iter().enumerate() {
-                    let simplified = self.apply_rules_bottom_up(arg.clone(), depth + 1);
-                    if !Arc::ptr_eq(&simplified, arg) && simplified_args.is_none() {
-                        let mut v = Vec::with_capacity(args.len());
-                        v.extend(args[..i].iter().cloned());
-                        simplified_args = Some(v);
-                    }
-                    if let Some(ref mut v) = simplified_args {
-                        v.push(simplified);
-                    }
-                }
-
-                if let Some(v) = simplified_args {
+                if let Some(v) = map_lazy(args, self) {
                     let new_expr = Arc::new(Expr::func_multi_from_arcs(name, v));
                     self.apply_rules_to_node(new_expr, depth)
                 } else {
@@ -291,47 +267,69 @@ impl Simplifier {
 
         // Get the expression kind once and only check rules that apply to it
         let kind = ExprKind::of(current.as_ref());
-        let applicable_rules = global_registry().get_rules_for_kind(kind);
 
-        for rule in applicable_rules {
-            if self.context.domain_safe && rule.alters_domain() {
-                continue;
-            }
-
-            let rule_name = rule.name();
-
-            // Check per-rule cache using expression ID as key (fast)
-            let cache_key = current.id;
-
-            if let Some(cache) = self.rule_caches.get(rule_name)
-                && let Some(cached_result) = cache.get(&cache_key)
-            {
-                if let Some(new_expr) = cached_result {
-                    current = Arc::clone(new_expr); // Cheap Arc clone!
+        // Helper macro to apply a rule and update current if successful
+        // Returns true if a rule was applied (and we should continue/restart?)
+        // Actually, the original logic didn't restart on success immediately,
+        // it continued to next rule with new expression.
+        // So we just update `current`.
+        macro_rules! try_apply {
+            ($rule:expr) => {
+                if self.context.domain_safe && $rule.alters_domain() {
+                    continue;
                 }
-                // cached_result is Some or None, either way we skip rule application
-                continue;
-            }
 
-            // Apply rule - pass &Arc<Expr>, get Option<Arc<Expr>>
-            let original_id = current.id;
+                let rule_name = $rule.name();
+                let original_id = current.id;
 
-            // Get or create cache for this rule (uses &'static str since rule names are static)
-            let cache = self.rule_caches.entry(rule_name).or_default();
-
-            // Bound memory: clear if exceeding capacity (simple, fast eviction)
-            if cache.len() >= self.cache_capacity {
-                cache.clear();
-            }
-
-            if let Some(new_expr) = rule.apply(&current, &self.context) {
-                if trace_enabled() {
-                    eprintln!("[TRACE] {} : {} => {}", rule_name, current, new_expr);
+                // Check per-rule cache
+                let cache = self.rule_caches.entry(rule_name).or_default();
+                if let Some(res) = cache.get(&original_id) {
+                    if let Some(new_expr) = res {
+                        current = Arc::clone(new_expr);
+                    }
+                    // Cached result (Some or None), skip application
+                    continue;
                 }
-                cache.insert(original_id, Some(Arc::clone(&new_expr)));
-                current = new_expr;
+
+                // Check memory limit validation for cache? (Moved inside to be safe)
+                if cache.len() >= self.cache_capacity {
+                    cache.clear();
+                }
+
+                if let Some(new_expr) = $rule.apply(&current, &self.context) {
+                    if trace_enabled() {
+                        eprintln!("[TRACE] {} : {} => {}", rule_name, current, new_expr);
+                    }
+                    cache.insert(original_id, Some(Arc::clone(&new_expr)));
+                    current = new_expr;
+                } else {
+                    cache.insert(original_id, None);
+                }
+            };
+        }
+
+        if kind == ExprKind::Function {
+            if let AstKind::FunctionCall { name, .. } = &current.kind {
+                let registry = global_registry();
+                let specific = registry.get_specific_func_rules(name.id());
+                let generic = registry.get_generic_func_rules();
+
+                for rule in specific {
+                    try_apply!(rule);
+                }
+                for rule in generic {
+                    try_apply!(rule);
+                }
             } else {
-                cache.insert(original_id, None);
+                // Fallback (should not happen for kind=Function)
+                for rule in global_registry().get_rules_for_kind(kind) {
+                    try_apply!(rule);
+                }
+            }
+        } else {
+            for rule in global_registry().get_rules_for_kind(kind) {
+                try_apply!(rule);
             }
         }
 

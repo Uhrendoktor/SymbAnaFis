@@ -10,6 +10,7 @@ rule!(
     95,
     Hyperbolic,
     &[ExprKind::Function],
+    targets: &["sinh"],
     |expr: &Expr, _context: &RuleContext| {
         if let AstKind::FunctionCall { name, args } = &expr.kind
             && name.id() == *SINH
@@ -28,6 +29,7 @@ rule!(
     95,
     Hyperbolic,
     &[ExprKind::Function],
+    targets: &["cosh"],
     |expr: &Expr, _context: &RuleContext| {
         if let AstKind::FunctionCall { name, args } = &expr.kind
             && name.id() == *COSH
@@ -46,6 +48,7 @@ rule!(
     90,
     Hyperbolic,
     &[ExprKind::Function],
+    targets: &["sinh"],
     |expr: &Expr, _context: &RuleContext| {
         if let AstKind::FunctionCall { name, args } = &expr.kind
             && name.id() == *SINH
@@ -80,6 +83,7 @@ rule!(
     90,
     Hyperbolic,
     &[ExprKind::Function],
+    targets: &["cosh"],
     |expr: &Expr, _context: &RuleContext| {
         if let AstKind::FunctionCall { name, args } = &expr.kind
             && name.id() == *COSH
@@ -108,6 +112,7 @@ rule!(
     90,
     Hyperbolic,
     &[ExprKind::Function],
+    targets: &["tanh"],
     |expr: &Expr, _context: &RuleContext| {
         if let AstKind::FunctionCall { name, args } = &expr.kind
             && name.id() == *TANH
@@ -142,6 +147,7 @@ rule!(
     95,
     Hyperbolic,
     &[ExprKind::Function],
+    targets: &["sinh"],
     |expr: &Expr, _context: &RuleContext| {
         if let AstKind::FunctionCall { name, args } = &expr.kind
             && name.id() == *SINH
@@ -165,6 +171,7 @@ rule!(
     95,
     Hyperbolic,
     &[ExprKind::Function],
+    targets: &["cosh"],
     |expr: &Expr, _context: &RuleContext| {
         if let AstKind::FunctionCall { name, args } = &expr.kind
             && name.id() == *COSH
@@ -188,6 +195,7 @@ rule!(
     95,
     Hyperbolic,
     &[ExprKind::Function],
+    targets: &["tanh"],
     |expr: &Expr, _context: &RuleContext| {
         if let AstKind::FunctionCall { name, args } = &expr.kind
             && name.id() == *TANH

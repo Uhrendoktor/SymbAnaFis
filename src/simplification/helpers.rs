@@ -4,23 +4,11 @@
 //! coefficient extraction, root prettification, and like-term grouping.
 
 use crate::core::known_symbols::{ABS, ABS_CAP, COSH, EXP, PI as PI_SYM, SQRT};
-use crate::core::symbol::InternedSymbol;
+
 use crate::core::traits::EPSILON;
 use crate::{Expr, ExprKind};
 use std::collections::HashSet;
 use std::sync::Arc;
-
-// Extracts (name, arg) for pow of function: name(arg)^power
-pub(crate) fn get_fn_pow_symbol(expr: &Expr, power: f64) -> Option<(InternedSymbol, Expr)> {
-    if let ExprKind::Pow(base, exp) = &expr.kind
-        && matches!(exp.kind, ExprKind::Number(n) if n == power)
-        && let ExprKind::FunctionCall { name, args } = &base.kind
-        && args.len() == 1
-    {
-        return Some((name.clone(), (*args[0]).clone()));
-    }
-    None
-}
 
 // Floating point approx equality used for numeric pattern matching
 pub(crate) fn approx_eq(a: f64, b: f64) -> bool {
@@ -276,6 +264,37 @@ pub(crate) fn extract_coeff(expr: &Expr) -> (f64, Expr) {
             (coeff, base)
         }
         _ => (1.0, expr.clone()),
+    }
+}
+
+/// Helper to extract coefficient and base, returning Arc to avoid deep cloning
+/// Returns (coefficient, Arc<base_expr>)
+pub(crate) fn extract_coeff_arc(expr: &Expr) -> (f64, Arc<Expr>) {
+    match &expr.kind {
+        ExprKind::Number(n) => (*n, Arc::new(Expr::number(1.0))),
+        ExprKind::Product(factors) => {
+            let mut coeff = 1.0;
+            let mut non_num_arcs = Vec::with_capacity(factors.len());
+
+            for f in factors {
+                if let ExprKind::Number(n) = &f.kind {
+                    coeff *= n;
+                } else {
+                    non_num_arcs.push(f.clone());
+                }
+            }
+
+            let base = if non_num_arcs.is_empty() {
+                Arc::new(Expr::number(1.0))
+            } else if non_num_arcs.len() == 1 {
+                non_num_arcs[0].clone()
+            } else {
+                Arc::new(Expr::product_from_arcs(non_num_arcs))
+            };
+
+            (coeff, base)
+        }
+        _ => (1.0, Arc::new(expr.clone())),
     }
 }
 

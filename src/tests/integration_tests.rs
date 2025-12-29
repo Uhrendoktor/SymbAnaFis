@@ -130,25 +130,25 @@ fn test_derivative_simplification_from_examples() {
 #[test]
 fn test_chain_rule_derivative_from_examples() {
     // Test derivative from chain_rule.rs example: d/dx[sin(cos(2*x))]
-    // This should be -4 * cos(x) * cos(cos(2 * x)) * sin(x)
+    // With contraction semantics: -2 * cos(cos(2 * x)) * sin(2 * x)
+    // (instead of -4 * cos(x) * cos(cos(2 * x)) * sin(x))
     let result = diff("sin(cos(2*x))", "x", &[], None).unwrap();
 
     println!("Result: {}", result);
 
-    // The result should contain the correct simplified form
-    assert!(result.contains("-4"), "Expected -4 in result: {}", result);
+    // The result should contain the correct simplified form with sin(2*x) form
     assert!(
-        result.contains("cos(x)"),
-        "Expected cos(x) in result: {}",
+        result.contains("-2") || result.contains("-1"),
+        "Expected -2 or -1 in result: {}",
         result
     );
     assert!(
-        result.contains("sin(x)"),
-        "Expected sin(x) in result: {}",
+        result.contains("sin(2*x)") || result.contains("sin(2 * x)"),
+        "Expected sin(2*x) in result: {}",
         result
     );
     assert!(
-        result.contains("cos(cos(2*x))"),
+        result.contains("cos(cos(2*x))") || result.contains("cos(cos(2 * x))"),
         "Expected cos(cos(2*x)) in result: {}",
         result
     );

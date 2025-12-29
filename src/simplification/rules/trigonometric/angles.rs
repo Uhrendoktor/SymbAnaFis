@@ -1,40 +1,41 @@
 use crate::core::expr::{Expr, ExprKind as AstKind};
 use crate::core::known_symbols::{COS, SIN, get_symbol};
-use crate::simplification::helpers;
-use crate::simplification::patterns::common::extract_coefficient;
+use crate::core::symbol::InternedSymbol;
+
+use crate::simplification::helpers::extract_coeff_arc;
 use crate::simplification::rules::{ExprKind, Rule, RuleCategory, RuleContext};
+use std::sync::Arc;
 
-rule!(
-    TrigDoubleAngleRule,
-    "trig_double_angle",
-    85,
-    Trigonometric,
-    &[ExprKind::Function],
-    |expr: &Expr, _context: &RuleContext| {
-        if let AstKind::FunctionCall { name, args } = &expr.kind
-            && name.id() == *SIN
-            && args.len() == 1
-        {
-            let (coeff, rest) = extract_coefficient(&args[0]);
-            if coeff == 2.0 {
-                // sin(2x) = 2*sin(x)*cos(x)
-                return Some(Expr::product(vec![
-                    Expr::number(2.0),
-                    Expr::func_symbol(get_symbol(&SIN), rest.clone()),
-                    Expr::func_symbol(get_symbol(&COS), rest),
-                ]));
-            }
-        }
-        None
-    }
-);
-
-rule!(
+rule_with_helpers_arc!(
     CosDoubleAngleDifferenceRule,
     "cos_double_angle_difference",
     85,
     Trigonometric,
     &[ExprKind::Sum],
+    helpers: {
+        // Helper to extract negated term
+        fn extract_negated_arc(term: &Expr) -> Option<Arc<Expr>> {
+            if let AstKind::Product(factors) = &term.kind
+                && factors.len() == 2
+                && let AstKind::Number(n) = &factors[0].kind
+                && (*n + 1.0).abs() < 1e-10
+            {
+                return Some(factors[1].clone());
+            }
+            None
+        }
+
+        fn get_fn_pow_symbol_arc(expr: &Expr, power: f64) -> Option<(InternedSymbol, Arc<Expr>)> {
+            if let AstKind::Pow(base, exp) = &expr.kind
+                && matches!(exp.kind, AstKind::Number(n) if n == power)
+                && let AstKind::FunctionCall { name, args } = &base.kind
+                && args.len() == 1
+            {
+                return Some((name.clone(), args[0].clone()));
+            }
+            None
+        }
+    },
     |expr: &Expr, _context: &RuleContext| {
         if let AstKind::Sum(terms) = &expr.kind
             && terms.len() == 2
@@ -43,61 +44,70 @@ rule!(
             let t1 = &terms[0];
             let t2 = &terms[1];
 
-            // Helper to extract negated term
-            fn extract_negated(term: &Expr) -> Option<Expr> {
-                if let AstKind::Product(factors) = &term.kind
-                    && factors.len() == 2
-                    && let AstKind::Number(n) = &factors[0].kind
-                    && (*n + 1.0).abs() < 1e-10
-                {
-                    return Some((*factors[1]).clone());
-                }
-                None
-            }
-
             // Try t1 = cos^2(x), t2 = -sin^2(x)
             if let (Some((name1, arg1)), Some(negated)) =
-                (helpers::get_fn_pow_symbol(t1, 2.0), extract_negated(t2))
+                (get_fn_pow_symbol_arc(t1, 2.0), extract_negated_arc(t2))
                 && name1.id() == *COS
-                && let Some((name2, arg2)) = helpers::get_fn_pow_symbol(&negated, 2.0)
+                && let Some((name2, arg2)) = get_fn_pow_symbol_arc(&negated, 2.0)
                 && name2.id() == *SIN
                 && arg1 == arg2
             {
                 // cos^2(x) - sin^2(x) = cos(2x)
-                return Some(Expr::func_symbol(
+                let arg_doubled = Arc::new(Expr::product_from_arcs(vec![
+                    Arc::new(Expr::number(2.0)),
+                    arg1
+                ]));
+                return Some(Arc::new(Expr::func_multi_from_arcs_symbol(
                     get_symbol(&COS),
-                    Expr::product(vec![Expr::number(2.0), arg1]),
-                ));
+                    vec![arg_doubled],
+                )));
             }
 
             // Try t1 = sin^2(x), t2 = -cos^2(x)
             if let (Some((name1, arg1)), Some(negated)) =
-                (helpers::get_fn_pow_symbol(t1, 2.0), extract_negated(t2))
+                (get_fn_pow_symbol_arc(t1, 2.0), extract_negated_arc(t2))
                 && name1.id() == *SIN
-                && let Some((name2, arg2)) = helpers::get_fn_pow_symbol(&negated, 2.0)
+                && let Some((name2, arg2)) = get_fn_pow_symbol_arc(&negated, 2.0)
                 && name2.id() == *COS
                 && arg1 == arg2
             {
                 // sin^2(x) - cos^2(x) = -cos(2x)
-                return Some(Expr::product(vec![
-                    Expr::number(-1.0),
-                    Expr::func_symbol(
-                        get_symbol(&COS),
-                        Expr::product(vec![Expr::number(2.0), arg1]),
-                    ),
+                let arg_doubled = Arc::new(Expr::product_from_arcs(vec![
+                    Arc::new(Expr::number(2.0)),
+                    arg1
                 ]));
+                let cos_expr = Arc::new(Expr::func_multi_from_arcs_symbol(
+                    get_symbol(&COS),
+                    vec![arg_doubled],
+                ));
+                return Some(Arc::new(Expr::product_from_arcs(vec![
+                    Arc::new(Expr::number(-1.0)),
+                    cos_expr,
+                ])));
             }
         }
         None
     }
 );
 
-rule!(
+rule_with_helpers_arc!(
     TrigSumDifferenceRule,
     "trig_sum_difference",
     70,
     Trigonometric,
     &[ExprKind::Sum],
+    helpers: {
+        fn get_fn_pow_symbol_arc(expr: &Expr, power: f64) -> Option<(InternedSymbol, Arc<Expr>)> {
+            if let AstKind::Pow(base, exp) = &expr.kind
+                && matches!(exp.kind, AstKind::Number(n) if n == power)
+                && let AstKind::FunctionCall { name, args } = &base.kind
+                && args.len() == 1
+            {
+                return Some((name.clone(), args[0].clone()));
+            }
+            None
+        }
+    },
     |expr: &Expr, _context: &RuleContext| {
         // k*sin(x)cos(y) + k*cos(x)sin(y) = k*sin(x+y)
         // k*sin(x)cos(y) - k*cos(x)sin(y) = k*sin(x-y)
@@ -107,20 +117,20 @@ rule!(
             let u = &terms[0];
             let v = &terms[1];
 
-            let (c1, r1) = extract_coefficient(u);
-            let (c2, r2) = extract_coefficient(v);
+            let (c1, r1) = extract_coeff_arc(u);
+            let (c2, r2) = extract_coeff_arc(v);
 
             // Helper to check if expr is exactly sin(a)*cos(b)
             // Returns Some((a, b))
-            let parse_sin_cos = |e: &Expr| -> Option<(Expr, Expr)> {
+            let parse_sin_cos = |e: &Expr| -> Option<(Arc<Expr>, Arc<Expr>)> {
                 // Helper to get name/arg from FunctionCall OR Pow(FunctionCall, 1)
-                let get_op = |t: &Expr| -> Option<(crate::core::symbol::InternedSymbol, Expr)> {
+                let get_op = |t: &Expr| -> Option<(InternedSymbol, Arc<Expr>)> {
                     if let AstKind::FunctionCall { name, args } = &t.kind
                         && args.len() == 1
                     {
-                        return Some((name.clone(), (*args[0]).clone()));
+                        return Some((name.clone(), args[0].clone()));
                     }
-                    helpers::get_fn_pow_symbol(t, 1.0)
+                    get_fn_pow_symbol_arc(t, 1.0)
                 };
 
                 if let AstKind::Product(factors) = &e.kind
@@ -145,29 +155,29 @@ rule!(
             // We need to identify x and y consistently
             if let (Some((x1, y1)), Some((x2, y2))) = (parse_sin_cos(&r1), parse_sin_cos(&r2)) {
                 // Check logic for sin(x+y): needs sin(x)cos(y) + sin(y)cos(x)
-                // r1 has (x1, y1) -> sin(x1)cos(y1)
-                // r2 has (x2, y2) -> sin(x2)cos(y2)
-                // We need x2=y1 and y2=x1
-
                 if x1 == y2 && y1 == x2 {
                     // Found terms: sin(x)cos(y) and sin(y)cos(x) (aka cos(x)sin(y))
                     if (c1 - c2).abs() < 1e-10 {
                         // c1 == c2: k * sin(x+y)
-                        return Some(Expr::product(vec![
-                            Expr::number(c1),
-                            Expr::func_symbol(get_symbol(&SIN), Expr::sum(vec![x1, y1])),
-                        ]));
+                        return Some(Arc::new(Expr::product_from_arcs(vec![
+                            Arc::new(Expr::number(c1)),
+                            Arc::new(Expr::func_multi_from_arcs_symbol(get_symbol(&SIN), vec![
+                                Arc::new(Expr::sum_from_arcs(vec![x1, y1]))
+                            ])),
+                        ])));
                     } else if (c1 + c2).abs() < 1e-10 {
                         // c1 == -c2: k * sin(x-y)
-                        // Term 1 is k*sin(x)cos(y). Term 2 is -k*cos(x)sin(y).
                         // Result is k*sin(x-y)
-                        return Some(Expr::product(vec![
-                            Expr::number(c1),
-                            Expr::func_symbol(
+                        return Some(Arc::new(Expr::product_from_arcs(vec![
+                            Arc::new(Expr::number(c1)),
+                            Arc::new(Expr::func_multi_from_arcs_symbol(
                                 get_symbol(&SIN),
-                                Expr::sum(vec![x1, Expr::product(vec![Expr::number(-1.0), y1])]),
-                            ),
-                        ]));
+                                vec![Arc::new(Expr::sum_from_arcs(vec![
+                                    x1,
+                                    Arc::new(Expr::product_from_arcs(vec![Arc::new(Expr::number(-1.0)), y1]))
+                                ]))]
+                            )),
+                        ])));
                     }
                 }
             }
@@ -216,16 +226,16 @@ fn is_sin(expr: &Expr) -> bool {
     matches!(&expr.kind, AstKind::FunctionCall { name, args } if name.id() == *SIN && args.len() == 1)
 }
 
-fn get_cos_arg(expr: &Expr) -> Option<Expr> {
+fn get_cos_arg_arc(expr: &Expr) -> Option<Arc<Expr>> {
     if let AstKind::FunctionCall { name, args } = &expr.kind {
         if name.id() == *COS && args.len() == 1 {
-            Some((*args[0]).clone())
+            Some(args[0].clone())
         } else {
             None
         }
     } else if let AstKind::Sum(terms) = &expr.kind {
         if !terms.is_empty() {
-            get_cos_arg(&terms[0])
+            get_cos_arg_arc(&terms[0])
         } else {
             None
         }
@@ -234,10 +244,10 @@ fn get_cos_arg(expr: &Expr) -> Option<Expr> {
     }
 }
 
-fn get_sin_arg(expr: &Expr) -> Option<Expr> {
+fn get_sin_arg_arc(expr: &Expr) -> Option<Arc<Expr>> {
     if let AstKind::FunctionCall { name, args } = &expr.kind {
         if name.id() == *SIN && args.len() == 1 {
-            Some((*args[0]).clone())
+            Some(args[0].clone())
         } else {
             None
         }
@@ -250,9 +260,9 @@ fn get_sin_arg(expr: &Expr) -> Option<Expr> {
                 && let AstKind::Number(n) = &factors[0].kind
                 && (*n + 1.0).abs() < 1e-10
             {
-                return get_sin_arg(&factors[1]);
+                return get_sin_arg_arc(&factors[1]);
             }
-            get_sin_arg(second)
+            get_sin_arg_arc(second)
         } else {
             None
         }
@@ -261,7 +271,7 @@ fn get_sin_arg(expr: &Expr) -> Option<Expr> {
     }
 }
 
-rule!(
+rule_arc!(
     TrigProductToDoubleAngleRule,
     "trig_product_to_double_angle",
     90,
@@ -282,16 +292,103 @@ rule!(
                 return None;
             };
 
-            if let Some(arg) = get_cos_arg(cos_minus_sin)
-                && get_cos_arg(cos_plus_sin) == Some(arg.clone())
-                && get_sin_arg(cos_minus_sin) == Some(arg.clone())
-                && get_sin_arg(cos_plus_sin) == Some(arg.clone())
+            if let Some(arg) = get_cos_arg_arc(cos_minus_sin)
+                && get_cos_arg_arc(cos_plus_sin) == Some(arg.clone())
+                && get_sin_arg_arc(cos_minus_sin) == Some(arg.clone())
+                && get_sin_arg_arc(cos_plus_sin) == Some(arg.clone())
             {
                 // (cos(x) - sin(x))(cos(x) + sin(x)) = cos(2x)
-                return Some(Expr::func_symbol(
+                let doubled_arg = Arc::new(Expr::product_from_arcs(vec![
+                    Arc::new(Expr::number(2.0)),
+                    arg,
+                ]));
+                return Some(Arc::new(Expr::func_multi_from_arcs_symbol(
                     get_symbol(&COS),
-                    Expr::product(vec![Expr::number(2.0), arg]),
+                    vec![doubled_arg],
+                )));
+            }
+        }
+        None
+    }
+);
+
+// Contracts k*sin(x)*cos(x) to (k/2)*sin(2*x) for any coefficient k
+// Handles both orderings: sin(x)*cos(x) and cos(x)*sin(x)
+rule_arc!(
+    SinProductToDoubleAngleRule,
+    "sin_product_to_double_angle",
+    90,
+    Trigonometric,
+    &[ExprKind::Product],
+    |expr: &Expr, _context: &RuleContext| {
+        if let AstKind::Product(factors) = &expr.kind {
+            // Look for patterns: k * sin(x) * cos(x) in any order
+            // The identity: sin(x)*cos(x) = sin(2x)/2
+            // So: k * sin(x) * cos(x) = (k/2) * sin(2x)
+
+            let mut coeff = 1.0;
+            let mut sin_arg: Option<Arc<Expr>> = None;
+            let mut cos_arg: Option<Arc<Expr>> = None;
+            let mut other_factors: Vec<Arc<Expr>> = Vec::new();
+
+            for f in factors {
+                match &f.kind {
+                    AstKind::Number(n) => {
+                        coeff *= n;
+                    }
+                    AstKind::FunctionCall { name, args }
+                        if name.id() == *SIN && args.len() == 1 =>
+                    {
+                        if sin_arg.is_some() {
+                            // Multiple sin factors - don't handle
+                            other_factors.push(f.clone());
+                        } else {
+                            sin_arg = Some(args[0].clone());
+                        }
+                    }
+                    AstKind::FunctionCall { name, args }
+                        if name.id() == *COS && args.len() == 1 =>
+                    {
+                        if cos_arg.is_some() {
+                            // Multiple cos factors - don't handle
+                            other_factors.push(f.clone());
+                        } else {
+                            cos_arg = Some(args[0].clone());
+                        }
+                    }
+                    _ => {
+                        other_factors.push(f.clone());
+                    }
+                }
+            }
+
+            // Check if we have sin(x) * cos(x) with same argument
+            if let Some(s_arg) = sin_arg
+                && let Some(c_arg) = cos_arg
+                && s_arg == c_arg
+                && other_factors.is_empty()
+            {
+                // k * sin(x) * cos(x) = (k/2) * sin(2*x)
+                let doubled_arg = Arc::new(Expr::product_from_arcs(vec![
+                    Arc::new(Expr::number(2.0)),
+                    s_arg,
+                ]));
+                let sin_2x = Arc::new(Expr::func_multi_from_arcs_symbol(
+                    get_symbol(&SIN),
+                    vec![doubled_arg],
                 ));
+
+                let new_coeff = coeff / 2.0;
+                if (new_coeff - 1.0).abs() < 1e-10 {
+                    // Coefficient is 1, just return sin(2x)
+                    return Some(sin_2x);
+                } else {
+                    // Return (k/2) * sin(2x)
+                    return Some(Arc::new(Expr::product_from_arcs(vec![
+                        Arc::new(Expr::number(new_coeff)),
+                        sin_2x,
+                    ])));
+                }
             }
         }
         None

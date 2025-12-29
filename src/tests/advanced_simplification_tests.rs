@@ -150,7 +150,8 @@ fn test_nested_trig_simplification() {
         false,
     );
     let result_str = format!("{}", result);
-    assert!(result_str.contains("sin") && result_str.contains("cos") && result_str.contains("2"));
+    // sin(2x) stays as sin(2x) - contraction is the canonical form
+    assert!(result_str.contains("sin") && result_str.contains("2"));
 
     // cos(2x) stays as cos(2x) (no expansion for simplification)
     let expr = parse_expr("cos(2 * x)");

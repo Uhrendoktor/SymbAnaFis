@@ -1,9 +1,11 @@
 use crate::core::expr::{Expr, ExprKind as AstKind};
 use crate::core::known_symbols::{COS, COT, CSC, SEC, SIN, TAN, get_symbol};
-use crate::simplification::helpers;
-use crate::simplification::rules::{ExprKind, Rule, RuleCategory, RuleContext};
+use crate::core::symbol::InternedSymbol;
 
-rule!(
+use crate::simplification::rules::{ExprKind, Rule, RuleCategory, RuleContext};
+use std::sync::Arc;
+
+rule_arc!(
     PythagoreanIdentityRule,
     "pythagorean_identity",
     80,
@@ -37,7 +39,7 @@ rule!(
                 && cos_args.len() == 1
                 && sin_args[0] == cos_args[0]
             {
-                return Some(Expr::number(1.0));
+                return Some(Arc::new(Expr::number(1.0)));
             }
 
             // cos^2(x) + sin^2(x) = 1
@@ -61,19 +63,43 @@ rule!(
                 && sin_args.len() == 1
                 && cos_args[0] == sin_args[0]
             {
-                return Some(Expr::number(1.0));
+                return Some(Arc::new(Expr::number(1.0)));
             }
         }
         None
     }
 );
 
-rule!(
+rule_with_helpers_arc!(
     PythagoreanComplementsRule,
     "pythagorean_complements",
     70,
     Trigonometric,
     &[ExprKind::Sum],
+    helpers: {
+         // Helper to extract negated term from Product([-1, x])
+        fn extract_negated(term: &Expr) -> Option<Arc<Expr>> {
+            if let AstKind::Product(factors) = &term.kind
+                && factors.len() == 2
+                && let AstKind::Number(n) = &factors[0].kind
+                && (*n + 1.0).abs() < 1e-10
+            {
+                return Some(factors[1].clone());
+            }
+            None
+        }
+
+        fn get_fn_pow_symbol_arc(expr: &Expr, power: f64) -> Option<(InternedSymbol, Arc<Expr>)> {
+            if let AstKind::Pow(base, exp) = &expr.kind
+                && matches!(exp.kind, AstKind::Number(n) if n == power)
+                && let AstKind::FunctionCall { name, args } = &base.kind
+                && args.len() == 1
+            {
+                return Some((name.clone(), args[0].clone()));
+            }
+            None
+        }
+    },
     |expr: &Expr, _context: &RuleContext| {
         // 1 - cos^2(x) = sin^2(x)
         // 1 - sin^2(x) = cos^2(x)
@@ -83,37 +109,25 @@ rule!(
             let lhs = &terms[0];
             let rhs = &terms[1];
 
-            // Helper to extract negated term from Product([-1, x])
-            fn extract_negated(term: &Expr) -> Option<Expr> {
-                if let AstKind::Product(factors) = &term.kind
-                    && factors.len() == 2
-                    && let AstKind::Number(n) = &factors[0].kind
-                    && (*n + 1.0).abs() < 1e-10
-                {
-                    return Some((*factors[1]).clone());
-                }
-                None
-            }
-
             // 1 + (-cos^2(x)) = sin^2(x)
             if matches!(&lhs.kind, AstKind::Number(n) if *n == 1.0)
                 && let Some(negated) = extract_negated(rhs)
             {
-                if let Some((name, arg)) = helpers::get_fn_pow_symbol(&negated, 2.0)
+                if let Some((name, arg)) = get_fn_pow_symbol_arc(&negated, 2.0)
                     && name.id() == *COS
                 {
-                    return Some(Expr::pow_static(
-                        Expr::func_symbol(get_symbol(&SIN), arg),
+                    return Some(Arc::new(Expr::pow_static(
+                        Expr::func_symbol(get_symbol(&SIN), arg.as_ref().clone()),
                         Expr::number(2.0),
-                    ));
+                    )));
                 }
-                if let Some((name, arg)) = helpers::get_fn_pow_symbol(&negated, 2.0)
+                if let Some((name, arg)) = get_fn_pow_symbol_arc(&negated, 2.0)
                     && name.id() == *SIN
                 {
-                    return Some(Expr::pow_static(
-                        Expr::func_symbol(get_symbol(&COS), arg),
+                    return Some(Arc::new(Expr::pow_static(
+                        Expr::func_symbol(get_symbol(&COS), arg.as_ref().clone()),
                         Expr::number(2.0),
-                    ));
+                    )));
                 }
             }
 
@@ -121,21 +135,21 @@ rule!(
             if matches!(&rhs.kind, AstKind::Number(n) if *n == 1.0)
                 && let Some(negated) = extract_negated(lhs)
             {
-                if let Some((name, arg)) = helpers::get_fn_pow_symbol(&negated, 2.0)
+                if let Some((name, arg)) = get_fn_pow_symbol_arc(&negated, 2.0)
                     && name.id() == *COS
                 {
-                    return Some(Expr::pow_static(
-                        Expr::func_symbol(get_symbol(&SIN), arg),
+                    return Some(Arc::new(Expr::pow_static(
+                        Expr::func_symbol(get_symbol(&SIN), arg.as_ref().clone()),
                         Expr::number(2.0),
-                    ));
+                    )));
                 }
-                if let Some((name, arg)) = helpers::get_fn_pow_symbol(&negated, 2.0)
+                if let Some((name, arg)) = get_fn_pow_symbol_arc(&negated, 2.0)
                     && name.id() == *SIN
                 {
-                    return Some(Expr::pow_static(
-                        Expr::func_symbol(get_symbol(&COS), arg),
+                    return Some(Arc::new(Expr::pow_static(
+                        Expr::func_symbol(get_symbol(&COS), arg.as_ref().clone()),
                         Expr::number(2.0),
-                    ));
+                    )));
                 }
             }
         }
@@ -143,12 +157,24 @@ rule!(
     }
 );
 
-rule!(
+rule_with_helpers_arc!(
     PythagoreanTangentRule,
     "pythagorean_tangent",
     70,
     Trigonometric,
     &[ExprKind::Sum],
+    helpers: {
+        fn get_fn_pow_symbol_arc(expr: &Expr, power: f64) -> Option<(InternedSymbol, Arc<Expr>)> {
+            if let AstKind::Pow(base, exp) = &expr.kind
+                && matches!(exp.kind, AstKind::Number(n) if n == power)
+                && let AstKind::FunctionCall { name, args } = &base.kind
+                && args.len() == 1
+            {
+                return Some((name.clone(), args[0].clone()));
+            }
+            None
+        }
+    },
     |expr: &Expr, _context: &RuleContext| {
         // tan^2(x) + 1 = sec^2(x)
         // 1 + tan^2(x) = sec^2(x)
@@ -161,47 +187,47 @@ rule!(
             let rhs = &terms[1];
 
             // tan^2(x) + 1 = sec^2(x)
-            if let Some((name, arg)) = helpers::get_fn_pow_symbol(lhs, 2.0)
+            if let Some((name, arg)) = get_fn_pow_symbol_arc(lhs, 2.0)
                 && name.id() == *TAN
                 && matches!(&rhs.kind, AstKind::Number(n) if *n == 1.0)
             {
-                return Some(Expr::pow_static(
-                    Expr::func_symbol(get_symbol(&SEC), arg),
+                return Some(Arc::new(Expr::pow_static(
+                    Expr::func_symbol(get_symbol(&SEC), arg.as_ref().clone()),
                     Expr::number(2.0),
-                ));
+                )));
             }
 
             // 1 + tan^2(x) = sec^2(x)
             if matches!(&lhs.kind, AstKind::Number(n) if *n == 1.0)
-                && let Some((name, arg)) = helpers::get_fn_pow_symbol(rhs, 2.0)
+                && let Some((name, arg)) = get_fn_pow_symbol_arc(rhs, 2.0)
                 && name.id() == *TAN
             {
-                return Some(Expr::pow_static(
-                    Expr::func_symbol(get_symbol(&SEC), arg),
+                return Some(Arc::new(Expr::pow_static(
+                    Expr::func_symbol(get_symbol(&SEC), arg.as_ref().clone()),
                     Expr::number(2.0),
-                ));
+                )));
             }
 
             // cot^2(x) + 1 = csc^2(x)
-            if let Some((name, arg)) = helpers::get_fn_pow_symbol(lhs, 2.0)
+            if let Some((name, arg)) = get_fn_pow_symbol_arc(lhs, 2.0)
                 && name.id() == *COT
                 && matches!(&rhs.kind, AstKind::Number(n) if *n == 1.0)
             {
-                return Some(Expr::pow_static(
-                    Expr::func_symbol(get_symbol(&CSC), arg),
+                return Some(Arc::new(Expr::pow_static(
+                    Expr::func_symbol(get_symbol(&CSC), arg.as_ref().clone()),
                     Expr::number(2.0),
-                ));
+                )));
             }
 
             // 1 + cot^2(x) = csc^2(x)
             if matches!(&lhs.kind, AstKind::Number(n) if *n == 1.0)
-                && let Some((name, arg)) = helpers::get_fn_pow_symbol(rhs, 2.0)
+                && let Some((name, arg)) = get_fn_pow_symbol_arc(rhs, 2.0)
                 && name.id() == *COT
             {
-                return Some(Expr::pow_static(
-                    Expr::func_symbol(get_symbol(&CSC), arg),
+                return Some(Arc::new(Expr::pow_static(
+                    Expr::func_symbol(get_symbol(&CSC), arg.as_ref().clone()),
                     Expr::number(2.0),
-                ));
+                )));
             }
         }
         None

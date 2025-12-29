@@ -18,7 +18,7 @@ rule!(
     }
 );
 
-rule!(
+rule_arc!(
     PowerOneRule,
     "power_one",
     80,
@@ -28,7 +28,7 @@ rule!(
         if let AstKind::Pow(u, v) = &expr.kind
             && matches!(v.kind, AstKind::Number(n) if n == 1.0)
         {
-            return Some((**u).clone());
+            return Some(u.clone());
         }
         None
     }
@@ -56,27 +56,27 @@ rule!(
                         && *num_val == 1.0
                         && (*den_val - *inner_n).abs() < 1e-10
                     {
-                        return Some(Expr::func_multi("abs", vec![(**base).clone()]));
+                        return Some(Expr::func_multi_from_arcs("abs", vec![base.clone()]));
                     }
                     if let AstKind::Number(outer_n) = &v.kind {
                         let product = inner_n * outer_n;
                         if (product - 1.0).abs() < 1e-10 {
-                            return Some(Expr::func_multi("abs", vec![(**base).clone()]));
+                            return Some(Expr::func_multi_from_arcs("abs", vec![base.clone()]));
                         }
                     }
                 }
             }
 
             // Create new exponent: exp_inner * v using Product
-            let new_exp = Expr::product(vec![(**exp_inner).clone(), (**v).clone()]);
+            let new_exp = Expr::product_from_arcs(vec![exp_inner.clone(), v.clone()]);
 
-            return Some(Expr::pow((**base).clone(), new_exp));
+            return Some(Expr::pow_from_arcs(base.clone(), Arc::new(new_exp)));
         }
         None
     }
 );
 
-rule!(
+rule_arc!(
     PowerProductRule,
     "power_product",
     75,
@@ -92,7 +92,7 @@ rule!(
                     }
 
                     // Helper to build result
-                    let build_result = |combined: Expr| -> Option<Expr> {
+                    let build_result = |combined: Expr| -> Option<Arc<Expr>> {
                         let mut new_factors: Vec<Arc<Expr>> = factors
                             .iter()
                             .enumerate()
@@ -103,12 +103,9 @@ rule!(
 
                         if new_factors.len() == 1 {
                             let arc = new_factors.into_iter().next().unwrap();
-                            Some(match Arc::try_unwrap(arc) {
-                                Ok(e) => e,
-                                Err(a) => (*a).clone(),
-                            })
+                            Some(arc)
                         } else {
-                            Some(Expr::product_from_arcs(new_factors))
+                            Some(Arc::new(Expr::product_from_arcs(new_factors)))
                         }
                     };
 
@@ -118,8 +115,8 @@ rule!(
                         && base_1 == base_2
                     {
                         // Combine: x^a * x^b = x^(a+b)
-                        let new_exp = Expr::sum(vec![(**exp_1).clone(), (**exp_2).clone()]);
-                        let combined = Expr::pow((**base_1).clone(), new_exp);
+                        let new_exp = Expr::sum_from_arcs(vec![exp_1.clone(), exp_2.clone()]);
+                        let combined = Expr::pow_from_arcs(base_1.clone(), Arc::new(new_exp));
                         return build_result(combined);
                     }
 
@@ -127,16 +124,18 @@ rule!(
                     if let AstKind::Pow(base_1, exp_1) = &f1.kind
                         && **base_1 == **f2
                     {
-                        let new_exp = Expr::sum(vec![(**exp_1).clone(), Expr::number(1.0)]);
-                        let combined = Expr::pow((**base_1).clone(), new_exp);
+                        let new_exp =
+                            Expr::sum_from_arcs(vec![exp_1.clone(), Arc::new(Expr::number(1.0))]);
+                        let combined = Expr::pow_from_arcs(base_1.clone(), Arc::new(new_exp));
                         return build_result(combined);
                     }
 
                     if let AstKind::Pow(base_2, exp_2) = &f2.kind
                         && **base_2 == **f1
                     {
-                        let new_exp = Expr::sum(vec![Expr::number(1.0), (**exp_2).clone()]);
-                        let combined = Expr::pow((**base_2).clone(), new_exp);
+                        let new_exp =
+                            Expr::sum_from_arcs(vec![Arc::new(Expr::number(1.0)), exp_2.clone()]);
+                        let combined = Expr::pow_from_arcs(base_2.clone(), Arc::new(new_exp));
                         return build_result(combined);
                     }
                 }
@@ -159,31 +158,35 @@ rule!(
                 && base_u == base_v
             {
                 // x^a / x^b = x^(a-b) = x^(a + (-1)*b)
-                let neg_exp_v = Expr::product(vec![Expr::number(-1.0), (**exp_v).clone()]);
-                let new_exp = Expr::sum(vec![(**exp_u).clone(), neg_exp_v]);
-                return Some(Expr::pow((**base_u).clone(), new_exp));
+                let neg_exp_v =
+                    Expr::product_from_arcs(vec![Arc::new(Expr::number(-1.0)), exp_v.clone()]);
+                let new_exp = Expr::sum_from_arcs(vec![exp_u.clone(), Arc::new(neg_exp_v)]);
+                return Some(Expr::pow_from_arcs(base_u.clone(), Arc::new(new_exp)));
             }
             // Check if numerator is a power and denominator is the same base
             if let AstKind::Pow(base_u, exp_u) = &u.kind
                 && base_u == v
             {
-                let new_exp = Expr::sum(vec![(**exp_u).clone(), Expr::number(-1.0)]);
-                return Some(Expr::pow((**base_u).clone(), new_exp));
+                let new_exp =
+                    Expr::sum_from_arcs(vec![exp_u.clone(), Arc::new(Expr::number(-1.0))]);
+                return Some(Expr::pow_from_arcs(base_u.clone(), Arc::new(new_exp)));
             }
             // Check if denominator is a power and numerator is the same base
             if let AstKind::Pow(base_v, exp_v) = &v.kind
                 && base_v == u
             {
-                let neg_exp = Expr::product(vec![Expr::number(-1.0), (**exp_v).clone()]);
-                let new_exp = Expr::sum(vec![Expr::number(1.0), neg_exp]);
-                return Some(Expr::pow((**base_v).clone(), new_exp));
+                let neg_exp =
+                    Expr::product_from_arcs(vec![Arc::new(Expr::number(-1.0)), exp_v.clone()]);
+                let new_exp =
+                    Expr::sum_from_arcs(vec![Arc::new(Expr::number(1.0)), Arc::new(neg_exp)]);
+                return Some(Expr::pow_from_arcs(base_v.clone(), Arc::new(new_exp)));
             }
         }
         None
     }
 );
 
-rule!(
+rule_arc!(
     PowerCollectionRule,
     "power_collection",
     60,
@@ -193,20 +196,20 @@ rule!(
         if let AstKind::Product(factors) = &expr.kind {
             // Group by base
             use std::collections::HashMap;
-            let mut base_to_exponents: HashMap<Expr, Vec<Expr>> = HashMap::new();
+            let mut base_to_exponents: HashMap<Arc<Expr>, Vec<Arc<Expr>>> = HashMap::new();
 
             for factor in factors.iter() {
                 if let AstKind::Pow(base, exp) = &factor.kind {
                     base_to_exponents
-                        .entry((**base).clone())
+                        .entry(base.clone())
                         .or_default()
-                        .push((**exp).clone());
+                        .push(exp.clone());
                 } else {
                     // Non-power factor, treat as base^1
                     base_to_exponents
-                        .entry((**factor).clone())
+                        .entry(factor.clone())
                         .or_default()
-                        .push(Expr::number(1.0));
+                        .push(Arc::new(Expr::number(1.0)));
                 }
             }
 
@@ -220,15 +223,18 @@ rule!(
             let mut result_factors = Vec::new();
             for (base, exponents) in base_to_exponents {
                 if exponents.len() == 1 {
-                    if exponents[0] == Expr::number(1.0) {
+                    if let AstKind::Number(n) = exponents[0].kind
+                        && n == 1.0
+                    {
                         result_factors.push(base);
                     } else {
-                        result_factors.push(Expr::pow(base, exponents[0].clone()));
+                        result_factors
+                            .push(Arc::new(Expr::pow_from_arcs(base, exponents[0].clone())));
                     }
                 } else {
                     // Sum all exponents using n-ary Sum
-                    let sum = Expr::sum(exponents);
-                    result_factors.push(Expr::pow(base, sum));
+                    let sum = Expr::sum_from_arcs(exponents);
+                    result_factors.push(Arc::new(Expr::pow_from_arcs(base, Arc::new(sum))));
                 }
             }
 
@@ -236,7 +242,7 @@ rule!(
             if result_factors.len() == 1 {
                 Some(result_factors.into_iter().next().unwrap())
             } else {
-                Some(Expr::product(result_factors))
+                Some(Arc::new(Expr::product_from_arcs(result_factors)))
             }
         } else {
             None
@@ -266,16 +272,14 @@ rule!(
                 }
             }
 
-            return Some(Expr::pow(
-                Expr::div_expr((**base_num).clone(), (**base_den).clone()),
-                (**exp_num).clone(),
-            ));
+            let inner = Expr::div_from_arcs(base_num.clone(), base_den.clone());
+            return Some(Expr::pow_from_arcs(Arc::new(inner), exp_num.clone()));
         }
         None
     }
 );
 
-rule!(
+rule_arc!(
     CommonExponentProductRule,
     "common_exponent_product",
     55,
@@ -327,21 +331,21 @@ rule!(
 
                         // Combine: x^a * y^a = (x*y)^a
                         let combined_base =
-                            Expr::product(vec![(**base_1).clone(), (**base_2).clone()]);
-                        let combined = Expr::pow(combined_base, (**exp_1).clone());
+                            Expr::product_from_arcs(vec![base_1.clone(), base_2.clone()]);
+                        let combined = Expr::pow_from_arcs(Arc::new(combined_base), exp_1.clone());
 
-                        let mut new_factors: Vec<Expr> = factors
+                        let mut new_factors: Vec<Arc<Expr>> = factors
                             .iter()
                             .enumerate()
                             .filter(|(k, _)| *k != i && *k != j)
-                            .map(|(_, f)| (**f).clone())
+                            .map(|(_, f)| f.clone())
                             .collect();
-                        new_factors.push(combined);
+                        new_factors.push(Arc::new(combined));
 
                         if new_factors.len() == 1 {
                             return Some(new_factors.into_iter().next().unwrap());
                         } else {
-                            return Some(Expr::product(new_factors));
+                            return Some(Arc::new(Expr::product_from_arcs(new_factors)));
                         }
                     }
                 }
@@ -363,8 +367,8 @@ rule!(
             if let AstKind::Number(n) = exp.kind
                 && n < 0.0
             {
-                let positive_exp = Expr::number(-n);
-                let denominator = Expr::pow((**base).clone(), positive_exp);
+                let positive_exp = Arc::new(Expr::number(-n));
+                let denominator = Expr::pow_from_arcs(base.clone(), positive_exp);
                 return Some(Expr::div_expr(Expr::number(1.0), denominator));
             }
             // Handle negative fraction exponent: x^(-a/b) -> 1/x^(a/b)
@@ -373,8 +377,8 @@ rule!(
                 && n < 0.0
             {
                 let positive_num = Expr::number(-n);
-                let positive_exp = Expr::div_expr(positive_num, (**den).clone());
-                let denominator = Expr::pow((**base).clone(), positive_exp);
+                let positive_exp = Expr::div_from_arcs(Arc::new(positive_num), den.clone());
+                let denominator = Expr::pow_from_arcs(base.clone(), Arc::new(positive_exp));
                 return Some(Expr::div_expr(Expr::number(1.0), denominator));
             }
             // Handle Product with leading -1: x^(-1 * a * b * ...) -> 1/x^(a*b*...)
@@ -387,11 +391,11 @@ rule!(
                 // Create a new exponent with the remaining factors (excluding -1)
                 let remaining_factors: Vec<Arc<Expr>> = factors[1..].to_vec();
                 let positive_exp = if remaining_factors.len() == 1 {
-                    (*remaining_factors[0]).clone()
+                    remaining_factors[0].clone()
                 } else {
-                    Expr::product_from_arcs(remaining_factors)
+                    Arc::new(Expr::product_from_arcs(remaining_factors))
                 };
-                let denominator = Expr::pow((**base).clone(), positive_exp);
+                let denominator = Expr::pow_from_arcs(base.clone(), positive_exp);
                 return Some(Expr::div_expr(Expr::number(1.0), denominator));
             }
         }
@@ -444,8 +448,8 @@ rule!(
             };
 
             if is_root_exponent || den_would_simplify {
-                let num_pow = Expr::pow((**num).clone(), (**exp).clone());
-                let den_pow = Expr::pow((**den).clone(), (**exp).clone());
+                let num_pow = Expr::pow_from_arcs(num.clone(), exp.clone());
+                let den_pow = Expr::pow_from_arcs(den.clone(), exp.clone());
                 return Some(Expr::div_expr(num_pow, den_pow));
             }
         }

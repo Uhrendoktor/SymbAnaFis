@@ -3,7 +3,7 @@ use crate::simplification::rules::{ExprKind, Rule, RuleCategory, RuleContext};
 use crate::{Expr, ExprKind as AstKind};
 use std::sync::Arc;
 
-rule!(ExpLnRule, "exp_ln", 80, Algebraic, &[ExprKind::Function], alters_domain: true, |expr: &Expr, _context: &RuleContext| {
+rule_arc!(ExpLnRule, "exp_ln", 80, Algebraic, &[ExprKind::Function], alters_domain: true, |expr: &Expr, _context: &RuleContext| {
     if let AstKind::FunctionCall { name, args } = &expr.kind
         && name.id() == *EXP
         && args.len() == 1
@@ -14,12 +14,12 @@ rule!(ExpLnRule, "exp_ln", 80, Algebraic, &[ExprKind::Function], alters_domain: 
         && inner_name.id() == *LN
         && inner_args.len() == 1
     {
-        return Some((*inner_args[0]).clone());
+        return Some(inner_args[0].clone());
     }
     None
 });
 
-rule!(LnExpRule, "ln_exp", 80, Algebraic, &[ExprKind::Function], alters_domain: true, |expr: &Expr, _context: &RuleContext| {
+rule_arc!(LnExpRule, "ln_exp", 80, Algebraic, &[ExprKind::Function], alters_domain: true, |expr: &Expr, _context: &RuleContext| {
     if let AstKind::FunctionCall { name, args } = &expr.kind
         && name.id() == *LN
         && args.len() == 1
@@ -30,12 +30,12 @@ rule!(LnExpRule, "ln_exp", 80, Algebraic, &[ExprKind::Function], alters_domain: 
         && inner_name.id() == *EXP
         && inner_args.len() == 1
     {
-        return Some((*inner_args[0]).clone());
+        return Some(inner_args[0].clone());
     }
     None
 });
 
-rule!(ExpMulLnRule, "exp_mul_ln", 80, Algebraic, &[ExprKind::Function], alters_domain: true, |expr: &Expr, _context: &RuleContext| {
+rule_arc!(ExpMulLnRule, "exp_mul_ln", 80, Algebraic, &[ExprKind::Function], alters_domain: true, |expr: &Expr, _context: &RuleContext| {
     if let AstKind::FunctionCall { name, args } = &expr.kind
         && name.id() == *EXP
         && args.len() == 1
@@ -58,9 +58,14 @@ rule!(ExpMulLnRule, "exp_mul_ln", 80, Algebraic, &[ExprKind::Function], alters_d
                         .map(|(_, f)| f.clone())
                         .collect();
 
-                    let exponent = Expr::product_from_arcs(other_factors);
+                    // Optimize construction: if only 1 factor, unwrap it (arc clone)
+                    let exponent = if other_factors.len() == 1 {
+                        other_factors[0].clone()
+                    } else {
+                        Arc::new(Expr::product_from_arcs(other_factors))
+                    };
 
-                    return Some(Expr::pow((*inner_args[0]).clone(), exponent));
+                    return Some(Arc::new(Expr::pow_from_arcs(inner_args[0].clone(), exponent)));
                 }
             }
         }
@@ -68,21 +73,21 @@ rule!(ExpMulLnRule, "exp_mul_ln", 80, Algebraic, &[ExprKind::Function], alters_d
     None
 });
 
-rule!(EPowLnRule, "e_pow_ln", 85, Algebraic, &[ExprKind::Pow], alters_domain: true, |expr: &Expr, context: &RuleContext| {
+rule_arc!(EPowLnRule, "e_pow_ln", 85, Algebraic, &[ExprKind::Pow], alters_domain: true, |expr: &Expr, context: &RuleContext| {
     if let AstKind::Pow(base, exp) = &expr.kind
         && let AstKind::Symbol(s) = &base.kind
         && s.id() == *E
         && !context.known_symbols.contains("e")
         && let AstKind::FunctionCall { name, args } = &exp.kind
-            && name.id() == *LN
-            && args.len() == 1
-        {
-            return Some((*args[0]).clone());
-        }
+        && name.id() == *LN
+        && args.len() == 1
+    {
+        return Some(args[0].clone());
+    }
     None
 });
 
-rule!(EPowMulLnRule, "e_pow_mul_ln", 85, Algebraic, &[ExprKind::Pow], alters_domain: true, |expr: &Expr, context: &RuleContext| {
+rule_arc!(EPowMulLnRule, "e_pow_mul_ln", 85, Algebraic, &[ExprKind::Pow], alters_domain: true, |expr: &Expr, context: &RuleContext| {
     if let AstKind::Pow(base, exp) = &expr.kind
         && let AstKind::Symbol(s) = &base.kind
         && s.id() == *E
@@ -105,9 +110,13 @@ rule!(EPowMulLnRule, "e_pow_mul_ln", 85, Algebraic, &[ExprKind::Pow], alters_dom
                         .map(|(_, f)| f.clone())
                         .collect();
 
-                    let exponent = Expr::product_from_arcs(other_factors);
+                    let exponent = if other_factors.len() == 1 {
+                        other_factors[0].clone()
+                    } else {
+                        Arc::new(Expr::product_from_arcs(other_factors))
+                    };
 
-                    return Some(Expr::pow((*inner_args[0]).clone(), exponent));
+                    return Some(Arc::new(Expr::pow_from_arcs(inner_args[0].clone(), exponent)));
                 }
             }
         }

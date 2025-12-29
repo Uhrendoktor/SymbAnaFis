@@ -2,7 +2,7 @@ use crate::simplification::rules::{ExprKind, Rule, RuleCategory, RuleContext};
 use crate::{Expr, ExprKind as AstKind};
 use std::sync::Arc;
 
-rule!(
+rule_arc!(
     ProductDivCombinationRule,
     "product_div_combination",
     85,
@@ -23,16 +23,12 @@ rule!(
                     new_numerator_factors.push(num.clone());
 
                     let new_num = if new_numerator_factors.len() == 1 {
-                        let arc = new_numerator_factors.into_iter().next().unwrap();
-                        match Arc::try_unwrap(arc) {
-                            Ok(e) => e,
-                            Err(a) => (*a).clone(),
-                        }
+                        new_numerator_factors[0].clone()
                     } else {
-                        Expr::product_from_arcs(new_numerator_factors)
+                        Arc::new(Expr::product_from_arcs(new_numerator_factors))
                     };
 
-                    return Some(Expr::new(AstKind::Div(Arc::new(new_num), den.clone())));
+                    return Some(Arc::new(Expr::div_from_arcs(new_num, den.clone())));
                 }
             }
         }
@@ -40,23 +36,28 @@ rule!(
     }
 );
 
-rule!(
+rule_arc!(
     CombineTermsRule,
     "combine_terms",
     50,
     Algebraic,
     &[ExprKind::Sum],
     |expr: &Expr, _context: &RuleContext| {
+        // Optimized combine_terms using Arcs and HashMap<Arc<Expr>, f64>
         if let AstKind::Sum(terms) = &expr.kind {
             if terms.len() < 2 {
                 return None;
             }
 
             // Group terms by their base to find combinable terms
-            let mut term_groups: std::collections::HashMap<Expr, f64> =
+            // Use HashMap with Arc<Expr> key to avoid cloning
+            let mut term_groups: std::collections::HashMap<Arc<Expr>, f64> =
                 std::collections::HashMap::new();
+
             for term in terms {
-                let (coeff, base) = crate::simplification::helpers::extract_coeff(term);
+                // Use new extract_coeff_arc helper
+                let (coeff, base) =
+                    crate::simplification::helpers::extract_coeff_arc(term.as_ref());
                 *term_groups.entry(base).or_insert(0.0) += coeff;
             }
 
@@ -70,38 +71,43 @@ rule!(
             for (base, coeff) in term_groups {
                 if coeff == 0.0 {
                     // Drop zero terms
-                } else if coeff == 1.0 {
+                } else if (coeff - 1.0).abs() < 1e-10 {
+                    // 1*base = base
                     result.push(base);
                 } else if let AstKind::Number(n) = &base.kind {
-                    if *n == 1.0 {
-                        result.push(Expr::number(coeff));
+                    if (*n - 1.0).abs() < 1e-10 {
+                        result.push(Arc::new(Expr::number(coeff)));
                     } else {
-                        result.push(Expr::product(vec![Expr::number(coeff), base]));
+                        // number * number -> combined number
+                        result.push(Arc::new(Expr::number(coeff * n)));
                     }
                 } else {
-                    result.push(Expr::product(vec![Expr::number(coeff), base]));
+                    result.push(Arc::new(Expr::product_from_arcs(vec![
+                        Arc::new(Expr::number(coeff)),
+                        base,
+                    ])));
                 }
             }
 
             if result.is_empty() {
-                return Some(Expr::number(0.0));
+                return Some(Arc::new(Expr::number(0.0)));
             }
 
-            // Sort terms for canonical ordering
-            result.sort_by(crate::simplification::helpers::compare_expr);
+            // Sort terms for canonical ordering (requires &Expr)
+            result.sort_by(|a, b| crate::simplification::helpers::compare_expr(a, b));
 
             if result.len() == 1 {
                 return Some(result.into_iter().next().unwrap());
             }
 
-            Some(Expr::sum(result))
+            Some(Arc::new(Expr::sum_from_arcs(result)))
         } else {
             None
         }
     }
 );
 
-rule!(
+rule_arc!(
     CombineFactorsRule,
     "combine_factors",
     58,
@@ -116,22 +122,23 @@ rule!(
             let factors_len = factors.len();
 
             // Group factors by base and combine exponents
-            let mut factor_groups: std::collections::HashMap<Expr, Vec<Expr>> =
+            // Use HashMap<Arc<Expr>, ...> to avoid cloning keys
+            let mut factor_groups: std::collections::HashMap<Arc<Expr>, Vec<Arc<Expr>>> =
                 std::collections::HashMap::new();
 
             for factor in factors {
                 match &factor.kind {
                     AstKind::Pow(base, exp) => {
                         factor_groups
-                            .entry(base.as_ref().clone())
+                            .entry(base.clone())
                             .or_default()
-                            .push(exp.as_ref().clone());
+                            .push(exp.clone());
                     }
                     _ => {
                         factor_groups
-                            .entry((**factor).clone())
+                            .entry(factor.clone())
                             .or_default()
-                            .push(Expr::number(1.0));
+                            .push(Arc::new(Expr::number(1.0)));
                     }
                 }
             }
@@ -140,15 +147,19 @@ rule!(
             let mut combined_factors = Vec::new();
             for (base, exponents) in factor_groups {
                 if exponents.len() == 1 {
-                    if exponents[0] == Expr::number(1.0) {
+                    if let AstKind::Number(n) = &exponents[0].kind
+                        && (*n - 1.0).abs() < 1e-10
+                    {
                         combined_factors.push(base);
                     } else {
-                        combined_factors.push(Expr::pow(base, exponents[0].clone()));
+                        combined_factors
+                            .push(Arc::new(Expr::pow_from_arcs(base, exponents[0].clone())));
                     }
                 } else {
                     // Sum all exponents using n-ary Sum
-                    let total_exp = Expr::sum(exponents);
-                    combined_factors.push(Expr::pow(base, total_exp));
+                    // Need to optimize sum construction? Expr::sum_from_arcs
+                    let total_exp = Arc::new(Expr::sum_from_arcs(exponents));
+                    combined_factors.push(Arc::new(Expr::pow_from_arcs(base, total_exp)));
                 }
             }
 
@@ -156,7 +167,7 @@ rule!(
                 if combined_factors.len() == 1 {
                     Some(combined_factors.into_iter().next().unwrap())
                 } else {
-                    Some(Expr::product(combined_factors))
+                    Some(Arc::new(Expr::product_from_arcs(combined_factors)))
                 }
             } else {
                 None
@@ -280,7 +291,7 @@ fn distribute_factor(factor: &Expr, addends: &[Expr]) -> Vec<Expr> {
         .collect()
 }
 
-rule!(
+rule_arc!(
     CombineLikeTermsInSumRule,
     "combine_like_terms_in_sum",
     52,
@@ -292,25 +303,29 @@ rule!(
                 return None;
             }
 
-            let terms_vec: Vec<Expr> = terms.iter().map(|t| (**t).clone()).collect();
+            // We can work with Arcs directly
+            let terms_vec = terms;
 
             // First pass: collect hashes of non-product-with-sum terms
             let mut existing_hashes: std::collections::HashSet<u64> =
                 std::collections::HashSet::new();
-            for term in &terms_vec {
+            for term in terms_vec {
                 if extract_product_with_sum(term).is_none() {
-                    let (_, base) = crate::simplification::helpers::extract_coeff(term);
+                    let (_, base) =
+                        crate::simplification::helpers::extract_coeff_arc(term.as_ref());
                     existing_hashes.insert(crate::simplification::helpers::get_term_hash(&base));
                 }
             }
 
             // Second pass: expand products that would create combinable terms
-            let mut expanded_terms: Vec<Expr> = Vec::new();
+            let mut expanded_terms: Vec<Arc<Expr>> = Vec::new();
             let mut did_expand = false;
 
-            for term in &terms_vec {
+            for term in terms_vec {
                 if let Some((factor, addends)) = extract_product_with_sum(term) {
-                    // Only expand if factor contains a variable
+                    // factor and addends are Expr (deep copy from helper)
+                    // We can't easily optimize extract_product_with_sum without changing helper signature
+                    // But assume we accept the clone there for now.
                     if contains_variable(&factor) {
                         let distributed = distribute_factor(&factor, &addends);
 
@@ -322,7 +337,7 @@ rule!(
                         });
 
                         if would_combine {
-                            expanded_terms.extend(distributed);
+                            expanded_terms.extend(distributed.into_iter().map(Arc::new));
                             did_expand = true;
                             continue;
                         }
@@ -336,15 +351,16 @@ rule!(
                 if expanded_terms.len() == 1 {
                     return Some(expanded_terms.into_iter().next().unwrap());
                 }
-                return Some(Expr::sum(expanded_terms));
+                return Some(Arc::new(Expr::sum_from_arcs(expanded_terms)));
             }
 
             // Original like-term combination logic
             // Group terms by their structure (ignoring coefficients)
-            let mut like_terms: std::collections::HashMap<u64, Vec<Expr>> =
+            // Use HashMap<u64, Vec<Arc<Expr>>>
+            let mut like_terms: std::collections::HashMap<u64, Vec<Arc<Expr>>> =
                 std::collections::HashMap::new();
 
-            for term in &terms_vec {
+            for term in terms_vec {
                 let key = crate::simplification::helpers::get_term_hash(term);
                 like_terms.entry(key).or_default().push(term.clone());
             }
@@ -361,7 +377,7 @@ rule!(
 
                     for term in group_terms {
                         let (coeff, var_part) =
-                            crate::simplification::helpers::extract_coeff(&term);
+                            crate::simplification::helpers::extract_coeff_arc(term.as_ref());
                         total_coeff += coeff;
                         if base_term.is_none() {
                             base_term = Some(var_part);
@@ -377,19 +393,21 @@ rule!(
                     if (total_coeff - 1.0).abs() < 1e-10 {
                         combined_terms.push(base_term);
                     } else {
-                        combined_terms
-                            .push(Expr::product(vec![Expr::number(total_coeff), base_term]));
+                        combined_terms.push(Arc::new(Expr::product_from_arcs(vec![
+                            Arc::new(Expr::number(total_coeff)),
+                            base_term,
+                        ])));
                     }
                 }
             }
 
             if combined_terms.len() != terms.len() {
                 if combined_terms.is_empty() {
-                    Some(Expr::number(0.0))
+                    Some(Arc::new(Expr::number(0.0)))
                 } else if combined_terms.len() == 1 {
                     Some(combined_terms.into_iter().next().unwrap())
                 } else {
-                    Some(Expr::sum(combined_terms))
+                    Some(Arc::new(Expr::sum_from_arcs(combined_terms)))
                 }
             } else {
                 None

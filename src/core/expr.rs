@@ -599,11 +599,32 @@ impl Expr {
         let mut numeric_sum: f64 = 0.0;
 
         for t in terms {
-            match &t.kind {
-                ExprKind::Sum(inner) => flat.extend(inner.clone()),
-                ExprKind::Number(n) => numeric_sum += n,
-                _ => flat.push(t),
+            // Check for Number
+            if let ExprKind::Number(n) = t.kind {
+                numeric_sum += n;
+                continue;
             }
+
+            // Check for Sum (flattening)
+            if matches!(t.kind, ExprKind::Sum(_)) {
+                // Try to unwrap to avoid cloning inner vector elements
+                match Arc::try_unwrap(t) {
+                    Ok(expr) => {
+                        if let ExprKind::Sum(inner) = expr.kind {
+                            flat.extend(inner);
+                        }
+                    }
+                    Err(arc) => {
+                        if let ExprKind::Sum(inner) = &arc.kind {
+                            flat.extend(inner.iter().cloned());
+                        }
+                    }
+                }
+                continue;
+            }
+
+            // Default: push the Arc directly (move, don't clone)
+            flat.push(t);
         }
 
         // Add accumulated numeric constant at the BEGINNING (canonical order: numbers first)

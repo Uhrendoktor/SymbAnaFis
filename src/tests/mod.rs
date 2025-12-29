@@ -12,7 +12,7 @@ mod debug_factoring_logic;
 mod debug_gaussian_cycle;
 mod debug_issue;
 mod debug_rc;
-mod debug_root;
+pub mod debug_root;
 mod debug_root_issue;
 mod derivative_regressions;
 mod display_precedence_test;

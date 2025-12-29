@@ -3,7 +3,7 @@ use crate::simplification::rules::{ExprKind, Rule, RuleCategory, RuleContext};
 use crate::{Expr, ExprKind as AstKind};
 use std::sync::Arc;
 
-rule!(
+rule_arc!(
     AbsNumericRule,
     "abs_numeric",
     95,
@@ -15,13 +15,13 @@ rule!(
             && args.len() == 1
             && let AstKind::Number(n) = &args[0].kind
         {
-            return Some(Expr::number(n.abs()));
+            return Some(Arc::new(Expr::number(n.abs())));
         }
         None
     }
 );
 
-rule!(
+rule_arc!(
     AbsAbsRule,
     "abs_abs",
     90,
@@ -38,13 +38,13 @@ rule!(
             && (inner_name.id() == *ABS || inner_name.id() == *ABS_CAP)
             && inner_args.len() == 1
         {
-            return Some((*args[0]).clone());
+            return Some(args[0].clone());
         }
         None
     }
 );
 
-rule!(
+rule_arc!(
     AbsNegRule,
     "abs_neg",
     90,
@@ -65,14 +65,14 @@ rule!(
                 // Get the rest of the factors
                 let rest: Vec<Arc<Expr>> = factors.iter().skip(1).cloned().collect();
                 let inner = Expr::product_from_arcs(rest);
-                return Some(Expr::func_symbol(get_symbol(&ABS), inner));
+                return Some(Arc::new(Expr::func_symbol(get_symbol(&ABS), inner)));
             }
         }
         None
     }
 );
 
-rule!(
+rule_arc!(
     AbsSquareRule,
     "abs_square",
     85,
@@ -89,7 +89,7 @@ rule!(
             {
                 // Check if exponent is a positive even integer
                 if *n > 0.0 && n.fract() == 0.0 && (*n as i64) % 2 == 0 {
-                    return Some((*args[0]).clone());
+                    return Some(args[0].clone());
                 }
             }
         }
@@ -97,7 +97,7 @@ rule!(
     }
 );
 
-rule!(
+rule_arc!(
     AbsPowEvenRule,
     "abs_pow_even",
     85,
@@ -113,14 +113,14 @@ rule!(
         {
             // Check if exponent is a positive even integer
             if *n > 0.0 && n.fract() == 0.0 && (*n as i64) % 2 == 0 {
-                return Some(Expr::pow((*args[0]).clone(), exp.as_ref().clone()));
+                return Some(Arc::new(Expr::pow_from_arcs(args[0].clone(), exp.clone())));
             }
         }
         None
     }
 );
 
-rule!(
+rule_arc!(
     SignNumericRule,
     "sign_numeric",
     95,
@@ -133,18 +133,18 @@ rule!(
             && let AstKind::Number(n) = &args[0].kind
         {
             if *n > 0.0 {
-                return Some(Expr::number(1.0));
+                return Some(Arc::new(Expr::number(1.0)));
             } else if *n < 0.0 {
-                return Some(Expr::number(-1.0));
+                return Some(Arc::new(Expr::number(-1.0)));
             } else {
-                return Some(Expr::number(0.0));
+                return Some(Arc::new(Expr::number(0.0)));
             }
         }
         None
     }
 );
 
-rule!(
+rule_arc!(
     SignSignRule,
     "sign_sign",
     90,
@@ -159,13 +159,13 @@ rule!(
             } = &args[0].kind
             && (inner_name.id() == *SIGN || inner_name.id() == *SGN)
         {
-            return Some((*args[0]).clone());
+            return Some(args[0].clone());
         }
         None
     }
 );
 
-rule!(
+rule_arc!(
     SignAbsRule,
     "sign_abs",
     85,
@@ -181,13 +181,13 @@ rule!(
             && (inner_name.id() == *ABS || inner_name.id() == *ABS_CAP)
         {
             // sign(abs(x)) = 1 for x != 0
-            return Some(Expr::number(1.0));
+            return Some(Arc::new(Expr::number(1.0)));
         }
         None
     }
 );
 
-rule!(
+rule_arc!(
     AbsSignMulRule,
     "abs_sign_mul",
     85,
@@ -222,17 +222,17 @@ rule!(
                             && (name2.id() == *ABS || name2.id() == *ABS_CAP);
                         if is_abs_sign || is_sign_abs {
                             // abs(x) * sign(x) = x, replace these two factors with x
-                            let mut new_factors: Vec<Expr> = factors
+                            let mut new_factors: Vec<Arc<Expr>> = factors
                                 .iter()
                                 .enumerate()
                                 .filter(|(k, _)| *k != i && *k != j)
-                                .map(|(_, f)| (**f).clone())
+                                .map(|(_, f)| f.clone())
                                 .collect();
-                            new_factors.push((*args1[0]).clone());
+                            new_factors.push(args1[0].clone());
                             if new_factors.len() == 1 {
                                 return Some(new_factors.into_iter().next().unwrap());
                             } else {
-                                return Some(Expr::product(new_factors));
+                                return Some(Arc::new(Expr::product_from_arcs(new_factors)));
                             }
                         }
                     }

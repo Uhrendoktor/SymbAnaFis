@@ -3,103 +3,110 @@ use crate::core::known_symbols::{COS, COT, CSC, SEC, SIN, SQRT, TAN, get_symbol}
 use crate::simplification::helpers;
 use crate::simplification::rules::{ExprKind, Rule, RuleCategory, RuleContext};
 use std::f64::consts::PI;
+use std::sync::Arc;
 
-rule!(
+rule_arc!(
     SinZeroRule,
     "sin_zero",
     95,
     Trigonometric,
     &[ExprKind::Function],
+    targets: &["sin"],
     |expr: &Expr, _context: &RuleContext| {
         if let AstKind::FunctionCall { name, args } = &expr.kind
             && name.id() == *SIN
             && args.len() == 1
             && matches!(&args[0].kind, AstKind::Number(n) if *n == 0.0)
         {
-            return Some(Expr::number(0.0));
+            return Some(Arc::new(Expr::number(0.0)));
         }
         None
     }
 );
 
-rule!(
+rule_arc!(
     CosZeroRule,
     "cos_zero",
     95,
     Trigonometric,
     &[ExprKind::Function],
+    targets: &["cos"],
     |expr: &Expr, _context: &RuleContext| {
         if let AstKind::FunctionCall { name, args } = &expr.kind
             && name.id() == *COS
             && args.len() == 1
             && matches!(&args[0].kind, AstKind::Number(n) if *n == 0.0)
         {
-            return Some(Expr::number(1.0));
+            return Some(Arc::new(Expr::number(1.0)));
         }
         None
     }
 );
 
-rule!(
+rule_arc!(
     TanZeroRule,
     "tan_zero",
     95,
     Trigonometric,
     &[ExprKind::Function],
+    targets: &["tan"],
     |expr: &Expr, _context: &RuleContext| {
         if let AstKind::FunctionCall { name, args } = &expr.kind
             && name.id() == *TAN
             && args.len() == 1
             && matches!(&args[0].kind, AstKind::Number(n) if *n == 0.0)
         {
-            return Some(Expr::number(0.0));
+            return Some(Arc::new(Expr::number(0.0)));
         }
         None
     }
 );
 
-rule!(
+rule_arc!(
     SinPiRule,
     "sin_pi",
     95,
     Trigonometric,
     &[ExprKind::Function],
+    targets: &["sin"],
     |expr: &Expr, _context: &RuleContext| {
         if let AstKind::FunctionCall { name, args } = &expr.kind
             && name.id() == *SIN
             && args.len() == 1
             && helpers::is_pi(&args[0])
         {
-            return Some(Expr::number(0.0));
+            return Some(Arc::new(Expr::number(0.0)));
         }
         None
     }
 );
 
-rule!(
+rule_arc!(
     CosPiRule,
     "cos_pi",
     95,
     Trigonometric,
     &[ExprKind::Function],
+    targets: &["cos"],
     |expr: &Expr, _context: &RuleContext| {
         if let AstKind::FunctionCall { name, args } = &expr.kind
             && name.id() == *COS
             && args.len() == 1
             && helpers::is_pi(&args[0])
         {
-            return Some(Expr::number(-1.0));
+            return Some(Arc::new(Expr::number(-1.0)));
         }
         None
     }
 );
 
-rule!(
+rule_arc!(
     SinPiOverTwoRule,
     "sin_pi_over_two",
     95,
     Trigonometric,
     &[ExprKind::Function],
+    targets: &["sin"],
     |expr: &Expr, _context: &RuleContext| {
         if let AstKind::FunctionCall { name, args } = &expr.kind
             && name.id() == *SIN
@@ -108,18 +115,19 @@ rule!(
             && helpers::is_pi(num)
             && matches!(&den.kind, AstKind::Number(n) if *n == 2.0)
         {
-            return Some(Expr::number(1.0));
+            return Some(Arc::new(Expr::number(1.0)));
         }
         None
     }
 );
 
-rule!(
+rule_arc!(
     CosPiOverTwoRule,
     "cos_pi_over_two",
     95,
     Trigonometric,
     &[ExprKind::Function],
+    targets: &["cos"],
     |expr: &Expr, _context: &RuleContext| {
         if let AstKind::FunctionCall { name, args } = &expr.kind
             && name.id() == *COS
@@ -128,18 +136,19 @@ rule!(
             && helpers::is_pi(num)
             && matches!(&den.kind, AstKind::Number(n) if *n == 2.0)
         {
-            return Some(Expr::number(0.0));
+            return Some(Arc::new(Expr::number(0.0)));
         }
         None
     }
 );
 
-rule!(
+rule_arc!(
     TrigExactValuesRule,
     "trig_exact_values",
     95,
     Trigonometric,
     &[ExprKind::Function],
+    targets: &["sin", "cos", "tan"],
     |expr: &Expr, _context: &RuleContext| {
         if let AstKind::FunctionCall { name, args } = &expr.kind
             && args.len() == 1
@@ -154,21 +163,21 @@ rule!(
                         || (matches!(&arg.kind, AstKind::Div(num, den) if helpers::is_pi(num) && matches!(&den.kind, AstKind::Number(n) if *n == 6.0)))
                     {
                         return if is_numeric_input {
-                            Some(Expr::number(0.5))
+                            Some(Arc::new(Expr::number(0.5)))
                         } else {
-                            Some(Expr::div_expr(Expr::number(1.0), Expr::number(2.0)))
+                            Some(Arc::new(Expr::div_from_arcs(Arc::new(Expr::number(1.0)), Arc::new(Expr::number(2.0)))))
                         };
                     }
                     if helpers::approx_eq(arg_val, PI / 4.0)
                         || (matches!(&arg.kind, AstKind::Div(num, den) if helpers::is_pi(num) && matches!(&den.kind, AstKind::Number(n) if *n == 4.0)))
                     {
                         return if is_numeric_input {
-                            Some(Expr::number((2.0f64).sqrt() / 2.0))
+                            Some(Arc::new(Expr::number((2.0f64).sqrt() / 2.0)))
                         } else {
-                            Some(Expr::div_expr(
-                                Expr::func_symbol(get_symbol(&SQRT), Expr::number(2.0)),
-                                Expr::number(2.0),
-                            ))
+                            Some(Arc::new(Expr::div_from_arcs(
+                                Arc::new(Expr::func_symbol(get_symbol(&SQRT), Expr::number(2.0))),
+                                Arc::new(Expr::number(2.0)),
+                            )))
                         };
                     }
                 }
@@ -177,21 +186,21 @@ rule!(
                         || (matches!(&arg.kind, AstKind::Div(num, den) if helpers::is_pi(num) && matches!(&den.kind, AstKind::Number(n) if *n == 3.0)))
                     {
                         return if is_numeric_input {
-                            Some(Expr::number(0.5))
+                            Some(Arc::new(Expr::number(0.5)))
                         } else {
-                            Some(Expr::div_expr(Expr::number(1.0), Expr::number(2.0)))
+                            Some(Arc::new(Expr::div_from_arcs(Arc::new(Expr::number(1.0)), Arc::new(Expr::number(2.0)))))
                         };
                     }
                     if helpers::approx_eq(arg_val, PI / 4.0)
                         || (matches!(&arg.kind, AstKind::Div(num, den) if helpers::is_pi(num) && matches!(&den.kind, AstKind::Number(n) if *n == 4.0)))
                     {
                         return if is_numeric_input {
-                            Some(Expr::number((2.0f64).sqrt() / 2.0))
+                            Some(Arc::new(Expr::number((2.0f64).sqrt() / 2.0)))
                         } else {
-                            Some(Expr::div_expr(
-                                Expr::func_symbol(get_symbol(&SQRT), Expr::number(2.0)),
-                                Expr::number(2.0),
-                            ))
+                            Some(Arc::new(Expr::div_from_arcs(
+                                Arc::new(Expr::func_symbol(get_symbol(&SQRT), Expr::number(2.0))),
+                                Arc::new(Expr::number(2.0)),
+                            )))
                         };
                     }
                 }
@@ -199,27 +208,27 @@ rule!(
                     if helpers::approx_eq(arg_val, PI / 4.0)
                         || (matches!(&arg.kind, AstKind::Div(num, den) if helpers::is_pi(num) && matches!(&den.kind, AstKind::Number(n) if *n == 4.0)))
                     {
-                        return Some(Expr::number(1.0));
+                        return Some(Arc::new(Expr::number(1.0)));
                     }
                     if helpers::approx_eq(arg_val, PI / 3.0)
                         || (matches!(&arg.kind, AstKind::Div(num, den) if helpers::is_pi(num) && matches!(&den.kind, AstKind::Number(n) if *n == 3.0)))
                     {
                         return if is_numeric_input {
-                            Some(Expr::number((3.0f64).sqrt()))
+                            Some(Arc::new(Expr::number((3.0f64).sqrt())))
                         } else {
-                            Some(Expr::func_symbol(get_symbol(&SQRT), Expr::number(3.0)))
+                            Some(Arc::new(Expr::func_symbol(get_symbol(&SQRT), Expr::number(3.0))))
                         };
                     }
                     if helpers::approx_eq(arg_val, PI / 6.0)
                         || (matches!(&arg.kind, AstKind::Div(num, den) if helpers::is_pi(num) && matches!(&den.kind, AstKind::Number(n) if *n == 6.0)))
                     {
                         return if is_numeric_input {
-                            Some(Expr::number(1.0 / (3.0f64).sqrt()))
+                            Some(Arc::new(Expr::number(1.0 / (3.0f64).sqrt())))
                         } else {
-                            Some(Expr::div_expr(
-                                Expr::func_symbol(get_symbol(&SQRT), Expr::number(3.0)),
-                                Expr::number(3.0),
-                            ))
+                            Some(Arc::new(Expr::div_from_arcs(
+                                Arc::new(Expr::func_symbol(get_symbol(&SQRT), Expr::number(3.0))),
+                                Arc::new(Expr::number(3.0)),
+                            )))
                         };
                     }
                 }
@@ -231,7 +240,7 @@ rule!(
 );
 
 // Ratio rules: convert 1/trig to reciprocal functions
-rule!(
+rule_arc!(
     OneCosToSecRule,
     "one_cos_to_sec",
     85,
@@ -247,7 +256,11 @@ rule!(
                 && name.id() == *COS
                 && args.len() == 1
             {
-                return Some(Expr::func_symbol(get_symbol(&SEC), (*args[0]).clone()));
+                // Efficiently constructing using Arc<Expr>
+                return Some(Arc::new(Expr::func_multi_from_arcs_symbol(
+                    get_symbol(&SEC),
+                    vec![args[0].clone()],
+                )));
             }
             // 1/cos(x)^n → sec(x)^n
             if let AstKind::Pow(base, exp) = &den.kind
@@ -255,17 +268,19 @@ rule!(
                 && name.id() == *COS
                 && args.len() == 1
             {
-                return Some(Expr::pow_static(
-                    Expr::func_symbol(get_symbol(&SEC), (*args[0]).clone()),
-                    (**exp).clone(),
-                ));
+                let sec_expr =
+                    Expr::func_multi_from_arcs_symbol(get_symbol(&SEC), vec![args[0].clone()]);
+                return Some(Arc::new(Expr::pow_from_arcs(
+                    Arc::new(sec_expr),
+                    exp.clone(),
+                )));
             }
         }
         None
     }
 );
 
-rule!(
+rule_arc!(
     OneSinToCscRule,
     "one_sin_to_csc",
     85,
@@ -281,7 +296,10 @@ rule!(
                 && name.id() == *SIN
                 && args.len() == 1
             {
-                return Some(Expr::func_symbol(get_symbol(&CSC), (*args[0]).clone()));
+                return Some(Arc::new(Expr::func_multi_from_arcs_symbol(
+                    get_symbol(&CSC),
+                    vec![args[0].clone()],
+                )));
             }
             // 1/sin(x)^n → csc(x)^n
             if let AstKind::Pow(base, exp) = &den.kind
@@ -289,17 +307,19 @@ rule!(
                 && name.id() == *SIN
                 && args.len() == 1
             {
-                return Some(Expr::pow_static(
-                    Expr::func_symbol(get_symbol(&CSC), (*args[0]).clone()),
-                    (**exp).clone(),
-                ));
+                let csc_expr =
+                    Expr::func_multi_from_arcs_symbol(get_symbol(&CSC), vec![args[0].clone()]);
+                return Some(Arc::new(Expr::pow_from_arcs(
+                    Arc::new(csc_expr),
+                    exp.clone(),
+                )));
             }
         }
         None
     }
 );
 
-rule!(
+rule_arc!(
     SinCosToTanRule,
     "sin_cos_to_tan",
     85,
@@ -321,13 +341,16 @@ rule!(
             && den_args.len() == 1
             && num_args[0] == den_args[0]
         {
-            return Some(Expr::func_symbol(get_symbol(&TAN), (*num_args[0]).clone()));
+            return Some(Arc::new(Expr::func_multi_from_arcs_symbol(
+                get_symbol(&TAN),
+                vec![num_args[0].clone()],
+            )));
         }
         None
     }
 );
 
-rule!(
+rule_arc!(
     CosSinToCotRule,
     "cos_sin_to_cot",
     85,
@@ -349,7 +372,10 @@ rule!(
             && den_args.len() == 1
             && num_args[0] == den_args[0]
         {
-            return Some(Expr::func_symbol(get_symbol(&COT), (*num_args[0]).clone()));
+            return Some(Arc::new(Expr::func_multi_from_arcs_symbol(
+                get_symbol(&COT),
+                vec![num_args[0].clone()],
+            )));
         }
         None
     }
