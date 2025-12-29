@@ -346,7 +346,8 @@ fn eval_zeta_borwein<T: MathScalar>(s: T) -> Option<T> {
     let mut current_inner_sum = term;
     d_coeffs[0] = n_t * current_inner_sum;
 
-    for k in 1..=n {
+    for (idx, d_coeff) in d_coeffs.iter_mut().enumerate().skip(1) {
+        let k = idx;
         let i = T::from(k - 1).unwrap();
         let two_i_plus_1 = T::from(2 * k - 1).unwrap();
         let two_i_plus_2 = T::from(2 * k).unwrap();
@@ -357,7 +358,7 @@ fn eval_zeta_borwein<T: MathScalar>(s: T) -> Option<T> {
         // The (n-i) is in the NUMERATOR, not denominator!
         term = term * four * n_plus_i * n_minus_i / (two_i_plus_1 * two_i_plus_2);
         current_inner_sum += term;
-        d_coeffs[k] = n_t * current_inner_sum;
+        *d_coeff = n_t * current_inner_sum;
     }
 
     let d_n = d_coeffs[n];
@@ -366,10 +367,10 @@ fn eval_zeta_borwein<T: MathScalar>(s: T) -> Option<T> {
     let mut sum = T::zero();
     let mut compensation = T::zero(); // Kahan summation
 
-    for k in 0..n {
+    for (k, d_coeff_k) in d_coeffs.iter().enumerate().take(n) {
         let k_plus_1 = T::from(k + 1).unwrap();
         let sign = if k % 2 == 0 { one } else { -one };
-        let term = sign * (d_coeffs[k] - d_n) / k_plus_1.powf(s);
+        let term = sign * (*d_coeff_k - d_n) / k_plus_1.powf(s);
 
         // Kahan summation
         let y = term - compensation;
