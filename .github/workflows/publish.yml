@@ -11,7 +11,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, windows-latest, macos-13]
         python-version: ['3.9', '3.10', '3.11', '3.12', '3.13', '3.14']
 
     steps:
@@ -73,6 +73,17 @@ jobs:
           name: wheels-linux-arm64-${{ matrix.python-version }}
           path: dist
 
+      - name: Verify wheel integrity
+        run: |
+          python3 -m pip install wheel
+          for whl in dist/*.whl; do
+            if [ -f "$whl" ]; then
+              python3 -m wheel unpack "$whl" -d /tmp/wheel_check && echo "✓ $whl is valid"
+              rm -rf /tmp/wheel_check/*
+            fi
+          done
+        shell: bash
+
   # Build wheels for macOS ARM64 (Apple Silicon)
   build-macos-arm:
     runs-on: macos-latest
@@ -100,6 +111,17 @@ jobs:
         with:
           name: wheels-macos-arm64-${{ matrix.python-version }}
           path: dist
+
+      - name: Verify wheel integrity
+        run: |
+          python3 -m pip install wheel
+          for whl in dist/*.whl; do
+            if [ -f "$whl" ]; then
+              python3 -m wheel unpack "$whl" -d /tmp/wheel_check && echo "✓ $whl is valid"
+              rm -rf /tmp/wheel_check/*
+            fi
+          done
+        shell: bash
 
   # Build source distribution (sdist)
   build-sdist:
