@@ -976,7 +976,10 @@ pub(crate) fn eval_elliptic_e<T: MathScalar>(k: T) -> Option<T> {
 
 /// Bessel function of the first kind J_n(x)
 ///
-/// Uses forward recurrence: J_{n+1}(x) = (2n/x) J_n(x) - J_{n-1}(x)
+/// Uses a hybrid algorithm for numerical stability:
+/// - **Forward Recurrence** for $n \le |x|$: $J_{n+1} = (2n/x) J_n - J_{n-1}$
+/// - **Miller's Algorithm (Backward Recurrence)** for $n > |x|$: Stable for decaying region.
+///
 /// with J_0 and J_1 computed via rational approximations.
 ///
 /// # Special Values
@@ -986,32 +989,119 @@ pub(crate) fn eval_elliptic_e<T: MathScalar>(k: T) -> Option<T> {
 /// Reference: A&S §9.1.27, DLMF §10.6 <https://dlmf.nist.gov/10.6>
 pub(crate) fn bessel_j<T: MathScalar>(n: i32, x: T) -> Option<T> {
     let n_abs = n.abs();
+    let ax = x.abs();
 
-    // Special case: handle J_n(0) correctly
-    // J_0(0) = 1, J_n(0) = 0 for n ≠ 0
+    // Special case: J_n(0)
     let threshold = T::from(1e-10).unwrap();
-    if x.abs() < threshold {
+    if ax < threshold {
         return Some(if n_abs == 0 { T::one() } else { T::zero() });
     }
+
+    // REGIME 1: Forward Recurrence is stable when n <= |x|
+    if T::from(n_abs).unwrap() <= ax {
+        return bessel_j_forward(n, x);
+    }
+
+    // REGIME 2: Miller's Algorithm (Backward Recurrence) when n > |x|
+    bessel_j_miller(n, x)
+}
+
+/// Forward recurrence for J_n(x) when n <= |x|
+fn bessel_j_forward<T: MathScalar>(n: i32, x: T) -> Option<T> {
+    let n_abs = n.abs();
 
     let j0 = bessel_j0(x);
     if n_abs == 0 {
         return Some(j0);
     }
+
     let j1 = bessel_j1(x);
     if n_abs == 1 {
         return Some(if n < 0 { -j1 } else { j1 });
     }
 
     let (mut jp, mut jc) = (j0, j1);
+    let two = T::from(2.0).unwrap();
 
     for k in 1..n_abs {
         let k_t = T::from(k).unwrap();
-        let jn = (T::from(2.0).unwrap() * k_t / x) * jc - jp;
+        // J_{k+1} = (2k/x) J_k - J_{k-1}
+        let jn = (two * k_t / x) * jc - jp;
         jp = jc;
         jc = jn;
     }
+
     Some(if n < 0 && n_abs % 2 == 1 { -jc } else { jc })
+}
+
+/// Miller's backward recurrence algorithm for J_n(x) when n > |x|
+fn bessel_j_miller<T: MathScalar>(n: i32, x: T) -> Option<T> {
+    let n_abs = n.abs();
+    let two = T::from(2.0).unwrap();
+
+    // Choose starting N using a safe heuristic
+    let n_start = compute_miller_start(n_abs);
+
+    // Initialize recurrence
+    let mut j_next = T::zero(); // J_{k+1}
+    let mut j_curr = T::from(1e-30).unwrap(); // J_k (small seed)
+
+    let mut result = T::zero();
+    let mut sum = T::zero(); // For normalization: J_0 + 2*(J_2 + J_4 + ...)
+    let mut compensation = T::zero(); // Kahan summation compensation
+
+    // Backward recurrence: J_{k-1} = (2k/x) J_k - J_{k+1}
+    for k in (0..=n_start).rev() {
+        let k_t = T::from(k).unwrap();
+        let j_prev = (two * k_t / x) * j_curr - j_next;
+
+        // Store J_n when we reach it
+        if k == n_abs {
+            result = j_curr;
+        }
+
+        // Accumulate normalization sum with Kahan summation
+        // Sum = J_0 + 2 \sum_{k=1}^{\infty} J_{2k}
+        if k == 0 {
+            // sum += j_curr (J_0 term)
+            let y = j_curr - compensation;
+            let t = sum + y;
+            compensation = (t - sum) - y;
+            sum = t;
+        } else if k % 2 == 0 {
+            // sum += 2 * j_curr (even terms)
+            let term = two * j_curr;
+            let y = term - compensation;
+            let t = sum + y;
+            compensation = (t - sum) - y;
+            sum = t;
+        }
+
+        j_next = j_curr;
+        j_curr = j_prev;
+    }
+
+    // Normalize: true J_n = (computed J_n) / (computed sum)
+    // The sum should be J_0(x) of the computed sequence, which is 1
+    let scale = T::one() / sum;
+    let normalized_result = result * scale;
+
+    Some(if n < 0 && n_abs % 2 == 1 {
+        -normalized_result
+    } else {
+        normalized_result
+    })
+}
+
+/// Compute starting point for Miller's algorithm
+fn compute_miller_start(n: i32) -> i32 {
+    // Heuristic from Numerical Recipes with extra safety margin
+    // N = n + sqrt(C * n) + M
+    let n_f = n as f64;
+    let c = 50.0; // Conservative for 15+ digit accuracy
+    let m = 15; // Safety margin
+
+    n + (c * n_f).sqrt().round() as i32 + m
 }
 
 /// Bessel function J_0(x) via rational approximation
