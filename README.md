@@ -120,13 +120,22 @@ Diff::new()
 
 SymbAnaFis supports over 50 built-in mathematical functions:
 
-| Category | Typical Functions |
-|----------|-------------------|
-| **Trigonometric** | `sin`, `cos`, `tan`, `cot`, `sec`, `csc`, `asin`, `acos`, ... |
-| **Hyperbolic** | `sinh`, `cosh`, `tanh`, `coth`, `asinh`, `acosh`, ... |
-| **Exponential** | `exp`, `ln`, `log`, `log10`, `log2`, `pow` |
-| **Special** | `gamma`, `beta`, `erf`, `besselj`, `zeta`, `LambertW` |
-| **Utility** | `sqrt`, `cbrt`, `abs`, `sign`, `floor`, `ceil` |
+| Category                   | Functions                                                                     |
+| -------------------------- | ----------------------------------------------------------------------------- |
+| **Trig**                   | `sin`, `cos`, `tan`, `cot`, `sec`, `csc`                                      |
+| **Inverse Trig**           | `asin`, `acos`, `atan`, `atan2`, `acot`, `asec`, `acsc`                       |
+| **Hyperbolic**             | `sinh`, `cosh`, `tanh`, `coth`, `sech`, `csch`                                |
+| **Inverse Hyperbolic**     | `asinh`, `acosh`, `atanh`, `acoth`, `asech`, `acsch`                          |
+| **Exp/Log**                | `exp`, `ln`, `log(b, x)`, `log10`, `log2`, `exp_polar`(acts as exp for now)   |
+| **Roots**                  | `sqrt`, `cbrt`                                                                |
+| **Error Functions**        | `erf`, `erfc`                                                                 |
+| **Gamma Family**           | `gamma`, `digamma`, `trigamma`, `tetragamma`, `polygamma(n, x)`, `beta(a, b)` |
+| **Zeta**                   | `zeta`, `zeta_deriv(n, s)`                                                    |
+| **Bessel**                 | `besselj(n, x)`, `bessely(n, x)`, `besseli(n, x)`, `besselk(n, x)`            |
+| **Elliptic Integrals**     | `elliptic_k`, `elliptic_e`                                                    |
+| **Orthogonal Polynomials** | `hermite(n, x)`, `assoc_legendre(l, m, x)`                                    |
+| **Spherical Harmonics**    | `spherical_harmonic(l, m, θ, φ)`, `ynm(l, m, θ, φ)`                           |
+| **Other**                  | `abs`, `signum`, `sinc`, `lambertw`, `floor`, `ceil`, `round`                 |
 
 ## Documentation
 

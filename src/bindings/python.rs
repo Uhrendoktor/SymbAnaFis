@@ -50,7 +50,7 @@ use crate::{
     symbol_count, symbol_exists, symbol_names,
 };
 use num_traits::Float;
-use numpy::{PyArray1, PyReadonlyArray1};
+use numpy::{PyArray1, PyArray2, PyArrayMethods, PyReadonlyArray1};
 use pyo3::prelude::*;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
@@ -2575,15 +2575,13 @@ impl PyCompiledEvaluator {
 
     /// Batch evaluate at multiple points (columnar data)
     /// columns[var_idx][point_idx] -> f64
-    /// Batch evaluate at multiple points (columnar data)
-    /// columns[var_idx][point_idx] -> f64
     ///
     /// Accepts NumPy arrays (Zero-Copy) or Python Lists (fallback).
     fn eval_batch<'py>(
         &self,
         py: Python<'py>,
         columns: Vec<Bound<'py, PyAny>>,
-    ) -> PyResult<Bound<'py, PyArray1<f64>>> {
+    ) -> PyResult<Py<PyAny>> {
         let inputs: Vec<DataInput> = columns
             .iter()
             .map(|c| extract_data_input(c))
@@ -2594,6 +2592,10 @@ impl PyCompiledEvaluator {
         } else {
             inputs[0].len()?
         };
+
+        // Check if any input is a NumPy array to decide output format
+        let use_numpy = inputs.iter().any(|d| matches!(d, DataInput::Array(_)));
+
         // Zero-copy access (or slice from vec)
         let col_refs: Vec<&[f64]> = inputs
             .iter()
@@ -2605,8 +2607,13 @@ impl PyCompiledEvaluator {
             .eval_batch(&col_refs, &mut output)
             .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("{:?}", e)))?;
 
-        // Return NumPy array (this copies the result, but input was zero-copy)
-        Ok(PyArray1::from_vec(py, output))
+        if use_numpy {
+            // Return NumPy array (this copies the result, but input was zero-copy)
+            Ok(PyArray1::from_vec(py, output).into_any().unbind())
+        } else {
+            // Return standard Python list
+            Ok(output.into_pyobject(py).unwrap().into_any().unbind())
+        }
     }
 
     /// Get parameter names in order
@@ -2911,11 +2918,11 @@ fn collect_variables(expr: &PyExpr) -> std::collections::HashSet<String> {
 #[pyfunction]
 #[pyo3(name = "eval_f64")]
 fn eval_f64_py<'py>(
-    _py: Python<'py>,
+    py: Python<'py>,
     expressions: Vec<PyExpr>,
     var_names: Vec<Vec<String>>,
     data: Vec<Vec<Bound<'py, PyAny>>>,
-) -> PyResult<Vec<Vec<f64>>> {
+) -> PyResult<Py<PyAny>> {
     let expr_refs: Vec<&RustExpr> = expressions.iter().map(|e| &e.0).collect();
 
     // Convert var_names to the required format
@@ -2937,6 +2944,12 @@ fn eval_f64_py<'py>(
         })
         .collect::<PyResult<Vec<_>>>()?;
 
+    // Check if any input is a NumPy array to decide output format
+    let use_numpy = data_inputs
+        .iter()
+        .flat_map(|row| row.iter())
+        .any(|d| matches!(d, DataInput::Array(_)));
+
     let data_refs: Vec<Vec<&[f64]>> = data_inputs
         .iter()
         .map(|expr_data| {
@@ -2948,8 +2961,39 @@ fn eval_f64_py<'py>(
         .collect::<PyResult<Vec<_>>>()?;
     let data_slice_refs: Vec<&[&[f64]]> = data_refs.iter().map(|d| d.as_slice()).collect();
 
-    rust_eval_f64(&expr_refs, &var_slice_refs, &data_slice_refs)
-        .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("{:?}", e)))
+    let results = rust_eval_f64(&expr_refs, &var_slice_refs, &data_slice_refs)
+        .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("{:?}", e)))?;
+
+    if use_numpy {
+        // Convert Vec<Vec<f64>> to 2D NumPy array
+        // Dimensions: [n_exprs, n_points]
+        if results.is_empty() {
+            return Ok(PyArray2::<f64>::zeros(py, [0, 0], false)
+                .into_any()
+                .unbind());
+        }
+
+        let n_exprs = results.len();
+        let n_points = results[0].len();
+
+        // Flatten the results into a single contiguous vector
+        let flat_results: Vec<f64> = results.into_iter().flatten().collect();
+
+        // Create the 2D array from the valid vector
+        let arr = PyArray1::from_vec(py, flat_results)
+            .reshape([n_exprs, n_points])
+            .map_err(|e| {
+                PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                    "Failed to reshape output: {:?}",
+                    e
+                ))
+            })?;
+
+        Ok(arr.into_any().unbind())
+    } else {
+        // Return standard Python list of lists
+        Ok(results.into_pyobject(py).unwrap().into_any().unbind())
+    }
 }
 
 #[pymodule]

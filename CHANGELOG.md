@@ -2,12 +2,18 @@
 
 All notable changes to SymbAnaFis will be documented in this file.
 
+## [Unreleased]
+
+### Changed
+- **Breaking**: `eval_f64_py` and `CompiledEvaluator.eval_batch` return `numpy.ndarray` instead of `list` when input contains NumPy arrays (Type-Preserving).
+
 ## [0.5.1] - 2025-12-31
 
 ### Fixed
 - **CI/CD**: Fixed Linux ARM builds by specifying Python interpreter path for cross-compilation in GitHub Actions.
 - **CI/CD**: Fixed macOS x86 builds by pinning runner to `macos-15-intel` (Intel) to avoid generating duplicate ARM64 wheels on `macos-latest` (Apple Silicon), which caused artifacts conflicts and PyPI upload failure (Error 400).
 - **CI/CD**: Allow crates.io publish step to fail gracefully if the version already exists (enables split releases where PyPI failed but crates.io succeeded).
+
 ## [0.5.0] - 2025-12-31
 
 ### Added

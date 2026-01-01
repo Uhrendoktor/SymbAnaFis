@@ -344,24 +344,26 @@ def evaluate_parallel(
     """
     ...
 
-def eval_f64(
-    expressions: List[Expr],
-    var_names: List[List[str]],
-    data: List[List["List[float] | NDArray[np.float64]"]],
-) -> List[List[float]]:
-    """
-    High-performance parallel batch evaluation for multiple expressions.
+    def eval_f64(
+        expressions: List[Expr],
+        var_names: List[List[str]],
+        data: List[List["List[float] | NDArray[np.float64]"]],
+    ) -> "List[List[float]] | NDArray[np.float64]":
+        """
+        High-performance parallel batch evaluation for multiple expressions.
 
-    Args:
-        expressions: List of Expr objects
-        var_names: List of variable name lists, one per expression
-        data: 3D list/arrays of values: data[expr_idx][var_idx] = [values...]
-              Accepts Python lists or NumPy arrays (zero-copy for f64 arrays)
+        Args:
+            expressions: List of Expr objects
+            var_names: List of variable name lists, one per expression
+            data: 3D list/arrays of values: data[expr_idx][var_idx] = [values...]
+                  Accepts Python lists or NumPy arrays (zero-copy for f64 arrays)
 
-    Returns:
-        2D list of results: result[expr_idx][point_idx]
-    """
-    ...
+        Returns:
+            2D results:
+            - If input contains NumPy arrays: returns NDArray[np.float64] (2D)
+            - If input is all lists: returns List[List[float]]
+        """
+        ...
 
 # =============================================================================
 # Expr Class
@@ -862,8 +864,17 @@ class CompiledEvaluator:
     def eval_batch(
         self,
         columns: List["List[float] | NDArray[np.float64]"],
-    ) -> "NDArray[np.float64]":
-        """Batch evaluate at multiple points. Accepts lists or NumPy arrays (zero-copy). Returns NumPy array."""
+    ) -> "List[float] | NDArray[np.float64]":
+        """
+        Batch evaluate at multiple points.
+        
+        Args:
+            columns: List of data columns (one per variable).
+        
+        Returns:
+            - If input contains NumPy arrays: returns NDArray[np.float64]
+            - If input is all lists: returns List[float]
+        """
         ...
 
     def param_names(self) -> List[str]: ...

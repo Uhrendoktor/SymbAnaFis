@@ -45,37 +45,12 @@ fn bench_parse(c: &mut Criterion) {
 }
 
 // =============================================================================
-// Differentiation Benchmarks (Raw - No explicit simplify call)
+// Differentiation (String Pipeline)
 // =============================================================================
 
-fn bench_diff_raw(c: &mut Criterion) {
+fn bench_diff(c: &mut Criterion) {
     setup_license();
-    let mut group = c.benchmark_group("2_diff_raw");
-
-    for (name, expr_str, var, _) in ALL_EXPRESSIONS {
-        // Pre-parse
-        let expr = Atom::parse(wrap_input!(expr_str), ParseSettings::default()).unwrap();
-        // Parse var to Indeterminate
-        let var_atom = Atom::parse(wrap_input!(var), ParseSettings::default()).unwrap();
-        let var_indet: Indeterminate = var_atom.try_into().unwrap();
-
-        group.bench_with_input(BenchmarkId::new("symbolica", name), &expr, |b, expr| {
-            // Symbolica usually simplifies on construction/derivative, so "raw" might be simplified.
-            // We measure derivative() call.
-            b.iter(|| expr.derivative(black_box(var_indet.clone())))
-        });
-    }
-
-    group.finish();
-}
-
-// =============================================================================
-// Differentiation + Simplification (String Pipeline)
-// =============================================================================
-
-fn bench_diff_simplified(c: &mut Criterion) {
-    setup_license();
-    let mut group = c.benchmark_group("3_diff_simplified");
+    let mut group = c.benchmark_group("2_diff");
 
     for (name, expr_str, var, _) in ALL_EXPRESSIONS {
         // Pre-parse for fair comparison
@@ -297,8 +272,7 @@ fn bench_full_pipeline(c: &mut Criterion) {
 criterion_group!(
     benches,
     bench_parse,
-    bench_diff_raw,
-    bench_diff_simplified,
+    bench_diff,
     bench_simplify_only,
     bench_compile,
     bench_eval,

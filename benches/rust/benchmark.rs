@@ -29,11 +29,11 @@ fn bench_parse(c: &mut Criterion) {
 }
 
 // =============================================================================
-// Differentiation Benchmarks (Raw - no simplification)
+// Differentiation Benchmarks
 // =============================================================================
 
-fn bench_diff_raw(c: &mut Criterion) {
-    let mut group = c.benchmark_group("2_diff_raw");
+fn bench_diff(c: &mut Criterion) {
+    let mut group = c.benchmark_group("2_diff");
     let empty = HashSet::new();
 
     for (name, expr_str, var, _fixed) in ALL_EXPRESSIONS {
@@ -41,12 +41,14 @@ fn bench_diff_raw(c: &mut Criterion) {
         let expr = parse(expr_str, &empty, &empty, None).unwrap();
         let var_sym = symb(var);
 
-        // Build Diff with skip simplification
-        let diff_builder = Diff::new().skip_simplification(true);
+        // SymbAnaFis: diff only (skip full simplification, similar to Symbolica)
+        let diff_light = Diff::new().skip_simplification(true);
 
-        group.bench_with_input(BenchmarkId::new("symb_anafis", name), &expr, |b, expr| {
-            b.iter(|| diff_builder.differentiate(black_box(expr), &var_sym))
-        });
+        group.bench_with_input(
+            BenchmarkId::new("symb_anafis_light", name),
+            &expr,
+            |b, expr| b.iter(|| diff_light.differentiate(black_box(expr), &var_sym)),
+        );
     }
 
     group.finish();
@@ -65,20 +67,11 @@ fn bench_diff_simplified(c: &mut Criterion) {
         let expr = parse(expr_str, &empty, &empty, None).unwrap();
         let var_sym = symb(var);
 
-        // SymbAnaFis: diff only (skip full simplification, similar to Symbolica)
-        let diff_light = Diff::new().skip_simplification(true);
-
-        group.bench_with_input(
-            BenchmarkId::new("symb_anafis_diff_only", name),
-            &expr,
-            |b, expr| b.iter(|| diff_light.differentiate(black_box(expr), &var_sym)),
-        );
-
-        // SymbAnaFis: diff + full simplification
+        // SymbAnaFis: diff + full simplification (default)
         let diff_full = Diff::new();
 
         group.bench_with_input(
-            BenchmarkId::new("symb_anafis_diff+simplify", name),
+            BenchmarkId::new("symb_anafis_full", name),
             &expr,
             |b, expr| b.iter(|| diff_full.differentiate(black_box(expr), &var_sym)),
         );
@@ -274,7 +267,7 @@ fn bench_full_pipeline(c: &mut Criterion) {
 criterion_group!(
     benches,
     bench_parse,
-    bench_diff_raw,
+    bench_diff,
     bench_diff_simplified,
     bench_simplify_only,
     bench_compile,
