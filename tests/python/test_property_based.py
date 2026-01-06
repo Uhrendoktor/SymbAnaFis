@@ -265,5 +265,200 @@ class TestHyperbolicIdentities:
                 f"tanh({x}) = {lhs}, sinh({x})/cosh({x}) = {rhs}"
 
 
+class TestPowerProperties:
+    """Test power law identities."""
+
+    def test_power_addition_rule(self):
+        """x^a * x^b = x^(a+b) for x > 0"""
+        for _ in range(20):
+            x = random.uniform(0.1, 10)
+            a = random.uniform(0.5, 3)
+            b = random.uniform(0.5, 3)
+            lhs = float(evaluate_str(f"x^{a} * x^{b}", [("x", x)]))
+            rhs = float(evaluate_str(f"x^({a}+{b})", [("x", x)]))
+            assert approx_eq(lhs, rhs), \
+                f"x^{a} * x^{b} = {lhs}, x^({a}+{b}) = {rhs} at x={x}"
+
+    def test_power_of_power_rule(self):
+        """(x^a)^b = x^(a*b) for x > 0"""
+        for _ in range(20):
+            x = random.uniform(0.5, 5)
+            a = random.uniform(0.5, 2)
+            b = random.uniform(0.5, 2)
+            lhs = float(evaluate_str(f"(x^{a})^{b}", [("x", x)]))
+            rhs = float(evaluate_str(f"x^({a}*{b})", [("x", x)]))
+            assert approx_eq(lhs, rhs), \
+                f"(x^{a})^{b} = {lhs}, x^({a}*{b}) = {rhs} at x={x}"
+
+    def test_product_power_rule(self):
+        """(x*y)^a = x^a * y^a for x,y > 0"""
+        for _ in range(20):
+            x = random.uniform(0.5, 5)
+            y = random.uniform(0.5, 5)
+            a = random.uniform(0.5, 3)
+            lhs = float(evaluate_str(f"(x*y)^{a}", [("x", x), ("y", y)]))
+            rhs = float(evaluate_str(f"x^{a} * y^{a}", [("x", x), ("y", y)]))
+            assert approx_eq(lhs, rhs), \
+                f"(x*y)^{a} = {lhs}, x^{a}*y^{a} = {rhs}"
+
+    def test_quotient_power_rule(self):
+        """(x/y)^a = x^a / y^a for x,y > 0"""
+        for _ in range(20):
+            x = random.uniform(0.5, 5)
+            y = random.uniform(0.5, 5)
+            a = random.uniform(0.5, 3)
+            lhs = float(evaluate_str(f"(x/y)^{a}", [("x", x), ("y", y)]))
+            rhs = float(evaluate_str(f"x^{a} / y^{a}", [("x", x), ("y", y)]))
+            assert approx_eq(lhs, rhs), \
+                f"(x/y)^{a} = {lhs}, x^{a}/y^{a} = {rhs}"
+
+
+class TestAssociativeProperties:
+    """Test associativity of operations."""
+
+    def test_addition_associativity(self):
+        """(a + b) + c = a + (b + c)"""
+        for _ in range(20):
+            a, b, c = [random.uniform(-100, 100) for _ in range(3)]
+            lhs = float(evaluate_str(f"({a} + {b}) + {c}", []))
+            rhs = float(evaluate_str(f"{a} + ({b} + {c})", []))
+            assert approx_eq(lhs, rhs), \
+                f"({a}+{b})+{c} = {lhs}, {a}+({b}+{c}) = {rhs}"
+
+    def test_multiplication_associativity(self):
+        """(a * b) * c = a * (b * c)"""
+        for _ in range(20):
+            a, b, c = [random.uniform(-10, 10) for _ in range(3)]
+            lhs = float(evaluate_str(f"({a} * {b}) * {c}", []))
+            rhs = float(evaluate_str(f"{a} * ({b} * {c})", []))
+            assert approx_eq(lhs, rhs), \
+                f"({a}*{b})*{c} = {lhs}, {a}*({b}*{c}) = {rhs}"
+
+
+class TestDistributiveProperties:
+    """Test distributive law."""
+
+    def test_left_distributivity(self):
+        """a * (b + c) = a*b + a*c"""
+        for _ in range(20):
+            a, b, c = [random.uniform(-10, 10) for _ in range(3)]
+            lhs = float(evaluate_str(f"{a} * ({b} + {c})", []))
+            rhs = float(evaluate_str(f"{a}*{b} + {a}*{c}", []))
+            assert approx_eq(lhs, rhs), \
+                f"{a}*({b}+{c}) = {lhs}, {a}*{b}+{a}*{c} = {rhs}"
+
+    def test_right_distributivity(self):
+        """(a + b) * c = a*c + b*c"""
+        for _ in range(20):
+            a, b, c = [random.uniform(-10, 10) for _ in range(3)]
+            lhs = float(evaluate_str(f"({a} + {b}) * {c}", []))
+            rhs = float(evaluate_str(f"{a}*{c} + {b}*{c}", []))
+            assert approx_eq(lhs, rhs), \
+                f"({a}+{b})*{c} = {lhs}, {a}*{c}+{b}*{c} = {rhs}"
+
+
+class TestSpecialFunctionProperties:
+    """Test special function properties."""
+
+    def test_sinh_definition(self):
+        """sinh(x) = (exp(x) - exp(-x))/2"""
+        for _ in range(20):
+            x = random.uniform(-5, 5)
+            lhs = float(evaluate_str("sinh(x)", [("x", x)]))
+            rhs = float(evaluate_str("(exp(x) - exp(-x))/2", [("x", x)]))
+            assert approx_eq(lhs, rhs), \
+                f"sinh({x}) = {lhs}, (exp(x)-exp(-x))/2 = {rhs}"
+
+    def test_cosh_definition(self):
+        """cosh(x) = (exp(x) + exp(-x))/2"""
+        for _ in range(20):
+            x = random.uniform(-5, 5)
+            lhs = float(evaluate_str("cosh(x)", [("x", x)]))
+            rhs = float(evaluate_str("(exp(x) + exp(-x))/2", [("x", x)]))
+            assert approx_eq(lhs, rhs), \
+                f"cosh({x}) = {lhs}, (exp(x)+exp(-x))/2 = {rhs}"
+
+    def test_abs_symmetry(self):
+        """abs(-x) = abs(x)"""
+        for _ in range(20):
+            x = random.uniform(-100, 100)
+            lhs = float(evaluate_str("abs(-x)", [("x", x)]))
+            rhs = float(evaluate_str("abs(x)", [("x", x)]))
+            assert approx_eq(lhs, rhs), \
+                f"abs(-{x}) = {lhs}, abs({x}) = {rhs}"
+
+    def test_abs_nonnegative(self):
+        """abs(x) >= 0 for all x"""
+        for _ in range(20):
+            x = random.uniform(-100, 100)
+            result = float(evaluate_str("abs(x)", [("x", x)]))
+            assert result >= 0, f"abs({x}) = {result} < 0"
+
+    def test_sqrt_square_identity(self):
+        """sqrt(x)^2 = x for x >= 0"""
+        for _ in range(20):
+            x = random.uniform(0.01, 100)
+            result = float(evaluate_str("sqrt(x)^2", [("x", x)]))
+            assert approx_eq(result, x), \
+                f"sqrt({x})^2 = {result}, expected {x}"
+
+    def test_floor_ceil_relationship(self):
+        """floor(x) <= x <= ceil(x)"""
+        for _ in range(20):
+            x = random.uniform(-100, 100)
+            floor_x = float(evaluate_str("floor(x)", [("x", x)]))
+            ceil_x = float(evaluate_str("ceil(x)", [("x", x)]))
+            assert floor_x <= x <= ceil_x, \
+                f"floor({x})={floor_x}, ceil({x})={ceil_x}"
+
+
+class TestCompiledEvaluatorProperties:
+    """Test CompiledEvaluator consistency properties."""
+
+    def test_compiled_matches_string_eval(self):
+        """Compiled evaluation should match string evaluation."""
+        from symb_anafis import CompiledEvaluator, parse
+
+        expressions = ["x^2", "sin(x)", "x + 2*x", "exp(x)", "ln(x)"]
+        for expr_str in expressions:
+            expr = parse(expr_str)
+            compiled = CompiledEvaluator(expr, ["x"])
+            for _ in range(10):
+                x = random.uniform(0.1, 10)
+                compiled_val = compiled.evaluate([x])
+                string_val = float(evaluate_str(expr_str, [("x", x)]))
+                assert approx_eq(compiled_val, string_val), \
+                    f"Compiled vs string mismatch for {expr_str} at x={x}"
+
+    def test_compiled_deterministic(self):
+        """Multiple evaluations with same input should give same result."""
+        from symb_anafis import CompiledEvaluator, parse
+
+        expr = parse("sin(x) + cos(x)")
+        compiled = CompiledEvaluator(expr, ["x"])
+        for _ in range(10):
+            x = random.uniform(-10, 10)
+            results = [compiled.evaluate([x]) for _ in range(5)]
+            assert all(approx_eq(r, results[0]) for r in results), \
+                f"Non-deterministic results for x={x}: {results}"
+
+    def test_compiled_batch_vs_single(self):
+        """Batch evaluation should match single evaluations."""
+        from symb_anafis import CompiledEvaluator, parse
+        import numpy as np
+
+        expr = parse("x^2 + 2*x + 1")
+        compiled = CompiledEvaluator(expr, ["x"])
+        x_values = np.array([random.uniform(-10, 10) for _ in range(20)])
+
+        # eval_batch expects columnar data: one array per variable
+        batch_results = compiled.eval_batch([x_values])
+        single_results = [compiled.evaluate([x]) for x in x_values]
+
+        for i, (batch_val, single_val) in enumerate(zip(batch_results, single_results)):
+            assert approx_eq(batch_val, single_val), \
+                f"Batch vs single mismatch at index {i}"
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

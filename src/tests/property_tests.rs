@@ -1128,3 +1128,598 @@ mod expression_building_fuzz_tests {
         }
     }
 }
+
+// ============================================================
+// PART 6: DERIVATIVE PROPERTY TESTS
+// ============================================================
+
+#[cfg(test)]
+mod derivative_property_tests {
+    use super::*;
+    use std::collections::HashMap;
+
+    const EPSILON: f64 = 1e-6;
+
+    fn approx_eq(a: f64, b: f64) -> bool {
+        if a.is_nan() && b.is_nan() {
+            return true;
+        }
+        if a.is_infinite() && b.is_infinite() {
+            return a.signum() == b.signum();
+        }
+        let tolerance = EPSILON * a.abs().max(b.abs()).max(1.0);
+        (a - b).abs() < tolerance
+    }
+
+    /// Property: Linearity of differentiation: d/dx[a*f + b*g] = a*f' + b*g'
+    #[test]
+    fn test_derivative_linearity() {
+        fn prop_linearity(a_coef: f64, b_coef: f64, x_val: f64) -> TestResult {
+            if !a_coef.is_finite() || !b_coef.is_finite() || !x_val.is_finite() {
+                return TestResult::discard();
+            }
+            if a_coef.abs() > 100.0 || b_coef.abs() > 100.0 || x_val.abs() > 10.0 {
+                return TestResult::discard();
+            }
+
+            // f = x^2, g = sin(x)
+            // a*f + b*g = a*x^2 + b*sin(x)
+            // derivative: 2*a*x + b*cos(x)
+            let expr = format!("{}*x^2 + {}*sin(x)", a_coef, b_coef);
+            let deriv = match diff(&expr, "x", &[], None) {
+                Ok(d) => d,
+                Err(_) => return TestResult::discard(),
+            };
+
+            let fixed = HashSet::new();
+            let custom = HashSet::new();
+            let deriv_expr = match parser::parse(&deriv, &fixed, &custom, None) {
+                Ok(e) => e,
+                Err(_) => return TestResult::discard(),
+            };
+
+            let vars: HashMap<&str, f64> = [("x", x_val)].iter().cloned().collect();
+            if let ExprKind::Number(result) = deriv_expr.evaluate(&vars, &HashMap::new()).kind {
+                let expected = 2.0 * a_coef * x_val + b_coef * x_val.cos();
+                TestResult::from_bool(approx_eq(result, expected))
+            } else {
+                TestResult::passed()
+            }
+        }
+        QuickCheck::new()
+            .tests(100)
+            .quickcheck(prop_linearity as fn(f64, f64, f64) -> TestResult);
+    }
+
+    /// Property: Chain rule verification: d/dx[sin(x^2)] = cos(x^2) * 2x
+    #[test]
+    fn test_chain_rule_property() {
+        fn prop_chain_rule(x_val: f64) -> TestResult {
+            if !x_val.is_finite() || x_val.abs() > 10.0 {
+                return TestResult::discard();
+            }
+
+            let deriv = match diff("sin(x^2)", "x", &[], None) {
+                Ok(d) => d,
+                Err(_) => return TestResult::discard(),
+            };
+
+            let fixed = HashSet::new();
+            let custom = HashSet::new();
+            let deriv_expr = match parser::parse(&deriv, &fixed, &custom, None) {
+                Ok(e) => e,
+                Err(_) => return TestResult::discard(),
+            };
+
+            let vars: HashMap<&str, f64> = [("x", x_val)].iter().cloned().collect();
+            if let ExprKind::Number(result) = deriv_expr.evaluate(&vars, &HashMap::new()).kind {
+                let expected = (x_val * x_val).cos() * 2.0 * x_val;
+                TestResult::from_bool(approx_eq(result, expected))
+            } else {
+                TestResult::passed()
+            }
+        }
+        QuickCheck::new()
+            .tests(100)
+            .quickcheck(prop_chain_rule as fn(f64) -> TestResult);
+    }
+
+    /// Property: Quotient rule: d/dx[f/g] = (f'g - fg')/g²
+    #[test]
+    fn test_quotient_rule_property() {
+        fn prop_quotient_rule(x_val: f64) -> TestResult {
+            // f = x, g = x+1
+            // f' = 1, g' = 1
+            // d/dx[x/(x+1)] = ((1)(x+1) - (x)(1))/(x+1)² = 1/(x+1)²
+            if !x_val.is_finite() || x_val.abs() > 10.0 || (x_val + 1.0).abs() < 0.1 {
+                return TestResult::discard();
+            }
+
+            let deriv = match diff("x/(x+1)", "x", &[], None) {
+                Ok(d) => d,
+                Err(_) => return TestResult::discard(),
+            };
+
+            let fixed = HashSet::new();
+            let custom = HashSet::new();
+            let deriv_expr = match parser::parse(&deriv, &fixed, &custom, None) {
+                Ok(e) => e,
+                Err(_) => return TestResult::discard(),
+            };
+
+            let vars: HashMap<&str, f64> = [("x", x_val)].iter().cloned().collect();
+            if let ExprKind::Number(result) = deriv_expr.evaluate(&vars, &HashMap::new()).kind {
+                let expected = 1.0 / ((x_val + 1.0) * (x_val + 1.0));
+                TestResult::from_bool(approx_eq(result, expected))
+            } else {
+                TestResult::passed()
+            }
+        }
+        QuickCheck::new()
+            .tests(100)
+            .quickcheck(prop_quotient_rule as fn(f64) -> TestResult);
+    }
+}
+
+// ============================================================
+// PART 7: POWER PROPERTY TESTS
+// ============================================================
+
+#[cfg(test)]
+mod power_property_tests {
+    use super::*;
+    use std::collections::HashMap;
+
+    const EPSILON: f64 = 1e-8;
+
+    fn approx_eq(a: f64, b: f64) -> bool {
+        if a.is_nan() && b.is_nan() {
+            return true;
+        }
+        if a.is_infinite() && b.is_infinite() {
+            return a.signum() == b.signum();
+        }
+        let tolerance = EPSILON * a.abs().max(b.abs()).max(1.0);
+        (a - b).abs() < tolerance
+    }
+
+    /// Property: x^a * x^b = x^(a+b) for x > 0
+    #[test]
+    fn test_power_addition_rule() {
+        fn prop_power_add(x_val: f64, a: f64, b: f64) -> TestResult {
+            if !x_val.is_finite() || !a.is_finite() || !b.is_finite() {
+                return TestResult::discard();
+            }
+            if x_val <= 0.1 || x_val > 10.0 || a.abs() > 3.0 || b.abs() > 3.0 {
+                return TestResult::discard();
+            }
+
+            let fixed = HashSet::new();
+            let custom = HashSet::new();
+
+            let lhs_expr = format!("x^{} * x^{}", a, b);
+            let rhs_expr = format!("x^({})", a + b);
+
+            let lhs = parser::parse(&lhs_expr, &fixed, &custom, None);
+            let rhs = parser::parse(&rhs_expr, &fixed, &custom, None);
+
+            if let (Ok(lhs_e), Ok(rhs_e)) = (lhs, rhs) {
+                let vars: HashMap<&str, f64> = [("x", x_val)].iter().cloned().collect();
+                if let (ExprKind::Number(l), ExprKind::Number(r)) = (
+                    &lhs_e.evaluate(&vars, &HashMap::new()).kind,
+                    &rhs_e.evaluate(&vars, &HashMap::new()).kind,
+                ) {
+                    if l.is_finite() && r.is_finite() {
+                        return TestResult::from_bool(approx_eq(*l, *r));
+                    }
+                }
+            }
+            TestResult::discard()
+        }
+        QuickCheck::new()
+            .tests(200)
+            .quickcheck(prop_power_add as fn(f64, f64, f64) -> TestResult);
+    }
+
+    /// Property: (x^a)^b = x^(a*b) for x > 0
+    #[test]
+    fn test_power_of_power_rule() {
+        fn prop_power_power(x_val: f64, a: f64, b: f64) -> TestResult {
+            if !x_val.is_finite() || !a.is_finite() || !b.is_finite() {
+                return TestResult::discard();
+            }
+            if x_val <= 0.5 || x_val > 5.0 || a.abs() > 2.0 || b.abs() > 2.0 {
+                return TestResult::discard();
+            }
+
+            let fixed = HashSet::new();
+            let custom = HashSet::new();
+
+            let lhs_expr = format!("(x^{})^{}", a, b);
+            let rhs_expr = format!("x^({})", a * b);
+
+            let lhs = parser::parse(&lhs_expr, &fixed, &custom, None);
+            let rhs = parser::parse(&rhs_expr, &fixed, &custom, None);
+
+            if let (Ok(lhs_e), Ok(rhs_e)) = (lhs, rhs) {
+                let vars: HashMap<&str, f64> = [("x", x_val)].iter().cloned().collect();
+                if let (ExprKind::Number(l), ExprKind::Number(r)) = (
+                    &lhs_e.evaluate(&vars, &HashMap::new()).kind,
+                    &rhs_e.evaluate(&vars, &HashMap::new()).kind,
+                ) {
+                    if l.is_finite() && r.is_finite() {
+                        return TestResult::from_bool(approx_eq(*l, *r));
+                    }
+                }
+            }
+            TestResult::discard()
+        }
+        QuickCheck::new()
+            .tests(200)
+            .quickcheck(prop_power_power as fn(f64, f64, f64) -> TestResult);
+    }
+
+    /// Property: (x*y)^a = x^a * y^a for x,y > 0
+    #[test]
+    fn test_product_power_rule() {
+        fn prop_product_power(x_val: f64, y_val: f64, a: f64) -> TestResult {
+            if !x_val.is_finite() || !y_val.is_finite() || !a.is_finite() {
+                return TestResult::discard();
+            }
+            if x_val <= 0.5 || y_val <= 0.5 || x_val > 5.0 || y_val > 5.0 || a.abs() > 3.0 {
+                return TestResult::discard();
+            }
+
+            let fixed = HashSet::new();
+            let custom = HashSet::new();
+
+            let lhs_expr = format!("(x*y)^{}", a);
+            let rhs_expr = format!("x^{} * y^{}", a, a);
+
+            let lhs = parser::parse(&lhs_expr, &fixed, &custom, None);
+            let rhs = parser::parse(&rhs_expr, &fixed, &custom, None);
+
+            if let (Ok(lhs_e), Ok(rhs_e)) = (lhs, rhs) {
+                let vars: HashMap<&str, f64> =
+                    [("x", x_val), ("y", y_val)].iter().cloned().collect();
+                if let (ExprKind::Number(l), ExprKind::Number(r)) = (
+                    &lhs_e.evaluate(&vars, &HashMap::new()).kind,
+                    &rhs_e.evaluate(&vars, &HashMap::new()).kind,
+                ) {
+                    if l.is_finite() && r.is_finite() {
+                        return TestResult::from_bool(approx_eq(*l, *r));
+                    }
+                }
+            }
+            TestResult::discard()
+        }
+        QuickCheck::new()
+            .tests(200)
+            .quickcheck(prop_product_power as fn(f64, f64, f64) -> TestResult);
+    }
+}
+
+// ============================================================
+// PART 8: SPECIAL FUNCTION PROPERTY TESTS
+// ============================================================
+
+#[cfg(test)]
+mod special_function_property_tests {
+    use super::*;
+    use std::collections::HashMap;
+
+    const EPSILON: f64 = 1e-9;
+
+    fn approx_eq(a: f64, b: f64) -> bool {
+        if a.is_nan() && b.is_nan() {
+            return true;
+        }
+        if a.is_infinite() && b.is_infinite() {
+            return a.signum() == b.signum();
+        }
+        let tolerance = EPSILON * a.abs().max(b.abs()).max(1.0);
+        (a - b).abs() < tolerance
+    }
+
+    /// Property: sinh(x) = (exp(x) - exp(-x))/2
+    #[test]
+    fn test_sinh_definition() {
+        fn prop_sinh_def(x_val: f64) -> TestResult {
+            if !x_val.is_finite() || x_val.abs() > 10.0 {
+                return TestResult::discard();
+            }
+
+            let fixed = HashSet::new();
+            let custom = HashSet::new();
+
+            let lhs = parser::parse("sinh(x)", &fixed, &custom, None);
+            let rhs = parser::parse("(exp(x) - exp(-x))/2", &fixed, &custom, None);
+
+            if let (Ok(lhs_e), Ok(rhs_e)) = (lhs, rhs) {
+                let vars: HashMap<&str, f64> = [("x", x_val)].iter().cloned().collect();
+                if let (ExprKind::Number(l), ExprKind::Number(r)) = (
+                    &lhs_e.evaluate(&vars, &HashMap::new()).kind,
+                    &rhs_e.evaluate(&vars, &HashMap::new()).kind,
+                ) {
+                    return TestResult::from_bool(approx_eq(*l, *r));
+                }
+            }
+            TestResult::discard()
+        }
+        QuickCheck::new()
+            .tests(200)
+            .quickcheck(prop_sinh_def as fn(f64) -> TestResult);
+    }
+
+    /// Property: cosh(x) = (exp(x) + exp(-x))/2
+    #[test]
+    fn test_cosh_definition() {
+        fn prop_cosh_def(x_val: f64) -> TestResult {
+            if !x_val.is_finite() || x_val.abs() > 10.0 {
+                return TestResult::discard();
+            }
+
+            let fixed = HashSet::new();
+            let custom = HashSet::new();
+
+            let lhs = parser::parse("cosh(x)", &fixed, &custom, None);
+            let rhs = parser::parse("(exp(x) + exp(-x))/2", &fixed, &custom, None);
+
+            if let (Ok(lhs_e), Ok(rhs_e)) = (lhs, rhs) {
+                let vars: HashMap<&str, f64> = [("x", x_val)].iter().cloned().collect();
+                if let (ExprKind::Number(l), ExprKind::Number(r)) = (
+                    &lhs_e.evaluate(&vars, &HashMap::new()).kind,
+                    &rhs_e.evaluate(&vars, &HashMap::new()).kind,
+                ) {
+                    return TestResult::from_bool(approx_eq(*l, *r));
+                }
+            }
+            TestResult::discard()
+        }
+        QuickCheck::new()
+            .tests(200)
+            .quickcheck(prop_cosh_def as fn(f64) -> TestResult);
+    }
+
+    /// Property: abs(-x) = abs(x)
+    #[test]
+    fn test_abs_symmetry() {
+        fn prop_abs_sym(x_val: f64) -> TestResult {
+            if !x_val.is_finite() {
+                return TestResult::discard();
+            }
+
+            let fixed = HashSet::new();
+            let custom = HashSet::new();
+
+            let lhs = parser::parse("abs(-x)", &fixed, &custom, None);
+            let rhs = parser::parse("abs(x)", &fixed, &custom, None);
+
+            if let (Ok(lhs_e), Ok(rhs_e)) = (lhs, rhs) {
+                let vars: HashMap<&str, f64> = [("x", x_val)].iter().cloned().collect();
+                if let (ExprKind::Number(l), ExprKind::Number(r)) = (
+                    &lhs_e.evaluate(&vars, &HashMap::new()).kind,
+                    &rhs_e.evaluate(&vars, &HashMap::new()).kind,
+                ) {
+                    return TestResult::from_bool(approx_eq(*l, *r));
+                }
+            }
+            TestResult::discard()
+        }
+        QuickCheck::new()
+            .tests(200)
+            .quickcheck(prop_abs_sym as fn(f64) -> TestResult);
+    }
+
+    /// Property: abs(x) >= 0 for all x
+    #[test]
+    fn test_abs_nonnegative() {
+        fn prop_abs_pos(x_val: f64) -> TestResult {
+            if !x_val.is_finite() {
+                return TestResult::discard();
+            }
+
+            let fixed = HashSet::new();
+            let custom = HashSet::new();
+
+            let expr = parser::parse("abs(x)", &fixed, &custom, None);
+
+            if let Ok(e) = expr {
+                let vars: HashMap<&str, f64> = [("x", x_val)].iter().cloned().collect();
+                if let ExprKind::Number(result) = e.evaluate(&vars, &HashMap::new()).kind {
+                    return TestResult::from_bool(result >= 0.0);
+                }
+            }
+            TestResult::discard()
+        }
+        QuickCheck::new()
+            .tests(200)
+            .quickcheck(prop_abs_pos as fn(f64) -> TestResult);
+    }
+
+    /// Property: sqrt(x)^2 = x for x >= 0
+    #[test]
+    fn test_sqrt_square_identity() {
+        fn prop_sqrt_sq(x_val: f64) -> TestResult {
+            if !x_val.is_finite() || x_val < 0.01 || x_val > 1000.0 {
+                return TestResult::discard();
+            }
+
+            let fixed = HashSet::new();
+            let custom = HashSet::new();
+
+            let expr = parser::parse("sqrt(x)^2", &fixed, &custom, None);
+
+            if let Ok(e) = expr {
+                let vars: HashMap<&str, f64> = [("x", x_val)].iter().cloned().collect();
+                if let ExprKind::Number(result) = e.evaluate(&vars, &HashMap::new()).kind {
+                    return TestResult::from_bool(approx_eq(result, x_val));
+                }
+            }
+            TestResult::discard()
+        }
+        QuickCheck::new()
+            .tests(200)
+            .quickcheck(prop_sqrt_sq as fn(f64) -> TestResult);
+    }
+
+    /// Property: erf(-x) = -erf(x) (odd function)
+    #[test]
+    fn test_erf_symmetry() {
+        fn prop_erf_odd(x_val: f64) -> TestResult {
+            if !x_val.is_finite() || x_val.abs() > 5.0 {
+                return TestResult::discard();
+            }
+
+            let fixed = HashSet::new();
+            let custom = HashSet::new();
+
+            let lhs = parser::parse("erf(-x)", &fixed, &custom, None);
+            let rhs = parser::parse("-erf(x)", &fixed, &custom, None);
+
+            if let (Ok(lhs_e), Ok(rhs_e)) = (lhs, rhs) {
+                let vars: HashMap<&str, f64> = [("x", x_val)].iter().cloned().collect();
+                if let (ExprKind::Number(l), ExprKind::Number(r)) = (
+                    &lhs_e.evaluate(&vars, &HashMap::new()).kind,
+                    &rhs_e.evaluate(&vars, &HashMap::new()).kind,
+                ) {
+                    return TestResult::from_bool(approx_eq(*l, *r));
+                }
+            }
+            TestResult::discard()
+        }
+        QuickCheck::new()
+            .tests(200)
+            .quickcheck(prop_erf_odd as fn(f64) -> TestResult);
+    }
+}
+
+// ============================================================
+// PART 9: COMPILED EVALUATOR PROPERTY TESTS
+// ============================================================
+
+#[cfg(test)]
+mod compiled_evaluator_property_tests {
+    use super::*;
+    use crate::CompiledEvaluator;
+    use std::collections::HashMap;
+
+    const EPSILON: f64 = 1e-10;
+
+    fn approx_eq(a: f64, b: f64) -> bool {
+        if a.is_nan() && b.is_nan() {
+            return true;
+        }
+        if a.is_infinite() && b.is_infinite() {
+            return a.signum() == b.signum();
+        }
+        let tolerance = EPSILON * a.abs().max(b.abs()).max(1.0);
+        (a - b).abs() < tolerance
+    }
+
+    /// Property: Compiled evaluation should match regular expression evaluation
+    #[test]
+    fn test_compiled_matches_interpret() {
+        fn prop_compiled_matches(x_val: f64) -> TestResult {
+            if !x_val.is_finite() || x_val.abs() > 10.0 || x_val <= 0.0 {
+                return TestResult::discard();
+            }
+
+            let expr_str = "x^2 + sin(x)";
+            let fixed = HashSet::new();
+            let custom = HashSet::new();
+
+            let expr = match parser::parse(expr_str, &fixed, &custom, None) {
+                Ok(e) => e,
+                Err(_) => return TestResult::discard(),
+            };
+
+            let compiled = match CompiledEvaluator::compile(&expr, &["x"], None) {
+                Ok(c) => c,
+                Err(_) => return TestResult::discard(),
+            };
+
+            let vars: HashMap<&str, f64> = [("x", x_val)].iter().cloned().collect();
+            let interpret_result = expr.evaluate(&vars, &HashMap::new());
+
+            if let ExprKind::Number(interpret_val) = interpret_result.kind {
+                let compiled_val = compiled.evaluate(&[x_val]);
+                TestResult::from_bool(approx_eq(compiled_val, interpret_val))
+            } else {
+                TestResult::discard()
+            }
+        }
+        QuickCheck::new()
+            .tests(200)
+            .quickcheck(prop_compiled_matches as fn(f64) -> TestResult);
+    }
+
+    /// Property: Compiled evaluation is deterministic (same input = same output)
+    #[test]
+    fn test_compiled_deterministic() {
+        fn prop_deterministic(x_val: f64) -> TestResult {
+            if !x_val.is_finite() || x_val.abs() > 10.0 {
+                return TestResult::discard();
+            }
+
+            let expr_str = "sin(x) * cos(x) + exp(-x^2)";
+            let fixed = HashSet::new();
+            let custom = HashSet::new();
+
+            let expr = match parser::parse(expr_str, &fixed, &custom, None) {
+                Ok(e) => e,
+                Err(_) => return TestResult::discard(),
+            };
+
+            let compiled = match CompiledEvaluator::compile(&expr, &["x"], None) {
+                Ok(c) => c,
+                Err(_) => return TestResult::discard(),
+            };
+
+            // Evaluate multiple times and verify consistency
+            let results: Vec<f64> = (0..5).map(|_| compiled.evaluate(&[x_val])).collect();
+            let all_same = results.iter().all(|r| approx_eq(*r, results[0]));
+            TestResult::from_bool(all_same)
+        }
+        QuickCheck::new()
+            .tests(100)
+            .quickcheck(prop_deterministic as fn(f64) -> TestResult);
+    }
+
+    /// Property: Compilation is consistent (multiple compilations give same result)
+    #[test]
+    fn test_compile_consistency() {
+        fn prop_compile_consistent(x_val: f64) -> TestResult {
+            if !x_val.is_finite() || x_val.abs() > 5.0 || x_val <= 0.0 {
+                return TestResult::discard();
+            }
+
+            let expr_str = "ln(x) + x^2";
+            let fixed = HashSet::new();
+            let custom = HashSet::new();
+
+            let expr = match parser::parse(expr_str, &fixed, &custom, None) {
+                Ok(e) => e,
+                Err(_) => return TestResult::discard(),
+            };
+
+            // Compile multiple times
+            let compiled1 = match CompiledEvaluator::compile(&expr, &["x"], None) {
+                Ok(c) => c,
+                Err(_) => return TestResult::discard(),
+            };
+            let compiled2 = match CompiledEvaluator::compile(&expr, &["x"], None) {
+                Ok(c) => c,
+                Err(_) => return TestResult::discard(),
+            };
+
+            let result1 = compiled1.evaluate(&[x_val]);
+            let result2 = compiled2.evaluate(&[x_val]);
+
+            TestResult::from_bool(approx_eq(result1, result2))
+        }
+        QuickCheck::new()
+            .tests(100)
+            .quickcheck(prop_compile_consistent as fn(f64) -> TestResult);
+    }
+}
