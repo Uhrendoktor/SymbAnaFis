@@ -217,7 +217,9 @@ fn bench_multi_expr(c: &mut Criterion) {
                     .collect()
             } else {
                 // General: 0.1 to 10.1
-                (0..n_points).map(|i| (i as f64).mul_add(0.01, 0.1)).collect()
+                (0..n_points)
+                    .map(|i| (i as f64).mul_add(0.01, 0.1))
+                    .collect()
             };
             test_data.push(data);
         }

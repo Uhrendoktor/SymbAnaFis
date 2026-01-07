@@ -369,13 +369,13 @@ pub(crate) fn evaluate_parallel_with_hint(
                 crate::core::evaluator::CompiledEvaluator::compile(expr, &vars, None).ok();
 
             if let Some(evaluator) = evaluator {
-                // OPTIMIZATION: Use pre-computed hint if available, otherwise compute
-                // map_or default is lazy and computed only when None; clippy is incorrect here
-                #[allow(clippy::or_fun_call)]
-                let globally_numeric = is_fully_numeric.as_ref().map_or(
-                    expr_values
-                        .iter()
-                        .all(|col| col.iter().all(|v| matches!(v, Value::Num(_)))),
+                // OPTIMIZATION: Use pre-computed hint if available, otherwise compute lazily
+                let globally_numeric = is_fully_numeric.as_ref().map_or_else(
+                    || {
+                        expr_values
+                            .iter()
+                            .all(|col| col.iter().all(|v| matches!(v, Value::Num(_))))
+                    },
                     |hints| hints.get(expr_idx).copied().unwrap_or(false),
                 );
 

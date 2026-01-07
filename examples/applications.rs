@@ -113,9 +113,7 @@ fn main() {
     let particle_velocity = diff(pressure, "x", &["p0", "k", "omega", "t"], None).unwrap();
 
     println!("Pressure:     p(x,t) = {pressure}");
-    println!(
-        "Velocity:     u(x,t) = (1/ρ) * dp/dx = (1/ρ) * {particle_velocity}"
-    );
+    println!("Velocity:     u(x,t) = (1/ρ) * dp/dx = (1/ρ) * {particle_velocity}");
 
     println!("\n11. CALCULUS - Related Rates");
     println!("---------------------------");
@@ -157,9 +155,7 @@ fn main() {
     let dx_dt = diff(x_parametric, "t", &[], None).unwrap();
     let dy_dt = diff(y_parametric, "t", &[], None).unwrap();
 
-    println!(
-        "Parametric: x(t) = {x_parametric}, y(t) = {y_parametric}"
-    );
+    println!("Parametric: x(t) = {x_parametric}, y(t) = {y_parametric}");
     println!("dx/dt = {dx_dt}");
     println!("dy/dt = {dy_dt}");
     let ds_squared = format!("({dx_dt})^2 + ({dy_dt})^2");

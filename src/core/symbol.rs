@@ -255,7 +255,7 @@ impl Symbol {
     ///
     /// Anonymous symbols have a unique ID but no string name.
     /// They cannot be retrieved by name and are useful for intermediate computations.
-    #[must_use] 
+    #[must_use]
     pub fn anon() -> Self {
         let interned = InternedSymbol::new_anon();
         // Optimization: Don't register anonymous symbols in the global registry.
@@ -270,7 +270,7 @@ impl Symbol {
 
     /// Get the symbol's unique ID
     #[inline]
-    #[must_use] 
+    #[must_use]
     pub const fn id(&self) -> u64 {
         self.0
     }
@@ -278,25 +278,30 @@ impl Symbol {
     /// Get the name of the symbol (None for anonymous symbols)
     ///
     /// Note: This clones the name string. For frequent access, consider `name_arc()`.
-    #[must_use] 
+    #[must_use]
     pub fn name(&self) -> Option<String> {
         self.name_arc().map(|arc| arc.to_string())
     }
 
     /// Get the name as an `Arc<str>` (avoiding String allocation)
-    #[must_use] 
+    #[must_use]
     pub fn name_arc(&self) -> Option<Arc<str>> {
         lookup_by_id(self.0).and_then(|s| s.name)
     }
 
     /// Convert to an Expr
-    #[must_use] 
+    #[must_use]
     pub fn to_expr(&self) -> Expr {
         // Look up the InternedSymbol from registry
-        lookup_by_id(self.0).map_or_else(|| Expr::from_interned(InternedSymbol {
-            id: self.0,
-            name: None,
-        }), Expr::from_interned)
+        lookup_by_id(self.0).map_or_else(
+            || {
+                Expr::from_interned(InternedSymbol {
+                    id: self.0,
+                    name: None,
+                })
+            },
+            Expr::from_interned,
+        )
     }
 
     /// Raise to a power (Copy means no clone needed)
@@ -442,11 +447,14 @@ pub fn symb_new(name: &str) -> Result<Symbol, SymbolError> {
 /// Returns `SymbolError::NotFound` if no symbol with this name exists.
 pub fn symb_get(name: &str) -> Result<Symbol, SymbolError> {
     let guard = get_registry_read();
-    guard.get(name).map_or_else(|| Err(SymbolError::NotFound(name.to_string())), |interned| Ok(Symbol(interned.id())))
+    guard.get(name).map_or_else(
+        || Err(SymbolError::NotFound(name.to_string())),
+        |interned| Ok(Symbol(interned.id())),
+    )
 }
 
 /// Check if a symbol name is already registered
-#[must_use] 
+#[must_use]
 pub fn symbol_exists(name: &str) -> bool {
     let guard = get_registry_read();
     guard.contains_key(name)
@@ -461,7 +469,7 @@ pub fn symbol_exists(name: &str) -> bool {
 /// symb("symbol_count_doc_y");
 /// assert!(symbol_count() >= 2);
 /// ```
-#[must_use] 
+#[must_use]
 pub fn symbol_count() -> usize {
     let guard = get_registry_read();
     guard.len()
@@ -476,7 +484,7 @@ pub fn symbol_count() -> usize {
 /// let names = symbol_names();
 /// assert!(names.contains(&"symbol_names_doc_x".to_string()));
 /// ```
-#[must_use] 
+#[must_use]
 pub fn symbol_names() -> Vec<String> {
     let guard = get_registry_read();
     guard.keys().cloned().collect()
@@ -516,7 +524,7 @@ pub fn clear_symbols() {
 /// remove_symbol("remove_symbol_doc_x");
 /// assert!(!symbol_exists("remove_symbol_doc_x"));
 /// ```
-#[must_use] 
+#[must_use]
 pub fn remove_symbol(name: &str) -> bool {
     with_registry_mut(|name_registry, id_registry| {
         name_registry.remove(name).is_some_and(|interned| {
@@ -539,7 +547,7 @@ pub fn remove_symbol(name: &str) -> bool {
 /// let y = symb("y");
 /// let expr = x + y;
 /// ```
-#[must_use] 
+#[must_use]
 pub fn symb(name: &str) -> Symbol {
     let interned = symb_interned(name);
     Symbol(interned.id())

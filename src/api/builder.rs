@@ -36,14 +36,14 @@ pub struct Diff {
 
 impl Diff {
     /// Create a new differentiation builder with default settings
-    #[must_use] 
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
 
     /// Enable or disable domain-safe mode (skips domain-altering rules)
     #[inline]
-    #[must_use] 
+    #[must_use]
     pub const fn domain_safe(mut self, safe: bool) -> Self {
         self.domain_safe = safe;
         self
@@ -51,7 +51,7 @@ impl Diff {
 
     /// Skip simplification and return raw derivative (for benchmarking)
     #[inline]
-    #[must_use] 
+    #[must_use]
     pub const fn skip_simplification(mut self, skip: bool) -> Self {
         self.skip_simplification = skip;
         self
@@ -60,7 +60,7 @@ impl Diff {
     /// Set the Context for parsing and differentiation.
     /// Use this when you have Symbol references - the context's symbols are used for parsing.
     #[inline]
-    #[must_use] 
+    #[must_use]
     pub fn with_context(mut self, context: &Context) -> Self {
         self.context = Some(context.clone());
         self
@@ -75,7 +75,7 @@ impl Diff {
 
     /// Set maximum AST depth
     #[inline]
-    #[must_use] 
+    #[must_use]
     pub const fn max_depth(mut self, depth: usize) -> Self {
         self.max_depth = Some(depth);
         self
@@ -83,7 +83,7 @@ impl Diff {
 
     /// Set maximum AST node count
     #[inline]
-    #[must_use] 
+    #[must_use]
     pub const fn max_nodes(mut self, nodes: usize) -> Self {
         self.max_nodes = Some(nodes);
         self
@@ -136,19 +136,22 @@ impl Diff {
 
     /// Build context from builder state
     fn build_context(&self) -> Context {
-        self.context.as_ref().map_or_else(|| {
-            let mut ctx = Context::new();
-            for (name, func) in &self.user_fns {
-                ctx = ctx.with_function(name, func.clone());
-            }
-            ctx
-        }, |ctx| {
-            let mut merged = ctx.clone();
-            for (name, func) in &self.user_fns {
-                merged = merged.with_function(name, func.clone());
-            }
-            merged
-        })
+        self.context.as_ref().map_or_else(
+            || {
+                let mut ctx = Context::new();
+                for (name, func) in &self.user_fns {
+                    ctx = ctx.with_function(name, func.clone());
+                }
+                ctx
+            },
+            |ctx| {
+                let mut merged = ctx.clone();
+                for (name, func) in &self.user_fns {
+                    merged = merged.with_function(name, func.clone());
+                }
+                merged
+            },
+        )
     }
 
     pub(crate) fn differentiate_by_name(&self, expr: &Expr, var: &str) -> Result<Expr, DiffError> {
@@ -243,7 +246,10 @@ impl Diff {
 
         let ast = parser::parse(formula, &symbols, &custom_functions, self.context.as_ref())?;
 
-        let var_sym = self.context.as_ref().map_or_else(|| crate::symb(var), |ctx| ctx.symb(var));
+        let var_sym = self
+            .context
+            .as_ref()
+            .map_or_else(|| crate::symb(var), |ctx| ctx.symb(var));
 
         let result = self.differentiate(&ast, &var_sym)?;
         Ok(format!("{result}"))
@@ -263,14 +269,14 @@ pub struct Simplify {
 
 impl Simplify {
     /// Create a new simplification builder with default settings
-    #[must_use] 
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
 
     /// Enable or disable domain-safe mode
     #[inline]
-    #[must_use] 
+    #[must_use]
     pub const fn domain_safe(mut self, safe: bool) -> Self {
         self.domain_safe = safe;
         self
@@ -279,7 +285,7 @@ impl Simplify {
     /// Set the Context for parsing and simplification.
     /// Use this when you have Symbol references - the context's symbols are used for parsing.
     #[inline]
-    #[must_use] 
+    #[must_use]
     pub fn with_context(mut self, context: &Context) -> Self {
         self.context = Some(context.clone());
         self
@@ -294,7 +300,7 @@ impl Simplify {
 
     /// Set maximum AST depth
     #[inline]
-    #[must_use] 
+    #[must_use]
     pub const fn max_depth(mut self, depth: usize) -> Self {
         self.max_depth = Some(depth);
         self
@@ -302,7 +308,7 @@ impl Simplify {
 
     /// Set maximum AST node count
     #[inline]
-    #[must_use] 
+    #[must_use]
     pub const fn max_nodes(mut self, nodes: usize) -> Self {
         self.max_nodes = Some(nodes);
         self

@@ -257,43 +257,47 @@ impl Parser<'_> {
             } => {
                 self.advance();
 
-                let arg_exprs = if args.is_empty() {
-                    // Implicit dependency on the differentiation variable
-                    // Implicit dependency on the differentiation variable
-                    vec![self.context.map_or_else(|| Expr::symbol(var.clone()), |ctx| ctx.symb(var).to_expr())]
-                } else {
-                    // Parse the tokenized arguments
-                    // We create a temporary sub-parser for the argument tokens
-                    let mut sub_parser = Parser {
-                        tokens: args,
-                        pos: 0,
-                        context: self.context,
-                    };
-                    let mut exprs = Vec::new();
+                let arg_exprs =
+                    if args.is_empty() {
+                        // Implicit dependency on the differentiation variable
+                        // Implicit dependency on the differentiation variable
+                        vec![self.context.map_or_else(
+                            || Expr::symbol(var.clone()),
+                            |ctx| ctx.symb(var).to_expr(),
+                        )]
+                    } else {
+                        // Parse the tokenized arguments
+                        // We create a temporary sub-parser for the argument tokens
+                        let mut sub_parser = Parser {
+                            tokens: args,
+                            pos: 0,
+                            context: self.context,
+                        };
+                        let mut exprs = Vec::new();
 
-                    loop {
-                        if sub_parser.current().is_none() {
-                            break;
-                        }
-                        let expr = sub_parser.parse_expr(0)?;
-                        exprs.push(expr);
-
-                        if matches!(sub_parser.current(), Some(Token::Comma)) {
-                            sub_parser.advance();
-                        } else {
-                            // If not comma, we expect end of input (sub-parser exhausted)
-                            if sub_parser.current().is_some() {
-                                return Err(DiffError::UnexpectedToken {
-                                    expected: "comma or end of arguments".to_string(),
-                                    got: format!("{:?}", sub_parser.current()), // sub_parser.current() is Option<&Token>
-                                    span: None,
-                                });
+                        loop {
+                            if sub_parser.current().is_none() {
+                                break;
                             }
-                            break;
+                            let expr = sub_parser.parse_expr(0)?;
+                            exprs.push(expr);
+
+                            if matches!(sub_parser.current(), Some(Token::Comma)) {
+                                sub_parser.advance();
+                            } else {
+                                // If not comma, we expect end of input (sub-parser exhausted)
+                                if sub_parser.current().is_some() {
+                                    return Err(DiffError::UnexpectedToken {
+                                        expected: "comma or end of arguments".to_string(),
+                                        got: format!("{:?}", sub_parser.current()), // sub_parser.current() is Option<&Token>
+                                        span: None,
+                                    });
+                                }
+                                break;
+                            }
                         }
-                    }
-                    exprs
-                };
+                        exprs
+                    };
 
                 let inner_expr = Expr::func_multi(func.clone(), arg_exprs);
 

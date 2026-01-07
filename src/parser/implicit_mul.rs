@@ -50,8 +50,7 @@ pub fn insert_implicit_multiplication<S: std::hash::BuildHasher>(
             // ) * Identifier: )x
             // ) * Number: )2
             // ) * (: )(
-            (Token::Number(_) | Token::Identifier(_) | Token::RightParen,
-             Token::Identifier(_))
+            (Token::Number(_) | Token::Identifier(_) | Token::RightParen, Token::Identifier(_))
             | (Token::Number(_) | Token::RightParen, Token::LeftParen)
             | (Token::Identifier(_) | Token::RightParen, Token::Number(_)) => true,
 

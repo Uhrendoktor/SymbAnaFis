@@ -27,7 +27,7 @@ pub enum CovEntry {
 impl CovEntry {
     /// Convert the entry to an Expr
     #[inline]
-    #[must_use] 
+    #[must_use]
     pub fn to_expr(&self) -> Expr {
         match self {
             Self::Num(n) => Expr::number(*n),
@@ -37,7 +37,7 @@ impl CovEntry {
 
     /// Check if the entry is zero
     #[inline]
-    #[must_use] 
+    #[must_use]
     pub fn is_zero(&self) -> bool {
         match self {
             Self::Num(n) => n.abs() < EPSILON,
@@ -103,7 +103,7 @@ impl CovarianceMatrix {
 
     /// Create a diagonal covariance matrix (uncorrelated variables)
     /// from variance expressions `σ_i²`
-    #[must_use] 
+    #[must_use]
     pub fn diagonal(variances: Vec<CovEntry>) -> Self {
         let n = variances.len();
         let mut entries = vec![vec![CovEntry::Num(0.0); n]; n];
@@ -116,7 +116,7 @@ impl CovarianceMatrix {
 
     /// Create a diagonal covariance matrix from symbolic variance names
     /// (e.g., `["x", "y"]` creates `σ_x²` and `σ_y²` on diagonal)
-    #[must_use] 
+    #[must_use]
     pub fn diagonal_symbolic(var_names: &[&str]) -> Self {
         let n = var_names.len();
         let mut entries = vec![vec![CovEntry::Num(0.0); n]; n];
@@ -132,14 +132,14 @@ impl CovarianceMatrix {
 
     /// Get the covariance entry at (i, j)
     #[inline]
-    #[must_use] 
+    #[must_use]
     pub fn get(&self, i: usize, j: usize) -> Option<&CovEntry> {
         self.entries.get(i).and_then(|row| row.get(j))
     }
 
     /// Get the dimension of the matrix
     #[inline]
-    #[must_use] 
+    #[must_use]
     pub const fn dim(&self) -> usize {
         self.entries.len()
     }

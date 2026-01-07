@@ -438,11 +438,11 @@ impl<T: MathScalar + Float> Float for Dual<T> {
     }
 
     fn log2(self) -> Self {
-        Self::new(self.val.log2(), self.eps / (self.val * T::LN_2()))
+        self.ln() / Self::constant(T::LN_2())
     }
 
     fn log10(self) -> Self {
-        Self::new(self.val.log10(), self.eps / (self.val * T::LN_10()))
+        self.ln() / Self::constant(T::LN_10())
     }
 
     fn max(self, other: Self) -> Self {

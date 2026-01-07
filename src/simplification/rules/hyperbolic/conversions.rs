@@ -82,7 +82,8 @@ rule!(
             // Check for (e^x - e^(-x)) / (e^x + e^(-x)) pattern
             let num_arg = if let AstKind::Sum(terms) = &numerator.kind {
                 if terms.len() == 2 {
-                    extract_negated_term(&terms[1]).and_then(|negated| match_sinh_pattern_sub(&terms[0], &negated))
+                    extract_negated_term(&terms[1])
+                        .and_then(|negated| match_sinh_pattern_sub(&terms[0], &negated))
                 } else {
                     None
                 }

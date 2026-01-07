@@ -145,9 +145,7 @@ impl Simplifier {
             current = self.apply_rules_bottom_up(current, 0);
 
             if trace_enabled() {
-                eprintln!(
-                    "[DEBUG] Iteration {iterations}: {original} -> {current}"
-                );
+                eprintln!("[DEBUG] Iteration {iterations}: {original} -> {current}");
             }
 
             // Use structural equality to check if expression changed

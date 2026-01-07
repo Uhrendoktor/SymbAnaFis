@@ -89,7 +89,7 @@ impl UserFunction {
     /// use symb_anafis::UserFunction;
     /// let f = UserFunction::new(1..=2);  // 1 or 2 arguments
     /// ```
-    #[must_use] 
+    #[must_use]
     pub fn new(arity: RangeInclusive<usize>) -> Self {
         Self {
             arity,
@@ -184,21 +184,21 @@ impl UserFunction {
 
     /// Check if this function has a body expression defined.
     #[inline]
-    #[must_use] 
+    #[must_use]
     pub fn has_body(&self) -> bool {
         self.body.is_some()
     }
 
     /// Check if this function has a partial derivative for the given argument.
     #[inline]
-    #[must_use] 
+    #[must_use]
     pub fn has_partial(&self, arg_idx: usize) -> bool {
         self.partials.contains_key(&arg_idx)
     }
 
     /// Check if the given argument count is valid for this function.
     #[inline]
-    #[must_use] 
+    #[must_use]
     pub fn accepts_arity(&self, n: usize) -> bool {
         self.arity.contains(&n)
     }
@@ -275,7 +275,7 @@ impl Context {
 
     /// Get the context's unique ID.
     #[inline]
-    #[must_use] 
+    #[must_use]
     pub const fn id(&self) -> u64 {
         self.id
     }
@@ -288,7 +288,7 @@ impl Context {
     ///
     /// This pre-registers a symbol in the context's isolated registry.
     /// Useful for telling the parser about multi-character variable names.
-    #[must_use] 
+    #[must_use]
     pub fn with_symbol(self, name: &str) -> Self {
         self.register_symbol(name);
         self
@@ -314,7 +314,7 @@ impl Context {
     ///
     /// # Panics
     /// Panics if the internal lock is poisoned (indicates a prior panic while holding the lock).
-    #[must_use] 
+    #[must_use]
     pub fn symb(&self, name: &str) -> Symbol {
         let mut inner = self.inner.write().expect("Context lock poisoned");
 
@@ -345,7 +345,7 @@ impl Context {
     ///
     /// # Panics
     /// Panics if the internal lock is poisoned.
-    #[must_use] 
+    #[must_use]
     pub fn contains_symbol(&self, name: &str) -> bool {
         self.inner
             .read()
@@ -358,7 +358,7 @@ impl Context {
     ///
     /// # Panics
     /// Panics if the internal lock is poisoned.
-    #[must_use] 
+    #[must_use]
     pub fn get_symbol(&self, name: &str) -> Option<Symbol> {
         self.inner
             .read()
@@ -372,7 +372,7 @@ impl Context {
     ///
     /// # Panics
     /// Panics if the internal lock is poisoned.
-    #[must_use] 
+    #[must_use]
     pub fn symbol_names(&self) -> Vec<String> {
         self.inner
             .read()
@@ -387,7 +387,7 @@ impl Context {
     ///
     /// # Panics
     /// Panics if the internal lock is poisoned.
-    #[must_use] 
+    #[must_use]
     pub fn symbol_names_set(&self) -> HashSet<String> {
         self.inner
             .read()
@@ -403,7 +403,7 @@ impl Context {
     // =========================================================================
 
     /// Register a user-defined function (builder pattern).
-    #[must_use] 
+    #[must_use]
     pub fn with_function(mut self, name: &str, func: UserFunction) -> Self {
         self.user_functions.insert(name.to_string(), func);
         self
@@ -413,7 +413,7 @@ impl Context {
     ///
     /// This allows the parser to recognize `f(x)` without requiring
     /// an evaluation or derivative definition.
-    #[must_use] 
+    #[must_use]
     pub fn with_function_name(mut self, name: &str) -> Self {
         if !self.user_functions.contains_key(name) {
             // Create a placeholder with default arity (any number of args)
@@ -438,34 +438,34 @@ impl Context {
 
     /// Get a user function by name.
     #[inline]
-    #[must_use] 
+    #[must_use]
     pub fn get_user_fn(&self, name: &str) -> Option<&UserFunction> {
         self.user_functions.get(name)
     }
 
     /// Check if a function is registered.
     #[inline]
-    #[must_use] 
+    #[must_use]
     pub fn has_function(&self, name: &str) -> bool {
         self.user_functions.contains_key(name)
     }
 
     /// Get all registered function names.
-    #[must_use] 
+    #[must_use]
     pub fn function_names(&self) -> HashSet<String> {
         self.user_functions.keys().cloned().collect()
     }
 
     /// Get the body function for a user function.
     #[inline]
-    #[must_use] 
+    #[must_use]
     pub fn get_body(&self, name: &str) -> Option<&BodyFn> {
         self.user_functions.get(name).and_then(|f| f.body.as_ref())
     }
 
     /// Get the partial derivative function for a user function argument.
     #[inline]
-    #[must_use] 
+    #[must_use]
     pub fn get_partial(&self, name: &str, arg_idx: usize) -> Option<&PartialFn> {
         self.user_functions
             .get(name)
@@ -476,7 +476,7 @@ impl Context {
     ///
     /// Looks up the symbol name from the global registry, then finds the user function.
     #[inline]
-    #[must_use] 
+    #[must_use]
     pub fn get_body_by_id(&self, id: u64) -> Option<&BodyFn> {
         // Look up symbol name from global registry
         if let Some(sym) = crate::core::symbol::lookup_by_id(id)
@@ -489,7 +489,7 @@ impl Context {
 
     /// Get a user function by symbol ID (for `CompiledEvaluator`).
     #[inline]
-    #[must_use] 
+    #[must_use]
     pub fn get_user_fn_by_id(&self, id: u64) -> Option<&UserFunction> {
         if let Some(sym) = crate::core::symbol::lookup_by_id(id)
             && let Some(name) = sym.name()
@@ -550,7 +550,7 @@ impl Context {
     ///
     /// # Panics
     /// Panics if the internal lock is poisoned.
-    #[must_use] 
+    #[must_use]
     pub fn symbol_count(&self) -> usize {
         self.inner
             .read()
@@ -560,7 +560,7 @@ impl Context {
     }
 
     /// Check if context has no symbols and no functions.
-    #[must_use] 
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.symbol_count() == 0 && self.user_functions.is_empty()
     }

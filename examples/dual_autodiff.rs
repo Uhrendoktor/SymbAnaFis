@@ -110,9 +110,7 @@ fn compare_with_symbolic() {
     // Symbolic derivative
     let symbolic_deriv = Diff::new().differentiate(&expr, &x).unwrap();
     println!("Symbolic: d/dx(x³ + 2x² + x + 1) = {symbolic_deriv}");
-    println!(
-        "         (Note: {symbolic_deriv} is mathematically equivalent to 3x² + 4x + 1)"
-    );
+    println!("         (Note: {symbolic_deriv} is mathematically equivalent to 3x² + 4x + 1)");
 
     // Evaluate symbolic derivative at x=2
     let vars = std::collections::HashMap::from([("x", 2.0)]);

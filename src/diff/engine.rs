@@ -101,12 +101,16 @@ impl Expr {
                         }
 
                         // Try to get partial from user function
-                        let partial = user_fn.partials.get(&i).map_or_else(|| {
-                            // No partial registered - symbolic
-                            let args_vec: Vec<Self> = args.iter().map(|a| (**a).clone()).collect();
-                            let inner_func = Self::func_multi(name.clone(), args_vec);
-                            Self::derivative(inner_func, format!("arg{i}"), 1)
-                        }, |partial_fn| partial_fn(args));
+                        let partial = user_fn.partials.get(&i).map_or_else(
+                            || {
+                                // No partial registered - symbolic
+                                let args_vec: Vec<Self> =
+                                    args.iter().map(|a| (**a).clone()).collect();
+                                let inner_func = Self::func_multi(name.clone(), args_vec);
+                                Self::derivative(inner_func, format!("arg{i}"), 1)
+                            },
+                            |partial_fn| partial_fn(args),
+                        );
 
                         terms.push(Self::mul_expr(partial, arg_prime));
                     }
@@ -380,9 +384,7 @@ impl Expr {
             }
 
             // Polynomial
-            ExprKind::Poly(poly) => {
-                poly.derivative_expr(var)
-            }
+            ExprKind::Poly(poly) => poly.derivative_expr(var),
         }
     }
 
