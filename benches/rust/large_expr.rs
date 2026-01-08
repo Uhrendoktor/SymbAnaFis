@@ -21,6 +21,9 @@ use symb_anafis::{CompiledEvaluator, Diff};
 // Load .env file for SYMBOLICA_LICENSE
 fn init() {
     let _unused = dotenvy::dotenv();
+    if let Ok(key) = std::env::var("SYMBOLICA_LICENSE") {
+        symbolica::LicenseManager::set_license_key(&key).ok();
+    }
 }
 
 use symbolica::{atom::AtomCore, parse, symbol};
