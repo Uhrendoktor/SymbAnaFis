@@ -1,0 +1,2657 @@
+SymbAnaFis Benchmarks
+Date: Thu Jan  8 03:09:03 UTC 2026
+Commit: 48402221cb1ef265a6175e91035095bebe00289e
+----------------------------------------
+[1m[92m    Updating[0m crates.io index
+[1m[92m     Locking[0m 167 packages to latest Rust 1.92.0 compatible versions
+[1m[92m Downloading[0m crates ...
+[1m[92m  Downloaded[0m plotters-svg v0.3.7
+[1m[92m  Downloaded[0m criterion v0.8.1
+[1m[92m  Downloaded[0m lazy_static v1.5.0
+[1m[92m  Downloaded[0m tracing-log v0.2.0
+[1m[92m  Downloaded[0m memoffset v0.9.1
+[1m[92m  Downloaded[0m clap_lex v0.7.6
+[1m[92m  Downloaded[0m ciborium-io v0.2.2
+[1m[92m  Downloaded[0m bytemuck v1.24.0
+[1m[92m  Downloaded[0m version_check v0.9.5
+[1m[92m  Downloaded[0m pyo3-macros v0.27.2
+[1m[92m  Downloaded[0m alloc-no-stdlib v2.0.4
+[1m[92m  Downloaded[0m serde_derive v1.0.228
+[1m[92m  Downloaded[0m tinyjson v2.5.1
+[1m[92m  Downloaded[0m walkdir v2.5.0
+[1m[92m  Downloaded[0m zmij v1.0.12
+[1m[92m  Downloaded[0m tracing-attributes v0.1.31
+[1m[92m  Downloaded[0m tracing-core v0.1.36
+[1m[92m  Downloaded[0m unicode-ident v1.0.22
+[1m[92m  Downloaded[0m zerocopy-derive v0.8.33
+[1m[92m  Downloaded[0m nu-ansi-term v0.50.3
+[1m[92m  Downloaded[0m serde_json v1.0.149
+[1m[92m  Downloaded[0m wide v1.1.1
+[1m[92m  Downloaded[0m wide v0.8.3
+[1m[92m  Downloaded[0m tracing-subscriber v0.3.22
+[1m[92m  Downloaded[0m serde_core v1.0.228
+[1m[92m  Downloaded[0m plotters v0.3.7
+[1m[92m  Downloaded[0m regex v1.12.2
+[1m[92m  Downloaded[0m rug v1.28.0
+[1m[92m  Downloaded[0m zerocopy v0.8.33
+[1m[92m  Downloaded[0m safe_arch v0.9.3
+[1m[92m  Downloaded[0m syn v2.0.114
+[1m[92m  Downloaded[0m rand v0.8.5
+[1m[92m  Downloaded[0m regex-syntax v0.8.8
+[1m[92m  Downloaded[0m numerica v1.1.0
+[1m[92m  Downloaded[0m safe_arch v1.0.0
+[1m[92m  Downloaded[0m ndarray v0.17.1
+[1m[92m  Downloaded[0m once_cell v1.21.3
+[1m[92m  Downloaded[0m num-integer v0.1.46
+[1m[92m  Downloaded[0m tracing v0.1.44
+[1m[92m  Downloaded[0m pyo3-macros-backend v0.27.2
+[1m[92m  Downloaded[0m rayon v1.11.0
+[1m[92m  Downloaded[0m rayon-core v1.13.0
+[1m[92m  Downloaded[0m libc v0.2.179
+[1m[92m  Downloaded[0m sharded-slab v0.1.7
+[1m[92m  Downloaded[0m regex-automata v0.4.13
+[1m[92m  Downloaded[0m rustc-hash v2.1.1
+[1m[92m  Downloaded[0m pyo3-ffi v0.27.2
+[1m[92m  Downloaded[0m page_size v0.6.0
+[1m[92m  Downloaded[0m libmimalloc-sys v0.1.44
+[1m[92m  Downloaded[0m smallvec v1.15.1
+[1m[92m  Downloaded[0m rand_xoshiro v0.7.0
+[1m[92m  Downloaded[0m quickcheck v1.0.3
+[1m[92m  Downloaded[0m proc-macro2 v1.0.105
+[1m[92m  Downloaded[0m ppv-lite86 v0.2.21
+[1m[92m  Downloaded[0m same-file v1.0.6
+[1m[92m  Downloaded[0m rand_core v0.6.4
+[1m[92m  Downloaded[0m quote v1.0.43
+[1m[92m  Downloaded[0m symbolica v1.2.1
+[1m[92m  Downloaded[0m pin-project-lite v0.2.16
+[1m[92m  Downloaded[0m itertools v0.13.0
+[1m[92m  Downloaded[0m getrandom v0.2.16
+[1m[92m  Downloaded[0m rand v0.9.2
+[1m[92m  Downloaded[0m numpy v0.27.1
+[1m[92m  Downloaded[0m gmp-mpfr-sys v1.6.8
+[1m[92m  Downloaded[0m brotli-decompressor v5.0.0
+[1m[92m  Downloaded[0m brotli v8.0.2
+[1m[92m  Downloaded[0m tinytemplate v1.2.1
+[1m[92m  Downloaded[0m target-lexicon v0.13.4
+[1m[92m  Downloaded[0m static_assertions v1.1.0
+[1m[92m  Downloaded[0m smartstring v1.0.1
+[1m[92m  Downloaded[0m shlex v1.3.0
+[1m[92m  Downloaded[0m rawpointer v0.2.1
+[1m[92m  Downloaded[0m rand_core v0.9.3
+[1m[92m  Downloaded[0m libm v0.2.15
+[1m[92m  Downloaded[0m clap_builder v4.5.54
+[1m[92m  Downloaded[0m cast v0.3.0
+[1m[92m  Downloaded[0m aho-corasick v1.1.4
+[1m[92m  Downloaded[0m thread_local v1.1.9
+[1m[92m  Downloaded[0m num-complex v0.4.6
+[1m[92m  Downloaded[0m memchr v2.7.6
+[1m[92m  Downloaded[0m env_logger v0.8.4
+[1m[92m  Downloaded[0m rand_chacha v0.9.0
+[1m[92m  Downloaded[0m oorandom v11.1.5
+[1m[92m  Downloaded[0m num-traits v0.2.19
+[1m[92m  Downloaded[0m log v0.4.29
+[1m[92m  Downloaded[0m getrandom v0.3.4
+[1m[92m  Downloaded[0m either v1.15.0
+[1m[92m  Downloaded[0m ciborium-ll v0.2.2
+[1m[92m  Downloaded[0m ciborium v0.2.2
+[1m[92m  Downloaded[0m cc v1.2.51
+[1m[92m  Downloaded[0m bytes v1.11.0
+[1m[92m  Downloaded[0m pyo3-build-config v0.27.2
+[1m[92m  Downloaded[0m pyo3 v0.27.2
+[1m[92m  Downloaded[0m serde v1.0.228
+[1m[92m  Downloaded[0m mimalloc v0.1.48
+[1m[92m  Downloaded[0m matchers v0.2.0
+[1m[92m  Downloaded[0m heck v0.5.0
+[1m[92m  Downloaded[0m graphica v1.1.0
+[1m[92m  Downloaded[0m find-msvc-tools v0.1.6
+[1m[92m  Downloaded[0m dyn-clone v1.0.20
+[1m[92m  Downloaded[0m crossbeam-utils v0.8.21
+[1m[92m  Downloaded[0m crossbeam-epoch v0.9.18
+[1m[92m  Downloaded[0m criterion-plot v0.8.1
+[1m[92m  Downloaded[0m colored v3.0.0
+[1m[92m  Downloaded[0m clap v4.5.54
+[1m[92m  Downloaded[0m autocfg v1.5.0
+[1m[92m  Downloaded[0m anstyle v1.0.13
+[1m[92m  Downloaded[0m anes v0.1.6
+[1m[92m  Downloaded[0m alloca v0.4.0
+[1m[92m  Downloaded[0m unindent v0.2.4
+[1m[92m  Downloaded[0m self_cell v1.2.2
+[1m[92m  Downloaded[0m rustversion v1.0.22
+[1m[92m  Downloaded[0m plotters-backend v0.3.7
+[1m[92m  Downloaded[0m matrixmultiply v0.3.10
+[1m[92m  Downloaded[0m libloading v0.9.0
+[1m[92m  Downloaded[0m half v2.7.1
+[1m[92m  Downloaded[0m dotenvy v0.15.7
+[1m[92m  Downloaded[0m crossbeam-deque v0.8.6
+[1m[92m  Downloaded[0m alloc-stdlib v0.2.2
+[1m[92m  Downloaded[0m indoc v2.0.7
+[1m[92m  Downloaded[0m byteorder v1.5.0
+[1m[92m  Downloaded[0m itoa v1.0.17
+[1m[92m  Downloaded[0m cfg-if v1.0.4
+[1m[92m  Downloaded[0m append-only-vec v0.1.8
+[1m[92m  Downloaded[0m ahash v0.8.12
+[1m[92m  Downloaded[0m az v1.2.1
+[1m[92m   Compiling[0m proc-macro2 v1.0.105
+[1m[92m   Compiling[0m unicode-ident v1.0.22
+[1m[92m   Compiling[0m quote v1.0.43
+[1m[92m   Compiling[0m libc v0.2.179
+[1m[92m   Compiling[0m autocfg v1.5.0
+[1m[92m   Compiling[0m cfg-if v1.0.4
+[1m[92m   Compiling[0m target-lexicon v0.13.4
+[1m[92m   Compiling[0m zerocopy v0.8.33
+[1m[92m   Compiling[0m pyo3-build-config v0.27.2
+[1m[92m   Compiling[0m memchr v2.7.6
+[1m[92m   Compiling[0m syn v2.0.114
+[1m[92m   Compiling[0m once_cell v1.21.3
+[1m[92m   Compiling[0m find-msvc-tools v0.1.6
+[1m[92m   Compiling[0m shlex v1.3.0
+[1m[92m   Compiling[0m getrandom v0.3.4
+[1m[92m   Compiling[0m cc v1.2.51
+[1m[92m   Compiling[0m num-traits v0.2.19
+[1m[92m   Compiling[0m crossbeam-utils v0.8.21
+[1m[92m   Compiling[0m version_check v0.9.5
+[1m[92m   Compiling[0m aho-corasick v1.1.4
+[1m[92m   Compiling[0m regex-syntax v0.8.8
+[1m[92m   Compiling[0m bytemuck v1.24.0
+[1m[92m   Compiling[0m regex-automata v0.4.13
+[1m[92m   Compiling[0m zerocopy-derive v0.8.33
+[1m[92m   Compiling[0m serde_core v1.0.228
+[1m[92m   Compiling[0m gmp-mpfr-sys v1.6.8
+[1m[92m   Compiling[0m rand_core v0.9.3
+[1m[92m   Compiling[0m crossbeam-epoch v0.9.18
+[1m[92m   Compiling[0m pyo3-macros-backend v0.27.2
+[1m[92m   Compiling[0m pyo3-ffi v0.27.2
+[1m[92m   Compiling[0m az v1.2.1
+[1m[92m   Compiling[0m libm v0.2.15
+[1m[92m   Compiling[0m either v1.15.0
+[1m[92m   Compiling[0m rayon-core v1.13.0
+[1m[92m   Compiling[0m crossbeam-deque v0.8.6
+[1m[92m   Compiling[0m ppv-lite86 v0.2.21
+[1m[92m   Compiling[0m ahash v0.8.12
+[1m[92m   Compiling[0m matrixmultiply v0.3.10
+[1m[92m   Compiling[0m memoffset v0.9.1
+[1m[92m   Compiling[0m log v0.4.29
+[1m[92m   Compiling[0m rug v1.28.0
+[1m[92m   Compiling[0m zmij v1.0.12
+[1m[92m   Compiling[0m heck v0.5.0
+[1m[92m   Compiling[0m serde v1.0.228
+[1m[92m   Compiling[0m rand_chacha v0.9.0
+[1m[92m   Compiling[0m serde_derive v1.0.228
+[1m[92m   Compiling[0m safe_arch v0.9.3
+[1m[92m   Compiling[0m libmimalloc-sys v0.1.44
+[1m[92m   Compiling[0m pyo3 v0.27.2
+[1m[92m   Compiling[0m tracing-core v0.1.36
+[1m[92m   Compiling[0m smallvec v1.15.1
+[1m[92m   Compiling[0m rawpointer v0.2.1
+[1m[92m   Compiling[0m serde_json v1.0.149
+[1m[92m   Compiling[0m alloc-no-stdlib v2.0.4
+[1m[92m   Compiling[0m alloc-stdlib v0.2.2
+[1m[92m   Compiling[0m wide v0.8.3
+[1m[92m   Compiling[0m pyo3-macros v0.27.2
+[1m[92m   Compiling[0m rayon v1.11.0
+[1m[92m   Compiling[0m rand v0.9.2
+[1m[92m   Compiling[0m rand_xoshiro v0.7.0
+[1m[92m   Compiling[0m half v2.7.1
+[1m[92m   Compiling[0m regex v1.12.2
+[1m[92m   Compiling[0m tracing-attributes v0.1.31
+[1m[92m   Compiling[0m num-integer v0.1.46
+[1m[92m   Compiling[0m num-complex v0.4.6
+[1m[92m   Compiling[0m alloca v0.4.0
+[1m[92m   Compiling[0m smartstring v1.0.1
+[1m[92m   Compiling[0m numpy v0.27.1
+[1m[92m   Compiling[0m getrandom v0.2.16
+[1m[92m   Compiling[0m itoa v1.0.17
+[1m[92m   Compiling[0m ciborium-io v0.2.2
+[1m[92m   Compiling[0m clap_lex v0.7.6
+[1m[92m   Compiling[0m colored v3.0.0
+[1m[92m   Compiling[0m indoc v2.0.7
+[1m[92m   Compiling[0m dyn-clone v1.0.20
+[1m[92m   Compiling[0m plotters-backend v0.3.7
+[1m[92m   Compiling[0m lazy_static v1.5.0
+[1m[92m   Compiling[0m pin-project-lite v0.2.16
+[1m[92m   Compiling[0m anstyle v1.0.13
+[1m[92m   Compiling[0m unindent v0.2.4
+[1m[92m   Compiling[0m clap_builder v4.5.54
+[1m[92m   Compiling[0m plotters-svg v0.3.7
+[1m[92m   Compiling[0m tracing v0.1.44
+[1m[92m   Compiling[0m sharded-slab v0.1.7
+[1m[92m   Compiling[0m rand_core v0.6.4
+[1m[92m   Compiling[0m ciborium-ll v0.2.2
+[1m[92m   Compiling[0m ndarray v0.17.1
+[1m[92m   Compiling[0m brotli-decompressor v5.0.0
+[1m[92m   Compiling[0m tracing-log v0.2.0
+[1m[92m   Compiling[0m itertools v0.13.0
+[1m[92m   Compiling[0m matchers v0.2.0
+[1m[92m   Compiling[0m safe_arch v1.0.0
+[1m[92m   Compiling[0m thread_local v1.1.9
+[1m[92m   Compiling[0m rustc-hash v2.1.1
+[1m[92m   Compiling[0m cast v0.3.0
+[1m[92m   Compiling[0m same-file v1.0.6
+[1m[92m   Compiling[0m symbolica v1.2.1
+[1m[92m   Compiling[0m static_assertions v1.1.0
+[1m[92m   Compiling[0m nu-ansi-term v0.50.3
+[1m[92m   Compiling[0m tracing-subscriber v0.3.22
+[1m[92m   Compiling[0m walkdir v2.5.0
+[1m[92m   Compiling[0m criterion-plot v0.8.1
+[1m[92m   Compiling[0m wide v1.1.1
+[1m[92m   Compiling[0m brotli v8.0.2
+[1m[92m   Compiling[0m mimalloc v0.1.48
+[1m[92m   Compiling[0m ciborium v0.2.2
+[1m[92m   Compiling[0m rand v0.8.5
+[1m[92m   Compiling[0m clap v4.5.54
+[1m[92m   Compiling[0m tinytemplate v1.2.1
+[1m[92m   Compiling[0m plotters v0.3.7
+[1m[92m   Compiling[0m env_logger v0.8.4
+[1m[92m   Compiling[0m page_size v0.6.0
+[1m[92m   Compiling[0m libloading v0.9.0
+[1m[92m   Compiling[0m bytes v1.11.0
+[1m[92m   Compiling[0m oorandom v11.1.5
+[1m[92m   Compiling[0m self_cell v1.2.2
+[1m[92m   Compiling[0m byteorder v1.5.0
+[1m[92m   Compiling[0m append-only-vec v0.1.8
+[1m[92m   Compiling[0m anes v0.1.6
+[1m[92m   Compiling[0m tinyjson v2.5.1
+[1m[92m   Compiling[0m quickcheck v1.0.3
+[1m[92m   Compiling[0m criterion v0.8.1
+[1m[92m   Compiling[0m dotenvy v0.15.7
+[1m[92m   Compiling[0m symb_anafis v0.5.1 (/home/runner/work/SymbAnaFis/SymbAnaFis)
+[1m[92m   Compiling[0m numerica v1.1.0
+[1m[92m   Compiling[0m graphica v1.1.0
+[1m[92m    Finished[0m `bench` profile [optimized] target(s) in 7m 10s
+[1m[92m     Running[0m unittests src/lib.rs (target/release/deps/symb_anafis-0fda30e88aaa4850)
+
+running 897 tests
+test api::builder::tests::test_custom_eval_with_evaluate ... ignored
+test api::builder::tests::test_custom_eval_without_evaluator ... ignored
+test api::builder::tests::test_diff_builder_basic ... ignored
+test api::builder::tests::test_diff_domain_safe ... ignored
+test api::builder::tests::test_diff_expr ... ignored
+test api::builder::tests::test_diff_with_known_symbol ... ignored
+test api::builder::tests::test_fixed_var ... ignored
+test api::builder::tests::test_simplify_builder ... ignored
+test api::helpers::tests::test_evaluate_str_full ... ignored
+test api::helpers::tests::test_evaluate_str_partial ... ignored
+test api::helpers::tests::test_gradient ... ignored
+test api::helpers::tests::test_hessian ... ignored
+test api::helpers::tests::test_jacobian ... ignored
+test bindings::eval_f64::tests::test_eval_f64_large ... ignored
+test bindings::eval_f64::tests::test_eval_f64_multiple_exprs ... ignored
+test bindings::eval_f64::tests::test_eval_f64_simple ... ignored
+test bindings::eval_f64::tests::test_eval_f64_trig ... ignored
+test bindings::parallel::tests::test_expr_input_single_var ... ignored
+test bindings::parallel::tests::test_mixed_exprs ... ignored
+test bindings::parallel::tests::test_skip_value ... ignored
+test bindings::parallel::tests::test_string_expr_single_var ... ignored
+test bindings::parallel::tests::test_two_vars ... ignored
+test core::display::tests::test_display_negation ... ignored
+test core::display::tests::test_display_nested_sum ... ignored
+test core::display::tests::test_display_number ... ignored
+test core::display::tests::test_display_product ... ignored
+test core::display::tests::test_display_subtraction ... ignored
+test core::display::tests::test_display_sum ... ignored
+test core::display::tests::test_display_symbol ... ignored
+test core::error::tests::test_diff_error_constructors ... ignored
+test core::error::tests::test_diff_error_display ... ignored
+test core::error::tests::test_span_at ... ignored
+test core::error::tests::test_span_creation ... ignored
+test core::error::tests::test_span_display ... ignored
+test core::error::tests::test_span_empty ... ignored
+test core::error::tests::test_span_swap ... ignored
+test core::evaluator::tests::test_compile_auto ... ignored
+test core::evaluator::tests::test_constants ... ignored
+test core::evaluator::tests::test_eval_batch_constant_expr ... ignored
+test core::evaluator::tests::test_eval_batch_multi_var ... ignored
+test core::evaluator::tests::test_eval_batch_remainder_path ... ignored
+test core::evaluator::tests::test_eval_batch_simd_path ... ignored
+test core::evaluator::tests::test_eval_batch_single_point ... ignored
+test core::evaluator::tests::test_eval_batch_special_functions ... ignored
+test core::evaluator::tests::test_eval_batch_vs_single ... ignored
+test core::evaluator::tests::test_multi_var ... ignored
+test core::evaluator::tests::test_nested_user_function_expansion ... ignored
+test core::evaluator::tests::test_polynomial ... ignored
+test core::evaluator::tests::test_simple_arithmetic ... ignored
+test core::evaluator::tests::test_trig ... ignored
+test core::evaluator::tests::test_unbound_variable_error ... ignored
+test core::evaluator::tests::test_user_function_expansion ... ignored
+test core::expr::tests::test_product_flattening ... ignored
+test core::expr::tests::test_subtraction_as_sum ... ignored
+test core::expr::tests::test_sum_flattening ... ignored
+test core::poly::tests::test_poly_add ... ignored
+test core::poly::tests::test_poly_constant ... ignored
+test core::poly::tests::test_poly_derivative ... ignored
+test core::poly::tests::test_poly_display ... ignored
+test core::poly::tests::test_poly_div_rem ... ignored
+test core::poly::tests::test_poly_from_base ... ignored
+test core::poly::tests::test_poly_gcd ... ignored
+test core::poly::tests::test_poly_mul ... ignored
+test core::poly::tests::test_poly_roundtrip ... ignored
+test core::poly::tests::test_poly_with_function_base ... ignored
+test core::symbol::tests::test_anonymous_symbol ... ignored
+test core::symbol::tests::test_expr_ref_with_f64 ... ignored
+test core::symbol::tests::test_expr_ref_with_i32 ... ignored
+test core::symbol::tests::test_expr_with_expr ... ignored
+test core::symbol::tests::test_expr_with_f64 ... ignored
+test core::symbol::tests::test_expr_with_i32 ... ignored
+test core::symbol::tests::test_mixed_complex_expression ... ignored
+test core::symbol::tests::test_negation ... ignored
+test core::symbol::tests::test_power_with_all_types ... ignored
+test core::symbol::tests::test_sym_legacy_compatibility ... ignored
+test core::symbol::tests::test_symb_get_errors_if_not_found ... ignored
+test core::symbol::tests::test_symb_get_returns_existing ... ignored
+test core::symbol::tests::test_symb_new_creates_new_symbol ... ignored
+test core::symbol::tests::test_symb_new_errors_on_duplicate ... ignored
+test core::symbol::tests::test_symbol_arithmetic ... ignored
+test core::symbol::tests::test_symbol_copy_operators ... ignored
+test core::symbol::tests::test_symbol_equality ... ignored
+test core::symbol::tests::test_symbol_exists ... ignored
+test core::symbol::tests::test_symbol_functions ... ignored
+test core::symbol::tests::test_symbol_power ... ignored
+test core::symbol::tests::test_symbol_ref_with_f64 ... ignored
+test core::symbol::tests::test_symbol_ref_with_i32 ... ignored
+test core::symbol::tests::test_symbol_with_expr ... ignored
+test core::symbol::tests::test_symbol_with_f64 ... ignored
+test core::symbol::tests::test_symbol_with_i32 ... ignored
+test core::symbol::tests::test_symbol_with_symbol ... ignored
+test core::traits::tests::test_is_neg_one ... ignored
+test core::traits::tests::test_is_one ... ignored
+test core::traits::tests::test_is_zero ... ignored
+test core::unified_context::tests::test_context_clear ... ignored
+test core::unified_context::tests::test_context_creation ... ignored
+test core::unified_context::tests::test_context_function_name_only ... ignored
+test core::unified_context::tests::test_context_symbol_isolation ... ignored
+test core::unified_context::tests::test_context_user_function ... ignored
+test core::unified_context::tests::test_context_with_symbol ... ignored
+test core::unified_context::tests::test_user_function_partial ... ignored
+test core::visitor::tests::test_node_counter ... ignored
+test core::visitor::tests::test_variable_collector ... ignored
+test diff::engine::tests::test_custom_derivative_fallback ... ignored
+test diff::engine::tests::test_deeply_nested_derivatives ... ignored
+test diff::engine::tests::test_derivative_mixed_partial_when_variable_present ... ignored
+test diff::engine::tests::test_derivative_multivar_function ... ignored
+test diff::engine::tests::test_derivative_order_increment ... ignored
+test diff::engine::tests::test_derivative_order_increment_multi_digit ... ignored
+test diff::engine::tests::test_derivative_variable_not_present_returns_zero ... ignored
+test diff::engine::tests::test_derive_division ... ignored
+test diff::engine::tests::test_derive_erfc ... ignored
+test diff::engine::tests::test_derive_sinh ... ignored
+test diff::engine::tests::test_derive_subtraction ... ignored
+test diff::engine::tests::test_logarithmic_differentiation ... ignored
+test diff::engine::tests::test_mixed_partial_display ... ignored
+test math::dual::tests::test_dual_basic_arithmetic ... ignored
+test math::dual::tests::test_dual_chain_rule ... ignored
+test math::dual::tests::test_dual_erf ... ignored
+test math::dual::tests::test_dual_exp_ln ... ignored
+test math::dual::tests::test_dual_gamma ... ignored
+test math::dual::tests::test_dual_hyperbolic ... ignored
+test math::dual::tests::test_dual_lambert_w ... ignored
+test math::dual::tests::test_dual_powi ... ignored
+test math::dual::tests::test_dual_product_rule ... ignored
+test math::dual::tests::test_dual_quotient_rule ... ignored
+test math::dual::tests::test_dual_sin_cos ... ignored
+test math::dual::tests::test_dual_sinc ... ignored
+test math::dual::tests::test_dual_sqrt ... ignored
+test math::dual::tests::test_dual_tan ... ignored
+test parser::implicit_mul::tests::test_function_no_multiplication ... ignored
+test parser::implicit_mul::tests::test_identifier_function ... ignored
+test parser::implicit_mul::tests::test_identifier_identifier ... ignored
+test parser::implicit_mul::tests::test_number_function ... ignored
+test parser::implicit_mul::tests::test_number_identifier ... ignored
+test parser::implicit_mul::tests::test_paren_identifier ... ignored
+test parser::lexer::tests::test_balance_parentheses ... ignored
+test parser::lexer::tests::test_derivative_validation ... ignored
+test parser::lexer::tests::test_empty_parens ... ignored
+test parser::lexer::tests::test_identifier_rules ... ignored
+test parser::lexer::tests::test_lex_basic ... ignored
+test parser::lexer::tests::test_lex_with_fixed_vars ... ignored
+test parser::lexer::tests::test_number_edge_cases ... ignored
+test parser::lexer::tests::test_number_scientific_notation ... ignored
+test parser::lexer::tests::test_parse_number ... ignored
+test parser::lexer::tests::test_scan_characters ... ignored
+test parser::lexer::tests::test_scan_derivative_complex ... ignored
+test parser::lexer::tests::test_scan_derivative_nested_parens ... ignored
+test parser::lexer::tests::test_unicode_identifiers ... ignored
+test parser::pratt::tests::test_empty_parentheses ... ignored
+test parser::pratt::tests::test_parentheses ... ignored
+test parser::pratt::tests::test_parse_addition ... ignored
+test parser::pratt::tests::test_parse_function ... ignored
+test parser::pratt::tests::test_parse_multiplication ... ignored
+test parser::pratt::tests::test_parse_number ... ignored
+test parser::pratt::tests::test_parse_power ... ignored
+test parser::pratt::tests::test_parse_symbol ... ignored
+test parser::pratt::tests::test_precedence ... ignored
+test parser::tokens::tests::test_from_str ... ignored
+test parser::tokens::tests::test_is_function ... ignored
+test parser::tokens::tests::test_precedence ... ignored
+test tests::actual_division_bug::actual_bug_test::test_rc_derivative_actual_bug ... ignored
+test tests::actual_division_bug::actual_bug_test::test_simple_constant_division ... ignored
+test tests::advanced_simplification_tests::test_complex_algebraic_simplification ... ignored
+test tests::advanced_simplification_tests::test_constant_folding ... ignored
+test tests::advanced_simplification_tests::test_exponential_form_recognition ... ignored
+test tests::advanced_simplification_tests::test_hyperbolic_identity_simplification ... ignored
+test tests::advanced_simplification_tests::test_logarithmic_simplification ... ignored
+test tests::advanced_simplification_tests::test_nested_trig_simplification ... ignored
+test tests::advanced_simplification_tests::test_power_simplification ... ignored
+test tests::advanced_simplification_tests::test_root_simplification ... ignored
+test tests::advanced_simplification_tests::test_trig_exact_values ... ignored
+test tests::advanced_simplification_tests::test_trig_identity_simplification ... ignored
+test tests::advanced_tests::boundary_conditions::test_single_char_fixed_var ... ignored
+test tests::advanced_tests::boundary_conditions::test_underscore_in_name ... ignored
+test tests::advanced_tests::boundary_conditions::test_unicode_identifier ... ignored
+test tests::advanced_tests::boundary_conditions::test_very_deep_nesting ... ignored
+test tests::advanced_tests::real_world_expressions::test_chain_rule_triple ... ignored
+test tests::advanced_tests::real_world_expressions::test_exponential_growth ... ignored
+test tests::advanced_tests::real_world_expressions::test_hyperbolic_combo ... ignored
+test tests::advanced_tests::real_world_expressions::test_implicit_with_division ... ignored
+test tests::advanced_tests::real_world_expressions::test_product_of_three ... ignored
+test tests::advanced_tests::real_world_expressions::test_quadratic_derivative ... ignored
+test tests::advanced_tests::real_world_expressions::test_rational_function ... ignored
+test tests::advanced_tests::real_world_expressions::test_trig_identity_input ... ignored
+test tests::advanced_tests::simplification_advanced::test_complex_power_division ... ignored
+test tests::advanced_tests::simplification_advanced::test_constant_div ... ignored
+test tests::advanced_tests::simplification_advanced::test_constant_folding_chain ... ignored
+test tests::advanced_tests::simplification_advanced::test_constant_sub ... ignored
+test tests::advanced_tests::simplification_advanced::test_div_by_one ... ignored
+test tests::advanced_tests::simplification_advanced::test_div_zero ... ignored
+test tests::advanced_tests::simplification_advanced::test_function_power_division ... ignored
+test tests::advanced_tests::simplification_advanced::test_general_power_division ... ignored
+test tests::advanced_tests::simplification_advanced::test_mul_by_zero_nested ... ignored
+test tests::advanced_tests::simplification_advanced::test_nested_add_zero ... ignored
+test tests::advanced_tests::simplification_advanced::test_power_division_simplification ... ignored
+test tests::advanced_tests::simplification_advanced::test_power_simplification ... ignored
+test tests::advanced_tests::simplification_advanced::test_sub_zero ... ignored
+test tests::api_contract_tests::test_diff_builder_basic ... ignored
+test tests::api_contract_tests::test_diff_builder_order ... ignored
+test tests::api_contract_tests::test_diff_function_vs_builder ... ignored
+test tests::api_contract_tests::test_evaluate_extra_variables_ok ... ignored
+test tests::api_contract_tests::test_evaluate_with_all_variables ... ignored
+test tests::api_contract_tests::test_expr_clone_equality ... ignored
+test tests::api_contract_tests::test_expr_display_parse_roundtrip ... ignored
+test tests::api_contract_tests::test_expr_number_roundtrip ... ignored
+test tests::api_contract_tests::test_parse_accepts_valid ... ignored
+test tests::api_contract_tests::test_parse_empty_rejects ... ignored
+test tests::api_contract_tests::test_parse_error_messages_are_informative ... ignored
+test tests::api_contract_tests::test_parse_invalid_rejects ... ignored
+test tests::api_contract_tests::test_parse_rejects_empty_function_call ... ignored
+test tests::api_contract_tests::test_simplify_builder_basic ... ignored
+test tests::api_contract_tests::test_simplify_idempotence ... ignored
+test tests::api_contract_tests::test_symb_function_returns_same_symbol ... ignored
+test tests::api_contract_tests::test_symbol_arithmetic_ops ... ignored
+test tests::api_contract_tests::test_symbol_equality ... ignored
+test tests::api_contract_tests::test_symbol_hash_consistency ... ignored
+test tests::api_contract_tests::test_symbol_is_copy ... ignored
+test tests::api_contract_tests::test_symbol_math_functions ... ignored
+test tests::api_parity_checks::ensure_string_and_typesafe_apis_match ... ignored
+test tests::api_parity_checks::parity_add ... ignored
+test tests::api_parity_checks::parity_custom_functions ... ignored
+test tests::api_parity_checks::parity_eval_inputs ... ignored
+test tests::api_parity_checks::parity_fixed_vars ... ignored
+test tests::api_parity_checks::parity_log ... ignored
+test tests::api_parity_checks::parity_pow ... ignored
+test tests::api_parity_checks::parity_simplify_fixed ... ignored
+test tests::api_parity_checks::parity_sin ... ignored
+test tests::benchmark_tests::test_all_benchmarks_produce_valid_results ... ignored
+test tests::benchmark_tests::test_batch_evaluation_1000_points ... ignored
+test tests::benchmark_tests::test_compile_raw_derivatives ... ignored
+test tests::benchmark_tests::test_compile_simplified_derivatives ... ignored
+test tests::benchmark_tests::test_diff_raw_all_benchmark_expressions ... ignored
+test tests::benchmark_tests::test_diff_simplified_all_benchmark_expressions ... ignored
+test tests::benchmark_tests::test_eval_batch_single_var ... ignored
+test tests::benchmark_tests::test_eval_scaling ... ignored
+test tests::benchmark_tests::test_evaluate_compiled_derivatives ... ignored
+test tests::benchmark_tests::test_full_pipeline_damped_oscillator ... ignored
+test tests::benchmark_tests::test_full_pipeline_lorentz_factor ... ignored
+test tests::benchmark_tests::test_large_expr_diff_100 ... ignored
+test tests::benchmark_tests::test_large_expr_eval_50 ... ignored
+test tests::benchmark_tests::test_large_expr_parse_100 ... ignored
+test tests::benchmark_tests::test_multi_expression_batch ... ignored
+test tests::benchmark_tests::test_parse_all_benchmark_expressions ... ignored
+test tests::benchmark_tests::test_simplify_derivatives_all_benchmark_expressions ... ignored
+test tests::closure_check::tests::test_gamma_polygamma_closure ... ignored
+test tests::closure_check::tests::test_zeta_closure ... ignored
+test tests::comprehensive_api_tests::api_tests::test_diff_basic ... ignored
+test tests::comprehensive_api_tests::api_tests::test_diff_builder_basic ... ignored
+test tests::comprehensive_api_tests::api_tests::test_diff_builder_differentiate_expr ... ignored
+test tests::comprehensive_api_tests::api_tests::test_diff_builder_domain_safe ... ignored
+test tests::comprehensive_api_tests::api_tests::test_diff_builder_known_symbols ... ignored
+test tests::comprehensive_api_tests::api_tests::test_diff_custom_function_symbolic ... ignored
+test tests::comprehensive_api_tests::api_tests::test_diff_then_evaluate_with_symbols ... ignored
+test tests::comprehensive_api_tests::api_tests::test_diff_with_custom_functions ... ignored
+test tests::comprehensive_api_tests::api_tests::test_diff_with_fixed_vars ... ignored
+test tests::comprehensive_api_tests::api_tests::test_eval_with_custom_functions ... ignored
+test tests::comprehensive_api_tests::api_tests::test_evaluate_str ... ignored
+test tests::comprehensive_api_tests::api_tests::test_expr_evaluate ... ignored
+test tests::comprehensive_api_tests::api_tests::test_expr_fold_map ... ignored
+test tests::comprehensive_api_tests::api_tests::test_expr_max_depth ... ignored
+test tests::comprehensive_api_tests::api_tests::test_expr_node_count ... ignored
+test tests::comprehensive_api_tests::api_tests::test_expr_substitute ... ignored
+test tests::comprehensive_api_tests::api_tests::test_full_hessian_workflow ... ignored
+test tests::comprehensive_api_tests::api_tests::test_gradient ... ignored
+test tests::comprehensive_api_tests::api_tests::test_gradient_evaluate_magnitude ... ignored
+test tests::comprehensive_api_tests::api_tests::test_gradient_str ... ignored
+test tests::comprehensive_api_tests::api_tests::test_hessian ... ignored
+test tests::comprehensive_api_tests::api_tests::test_hessian_str ... ignored
+test tests::comprehensive_api_tests::api_tests::test_jacobian ... ignored
+test tests::comprehensive_api_tests::api_tests::test_jacobian_str ... ignored
+test tests::comprehensive_api_tests::api_tests::test_simplify_basic ... ignored
+test tests::comprehensive_api_tests::api_tests::test_simplify_builder_basic ... ignored
+test tests::comprehensive_api_tests::api_tests::test_simplify_builder_domain_safe ... ignored
+test tests::comprehensive_api_tests::api_tests::test_simplify_builder_simplify_expr ... ignored
+test tests::comprehensive_api_tests::api_tests::test_simplify_with_fixed_vars ... ignored
+test tests::comprehensive_api_tests::api_tests::test_sym_creation ... ignored
+test tests::comprehensive_api_tests::api_tests::test_symbol_arithmetic ... ignored
+test tests::comprehensive_api_tests::api_tests::test_symbol_functions ... ignored
+test tests::comprehensive_api_tests::custom_fn_differentiation_tests::test_custom_fn_basic_differentiation ... ignored
+test tests::comprehensive_api_tests::custom_fn_differentiation_tests::test_custom_fn_chain_rule ... ignored
+test tests::comprehensive_api_tests::custom_fn_differentiation_tests::test_custom_fn_constant_arg ... ignored
+test tests::comprehensive_api_tests::custom_fn_differentiation_tests::test_custom_fn_missing_partial ... ignored
+test tests::comprehensive_api_tests::custom_fn_differentiation_tests::test_custom_fn_single_partial ... ignored
+test tests::comprehensive_api_tests::derivative_accuracy_tests::test_chain_rule_accuracy ... ignored
+test tests::comprehensive_api_tests::derivative_accuracy_tests::test_exp_log_derivative_accuracy ... ignored
+test tests::comprehensive_api_tests::derivative_accuracy_tests::test_power_rule_accuracy ... ignored
+test tests::comprehensive_api_tests::derivative_accuracy_tests::test_product_rule_accuracy ... ignored
+test tests::comprehensive_api_tests::derivative_accuracy_tests::test_quotient_rule_accuracy ... ignored
+test tests::comprehensive_api_tests::derivative_accuracy_tests::test_trig_derivative_accuracy ... ignored
+test tests::comprehensive_api_tests::edge_case_tests::test_large_values ... ignored
+test tests::comprehensive_api_tests::edge_case_tests::test_multi_variable ... ignored
+test tests::comprehensive_api_tests::edge_case_tests::test_nan_inf_handling ... ignored
+test tests::comprehensive_api_tests::edge_case_tests::test_near_singularity ... ignored
+test tests::comprehensive_api_tests::edge_case_tests::test_variable_substitution ... ignored
+test tests::comprehensive_api_tests::function_accuracy_tests::test_assoc_legendre ... ignored
+test tests::comprehensive_api_tests::function_accuracy_tests::test_bessel_i ... ignored
+test tests::comprehensive_api_tests::function_accuracy_tests::test_bessel_j ... ignored
+test tests::comprehensive_api_tests::function_accuracy_tests::test_bessel_k ... ignored
+test tests::comprehensive_api_tests::function_accuracy_tests::test_bessel_y ... ignored
+test tests::comprehensive_api_tests::function_accuracy_tests::test_beta ... ignored
+test tests::comprehensive_api_tests::function_accuracy_tests::test_digamma_trigamma ... ignored
+test tests::comprehensive_api_tests::function_accuracy_tests::test_elliptic_e ... ignored
+test tests::comprehensive_api_tests::function_accuracy_tests::test_elliptic_k ... ignored
+test tests::comprehensive_api_tests::function_accuracy_tests::test_erf ... ignored
+test tests::comprehensive_api_tests::function_accuracy_tests::test_exp_log ... ignored
+test tests::comprehensive_api_tests::function_accuracy_tests::test_exp_polar ... ignored
+test tests::comprehensive_api_tests::function_accuracy_tests::test_floor_ceil_round ... ignored
+test tests::comprehensive_api_tests::function_accuracy_tests::test_gamma ... ignored
+test tests::comprehensive_api_tests::function_accuracy_tests::test_hermite ... ignored
+test tests::comprehensive_api_tests::function_accuracy_tests::test_hyperbolic ... ignored
+test tests::comprehensive_api_tests::function_accuracy_tests::test_inverse_hyperbolic ... ignored
+test tests::comprehensive_api_tests::function_accuracy_tests::test_inverse_trig ... ignored
+test tests::comprehensive_api_tests::function_accuracy_tests::test_inverse_trig_reciprocal ... ignored
+test tests::comprehensive_api_tests::function_accuracy_tests::test_lambertw ... ignored
+test tests::comprehensive_api_tests::function_accuracy_tests::test_log_variants ... ignored
+test tests::comprehensive_api_tests::function_accuracy_tests::test_polygamma ... ignored
+test tests::comprehensive_api_tests::function_accuracy_tests::test_roots ... ignored
+test tests::comprehensive_api_tests::function_accuracy_tests::test_rounding ... ignored
+test tests::comprehensive_api_tests::function_accuracy_tests::test_sign_variants ... ignored
+test tests::comprehensive_api_tests::function_accuracy_tests::test_sinc ... ignored
+test tests::comprehensive_api_tests::function_accuracy_tests::test_tetragamma ... ignored
+test tests::comprehensive_api_tests::function_accuracy_tests::test_trig_cos ... ignored
+test tests::comprehensive_api_tests::function_accuracy_tests::test_trig_cot_sec_csc ... ignored
+test tests::comprehensive_api_tests::function_accuracy_tests::test_trig_sin ... ignored
+test tests::comprehensive_api_tests::function_accuracy_tests::test_trig_tan ... ignored
+test tests::comprehensive_api_tests::function_accuracy_tests::test_ynm ... ignored
+test tests::comprehensive_api_tests::function_accuracy_tests::test_zeta ... ignored
+test tests::comprehensive_api_tests::function_accuracy_tests::test_zeta_deriv_negative_s ... ignored
+test tests::comprehensive_api_tests::function_accuracy_tests::test_zeta_derivatives ... ignored
+test tests::custom_functions::test_arity_check ... ignored
+test tests::custom_functions::test_compiled_evaluation_missing_context ... ignored
+test tests::custom_functions::test_compiled_evaluation_with_context ... ignored
+test tests::custom_functions::test_context_isolation ... ignored
+test tests::custom_functions::test_context_registration ... ignored
+test tests::debug_applications::tests::test_astrophysics_orbital ... ignored
+test tests::debug_applications::tests::test_difference_of_squares ... ignored
+test tests::debug_applications::tests::test_difference_of_squares_debug ... ignored
+test tests::debug_applications::tests::test_division_of_roots ... ignored
+test tests::debug_applications::tests::test_emf_sign ... ignored
+test tests::debug_applications::tests::test_negative_in_exponent ... ignored
+test tests::debug_applications::tests::test_quantum_probability ... ignored
+test tests::debug_applications::tests::test_relativity_time_dilation ... ignored
+test tests::debug_applications::tests::test_statistics_normal_pdf ... ignored
+test tests::debug_applications::tests::test_thermodynamics_heat_flux ... ignored
+test tests::debug_div_hang::tests::test_div_hang_repro ... ignored
+test tests::debug_division_structure::test_division_structure ... ignored
+test tests::debug_factoring_logic::tests::debug_perfect_square_logic ... ignored
+test tests::debug_gaussian_cycle::test_gaussian_2d_diff_cycle ... ignored
+test tests::debug_issue::tests::debug_cubic_expansion ... ignored
+test tests::debug_issue::tests::debug_numerator_simplification ... ignored
+test tests::debug_rc::debug_rc_derivative ... ignored
+test tests::debug_root::tests::debug_root_simplification ... ignored
+test tests::debug_root_issue::tests::debug_root_issue ... ignored
+test tests::derivative_oracle_tests::test_oracle_1_over_x ... ignored
+test tests::derivative_oracle_tests::test_oracle_acos ... ignored
+test tests::derivative_oracle_tests::test_oracle_asin ... ignored
+test tests::derivative_oracle_tests::test_oracle_atan ... ignored
+test tests::derivative_oracle_tests::test_oracle_constant ... ignored
+test tests::derivative_oracle_tests::test_oracle_cos ... ignored
+test tests::derivative_oracle_tests::test_oracle_cos_exp ... ignored
+test tests::derivative_oracle_tests::test_oracle_cosh ... ignored
+test tests::derivative_oracle_tests::test_oracle_cubic ... ignored
+test tests::derivative_oracle_tests::test_oracle_exp ... ignored
+test tests::derivative_oracle_tests::test_oracle_exp_composite ... ignored
+test tests::derivative_oracle_tests::test_oracle_exp_sin ... ignored
+test tests::derivative_oracle_tests::test_oracle_exp_x2_sin ... ignored
+test tests::derivative_oracle_tests::test_oracle_linear ... ignored
+test tests::derivative_oracle_tests::test_oracle_ln ... ignored
+test tests::derivative_oracle_tests::test_oracle_ln_composite ... ignored
+test tests::derivative_oracle_tests::test_oracle_ln_sin_x ... ignored
+test tests::derivative_oracle_tests::test_oracle_nested_exp ... ignored
+test tests::derivative_oracle_tests::test_oracle_polynomial ... ignored
+test tests::derivative_oracle_tests::test_oracle_quadratic ... ignored
+test tests::derivative_oracle_tests::test_oracle_second_derivative_exp ... ignored
+test tests::derivative_oracle_tests::test_oracle_second_derivative_sin ... ignored
+test tests::derivative_oracle_tests::test_oracle_second_derivative_x3 ... ignored
+test tests::derivative_oracle_tests::test_oracle_sin ... ignored
+test tests::derivative_oracle_tests::test_oracle_sin_over_x ... ignored
+test tests::derivative_oracle_tests::test_oracle_sin_squared ... ignored
+test tests::derivative_oracle_tests::test_oracle_sin_x_squared ... ignored
+test tests::derivative_oracle_tests::test_oracle_sinh ... ignored
+test tests::derivative_oracle_tests::test_oracle_sqrt_x ... ignored
+test tests::derivative_oracle_tests::test_oracle_tan ... ignored
+test tests::derivative_oracle_tests::test_oracle_tanh ... ignored
+test tests::derivative_oracle_tests::test_oracle_x2_ln ... ignored
+test tests::derivative_oracle_tests::test_oracle_x_exp ... ignored
+test tests::derivative_oracle_tests::test_oracle_x_over_sin ... ignored
+test tests::derivative_oracle_tests::test_oracle_x_sin_x ... ignored
+test tests::derivative_oracle_tests::test_oracle_x_to_half ... ignored
+test tests::derivative_oracle_tests::test_oracle_x_to_x ... ignored
+test tests::derivative_regressions::test_orbital_denominator_squared ... ignored
+test tests::derivative_regressions::test_quotient_rule_sign_distribution ... ignored
+test tests::display_precedence_test::tests::test_display_rc_denominator ... ignored
+test tests::display_precedence_test::tests::test_division_precedence_div ... ignored
+test tests::display_precedence_test::tests::test_division_precedence_mul ... ignored
+test tests::display_precedence_test::tests::test_rc_circuit_derivative ... ignored
+test tests::division_bug_verification::division_bug_tests::verify_display_parens ... ignored
+test tests::division_bug_verification::division_bug_tests::verify_simplification_cancellation ... ignored
+test tests::edge_case_tests::api_validation::test_empty_custom_functions ... ignored
+test tests::edge_case_tests::api_validation::test_empty_fixed_vars ... ignored
+test tests::edge_case_tests::api_validation::test_name_collision ... ignored
+test tests::edge_case_tests::complex_expressions::test_composition_chain ... ignored
+test tests::edge_case_tests::complex_expressions::test_div_with_functions ... ignored
+test tests::edge_case_tests::complex_expressions::test_nested_product_chain ... ignored
+test tests::edge_case_tests::complex_expressions::test_polynomial ... ignored
+test tests::edge_case_tests::differentiation_edge_cases::test_all_constants ... ignored
+test tests::edge_case_tests::differentiation_edge_cases::test_function_of_constant ... ignored
+test tests::edge_case_tests::differentiation_edge_cases::test_nested_functions ... ignored
+test tests::edge_case_tests::differentiation_edge_cases::test_var_in_both_fixed_and_diff ... ignored
+test tests::edge_case_tests::differentiation_edge_cases::test_var_not_in_formula ... ignored
+test tests::edge_case_tests::implicit_multiplication::test_number_paren ... ignored
+test tests::edge_case_tests::implicit_multiplication::test_number_variable ... ignored
+test tests::edge_case_tests::implicit_multiplication::test_paren_multiplication ... ignored
+test tests::edge_case_tests::implicit_multiplication::test_variable_variable ... ignored
+test tests::edge_case_tests::input_validation::test_empty_input ... ignored
+test tests::edge_case_tests::input_validation::test_only_number ... ignored
+test tests::edge_case_tests::input_validation::test_only_whitespace ... ignored
+test tests::edge_case_tests::input_validation::test_single_different_symbol ... ignored
+test tests::edge_case_tests::input_validation::test_single_symbol ... ignored
+test tests::edge_case_tests::number_parsing::test_dot_decimal ... ignored
+test tests::edge_case_tests::number_parsing::test_leading_dot ... ignored
+test tests::edge_case_tests::number_parsing::test_multiple_decimals_error ... ignored
+test tests::edge_case_tests::number_parsing::test_scientific_notation_basic ... ignored
+test tests::edge_case_tests::number_parsing::test_scientific_notation_negative_exp ... ignored
+test tests::edge_case_tests::number_parsing::test_scientific_notation_with_var ... ignored
+test tests::edge_case_tests::number_parsing::test_trailing_dot ... ignored
+test tests::edge_case_tests::parentheses_edge_cases::test_complex_derivative_args ... ignored
+test tests::edge_case_tests::parentheses_edge_cases::test_empty_parens ... ignored
+test tests::edge_case_tests::parentheses_edge_cases::test_empty_parens_with_mul ... ignored
+test tests::edge_case_tests::parentheses_edge_cases::test_multi_arg_derivative ... ignored
+test tests::edge_case_tests::parentheses_edge_cases::test_multiple_unmatched_open ... ignored
+test tests::edge_case_tests::parentheses_edge_cases::test_nested_empty_parens ... ignored
+test tests::edge_case_tests::parentheses_edge_cases::test_unmatched_close_paren ... ignored
+test tests::edge_case_tests::parentheses_edge_cases::test_unmatched_open_paren ... ignored
+test tests::edge_case_tests::parentheses_edge_cases::test_wrong_order_parens ... ignored
+test tests::edge_case_tests::phase2_features::test_base_to_x ... ignored
+test tests::edge_case_tests::phase2_features::test_cosh_basic ... ignored
+test tests::edge_case_tests::phase2_features::test_division_basic ... ignored
+test tests::edge_case_tests::phase2_features::test_quotient_rule ... ignored
+test tests::edge_case_tests::phase2_features::test_sinh_basic ... ignored
+test tests::edge_case_tests::phase2_features::test_subtraction_basic ... ignored
+test tests::edge_case_tests::phase2_features::test_subtraction_vars ... ignored
+test tests::edge_case_tests::phase2_features::test_tanh_basic ... ignored
+test tests::edge_case_tests::phase2_features::test_x_to_variable_exponent ... ignored
+test tests::edge_case_tests::phase2_features::test_x_to_x_logarithmic ... ignored
+test tests::edge_case_tests::stress_tests::test_deeply_nested ... ignored
+test tests::edge_case_tests::stress_tests::test_many_variables ... ignored
+test tests::edge_case_tests::stress_tests::test_very_long_sum ... ignored
+test tests::edge_case_tests::symbol_grouping::test_cosine_without_fixed_vars ... ignored
+test tests::edge_case_tests::symbol_grouping::test_expense_no_exp_match ... ignored
+test tests::edge_case_tests::symbol_grouping::test_multi_char_fixed_var ... ignored
+test tests::edge_case_tests::symbol_grouping::test_sinus_as_fixed_var ... ignored
+test tests::eval_consistency_tests::test_compiled_vs_tree_walking ... ignored
+test tests::eval_consistency_tests::test_consistency_chain_rule ... ignored
+test tests::eval_consistency_tests::test_consistency_complex_1 ... ignored
+test tests::eval_consistency_tests::test_consistency_complex_2 ... ignored
+test tests::eval_consistency_tests::test_consistency_complex_3 ... ignored
+test tests::eval_consistency_tests::test_consistency_exp_log ... ignored
+test tests::eval_consistency_tests::test_consistency_polynomials ... ignored
+test tests::eval_consistency_tests::test_consistency_product_rule ... ignored
+test tests::eval_consistency_tests::test_consistency_quotient_rule ... ignored
+test tests::eval_consistency_tests::test_consistency_second_derivative ... ignored
+test tests::eval_consistency_tests::test_consistency_sqrt ... ignored
+test tests::eval_consistency_tests::test_consistency_trig ... ignored
+test tests::eval_func_tests::test_eval_bessel_i ... ignored
+test tests::eval_func_tests::test_eval_bessel_j ... ignored
+test tests::eval_func_tests::test_eval_bessel_y ... ignored
+test tests::eval_func_tests::test_eval_beta ... ignored
+test tests::eval_func_tests::test_eval_constants ... ignored
+test tests::eval_func_tests::test_eval_digamma ... ignored
+test tests::eval_func_tests::test_eval_erf ... ignored
+test tests::eval_func_tests::test_eval_exp_log ... ignored
+test tests::eval_func_tests::test_eval_gamma ... ignored
+test tests::eval_func_tests::test_eval_gamma_factorial ... ignored
+test tests::eval_func_tests::test_eval_hyperbolic ... ignored
+test tests::eval_func_tests::test_eval_inverse_hyperbolic_nan ... ignored
+test tests::eval_func_tests::test_eval_inverse_trig ... ignored
+test tests::eval_func_tests::test_eval_inverse_trig_reciprocal_nan ... ignored
+test tests::eval_func_tests::test_eval_lambertw ... ignored
+test tests::eval_func_tests::test_eval_log_compiled ... ignored
+test tests::eval_func_tests::test_eval_log_compiled_variable_base ... ignored
+test tests::eval_func_tests::test_eval_log_domain_errors ... ignored
+test tests::eval_func_tests::test_eval_log_two_arg_parsing ... ignored
+test tests::eval_func_tests::test_eval_log_two_arg_type_safe_api ... ignored
+test tests::eval_func_tests::test_eval_log_various_bases ... ignored
+test tests::eval_func_tests::test_eval_log_with_variables ... ignored
+test tests::eval_func_tests::test_eval_polygamma ... ignored
+test tests::eval_func_tests::test_eval_roots ... ignored
+test tests::eval_func_tests::test_eval_rounding ... ignored
+test tests::eval_func_tests::test_eval_sinc ... ignored
+test tests::eval_func_tests::test_eval_trig_basic ... ignored
+test tests::eval_func_tests::test_eval_trig_reciprocal_with_inf ... ignored
+test tests::eval_func_tests::test_eval_trigamma ... ignored
+test tests::eval_func_tests::test_eval_with_variables ... ignored
+test tests::eval_func_tests::test_log10_log2_consistency ... ignored
+test tests::eval_func_tests::test_log_consistency_with_ln ... ignored
+test tests::eval_func_tests::test_partial_evaluation ... ignored
+test tests::eval_func_tests::test_unknown_function_preserved ... ignored
+test tests::evaluator_expansion::tests::test_atan2 ... ignored
+test tests::evaluator_expansion::tests::test_exp_polar ... ignored
+test tests::evaluator_expansion::tests::test_spherical_harmonic ... ignored
+test tests::evaluator_expansion::tests::test_ynm_alias ... ignored
+test tests::fraction_simplification_tests::tests::test_fraction_cancellation_products ... ignored
+test tests::fraction_simplification_tests::tests::test_nested_fraction_div_div ... ignored
+test tests::fraction_simplification_tests::tests::test_nested_fraction_div_val ... ignored
+test tests::fraction_simplification_tests::tests::test_nested_fraction_numbers ... ignored
+test tests::fraction_simplification_tests::tests::test_nested_fraction_val_div ... ignored
+test tests::hyperbolic_conversion_tests::test_hyperbolic_identities ... ignored
+test tests::hyperbolic_conversion_tests::test_simplify_to_cosh ... ignored
+test tests::hyperbolic_conversion_tests::test_simplify_to_coth ... ignored
+test tests::hyperbolic_conversion_tests::test_simplify_to_csch ... ignored
+test tests::hyperbolic_conversion_tests::test_simplify_to_sech ... ignored
+test tests::hyperbolic_conversion_tests::test_simplify_to_sinh ... ignored
+test tests::hyperbolic_conversion_tests::test_simplify_to_tanh ... ignored
+test tests::integration_tests::test_auto_balance_parens ... ignored
+test tests::integration_tests::test_chain_rule_derivative_from_examples ... ignored
+test tests::integration_tests::test_cosh ... ignored
+test tests::integration_tests::test_derivative_simplification_from_examples ... ignored
+test tests::integration_tests::test_division ... ignored
+test tests::integration_tests::test_empty_parens ... ignored
+test tests::integration_tests::test_error_var_in_fixed ... ignored
+test tests::integration_tests::test_implicit_multiplication ... ignored
+test tests::integration_tests::test_power_rule ... ignored
+test tests::integration_tests::test_quotient_rule ... ignored
+test tests::integration_tests::test_scientific_notation ... ignored
+test tests::integration_tests::test_simple_constant ... ignored
+test tests::integration_tests::test_simple_variable ... ignored
+test tests::integration_tests::test_sin_function ... ignored
+test tests::integration_tests::test_sinh ... ignored
+test tests::integration_tests::test_subtraction ... ignored
+test tests::integration_tests::test_tanh ... ignored
+test tests::integration_tests::test_with_fixed_constant ... ignored
+test tests::integration_tests::test_x_to_2x ... ignored
+test tests::integration_tests::test_x_to_x ... ignored
+test tests::log_power_tests::tests::test_ln_power ... ignored
+test tests::log_power_tests::tests::test_log10_power_even ... ignored
+test tests::log_power_tests::tests::test_log10_power_odd ... ignored
+test tests::log_power_tests::tests::test_log2_power ... ignored
+test tests::log_simplification_tests::test_log_power_rule_generic ... ignored
+test tests::log_simplification_tests::test_log_power_rule_generic_odd ... ignored
+test tests::log_simplification_tests::test_log_simplification_generic ... ignored
+test tests::log_simplification_tests::test_log_sqrt_generic ... ignored
+test tests::numerical_accuracy_tests::test_chain_rule_accuracy ... ignored
+test tests::numerical_accuracy_tests::test_constant_derivatives ... ignored
+test tests::numerical_accuracy_tests::test_exponential_log_accuracy ... ignored
+test tests::numerical_accuracy_tests::test_hyperbolic_accuracy ... ignored
+test tests::numerical_accuracy_tests::test_inverse_trig_accuracy ... ignored
+test tests::numerical_accuracy_tests::test_linear_derivatives ... ignored
+test tests::numerical_accuracy_tests::test_log_variants_accuracy ... ignored
+test tests::numerical_accuracy_tests::test_polynomial_accuracy ... ignored
+test tests::numerical_accuracy_tests::test_product_rule_accuracy ... ignored
+test tests::numerical_accuracy_tests::test_quotient_rule_accuracy ... ignored
+test tests::numerical_accuracy_tests::test_root_derivatives_accuracy ... ignored
+test tests::numerical_accuracy_tests::test_special_functions_accuracy ... ignored
+test tests::numerical_accuracy_tests::test_trig_derivative_accuracy ... ignored
+test tests::power_debug::power_regression_tests::test_power_of_product_simplification ... ignored
+test tests::power_debug::power_regression_tests::test_power_of_sum_negative_exponent ... ignored
+test tests::power_debug::power_regression_tests::test_power_of_sum_simplification ... ignored
+test tests::power_debug::sign_regression_tests::test_negative_product_sign ... ignored
+test tests::power_root_tests::tests::test_power_collection_div ... ignored
+test tests::power_root_tests::tests::test_power_collection_mul ... ignored
+test tests::power_root_tests::tests::test_root_conversion_cbrt ... ignored
+test tests::power_root_tests::tests::test_root_conversion_sqrt ... ignored
+test tests::power_root_tests::tests::test_root_conversion_sqrt_decimal ... ignored
+test tests::power_simplification_tests::tests::test_power_of_power ... ignored
+test tests::power_simplification_tests::tests::test_power_of_power_symbolic ... ignored
+test tests::power_simplification_tests::tests::test_sigma_power_of_power ... ignored
+test tests::precision_audit::edge_case_infinity_handling ... ignored
+test tests::precision_audit::edge_case_nan_handling ... ignored
+test tests::precision_audit::edge_case_one_handling ... ignored
+test tests::precision_audit::edge_case_zero_handling ... ignored
+test tests::precision_audit::precision_bessel_i0 ... ignored
+test tests::precision_audit::precision_bessel_i1 ... ignored
+test tests::precision_audit::precision_bessel_j0 ... ignored
+test tests::precision_audit::precision_bessel_j1 ... ignored
+test tests::precision_audit::precision_bessel_y0 ... ignored
+test tests::precision_audit::precision_beta ... ignored
+test tests::precision_audit::precision_cos ... ignored
+test tests::precision_audit::precision_cosh ... ignored
+test tests::precision_audit::precision_derivatives_basic ... ignored
+test tests::precision_audit::precision_derivatives_gamma ... ignored
+test tests::precision_audit::precision_digamma ... ignored
+test tests::precision_audit::precision_erf ... ignored
+test tests::precision_audit::precision_erfc ... ignored
+test tests::precision_audit::precision_exp ... ignored
+test tests::precision_audit::precision_gamma ... ignored
+test tests::precision_audit::precision_inverse_hyperbolic ... ignored
+test tests::precision_audit::precision_inverse_trig ... ignored
+test tests::precision_audit::precision_lambert_w ... ignored
+test tests::precision_audit::precision_ln ... ignored
+test tests::precision_audit::precision_log_bases ... ignored
+test tests::precision_audit::precision_sin ... ignored
+test tests::precision_audit::precision_sinh ... ignored
+test tests::precision_audit::precision_sqrt_cbrt ... ignored
+test tests::precision_audit::precision_tan ... ignored
+test tests::precision_audit::precision_tanh ... ignored
+test tests::precision_audit::precision_trigamma ... ignored
+test tests::property_tests::algebraic_property_tests::test_addition_commutativity ... ignored
+test tests::property_tests::algebraic_property_tests::test_additive_identity ... ignored
+test tests::property_tests::algebraic_property_tests::test_additive_inverse ... ignored
+test tests::property_tests::algebraic_property_tests::test_exp_ln_inverse ... ignored
+test tests::property_tests::algebraic_property_tests::test_ln_exp_inverse ... ignored
+test tests::property_tests::algebraic_property_tests::test_multiplication_commutativity ... ignored
+test tests::property_tests::algebraic_property_tests::test_multiplicative_identity ... ignored
+test tests::property_tests::algebraic_property_tests::test_multiplicative_inverse ... ignored
+test tests::property_tests::algebraic_property_tests::test_multiplicative_zero ... ignored
+test tests::property_tests::algebraic_property_tests::test_power_one ... ignored
+test tests::property_tests::algebraic_property_tests::test_power_rule_derivative ... ignored
+test tests::property_tests::algebraic_property_tests::test_power_zero ... ignored
+test tests::property_tests::algebraic_property_tests::test_pythagorean_identity ... ignored
+test tests::property_tests::compiled_evaluator_property_tests::test_compile_consistency ... ignored
+test tests::property_tests::compiled_evaluator_property_tests::test_compiled_deterministic ... ignored
+test tests::property_tests::compiled_evaluator_property_tests::test_compiled_matches_interpret ... ignored
+test tests::property_tests::derivative_property_tests::test_chain_rule_property ... ignored
+test tests::property_tests::derivative_property_tests::test_derivative_linearity ... ignored
+test tests::property_tests::derivative_property_tests::test_quotient_rule_property ... ignored
+test tests::property_tests::expression_building_fuzz_tests::test_deep_expression_building ... ignored
+test tests::property_tests::expression_building_fuzz_tests::test_expression_building_edge_cases ... ignored
+test tests::property_tests::expression_building_fuzz_tests::test_random_expression_building_no_crash ... ignored
+test tests::property_tests::expression_building_fuzz_tests::test_random_expression_differentiation ... ignored
+test tests::property_tests::expression_building_fuzz_tests::test_random_expression_display ... ignored
+test tests::property_tests::expression_building_fuzz_tests::test_random_expression_evaluation ... ignored
+test tests::property_tests::parser_fuzz_tests::test_parse_display_consistency ... ignored
+test tests::property_tests::parser_fuzz_tests::test_parser_deep_nesting ... ignored
+test tests::property_tests::parser_fuzz_tests::test_parser_edge_cases ... ignored
+test tests::property_tests::parser_fuzz_tests::test_parser_handles_valid_expressions ... ignored
+test tests::property_tests::parser_fuzz_tests::test_parser_never_panics_on_random_input ... ignored
+test tests::property_tests::power_property_tests::test_power_addition_rule ... ignored
+test tests::property_tests::power_property_tests::test_power_of_power_rule ... ignored
+test tests::property_tests::power_property_tests::test_product_power_rule ... ignored
+test tests::property_tests::rule_conflict_tests::test_known_cycle_cases ... ignored
+test tests::property_tests::rule_conflict_tests::test_potential_rule_conflicts ... ignored
+test tests::property_tests::simplification_oracle_tests::test_simplification_correctness_oracle ... ignored
+test tests::property_tests::simplification_oracle_tests::test_simplification_idempotent ... ignored
+test tests::property_tests::special_function_property_tests::test_abs_nonnegative ... ignored
+test tests::property_tests::special_function_property_tests::test_abs_symmetry ... ignored
+test tests::property_tests::special_function_property_tests::test_cosh_definition ... ignored
+test tests::property_tests::special_function_property_tests::test_erf_symmetry ... ignored
+test tests::property_tests::special_function_property_tests::test_sinh_definition ... ignored
+test tests::property_tests::special_function_property_tests::test_sqrt_square_identity ... ignored
+test tests::rc_circuit_bug::rc_circuit_differentiation_bug::test_rc_circuit_derivative_simplification ... ignored
+test tests::repro_issues::tests::test_fraction_cancellation_product_base ... ignored
+test tests::repro_issues::tests::test_full_fraction_cancellation ... ignored
+test tests::repro_issues::tests::test_heat_flux_simplification ... ignored
+test tests::repro_issues::tests::test_numeric_fraction_simplification ... ignored
+test tests::repro_issues::tests::test_power_div_cancellation ... ignored
+test tests::repro_issues::tests::test_sqrt_div_self ... ignored
+test tests::repro_issues::tests::test_sqrt_product_div_product ... ignored
+test tests::repro_simplification_v2::tests::test_heat_conduction_power_expansion ... ignored
+test tests::repro_simplification_v2::tests::test_nested_sqrt_cancellation ... ignored
+test tests::repro_simplification_v2::tests::test_normal_pdf_derivative ... ignored
+test tests::repro_simplification_v2::tests::test_quantum_mechanics_sigma_combination ... ignored
+test tests::repro_simplification_v2::tests::test_sqrt_combination ... ignored
+test tests::rust_api_tests::test_advanced_functions ... ignored
+test tests::rust_api_tests::test_api_reusability ... ignored
+test tests::rust_api_tests::test_builder_configuration ... ignored
+test tests::rust_api_tests::test_custom_derivatives ... ignored
+test tests::rust_api_tests::test_error_handling ... ignored
+test tests::rust_api_tests::test_node_limits ... ignored
+test tests::rust_api_tests::test_recursion_limits ... ignored
+test tests::rust_api_tests::test_symbol_method_chaining ... ignored
+test tests::simplification_tests::tests::test_add_zero ... ignored
+test tests::simplification_tests::tests::test_binomial_expansion ... ignored
+test tests::simplification_tests::tests::test_constant_folding ... ignored
+test tests::simplification_tests::tests::test_distributive_property ... ignored
+test tests::simplification_tests::tests::test_flatten_mul_div_structure ... ignored
+test tests::simplification_tests::tests::test_fraction_difference_issue ... ignored
+test tests::simplification_tests::tests::test_fraction_preservation ... ignored
+test tests::simplification_tests::tests::test_hyperbolic_simplification ... ignored
+test tests::simplification_tests::tests::test_log_exp_simplification ... ignored
+test tests::simplification_tests::tests::test_mul_one ... ignored
+test tests::simplification_tests::tests::test_mul_zero ... ignored
+test tests::simplification_tests::tests::test_nested_simplification ... ignored
+test tests::simplification_tests::tests::test_polynomial_gcd_simplification ... ignored
+test tests::simplification_tests::tests::test_pow_one ... ignored
+test tests::simplification_tests::tests::test_pow_zero ... ignored
+test tests::simplification_tests::tests::test_product_four_functions_derivative ... ignored
+test tests::simplification_tests::tests::test_trig_simplification ... ignored
+test tests::stress_tests::test_closure_evaluation ... ignored
+test tests::stress_tests::test_custom_function_diff ... ignored
+test tests::stress_tests::test_custom_function_evaluation ... ignored
+test tests::stress_tests::test_custom_function_with_custom_derivative ... ignored
+test tests::stress_tests::test_deeply_nested_parentheses ... ignored
+test tests::stress_tests::test_diff_bessel_functions ... ignored
+test tests::stress_tests::test_diff_deeply_nested_chain_rule ... ignored
+test tests::stress_tests::test_diff_erfc_erf ... ignored
+test tests::stress_tests::test_diff_higher_order ... ignored
+test tests::stress_tests::test_diff_lambert_w ... ignored
+test tests::stress_tests::test_diff_many_variables ... ignored
+test tests::stress_tests::test_diff_polygamma_chain ... ignored
+test tests::stress_tests::test_diff_power_rule_extreme_exponents ... ignored
+test tests::stress_tests::test_diff_product_of_10_terms ... ignored
+test tests::stress_tests::test_diff_quotient_of_complex_expressions ... ignored
+test tests::stress_tests::test_diff_special_functions_chain ... ignored
+test tests::stress_tests::test_diff_zeta_function ... ignored
+test tests::stress_tests::test_division_by_symbolic_zero ... ignored
+test tests::stress_tests::test_empty_expression_handling ... ignored
+test tests::stress_tests::test_eval_bessel_accuracy ... ignored
+test tests::stress_tests::test_eval_complex_expression_accuracy ... ignored
+test tests::stress_tests::test_eval_extreme_values ... ignored
+test tests::stress_tests::test_eval_precision_sensitive ... ignored
+test tests::stress_tests::test_eval_special_function_poles ... ignored
+test tests::stress_tests::test_eval_trigamma_at_various_points ... ignored
+test tests::stress_tests::test_eval_zeta_deriv_convergence ... ignored
+test tests::stress_tests::test_full_pipeline_diff_simplify_eval ... ignored
+test tests::stress_tests::test_full_pipeline_with_evaluation ... ignored
+test tests::stress_tests::test_gradient_computation ... ignored
+test tests::stress_tests::test_implicit_multiplication ... ignored
+test tests::stress_tests::test_infinite_differentiability_polygamma ... ignored
+test tests::stress_tests::test_infinite_differentiability_zeta ... ignored
+test tests::stress_tests::test_jacobian_computation ... ignored
+test tests::stress_tests::test_large_expr_gaussian_2d ... ignored
+test tests::stress_tests::test_large_expr_maxwell_boltzmann ... ignored
+test tests::stress_tests::test_large_expr_normal_pdf ... ignored
+test tests::stress_tests::test_large_expr_orbital_energy ... ignored
+test tests::stress_tests::test_large_expr_wave_equation ... ignored
+test tests::stress_tests::test_negative_base_fractional_exponent ... ignored
+test tests::stress_tests::test_nested_custom_functions ... ignored
+test tests::stress_tests::test_scientific_notation ... ignored
+test tests::stress_tests::test_second_derivative_pipeline ... ignored
+test tests::stress_tests::test_simplify_complex_trig_identity ... ignored
+test tests::stress_tests::test_simplify_deeply_nested ... ignored
+test tests::stress_tests::test_simplify_double_negative ... ignored
+test tests::stress_tests::test_simplify_exp_ln_identity ... ignored
+test tests::stress_tests::test_simplify_fraction_reduction ... ignored
+test tests::stress_tests::test_simplify_log_exp_identity ... ignored
+test tests::stress_tests::test_simplify_one_power ... ignored
+test tests::stress_tests::test_simplify_power_rules ... ignored
+test tests::stress_tests::test_simplify_sqrt_of_square ... ignored
+test tests::stress_tests::test_simplify_zero_multiplication ... ignored
+test tests::stress_tests::test_unicode_variable_names ... ignored
+test tests::stress_tests::test_very_long_expression ... ignored
+test tests::stress_tests::test_zero_to_zero_power ... ignored
+test tests::test_abs_function::test_abs_function_simplification ... ignored
+test tests::test_abs_function::test_abs_in_product ... ignored
+test tests::test_algebraic_extensions::tests::test_absorb_constant_pow ... ignored
+test tests::test_algebraic_extensions::tests::test_combine_common_denominator ... ignored
+test tests::test_algebraic_extensions::tests::test_distribute_negation_add ... ignored
+test tests::test_algebraic_extensions::tests::test_distribute_negation_sub ... ignored
+test tests::test_algebraic_extensions::tests::test_factor_common_terms ... ignored
+test tests::test_algebraic_extensions::tests::test_factor_exponentials ... ignored
+test tests::test_algebraic_extensions::tests::test_factor_mixed_terms ... ignored
+test tests::test_algebraic_extensions::tests::test_neg_div_neg ... ignored
+test tests::test_bessel::test_bessel_j_backward_regime_miller ... ignored
+test tests::test_bessel::test_bessel_j_forward_regime ... ignored
+test tests::test_bessel::test_bessel_j_hybrid_transition ... ignored
+test tests::test_bessel::test_bessel_j_negative_order ... ignored
+test tests::test_bessel::test_bessel_j_very_large_n ... ignored
+test tests::test_bessel::test_bessel_j_zero ... ignored
+test tests::test_canonical_ordering::tests::test_mixed_coefficient_adjacency ... ignored
+test tests::test_canonical_ordering::tests::test_polynomial_term_adjacency ... ignored
+test tests::test_equality_regressions::test_difference_of_squares_complex ... ignored
+test tests::test_equality_regressions::test_difference_of_squares_equality_symbols ... ignored
+test tests::test_equality_regressions::test_difference_of_squares_equality_with_number ... ignored
+test tests::test_equality_regressions::test_difference_of_squares_number_minus_symbol ... ignored
+test tests::test_equality_regressions::test_double_angle_sin ... ignored
+test tests::test_equality_regressions::test_exponential_addition ... ignored
+test tests::test_equality_regressions::test_fraction_addition ... ignored
+test tests::test_equality_regressions::test_negated_power_expansion ... ignored
+test tests::test_equality_regressions::test_nested_abs ... ignored
+test tests::test_equality_regressions::test_perfect_square_equality ... ignored
+test tests::test_equality_regressions::test_power_expansion_2x_squared ... ignored
+test tests::test_equality_regressions::test_power_expansion_3y_squared ... ignored
+test tests::test_equality_regressions::test_pythagorean_identity ... ignored
+test tests::test_exponential_canonical::tests::test_exp_power_simplification ... ignored
+test tests::test_factoring::tests::test_perfect_square_factoring ... ignored
+test tests::test_improved_factoring::tests::test_difference_of_cubes ... ignored
+test tests::test_improved_factoring::tests::test_difference_of_squares_with_coefficients ... ignored
+test tests::test_improved_factoring::tests::test_difference_of_squares_x4_minus_1 ... ignored
+test tests::test_improved_factoring::tests::test_perfect_square_with_leading_coefficient ... ignored
+test tests::test_improved_factoring::tests::test_sum_of_cubes ... ignored
+test tests::test_improved_factoring::tests::test_x_squared_minus_1 ... ignored
+test tests::test_multivar_chain::test_atan2_both_arguments_vary ... ignored
+test tests::test_multivar_chain::test_beta_both_arguments_vary ... ignored
+test tests::test_multivar_chain::test_spherical_harmonic_both_variables_vary ... ignored
+test tests::test_multivar_chain::test_spherical_harmonic_chain_rule_coefficients ... ignored
+test tests::test_multivar_chain::test_spherical_harmonic_single_variable_phi ... ignored
+test tests::test_multivar_chain::test_spherical_harmonic_single_variable_theta ... ignored
+test tests::test_new_rules::tests::test_fraction_integer_collapsing ... ignored
+test tests::test_new_rules::tests::test_fraction_more_examples ... ignored
+test tests::test_new_rules::tests::test_hyperbolic_triple_angle ... ignored
+test tests::test_new_rules::tests::test_hyperbolic_triple_angle_float_tolerance ... ignored
+test tests::test_new_rules::tests::test_roots_numeric_integer ... ignored
+test tests::test_new_rules::tests::test_roots_numeric_more_examples ... ignored
+test tests::test_new_rules::tests::test_simplification_reduces_display_length ... ignored
+test tests::test_new_rules::tests::test_trig_combination ... ignored
+test tests::test_new_rules::tests::test_trig_sum_identity ... ignored
+test tests::test_new_rules::tests::test_trig_triple_angle ... ignored
+test tests::test_new_rules::tests::test_trig_triple_angle_edge_cases ... ignored
+test tests::test_new_rules::tests::test_trig_triple_angle_float_exact ... ignored
+test tests::test_new_rules::tests::test_trig_triple_angle_float_tolerance ... ignored
+test tests::test_new_rules::tests::test_trig_triple_angle_permutations ... ignored
+test tests::test_numeric_gcd::tests::test_numeric_gcd ... ignored
+test tests::test_power_of_product::test_power_of_product ... ignored
+test tests::test_sign_normalization::tests::test_double_negative_in_division ... ignored
+test tests::test_sign_normalization::tests::test_negative_form_difference_of_squares ... ignored
+test tests::test_sign_normalization::tests::test_normalize_negative_in_denominator_mul ... ignored
+test tests::test_sign_normalization::tests::test_normalize_negative_in_denominator_number ... ignored
+test tests::test_sign_normalization::tests::test_normalize_negative_trailing_mul ... ignored
+test tests::test_sign_normalization::tests::test_reversed_difference_of_squares ... ignored
+test tests::test_sign_normalization::tests::test_sign_in_difference_of_squares ... ignored
+test tests::test_simplification_gaps::tests::test_cancellation_in_addition ... ignored
+test tests::test_simplification_gaps::tests::test_combine_implicit_coefficients ... ignored
+test tests::test_simplification_gaps::tests::test_combined_case ... ignored
+test tests::test_simplification_gaps::tests::test_inverse_functions ... ignored
+test tests::test_simplification_gaps::tests::test_pow_e_complex_exponent_ln ... ignored
+test tests::test_simplification_gaps::tests::test_pow_e_ln_combined_case ... ignored
+test tests::test_simplification_gaps::tests::test_pow_e_ln_single ... ignored
+test tests::test_simplification_gaps::tests::test_sqrt_simplification ... ignored
+test tests::test_simplification_repro::tests::test_combine_like_terms_simple ... ignored
+test tests::test_simplification_repro::tests::test_combine_like_terms_subtraction ... ignored
+test tests::test_spherical_harmonics::test_assoc_legendre_p00 ... ignored
+test tests::test_spherical_harmonics::test_assoc_legendre_p10 ... ignored
+test tests::test_spherical_harmonics::test_assoc_legendre_p11 ... ignored
+test tests::test_spherical_harmonics::test_assoc_legendre_p20 ... ignored
+test tests::test_spherical_harmonics::test_assoc_legendre_p21 ... ignored
+test tests::test_spherical_harmonics::test_assoc_legendre_p22 ... ignored
+test tests::test_spherical_harmonics::test_spherical_harmonic_at_poles ... ignored
+test tests::test_spherical_harmonics::test_spherical_harmonic_chain_rule_both ... ignored
+test tests::test_spherical_harmonics::test_spherical_harmonic_chain_rule_phi_only ... ignored
+test tests::test_spherical_harmonics::test_spherical_harmonic_chain_rule_theta_only ... ignored
+test tests::test_spherical_harmonics::test_spherical_harmonic_derivative_contains_expected_terms ... ignored
+test tests::test_spherical_harmonics::test_spherical_harmonic_derivative_phi_contains_tan ... ignored
+test tests::test_spherical_harmonics::test_spherical_harmonic_derivative_phi_numerical ... ignored
+test tests::test_spherical_harmonics::test_spherical_harmonic_derivative_simplifies ... ignored
+test tests::test_spherical_harmonics::test_spherical_harmonic_derivative_theta_numerical ... ignored
+test tests::test_spherical_harmonics::test_spherical_harmonic_derivative_y20_theta ... ignored
+test tests::test_spherical_harmonics::test_spherical_harmonic_derivative_y21_phi ... ignored
+test tests::test_spherical_harmonics::test_spherical_harmonic_periodicity_phi ... ignored
+test tests::test_spherical_harmonics::test_spherical_harmonic_pipeline_consistency ... ignored
+test tests::test_spherical_harmonics::test_spherical_harmonic_second_derivative ... ignored
+test tests::test_spherical_harmonics::test_spherical_harmonic_y00 ... ignored
+test tests::test_spherical_harmonics::test_spherical_harmonic_y10 ... ignored
+test tests::test_spherical_harmonics::test_spherical_harmonic_y11 ... ignored
+test tests::test_spherical_harmonics::test_spherical_harmonic_ynm_alias ... ignored
+test tests::test_spherical_harmonics::test_tree_walk_evaluator_invalid_domain_y11 ... ignored
+test tests::test_spherical_harmonics::test_tree_walk_evaluator_valid_domain_y21 ... ignored
+test tests::test_spherical_harmonics::test_tree_walk_evaluator_y20_derivative ... ignored
+test tests::test_term_ordering::tests::test_cosh_normal_order ... ignored
+test tests::test_term_ordering::tests::test_cosh_reversed_order ... ignored
+test tests::test_term_ordering::tests::test_coth_reversed_numerator ... ignored
+test tests::test_term_ordering::tests::test_sech_reversed_denominator ... ignored
+test tests::test_term_ordering::tests::test_sinh_reversed_add_pattern ... ignored
+test tests::test_term_ordering::tests::test_sinh_reversed_numerator ... ignored
+test tests::test_term_ordering::tests::test_tanh_reversed_denominator ... ignored
+test tests::tier1_tests::complex_expressions_tier1::test_asin_nested ... ignored
+test tests::tier1_tests::complex_expressions_tier1::test_mixed_trig ... ignored
+test tests::tier1_tests::complex_expressions_tier1::test_sqrt_of_sqrt ... ignored
+test tests::tier1_tests::complex_expressions_tier1::test_tan_product ... ignored
+test tests::tier1_tests::tier1_inverse_trig::test_acos ... ignored
+test tests::tier1_tests::tier1_inverse_trig::test_acot ... ignored
+test tests::tier1_tests::tier1_inverse_trig::test_acsc ... ignored
+test tests::tier1_tests::tier1_inverse_trig::test_asec ... ignored
+test tests::tier1_tests::tier1_inverse_trig::test_asin ... ignored
+test tests::tier1_tests::tier1_inverse_trig::test_atan ... ignored
+test tests::tier1_tests::tier1_roots::test_cbrt ... ignored
+test tests::tier1_tests::tier1_roots::test_sqrt ... ignored
+test tests::tier1_tests::tier1_roots::test_sqrt_composition ... ignored
+test tests::tier1_tests::tier1_trig::test_cot ... ignored
+test tests::tier1_tests::tier1_trig::test_csc ... ignored
+test tests::tier1_tests::tier1_trig::test_sec ... ignored
+test tests::tier1_tests::tier1_trig::test_sen_alias ... ignored
+test tests::tier1_tests::tier1_trig::test_tan ... ignored
+test tests::tier1_tests::tier2_extended_hyperbolics::test_coth ... ignored
+test tests::tier1_tests::tier2_extended_hyperbolics::test_csch ... ignored
+test tests::tier1_tests::tier2_extended_hyperbolics::test_sech ... ignored
+test tests::tier2_tests::tier2_inverse_hyperbolic::test_acosh ... ignored
+test tests::tier2_tests::tier2_inverse_hyperbolic::test_acoth ... ignored
+test tests::tier2_tests::tier2_inverse_hyperbolic::test_acsch ... ignored
+test tests::tier2_tests::tier2_inverse_hyperbolic::test_asech ... ignored
+test tests::tier2_tests::tier2_inverse_hyperbolic::test_asinh ... ignored
+test tests::tier2_tests::tier2_inverse_hyperbolic::test_atanh ... ignored
+test tests::tier2_tests::tier2_log_variants::test_log10 ... ignored
+test tests::tier2_tests::tier2_log_variants::test_log2 ... ignored
+test tests::tier2_tests::tier2_log_variants::test_log_with_base ... ignored
+test tests::tier2_tests::tier3_special_functions::test_erf ... ignored
+test tests::tier2_tests::tier3_special_functions::test_erfc ... ignored
+test tests::tier2_tests::tier3_special_functions::test_gamma ... ignored
+test tests::tier2_tests::tier3_special_functions::test_lambertw ... ignored
+test tests::tier2_tests::tier3_special_functions::test_sinc ... ignored
+test tests::tier2_tests::tier3_unimplemented_placeholders::test_besselj_parsing ... ignored
+test tests::trace_trig::tests::test_trig_reflection_shifts ... ignored
+test tests::trig_simplification_tests::test_cofunction_identities ... ignored
+test tests::trig_simplification_tests::test_double_angle_formulas ... ignored
+test tests::trig_simplification_tests::test_inverse_composition ... ignored
+test tests::trig_simplification_tests::test_inverse_composition_reverse ... ignored
+test tests::trig_simplification_tests::test_pythagorean_identities ... ignored
+test tests::trig_simplification_tests::test_trig_exact_values_extended ... ignored
+test tests::trig_simplification_tests::test_trig_periodicity ... ignored
+test tests::trig_simplification_tests::test_trig_periodicity_general ... ignored
+test tests::trig_simplification_tests::test_trig_reflection_shifts ... ignored
+test tests::trig_simplification_tests::test_trig_symmetry_extended ... ignored
+test uncertainty::tests::test_numeric_covariance ... ignored
+test uncertainty::tests::test_simple_product_uncorrelated ... ignored
+test uncertainty::tests::test_simple_sum_uncorrelated ... ignored
+test uncertainty::tests::test_single_variable ... ignored
+
+test result: ok. 0 passed; 0 failed; 897 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[92m     Running[0m benches/rust/benchmark.rs (target/release/deps/benchmark-3924272f6f9cd514)
+Gnuplot not found, using plotters backend
+Benchmarking 1_parse/symb_anafis/Normal PDF
+Benchmarking 1_parse/symb_anafis/Normal PDF: Warming up for 3.0000 s
+Benchmarking 1_parse/symb_anafis/Normal PDF: Collecting 100 samples in estimated 5.0058 s (995k iterations)
+Benchmarking 1_parse/symb_anafis/Normal PDF: Analyzing
+1_parse/symb_anafis/Normal PDF
+                        time:   [5.0687 µs 5.0761 µs 5.0847 µs]
+Found 2 outliers among 100 measurements (2.00%)
+  2 (2.00%) high severe
+Benchmarking 1_parse/symb_anafis/Gaussian 2D
+Benchmarking 1_parse/symb_anafis/Gaussian 2D: Warming up for 3.0000 s
+Benchmarking 1_parse/symb_anafis/Gaussian 2D: Collecting 100 samples in estimated 5.0137 s (778k iterations)
+Benchmarking 1_parse/symb_anafis/Gaussian 2D: Analyzing
+1_parse/symb_anafis/Gaussian 2D
+                        time:   [6.5435 µs 6.5510 µs 6.5594 µs]
+Found 4 outliers among 100 measurements (4.00%)
+  2 (2.00%) high mild
+  2 (2.00%) high severe
+Benchmarking 1_parse/symb_anafis/Maxwell-Boltzmann
+Benchmarking 1_parse/symb_anafis/Maxwell-Boltzmann: Warming up for 3.0000 s
+Benchmarking 1_parse/symb_anafis/Maxwell-Boltzmann: Collecting 100 samples in estimated 5.0218 s (646k iterations)
+Benchmarking 1_parse/symb_anafis/Maxwell-Boltzmann: Analyzing
+1_parse/symb_anafis/Maxwell-Boltzmann
+                        time:   [7.8333 µs 7.8838 µs 7.9469 µs]
+Found 4 outliers among 100 measurements (4.00%)
+  1 (1.00%) high mild
+  3 (3.00%) high severe
+Benchmarking 1_parse/symb_anafis/Lorentz Factor
+Benchmarking 1_parse/symb_anafis/Lorentz Factor: Warming up for 3.0000 s
+Benchmarking 1_parse/symb_anafis/Lorentz Factor: Collecting 100 samples in estimated 5.0094 s (2.0M iterations)
+Benchmarking 1_parse/symb_anafis/Lorentz Factor: Analyzing
+1_parse/symb_anafis/Lorentz Factor
+                        time:   [2.4997 µs 2.5056 µs 2.5139 µs]
+Found 2 outliers among 100 measurements (2.00%)
+  2 (2.00%) high severe
+Benchmarking 1_parse/symb_anafis/Lennard-Jones
+Benchmarking 1_parse/symb_anafis/Lennard-Jones: Warming up for 3.0000 s
+Benchmarking 1_parse/symb_anafis/Lennard-Jones: Collecting 100 samples in estimated 5.0044 s (1.3M iterations)
+Benchmarking 1_parse/symb_anafis/Lennard-Jones: Analyzing
+1_parse/symb_anafis/Lennard-Jones
+                        time:   [3.9100 µs 3.9464 µs 4.0177 µs]
+Found 5 outliers among 100 measurements (5.00%)
+  3 (3.00%) high mild
+  2 (2.00%) high severe
+Benchmarking 1_parse/symb_anafis/Logistic Sigmoid
+Benchmarking 1_parse/symb_anafis/Logistic Sigmoid: Warming up for 3.0000 s
+Benchmarking 1_parse/symb_anafis/Logistic Sigmoid: Collecting 100 samples in estimated 5.0053 s (1.7M iterations)
+Benchmarking 1_parse/symb_anafis/Logistic Sigmoid: Analyzing
+1_parse/symb_anafis/Logistic Sigmoid
+                        time:   [2.9894 µs 2.9955 µs 3.0045 µs]
+Found 3 outliers among 100 measurements (3.00%)
+  2 (2.00%) high mild
+  1 (1.00%) high severe
+Benchmarking 1_parse/symb_anafis/Damped Oscillator
+Benchmarking 1_parse/symb_anafis/Damped Oscillator: Warming up for 3.0000 s
+Benchmarking 1_parse/symb_anafis/Damped Oscillator: Collecting 100 samples in estimated 5.0036 s (1.4M iterations)
+Benchmarking 1_parse/symb_anafis/Damped Oscillator: Analyzing
+1_parse/symb_anafis/Damped Oscillator
+                        time:   [3.5975 µs 3.6014 µs 3.6052 µs]
+Benchmarking 1_parse/symb_anafis/Planck Blackbody
+Benchmarking 1_parse/symb_anafis/Planck Blackbody: Warming up for 3.0000 s
+Benchmarking 1_parse/symb_anafis/Planck Blackbody: Collecting 100 samples in estimated 5.0196 s (1.0M iterations)
+Benchmarking 1_parse/symb_anafis/Planck Blackbody: Analyzing
+1_parse/symb_anafis/Planck Blackbody
+                        time:   [4.9130 µs 4.9229 µs 4.9345 µs]
+Found 11 outliers among 100 measurements (11.00%)
+  8 (8.00%) low mild
+  1 (1.00%) high mild
+  2 (2.00%) high severe
+Benchmarking 1_parse/symb_anafis/Bessel Wave
+Benchmarking 1_parse/symb_anafis/Bessel Wave: Warming up for 3.0000 s
+Benchmarking 1_parse/symb_anafis/Bessel Wave: Collecting 100 samples in estimated 5.0161 s (1.5M iterations)
+Benchmarking 1_parse/symb_anafis/Bessel Wave: Analyzing
+1_parse/symb_anafis/Bessel Wave
+                        time:   [3.4231 µs 3.4290 µs 3.4357 µs]
+Found 16 outliers among 100 measurements (16.00%)
+  15 (15.00%) high mild
+  1 (1.00%) high severe
+
+Benchmarking 2_diff/symb_anafis_light/Normal PDF
+Benchmarking 2_diff/symb_anafis_light/Normal PDF: Warming up for 3.0000 s
+Benchmarking 2_diff/symb_anafis_light/Normal PDF: Collecting 100 samples in estimated 5.0016 s (3.0M iterations)
+Benchmarking 2_diff/symb_anafis_light/Normal PDF: Analyzing
+2_diff/symb_anafis_light/Normal PDF
+                        time:   [1.6611 µs 1.6619 µs 1.6627 µs]
+Found 5 outliers among 100 measurements (5.00%)
+  3 (3.00%) high mild
+  2 (2.00%) high severe
+Benchmarking 2_diff/symb_anafis_light/Gaussian 2D
+Benchmarking 2_diff/symb_anafis_light/Gaussian 2D: Warming up for 3.0000 s
+Benchmarking 2_diff/symb_anafis_light/Gaussian 2D: Collecting 100 samples in estimated 5.0001 s (3.4M iterations)
+Benchmarking 2_diff/symb_anafis_light/Gaussian 2D: Analyzing
+2_diff/symb_anafis_light/Gaussian 2D
+                        time:   [1.4701 µs 1.4758 µs 1.4819 µs]
+Benchmarking 2_diff/symb_anafis_light/Maxwell-Boltzmann
+Benchmarking 2_diff/symb_anafis_light/Maxwell-Boltzmann: Warming up for 3.0000 s
+Benchmarking 2_diff/symb_anafis_light/Maxwell-Boltzmann: Collecting 100 samples in estimated 5.0035 s (2.1M iterations)
+Benchmarking 2_diff/symb_anafis_light/Maxwell-Boltzmann: Analyzing
+2_diff/symb_anafis_light/Maxwell-Boltzmann
+                        time:   [2.4213 µs 2.4280 µs 2.4374 µs]
+Found 4 outliers among 100 measurements (4.00%)
+  4 (4.00%) high severe
+Benchmarking 2_diff/symb_anafis_light/Lorentz Factor
+Benchmarking 2_diff/symb_anafis_light/Lorentz Factor: Warming up for 3.0000 s
+Benchmarking 2_diff/symb_anafis_light/Lorentz Factor: Collecting 100 samples in estimated 5.0036 s (3.1M iterations)
+Benchmarking 2_diff/symb_anafis_light/Lorentz Factor: Analyzing
+2_diff/symb_anafis_light/Lorentz Factor
+                        time:   [1.5916 µs 1.5926 µs 1.5937 µs]
+Found 4 outliers among 100 measurements (4.00%)
+  2 (2.00%) high mild
+  2 (2.00%) high severe
+Benchmarking 2_diff/symb_anafis_light/Lennard-Jones
+Benchmarking 2_diff/symb_anafis_light/Lennard-Jones: Warming up for 3.0000 s
+Benchmarking 2_diff/symb_anafis_light/Lennard-Jones: Collecting 100 samples in estimated 5.0045 s (2.9M iterations)
+Benchmarking 2_diff/symb_anafis_light/Lennard-Jones: Analyzing
+2_diff/symb_anafis_light/Lennard-Jones
+                        time:   [1.7647 µs 1.7670 µs 1.7698 µs]
+Found 1 outliers among 100 measurements (1.00%)
+  1 (1.00%) high severe
+Benchmarking 2_diff/symb_anafis_light/Logistic Sigmoid
+Benchmarking 2_diff/symb_anafis_light/Logistic Sigmoid: Warming up for 3.0000 s
+Benchmarking 2_diff/symb_anafis_light/Logistic Sigmoid: Collecting 100 samples in estimated 5.0026 s (5.7M iterations)
+Benchmarking 2_diff/symb_anafis_light/Logistic Sigmoid: Analyzing
+2_diff/symb_anafis_light/Logistic Sigmoid
+                        time:   [854.53 ns 855.73 ns 857.08 ns]
+Found 1 outliers among 100 measurements (1.00%)
+  1 (1.00%) high mild
+Benchmarking 2_diff/symb_anafis_light/Damped Oscillator
+Benchmarking 2_diff/symb_anafis_light/Damped Oscillator: Warming up for 3.0000 s
+Benchmarking 2_diff/symb_anafis_light/Damped Oscillator: Collecting 100 samples in estimated 5.0031 s (3.3M iterations)
+Benchmarking 2_diff/symb_anafis_light/Damped Oscillator: Analyzing
+2_diff/symb_anafis_light/Damped Oscillator
+                        time:   [1.5174 µs 1.5191 µs 1.5209 µs]
+Found 3 outliers among 100 measurements (3.00%)
+  3 (3.00%) high severe
+Benchmarking 2_diff/symb_anafis_light/Planck Blackbody
+Benchmarking 2_diff/symb_anafis_light/Planck Blackbody: Warming up for 3.0000 s
+Benchmarking 2_diff/symb_anafis_light/Planck Blackbody: Collecting 100 samples in estimated 5.0083 s (2.4M iterations)
+Benchmarking 2_diff/symb_anafis_light/Planck Blackbody: Analyzing
+2_diff/symb_anafis_light/Planck Blackbody
+                        time:   [2.0534 µs 2.0549 µs 2.0566 µs]
+Found 1 outliers among 100 measurements (1.00%)
+  1 (1.00%) high severe
+Benchmarking 2_diff/symb_anafis_light/Bessel Wave
+Benchmarking 2_diff/symb_anafis_light/Bessel Wave: Warming up for 3.0000 s
+Benchmarking 2_diff/symb_anafis_light/Bessel Wave: Collecting 100 samples in estimated 5.0090 s (2.3M iterations)
+Benchmarking 2_diff/symb_anafis_light/Bessel Wave: Analyzing
+2_diff/symb_anafis_light/Bessel Wave
+                        time:   [2.1846 µs 2.1865 µs 2.1882 µs]
+Found 1 outliers among 100 measurements (1.00%)
+  1 (1.00%) high severe
+
+Benchmarking 3_diff_simplified/symb_anafis_full/Normal PDF
+Benchmarking 3_diff_simplified/symb_anafis_full/Normal PDF: Warming up for 3.0000 s
+Benchmarking 3_diff_simplified/symb_anafis_full/Normal PDF: Collecting 100 samples in estimated 5.2163 s (35k iterations)
+Benchmarking 3_diff_simplified/symb_anafis_full/Normal PDF: Analyzing
+3_diff_simplified/symb_anafis_full/Normal PDF
+                        time:   [147.48 µs 147.57 µs 147.68 µs]
+Found 6 outliers among 100 measurements (6.00%)
+  2 (2.00%) high mild
+  4 (4.00%) high severe
+Benchmarking 3_diff_simplified/symb_anafis_full/Gaussian 2D
+Benchmarking 3_diff_simplified/symb_anafis_full/Gaussian 2D: Warming up for 3.0000 s
+Benchmarking 3_diff_simplified/symb_anafis_full/Gaussian 2D: Collecting 100 samples in estimated 5.5063 s (40k iterations)
+Benchmarking 3_diff_simplified/symb_anafis_full/Gaussian 2D: Analyzing
+3_diff_simplified/symb_anafis_full/Gaussian 2D
+                        time:   [136.16 µs 136.40 µs 136.82 µs]
+Found 8 outliers among 100 measurements (8.00%)
+  6 (6.00%) high mild
+  2 (2.00%) high severe
+Benchmarking 3_diff_simplified/symb_anafis_full/Maxwell-Boltzmann
+Benchmarking 3_diff_simplified/symb_anafis_full/Maxwell-Boltzmann: Warming up for 3.0000 s
+Benchmarking 3_diff_simplified/symb_anafis_full/Maxwell-Boltzmann: Collecting 100 samples in estimated 5.0866 s (15k iterations)
+Benchmarking 3_diff_simplified/symb_anafis_full/Maxwell-Boltzmann: Analyzing
+3_diff_simplified/symb_anafis_full/Maxwell-Boltzmann
+                        time:   [334.90 µs 335.25 µs 335.66 µs]
+Found 5 outliers among 100 measurements (5.00%)
+  3 (3.00%) high mild
+  2 (2.00%) high severe
+Benchmarking 3_diff_simplified/symb_anafis_full/Lorentz Factor
+Benchmarking 3_diff_simplified/symb_anafis_full/Lorentz Factor: Warming up for 3.0000 s
+Benchmarking 3_diff_simplified/symb_anafis_full/Lorentz Factor: Collecting 100 samples in estimated 5.3691 s (20k iterations)
+Benchmarking 3_diff_simplified/symb_anafis_full/Lorentz Factor: Analyzing
+3_diff_simplified/symb_anafis_full/Lorentz Factor
+                        time:   [265.29 µs 265.54 µs 265.81 µs]
+Found 5 outliers among 100 measurements (5.00%)
+  4 (4.00%) high mild
+  1 (1.00%) high severe
+Benchmarking 3_diff_simplified/symb_anafis_full/Lennard-Jones
+Benchmarking 3_diff_simplified/symb_anafis_full/Lennard-Jones: Warming up for 3.0000 s
+Benchmarking 3_diff_simplified/symb_anafis_full/Lennard-Jones: Collecting 100 samples in estimated 5.1466 s (177k iterations)
+Benchmarking 3_diff_simplified/symb_anafis_full/Lennard-Jones: Analyzing
+3_diff_simplified/symb_anafis_full/Lennard-Jones
+                        time:   [29.173 µs 29.189 µs 29.207 µs]
+Found 1 outliers among 100 measurements (1.00%)
+  1 (1.00%) high mild
+Benchmarking 3_diff_simplified/symb_anafis_full/Logistic Sigmoid
+Benchmarking 3_diff_simplified/symb_anafis_full/Logistic Sigmoid: Warming up for 3.0000 s
+Benchmarking 3_diff_simplified/symb_anafis_full/Logistic Sigmoid: Collecting 100 samples in estimated 5.4943 s (45k iterations)
+Benchmarking 3_diff_simplified/symb_anafis_full/Logistic Sigmoid: Analyzing
+3_diff_simplified/symb_anafis_full/Logistic Sigmoid
+                        time:   [119.41 µs 119.89 µs 120.82 µs]
+Found 6 outliers among 100 measurements (6.00%)
+  2 (2.00%) high mild
+  4 (4.00%) high severe
+Benchmarking 3_diff_simplified/symb_anafis_full/Damped Oscillator
+Benchmarking 3_diff_simplified/symb_anafis_full/Damped Oscillator: Warming up for 3.0000 s
+Benchmarking 3_diff_simplified/symb_anafis_full/Damped Oscillator: Collecting 100 samples in estimated 5.4515 s (35k iterations)
+Benchmarking 3_diff_simplified/symb_anafis_full/Damped Oscillator: Analyzing
+3_diff_simplified/symb_anafis_full/Damped Oscillator
+                        time:   [153.93 µs 154.08 µs 154.32 µs]
+Found 5 outliers among 100 measurements (5.00%)
+  1 (1.00%) low mild
+  4 (4.00%) high severe
+Benchmarking 3_diff_simplified/symb_anafis_full/Planck Blackbody
+Benchmarking 3_diff_simplified/symb_anafis_full/Planck Blackbody: Warming up for 3.0000 s
+Benchmarking 3_diff_simplified/symb_anafis_full/Planck Blackbody: Collecting 100 samples in estimated 5.1038 s (15k iterations)
+Benchmarking 3_diff_simplified/symb_anafis_full/Planck Blackbody: Analyzing
+3_diff_simplified/symb_anafis_full/Planck Blackbody
+                        time:   [336.29 µs 336.58 µs 336.94 µs]
+Found 6 outliers among 100 measurements (6.00%)
+  3 (3.00%) high mild
+  3 (3.00%) high severe
+Benchmarking 3_diff_simplified/symb_anafis_full/Bessel Wave
+Benchmarking 3_diff_simplified/symb_anafis_full/Bessel Wave: Warming up for 3.0000 s
+Benchmarking 3_diff_simplified/symb_anafis_full/Bessel Wave: Collecting 100 samples in estimated 5.3762 s (40k iterations)
+Benchmarking 3_diff_simplified/symb_anafis_full/Bessel Wave: Analyzing
+3_diff_simplified/symb_anafis_full/Bessel Wave
+                        time:   [132.76 µs 132.84 µs 132.93 µs]
+Found 4 outliers among 100 measurements (4.00%)
+  2 (2.00%) high mild
+  2 (2.00%) high severe
+
+Benchmarking 4_simplify/symb_anafis/Normal PDF
+Benchmarking 4_simplify/symb_anafis/Normal PDF: Warming up for 3.0000 s
+Benchmarking 4_simplify/symb_anafis/Normal PDF: Collecting 100 samples in estimated 5.1010 s (35k iterations)
+Benchmarking 4_simplify/symb_anafis/Normal PDF: Analyzing
+4_simplify/symb_anafis/Normal PDF
+                        time:   [144.15 µs 144.26 µs 144.40 µs]
+Found 4 outliers among 100 measurements (4.00%)
+  3 (3.00%) high mild
+  1 (1.00%) high severe
+Benchmarking 4_simplify/symb_anafis/Gaussian 2D
+Benchmarking 4_simplify/symb_anafis/Gaussian 2D: Warming up for 3.0000 s
+Benchmarking 4_simplify/symb_anafis/Gaussian 2D: Collecting 100 samples in estimated 5.4076 s (40k iterations)
+Benchmarking 4_simplify/symb_anafis/Gaussian 2D: Analyzing
+4_simplify/symb_anafis/Gaussian 2D
+                        time:   [133.71 µs 133.79 µs 133.87 µs]
+Found 6 outliers among 100 measurements (6.00%)
+  4 (4.00%) high mild
+  2 (2.00%) high severe
+Benchmarking 4_simplify/symb_anafis/Maxwell-Boltzmann
+Benchmarking 4_simplify/symb_anafis/Maxwell-Boltzmann: Warming up for 3.0000 s
+Benchmarking 4_simplify/symb_anafis/Maxwell-Boltzmann: Collecting 100 samples in estimated 5.0119 s (15k iterations)
+Benchmarking 4_simplify/symb_anafis/Maxwell-Boltzmann: Analyzing
+4_simplify/symb_anafis/Maxwell-Boltzmann
+                        time:   [329.58 µs 329.76 µs 329.96 µs]
+Found 9 outliers among 100 measurements (9.00%)
+  6 (6.00%) high mild
+  3 (3.00%) high severe
+Benchmarking 4_simplify/symb_anafis/Lorentz Factor
+Benchmarking 4_simplify/symb_anafis/Lorentz Factor: Warming up for 3.0000 s
+Benchmarking 4_simplify/symb_anafis/Lorentz Factor: Collecting 100 samples in estimated 5.2665 s (20k iterations)
+Benchmarking 4_simplify/symb_anafis/Lorentz Factor: Analyzing
+4_simplify/symb_anafis/Lorentz Factor
+                        time:   [260.68 µs 262.15 µs 264.69 µs]
+Found 10 outliers among 100 measurements (10.00%)
+  3 (3.00%) high mild
+  7 (7.00%) high severe
+Benchmarking 4_simplify/symb_anafis/Lennard-Jones
+Benchmarking 4_simplify/symb_anafis/Lennard-Jones: Warming up for 3.0000 s
+Benchmarking 4_simplify/symb_anafis/Lennard-Jones: Collecting 100 samples in estimated 5.0139 s (187k iterations)
+Benchmarking 4_simplify/symb_anafis/Lennard-Jones: Analyzing
+4_simplify/symb_anafis/Lennard-Jones
+                        time:   [26.892 µs 26.941 µs 27.012 µs]
+Found 4 outliers among 100 measurements (4.00%)
+  2 (2.00%) high mild
+  2 (2.00%) high severe
+Benchmarking 4_simplify/symb_anafis/Logistic Sigmoid
+Benchmarking 4_simplify/symb_anafis/Logistic Sigmoid: Warming up for 3.0000 s
+Benchmarking 4_simplify/symb_anafis/Logistic Sigmoid: Collecting 100 samples in estimated 5.3246 s (45k iterations)
+Benchmarking 4_simplify/symb_anafis/Logistic Sigmoid: Analyzing
+4_simplify/symb_anafis/Logistic Sigmoid
+                        time:   [116.93 µs 117.00 µs 117.09 µs]
+Found 4 outliers among 100 measurements (4.00%)
+  2 (2.00%) high mild
+  2 (2.00%) high severe
+Benchmarking 4_simplify/symb_anafis/Damped Oscillator
+Benchmarking 4_simplify/symb_anafis/Damped Oscillator: Warming up for 3.0000 s
+Benchmarking 4_simplify/symb_anafis/Damped Oscillator: Collecting 100 samples in estimated 5.3378 s (35k iterations)
+Benchmarking 4_simplify/symb_anafis/Damped Oscillator: Analyzing
+4_simplify/symb_anafis/Damped Oscillator
+                        time:   [150.64 µs 150.72 µs 150.82 µs]
+Found 9 outliers among 100 measurements (9.00%)
+  1 (1.00%) low mild
+  3 (3.00%) high mild
+  5 (5.00%) high severe
+Benchmarking 4_simplify/symb_anafis/Planck Blackbody
+Benchmarking 4_simplify/symb_anafis/Planck Blackbody: Warming up for 3.0000 s
+Benchmarking 4_simplify/symb_anafis/Planck Blackbody: Collecting 100 samples in estimated 5.0330 s (15k iterations)
+Benchmarking 4_simplify/symb_anafis/Planck Blackbody: Analyzing
+4_simplify/symb_anafis/Planck Blackbody
+                        time:   [332.09 µs 332.42 µs 332.84 µs]
+Found 5 outliers among 100 measurements (5.00%)
+  1 (1.00%) low mild
+  2 (2.00%) high mild
+  2 (2.00%) high severe
+Benchmarking 4_simplify/symb_anafis/Bessel Wave
+Benchmarking 4_simplify/symb_anafis/Bessel Wave: Warming up for 3.0000 s
+Benchmarking 4_simplify/symb_anafis/Bessel Wave: Collecting 100 samples in estimated 5.2121 s (40k iterations)
+Benchmarking 4_simplify/symb_anafis/Bessel Wave: Analyzing
+4_simplify/symb_anafis/Bessel Wave
+                        time:   [129.02 µs 129.12 µs 129.25 µs]
+Found 3 outliers among 100 measurements (3.00%)
+  1 (1.00%) high mild
+  2 (2.00%) high severe
+
+Benchmarking 5_compile/raw/Normal PDF
+Benchmarking 5_compile/raw/Normal PDF: Warming up for 3.0000 s
+Benchmarking 5_compile/raw/Normal PDF: Collecting 100 samples in estimated 5.0029 s (3.1M iterations)
+Benchmarking 5_compile/raw/Normal PDF: Analyzing
+5_compile/raw/Normal PDF
+                        time:   [1.6512 µs 1.6591 µs 1.6678 µs]
+Found 6 outliers among 100 measurements (6.00%)
+  3 (3.00%) high mild
+  3 (3.00%) high severe
+Benchmarking 5_compile/simplified/Normal PDF
+Benchmarking 5_compile/simplified/Normal PDF: Warming up for 3.0000 s
+Benchmarking 5_compile/simplified/Normal PDF: Collecting 100 samples in estimated 5.0043 s (3.3M iterations)
+Benchmarking 5_compile/simplified/Normal PDF: Analyzing
+5_compile/simplified/Normal PDF
+                        time:   [1.5289 µs 1.5307 µs 1.5326 µs]
+Found 3 outliers among 100 measurements (3.00%)
+  2 (2.00%) high mild
+  1 (1.00%) high severe
+Benchmarking 5_compile/raw/Gaussian 2D
+Benchmarking 5_compile/raw/Gaussian 2D: Warming up for 3.0000 s
+Benchmarking 5_compile/raw/Gaussian 2D: Collecting 100 samples in estimated 5.0069 s (2.4M iterations)
+Benchmarking 5_compile/raw/Gaussian 2D: Analyzing
+5_compile/raw/Gaussian 2D
+                        time:   [2.0675 µs 2.0685 µs 2.0696 µs]
+Found 8 outliers among 100 measurements (8.00%)
+  4 (4.00%) high mild
+  4 (4.00%) high severe
+Benchmarking 5_compile/simplified/Gaussian 2D
+Benchmarking 5_compile/simplified/Gaussian 2D: Warming up for 3.0000 s
+Benchmarking 5_compile/simplified/Gaussian 2D: Collecting 100 samples in estimated 5.0043 s (2.6M iterations)
+Benchmarking 5_compile/simplified/Gaussian 2D: Analyzing
+5_compile/simplified/Gaussian 2D
+                        time:   [1.8976 µs 1.8989 µs 1.9002 µs]
+Found 3 outliers among 100 measurements (3.00%)
+  2 (2.00%) high mild
+  1 (1.00%) high severe
+Benchmarking 5_compile/raw/Maxwell-Boltzmann
+Benchmarking 5_compile/raw/Maxwell-Boltzmann: Warming up for 3.0000 s
+Benchmarking 5_compile/raw/Maxwell-Boltzmann: Collecting 100 samples in estimated 5.0117 s (1.7M iterations)
+Benchmarking 5_compile/raw/Maxwell-Boltzmann: Analyzing
+5_compile/raw/Maxwell-Boltzmann
+                        time:   [2.9790 µs 2.9889 µs 2.9985 µs]
+Benchmarking 5_compile/simplified/Maxwell-Boltzmann
+Benchmarking 5_compile/simplified/Maxwell-Boltzmann: Warming up for 3.0000 s
+Benchmarking 5_compile/simplified/Maxwell-Boltzmann: Collecting 100 samples in estimated 5.0077 s (2.5M iterations)
+Benchmarking 5_compile/simplified/Maxwell-Boltzmann: Analyzing
+5_compile/simplified/Maxwell-Boltzmann
+                        time:   [2.0532 µs 2.0678 µs 2.0896 µs]
+Found 3 outliers among 100 measurements (3.00%)
+  2 (2.00%) high mild
+  1 (1.00%) high severe
+Benchmarking 5_compile/raw/Lorentz Factor
+Benchmarking 5_compile/raw/Lorentz Factor: Warming up for 3.0000 s
+Benchmarking 5_compile/raw/Lorentz Factor: Collecting 100 samples in estimated 5.0069 s (3.4M iterations)
+Benchmarking 5_compile/raw/Lorentz Factor: Analyzing
+5_compile/raw/Lorentz Factor
+                        time:   [1.4492 µs 1.4529 µs 1.4570 µs]
+Found 5 outliers among 100 measurements (5.00%)
+  4 (4.00%) high mild
+  1 (1.00%) high severe
+Benchmarking 5_compile/simplified/Lorentz Factor
+Benchmarking 5_compile/simplified/Lorentz Factor: Warming up for 3.0000 s
+Benchmarking 5_compile/simplified/Lorentz Factor: Collecting 100 samples in estimated 5.0056 s (3.8M iterations)
+Benchmarking 5_compile/simplified/Lorentz Factor: Analyzing
+5_compile/simplified/Lorentz Factor
+                        time:   [1.3073 µs 1.3124 µs 1.3175 µs]
+Found 2 outliers among 100 measurements (2.00%)
+  2 (2.00%) high mild
+Benchmarking 5_compile/raw/Lennard-Jones
+Benchmarking 5_compile/raw/Lennard-Jones: Warming up for 3.0000 s
+Benchmarking 5_compile/raw/Lennard-Jones: Collecting 100 samples in estimated 5.0049 s (4.6M iterations)
+Benchmarking 5_compile/raw/Lennard-Jones: Analyzing
+5_compile/raw/Lennard-Jones
+                        time:   [1.1008 µs 1.1032 µs 1.1059 µs]
+Found 11 outliers among 100 measurements (11.00%)
+  4 (4.00%) low mild
+  2 (2.00%) high mild
+  5 (5.00%) high severe
+Benchmarking 5_compile/simplified/Lennard-Jones
+Benchmarking 5_compile/simplified/Lennard-Jones: Warming up for 3.0000 s
+Benchmarking 5_compile/simplified/Lennard-Jones: Collecting 100 samples in estimated 5.0044 s (4.1M iterations)
+Benchmarking 5_compile/simplified/Lennard-Jones: Analyzing
+5_compile/simplified/Lennard-Jones
+                        time:   [1.2256 µs 1.2272 µs 1.2287 µs]
+Found 5 outliers among 100 measurements (5.00%)
+  5 (5.00%) low mild
+Benchmarking 5_compile/raw/Logistic Sigmoid
+Benchmarking 5_compile/raw/Logistic Sigmoid: Warming up for 3.0000 s
+Benchmarking 5_compile/raw/Logistic Sigmoid: Collecting 100 samples in estimated 5.0013 s (3.9M iterations)
+Benchmarking 5_compile/raw/Logistic Sigmoid: Analyzing
+5_compile/raw/Logistic Sigmoid
+                        time:   [1.3010 µs 1.3023 µs 1.3037 µs]
+Found 3 outliers among 100 measurements (3.00%)
+  2 (2.00%) high mild
+  1 (1.00%) high severe
+Benchmarking 5_compile/simplified/Logistic Sigmoid
+Benchmarking 5_compile/simplified/Logistic Sigmoid: Warming up for 3.0000 s
+Benchmarking 5_compile/simplified/Logistic Sigmoid: Collecting 100 samples in estimated 5.0061 s (3.3M iterations)
+Benchmarking 5_compile/simplified/Logistic Sigmoid: Analyzing
+5_compile/simplified/Logistic Sigmoid
+                        time:   [1.5355 µs 1.5404 µs 1.5465 µs]
+Found 8 outliers among 100 measurements (8.00%)
+  5 (5.00%) high mild
+  3 (3.00%) high severe
+Benchmarking 5_compile/raw/Damped Oscillator
+Benchmarking 5_compile/raw/Damped Oscillator: Warming up for 3.0000 s
+Benchmarking 5_compile/raw/Damped Oscillator: Collecting 100 samples in estimated 5.0001 s (2.4M iterations)
+Benchmarking 5_compile/raw/Damped Oscillator: Analyzing
+5_compile/raw/Damped Oscillator
+                        time:   [2.1069 µs 2.1170 µs 2.1264 µs]
+Found 7 outliers among 100 measurements (7.00%)
+  5 (5.00%) low mild
+  1 (1.00%) high mild
+  1 (1.00%) high severe
+Benchmarking 5_compile/simplified/Damped Oscillator
+Benchmarking 5_compile/simplified/Damped Oscillator: Warming up for 3.0000 s
+Benchmarking 5_compile/simplified/Damped Oscillator: Collecting 100 samples in estimated 5.0047 s (2.6M iterations)
+Benchmarking 5_compile/simplified/Damped Oscillator: Analyzing
+5_compile/simplified/Damped Oscillator
+                        time:   [1.8658 µs 1.8709 µs 1.8764 µs]
+Found 8 outliers among 100 measurements (8.00%)
+  4 (4.00%) low mild
+  4 (4.00%) high mild
+Benchmarking 5_compile/raw/Planck Blackbody
+Benchmarking 5_compile/raw/Planck Blackbody: Warming up for 3.0000 s
+Benchmarking 5_compile/raw/Planck Blackbody: Collecting 100 samples in estimated 5.0016 s (1.7M iterations)
+Benchmarking 5_compile/raw/Planck Blackbody: Analyzing
+5_compile/raw/Planck Blackbody
+                        time:   [2.8363 µs 2.8434 µs 2.8511 µs]
+Found 3 outliers among 100 measurements (3.00%)
+  1 (1.00%) high mild
+  2 (2.00%) high severe
+Benchmarking 5_compile/simplified/Planck Blackbody
+Benchmarking 5_compile/simplified/Planck Blackbody: Warming up for 3.0000 s
+Benchmarking 5_compile/simplified/Planck Blackbody: Collecting 100 samples in estimated 5.0089 s (1.6M iterations)
+Benchmarking 5_compile/simplified/Planck Blackbody: Analyzing
+5_compile/simplified/Planck Blackbody
+                        time:   [3.0744 µs 3.0886 µs 3.1013 µs]
+Found 1 outliers among 100 measurements (1.00%)
+  1 (1.00%) high mild
+Benchmarking 5_compile/raw/Bessel Wave
+Benchmarking 5_compile/raw/Bessel Wave: Warming up for 3.0000 s
+Benchmarking 5_compile/raw/Bessel Wave: Collecting 100 samples in estimated 5.0097 s (2.3M iterations)
+Benchmarking 5_compile/raw/Bessel Wave: Analyzing
+5_compile/raw/Bessel Wave
+                        time:   [2.0989 µs 2.1055 µs 2.1125 µs]
+Found 3 outliers among 100 measurements (3.00%)
+  1 (1.00%) high mild
+  2 (2.00%) high severe
+Benchmarking 5_compile/simplified/Bessel Wave
+Benchmarking 5_compile/simplified/Bessel Wave: Warming up for 3.0000 s
+Benchmarking 5_compile/simplified/Bessel Wave: Collecting 100 samples in estimated 5.0004 s (2.7M iterations)
+Benchmarking 5_compile/simplified/Bessel Wave: Analyzing
+5_compile/simplified/Bessel Wave
+                        time:   [1.8443 µs 1.8486 µs 1.8531 µs]
+Found 4 outliers among 100 measurements (4.00%)
+  2 (2.00%) high mild
+  2 (2.00%) high severe
+
+Benchmarking 6_eval_1000pts/compiled_raw/Normal PDF
+Benchmarking 6_eval_1000pts/compiled_raw/Normal PDF: Warming up for 3.0000 s
+Benchmarking 6_eval_1000pts/compiled_raw/Normal PDF: Collecting 100 samples in estimated 5.1968 s (40k iterations)
+Benchmarking 6_eval_1000pts/compiled_raw/Normal PDF: Analyzing
+6_eval_1000pts/compiled_raw/Normal PDF
+                        time:   [128.46 µs 128.73 µs 128.98 µs]
+Benchmarking 6_eval_1000pts/compiled_simplified/Normal PDF
+Benchmarking 6_eval_1000pts/compiled_simplified/Normal PDF: Warming up for 3.0000 s
+Benchmarking 6_eval_1000pts/compiled_simplified/Normal PDF: Collecting 100 samples in estimated 5.4132 s (56k iterations)
+Benchmarking 6_eval_1000pts/compiled_simplified/Normal PDF: Analyzing
+6_eval_1000pts/compiled_simplified/Normal PDF
+                        time:   [98.698 µs 99.055 µs 99.402 µs]
+Benchmarking 6_eval_1000pts/compiled_raw/Gaussian 2D
+Benchmarking 6_eval_1000pts/compiled_raw/Gaussian 2D: Warming up for 3.0000 s
+Benchmarking 6_eval_1000pts/compiled_raw/Gaussian 2D: Collecting 100 samples in estimated 5.1909 s (35k iterations)
+Benchmarking 6_eval_1000pts/compiled_raw/Gaussian 2D: Analyzing
+6_eval_1000pts/compiled_raw/Gaussian 2D
+                        time:   [146.40 µs 146.88 µs 147.34 µs]
+Benchmarking 6_eval_1000pts/compiled_simplified/Gaussian 2D
+Benchmarking 6_eval_1000pts/compiled_simplified/Gaussian 2D: Warming up for 3.0000 s
+Benchmarking 6_eval_1000pts/compiled_simplified/Gaussian 2D: Collecting 100 samples in estimated 5.5156 s (50k iterations)
+Benchmarking 6_eval_1000pts/compiled_simplified/Gaussian 2D: Analyzing
+6_eval_1000pts/compiled_simplified/Gaussian 2D
+                        time:   [110.11 µs 110.39 µs 110.65 µs]
+Benchmarking 6_eval_1000pts/compiled_raw/Maxwell-Boltzmann
+Benchmarking 6_eval_1000pts/compiled_raw/Maxwell-Boltzmann: Warming up for 3.0000 s
+Benchmarking 6_eval_1000pts/compiled_raw/Maxwell-Boltzmann: Collecting 100 samples in estimated 5.6996 s (20k iterations)
+Benchmarking 6_eval_1000pts/compiled_raw/Maxwell-Boltzmann: Analyzing
+6_eval_1000pts/compiled_raw/Maxwell-Boltzmann
+                        time:   [288.89 µs 289.46 µs 290.29 µs]
+Found 13 outliers among 100 measurements (13.00%)
+  5 (5.00%) low mild
+  2 (2.00%) high mild
+  6 (6.00%) high severe
+Benchmarking 6_eval_1000pts/compiled_simplified/Maxwell-Boltzmann
+Benchmarking 6_eval_1000pts/compiled_simplified/Maxwell-Boltzmann: Warming up for 3.0000 s
+Benchmarking 6_eval_1000pts/compiled_simplified/Maxwell-Boltzmann: Collecting 100 samples in estimated 5.3179 s (40k iterations)
+Benchmarking 6_eval_1000pts/compiled_simplified/Maxwell-Boltzmann: Analyzing
+6_eval_1000pts/compiled_simplified/Maxwell-Boltzmann
+                        time:   [131.59 µs 131.89 µs 132.19 µs]
+Found 3 outliers among 100 measurements (3.00%)
+  2 (2.00%) high mild
+  1 (1.00%) high severe
+Benchmarking 6_eval_1000pts/compiled_raw/Lorentz Factor
+Benchmarking 6_eval_1000pts/compiled_raw/Lorentz Factor: Warming up for 3.0000 s
+Benchmarking 6_eval_1000pts/compiled_raw/Lorentz Factor: Collecting 100 samples in estimated 5.1129 s (40k iterations)
+Benchmarking 6_eval_1000pts/compiled_raw/Lorentz Factor: Analyzing
+6_eval_1000pts/compiled_raw/Lorentz Factor
+                        time:   [125.63 µs 125.69 µs 125.76 µs]
+Benchmarking 6_eval_1000pts/compiled_simplified/Lorentz Factor
+Benchmarking 6_eval_1000pts/compiled_simplified/Lorentz Factor: Warming up for 3.0000 s
+Benchmarking 6_eval_1000pts/compiled_simplified/Lorentz Factor: Collecting 100 samples in estimated 5.0784 s (71k iterations)
+Benchmarking 6_eval_1000pts/compiled_simplified/Lorentz Factor: Analyzing
+6_eval_1000pts/compiled_simplified/Lorentz Factor
+                        time:   [72.707 µs 73.019 µs 73.315 µs]
+Benchmarking 6_eval_1000pts/compiled_raw/Lennard-Jones
+Benchmarking 6_eval_1000pts/compiled_raw/Lennard-Jones: Warming up for 3.0000 s
+Benchmarking 6_eval_1000pts/compiled_raw/Lennard-Jones: Collecting 100 samples in estimated 5.0505 s (50k iterations)
+Benchmarking 6_eval_1000pts/compiled_raw/Lennard-Jones: Analyzing
+6_eval_1000pts/compiled_raw/Lennard-Jones
+                        time:   [100.67 µs 100.73 µs 100.80 µs]
+Found 5 outliers among 100 measurements (5.00%)
+  5 (5.00%) high mild
+Benchmarking 6_eval_1000pts/compiled_simplified/Lennard-Jones
+Benchmarking 6_eval_1000pts/compiled_simplified/Lennard-Jones: Warming up for 3.0000 s
+Benchmarking 6_eval_1000pts/compiled_simplified/Lennard-Jones: Collecting 100 samples in estimated 5.2656 s (56k iterations)
+Benchmarking 6_eval_1000pts/compiled_simplified/Lennard-Jones: Analyzing
+6_eval_1000pts/compiled_simplified/Lennard-Jones
+                        time:   [94.504 µs 94.608 µs 94.708 µs]
+Found 6 outliers among 100 measurements (6.00%)
+  2 (2.00%) low mild
+  1 (1.00%) high mild
+  3 (3.00%) high severe
+Benchmarking 6_eval_1000pts/compiled_raw/Logistic Sigmoid
+Benchmarking 6_eval_1000pts/compiled_raw/Logistic Sigmoid: Warming up for 3.0000 s
+Benchmarking 6_eval_1000pts/compiled_raw/Logistic Sigmoid: Collecting 100 samples in estimated 5.2661 s (50k iterations)
+Benchmarking 6_eval_1000pts/compiled_raw/Logistic Sigmoid: Analyzing
+6_eval_1000pts/compiled_raw/Logistic Sigmoid
+                        time:   [105.86 µs 105.93 µs 106.00 µs]
+Found 10 outliers among 100 measurements (10.00%)
+  5 (5.00%) low mild
+  1 (1.00%) high mild
+  4 (4.00%) high severe
+Benchmarking 6_eval_1000pts/compiled_simplified/Logistic Sigmoid
+Benchmarking 6_eval_1000pts/compiled_simplified/Logistic Sigmoid: Warming up for 3.0000 s
+Benchmarking 6_eval_1000pts/compiled_simplified/Logistic Sigmoid: Collecting 100 samples in estimated 5.3025 s (40k iterations)
+Benchmarking 6_eval_1000pts/compiled_simplified/Logistic Sigmoid: Analyzing
+6_eval_1000pts/compiled_simplified/Logistic Sigmoid
+                        time:   [131.97 µs 132.25 µs 132.52 µs]
+Benchmarking 6_eval_1000pts/compiled_raw/Damped Oscillator
+Benchmarking 6_eval_1000pts/compiled_raw/Damped Oscillator: Warming up for 3.0000 s
+Benchmarking 6_eval_1000pts/compiled_raw/Damped Oscillator: Collecting 100 samples in estimated 5.4437 s (45k iterations)
+Benchmarking 6_eval_1000pts/compiled_raw/Damped Oscillator: Analyzing
+6_eval_1000pts/compiled_raw/Damped Oscillator
+                        time:   [121.79 µs 122.74 µs 123.63 µs]
+Found 19 outliers among 100 measurements (19.00%)
+  1 (1.00%) high mild
+  18 (18.00%) high severe
+Benchmarking 6_eval_1000pts/compiled_simplified/Damped Oscillator
+Benchmarking 6_eval_1000pts/compiled_simplified/Damped Oscillator: Warming up for 3.0000 s
+Benchmarking 6_eval_1000pts/compiled_simplified/Damped Oscillator: Collecting 100 samples in estimated 5.3392 s (61k iterations)
+Benchmarking 6_eval_1000pts/compiled_simplified/Damped Oscillator: Analyzing
+6_eval_1000pts/compiled_simplified/Damped Oscillator
+                        time:   [88.994 µs 89.278 µs 89.531 µs]
+Found 19 outliers among 100 measurements (19.00%)
+  17 (17.00%) high mild
+  2 (2.00%) high severe
+Benchmarking 6_eval_1000pts/compiled_raw/Planck Blackbody
+Benchmarking 6_eval_1000pts/compiled_raw/Planck Blackbody: Warming up for 3.0000 s
+Benchmarking 6_eval_1000pts/compiled_raw/Planck Blackbody: Collecting 100 samples in estimated 5.3871 s (35k iterations)
+Benchmarking 6_eval_1000pts/compiled_raw/Planck Blackbody: Analyzing
+6_eval_1000pts/compiled_raw/Planck Blackbody
+                        time:   [152.26 µs 152.32 µs 152.38 µs]
+Found 1 outliers among 100 measurements (1.00%)
+  1 (1.00%) low mild
+Benchmarking 6_eval_1000pts/compiled_simplified/Planck Blackbody
+Benchmarking 6_eval_1000pts/compiled_simplified/Planck Blackbody: Warming up for 3.0000 s
+Benchmarking 6_eval_1000pts/compiled_simplified/Planck Blackbody: Collecting 100 samples in estimated 5.0539 s (30k iterations)
+Benchmarking 6_eval_1000pts/compiled_simplified/Planck Blackbody: Analyzing
+6_eval_1000pts/compiled_simplified/Planck Blackbody
+                        time:   [165.60 µs 166.18 µs 167.21 µs]
+Found 18 outliers among 100 measurements (18.00%)
+  4 (4.00%) low severe
+  7 (7.00%) low mild
+  3 (3.00%) high mild
+  4 (4.00%) high severe
+Benchmarking 6_eval_1000pts/compiled_raw/Bessel Wave
+Benchmarking 6_eval_1000pts/compiled_raw/Bessel Wave: Warming up for 3.0000 s
+Benchmarking 6_eval_1000pts/compiled_raw/Bessel Wave: Collecting 100 samples in estimated 5.2198 s (20k iterations)
+Benchmarking 6_eval_1000pts/compiled_raw/Bessel Wave: Analyzing
+6_eval_1000pts/compiled_raw/Bessel Wave
+                        time:   [258.25 µs 258.42 µs 258.60 µs]
+Found 1 outliers among 100 measurements (1.00%)
+  1 (1.00%) high mild
+Benchmarking 6_eval_1000pts/compiled_simplified/Bessel Wave
+Benchmarking 6_eval_1000pts/compiled_simplified/Bessel Wave: Warming up for 3.0000 s
+Benchmarking 6_eval_1000pts/compiled_simplified/Bessel Wave: Collecting 100 samples in estimated 5.0134 s (25k iterations)
+Benchmarking 6_eval_1000pts/compiled_simplified/Bessel Wave: Analyzing
+6_eval_1000pts/compiled_simplified/Bessel Wave
+                        time:   [198.61 µs 198.67 µs 198.74 µs]
+Found 7 outliers among 100 measurements (7.00%)
+  4 (4.00%) high mild
+  3 (3.00%) high severe
+
+Benchmarking 7_full_pipeline/symb_anafis/Normal PDF
+Benchmarking 7_full_pipeline/symb_anafis/Normal PDF: Warming up for 3.0000 s
+Benchmarking 7_full_pipeline/symb_anafis/Normal PDF: Collecting 100 samples in estimated 5.6451 s (20k iterations)
+Benchmarking 7_full_pipeline/symb_anafis/Normal PDF: Analyzing
+7_full_pipeline/symb_anafis/Normal PDF
+                        time:   [281.03 µs 281.64 µs 282.25 µs]
+Benchmarking 7_full_pipeline/symb_anafis/Gaussian 2D
+Benchmarking 7_full_pipeline/symb_anafis/Gaussian 2D: Warming up for 3.0000 s
+Benchmarking 7_full_pipeline/symb_anafis/Gaussian 2D: Collecting 100 samples in estimated 5.7405 s (20k iterations)
+Benchmarking 7_full_pipeline/symb_anafis/Gaussian 2D: Analyzing
+7_full_pipeline/symb_anafis/Gaussian 2D
+                        time:   [285.65 µs 286.09 µs 286.51 µs]
+Found 1 outliers among 100 measurements (1.00%)
+  1 (1.00%) high mild
+Benchmarking 7_full_pipeline/symb_anafis/Maxwell-Boltzmann
+Benchmarking 7_full_pipeline/symb_anafis/Maxwell-Boltzmann: Warming up for 3.0000 s
+Benchmarking 7_full_pipeline/symb_anafis/Maxwell-Boltzmann: Collecting 100 samples in estimated 5.2686 s (10k iterations)
+Benchmarking 7_full_pipeline/symb_anafis/Maxwell-Boltzmann: Analyzing
+7_full_pipeline/symb_anafis/Maxwell-Boltzmann
+                        time:   [520.30 µs 521.82 µs 524.35 µs]
+Found 6 outliers among 100 measurements (6.00%)
+  3 (3.00%) high mild
+  3 (3.00%) high severe
+Benchmarking 7_full_pipeline/symb_anafis/Lorentz Factor
+Benchmarking 7_full_pipeline/symb_anafis/Lorentz Factor: Warming up for 3.0000 s
+Benchmarking 7_full_pipeline/symb_anafis/Lorentz Factor: Collecting 100 samples in estimated 5.5499 s (15k iterations)
+Benchmarking 7_full_pipeline/symb_anafis/Lorentz Factor: Analyzing
+7_full_pipeline/symb_anafis/Lorentz Factor
+                        time:   [366.08 µs 366.39 µs 366.76 µs]
+Found 4 outliers among 100 measurements (4.00%)
+  1 (1.00%) high mild
+  3 (3.00%) high severe
+Benchmarking 7_full_pipeline/symb_anafis/Lennard-Jones
+Benchmarking 7_full_pipeline/symb_anafis/Lennard-Jones: Warming up for 3.0000 s
+Benchmarking 7_full_pipeline/symb_anafis/Lennard-Jones: Collecting 100 samples in estimated 5.1371 s (40k iterations)
+Benchmarking 7_full_pipeline/symb_anafis/Lennard-Jones: Analyzing
+7_full_pipeline/symb_anafis/Lennard-Jones
+                        time:   [127.09 µs 127.27 µs 127.50 µs]
+Found 10 outliers among 100 measurements (10.00%)
+  3 (3.00%) high mild
+  7 (7.00%) high severe
+Benchmarking 7_full_pipeline/symb_anafis/Logistic Sigmoid
+Benchmarking 7_full_pipeline/symb_anafis/Logistic Sigmoid: Warming up for 3.0000 s
+Benchmarking 7_full_pipeline/symb_anafis/Logistic Sigmoid: Collecting 100 samples in estimated 5.1514 s (20k iterations)
+Benchmarking 7_full_pipeline/symb_anafis/Logistic Sigmoid: Analyzing
+7_full_pipeline/symb_anafis/Logistic Sigmoid
+                        time:   [249.94 µs 250.15 µs 250.38 µs]
+Found 4 outliers among 100 measurements (4.00%)
+  3 (3.00%) high mild
+  1 (1.00%) high severe
+Benchmarking 7_full_pipeline/symb_anafis/Damped Oscillator
+Benchmarking 7_full_pipeline/symb_anafis/Damped Oscillator: Warming up for 3.0000 s
+Benchmarking 7_full_pipeline/symb_anafis/Damped Oscillator: Collecting 100 samples in estimated 5.3660 s (20k iterations)
+Benchmarking 7_full_pipeline/symb_anafis/Damped Oscillator: Analyzing
+7_full_pipeline/symb_anafis/Damped Oscillator
+                        time:   [265.44 µs 265.80 µs 266.35 µs]
+Found 2 outliers among 100 measurements (2.00%)
+  1 (1.00%) high mild
+  1 (1.00%) high severe
+Benchmarking 7_full_pipeline/symb_anafis/Planck Blackbody
+Benchmarking 7_full_pipeline/symb_anafis/Planck Blackbody: Warming up for 3.0000 s
+Benchmarking 7_full_pipeline/symb_anafis/Planck Blackbody: Collecting 100 samples in estimated 5.7000 s (10k iterations)
+Benchmarking 7_full_pipeline/symb_anafis/Planck Blackbody: Analyzing
+7_full_pipeline/symb_anafis/Planck Blackbody
+                        time:   [564.12 µs 564.74 µs 565.49 µs]
+Found 5 outliers among 100 measurements (5.00%)
+  1 (1.00%) low mild
+  2 (2.00%) high mild
+  2 (2.00%) high severe
+Benchmarking 7_full_pipeline/symb_anafis/Bessel Wave
+Benchmarking 7_full_pipeline/symb_anafis/Bessel Wave: Warming up for 3.0000 s
+Benchmarking 7_full_pipeline/symb_anafis/Bessel Wave: Collecting 100 samples in estimated 5.2218 s (15k iterations)
+Benchmarking 7_full_pipeline/symb_anafis/Bessel Wave: Analyzing
+7_full_pipeline/symb_anafis/Bessel Wave
+                        time:   [344.29 µs 344.74 µs 345.35 µs]
+Found 3 outliers among 100 measurements (3.00%)
+  1 (1.00%) low mild
+  1 (1.00%) high mild
+  1 (1.00%) high severe
+
+[1m[92m     Running[0m benches/rust/benchmark_parallel.rs (target/release/deps/benchmark_parallel-de766aa966102598)
+Gnuplot not found, using plotters backend
+Benchmarking eval_methods_1000pts/tree_walk_evaluate/Normal PDF
+Benchmarking eval_methods_1000pts/tree_walk_evaluate/Normal PDF: Warming up for 3.0000 s
+
+Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 5.3s, enable flat sampling, or reduce sample count to 60.
+Benchmarking eval_methods_1000pts/tree_walk_evaluate/Normal PDF: Collecting 100 samples in estimated 5.3189 s (5050 iterations)
+Benchmarking eval_methods_1000pts/tree_walk_evaluate/Normal PDF: Analyzing
+eval_methods_1000pts/tree_walk_evaluate/Normal PDF
+                        time:   [1.0470 ms 1.0481 ms 1.0493 ms]
+Found 3 outliers among 100 measurements (3.00%)
+  3 (3.00%) high mild
+Benchmarking eval_methods_1000pts/compiled_loop/Normal PDF
+Benchmarking eval_methods_1000pts/compiled_loop/Normal PDF: Warming up for 3.0000 s
+Benchmarking eval_methods_1000pts/compiled_loop/Normal PDF: Collecting 100 samples in estimated 5.1665 s (56k iterations)
+Benchmarking eval_methods_1000pts/compiled_loop/Normal PDF: Analyzing
+eval_methods_1000pts/compiled_loop/Normal PDF
+                        time:   [94.259 µs 94.623 µs 94.970 µs]
+Benchmarking eval_methods_1000pts/tree_walk_evaluate/Gaussian 2D
+Benchmarking eval_methods_1000pts/tree_walk_evaluate/Gaussian 2D: Warming up for 3.0000 s
+
+Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 9.3s, enable flat sampling, or reduce sample count to 50.
+Benchmarking eval_methods_1000pts/tree_walk_evaluate/Gaussian 2D: Collecting 100 samples in estimated 9.3105 s (5050 iterations)
+Benchmarking eval_methods_1000pts/tree_walk_evaluate/Gaussian 2D: Analyzing
+eval_methods_1000pts/tree_walk_evaluate/Gaussian 2D
+                        time:   [1.8302 ms 1.8326 ms 1.8351 ms]
+Found 1 outliers among 100 measurements (1.00%)
+  1 (1.00%) high mild
+Benchmarking eval_methods_1000pts/compiled_loop/Gaussian 2D
+Benchmarking eval_methods_1000pts/compiled_loop/Gaussian 2D: Warming up for 3.0000 s
+Benchmarking eval_methods_1000pts/compiled_loop/Gaussian 2D: Collecting 100 samples in estimated 5.3441 s (50k iterations)
+Benchmarking eval_methods_1000pts/compiled_loop/Gaussian 2D: Analyzing
+eval_methods_1000pts/compiled_loop/Gaussian 2D
+                        time:   [106.23 µs 106.51 µs 106.76 µs]
+Benchmarking eval_methods_1000pts/tree_walk_evaluate/Maxwell-Boltzmann
+Benchmarking eval_methods_1000pts/tree_walk_evaluate/Maxwell-Boltzmann: Warming up for 3.0000 s
+
+Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 6.6s, enable flat sampling, or reduce sample count to 60.
+Benchmarking eval_methods_1000pts/tree_walk_evaluate/Maxwell-Boltzmann: Collecting 100 samples in estimated 6.5508 s (5050 iterations)
+Benchmarking eval_methods_1000pts/tree_walk_evaluate/Maxwell-Boltzmann: Analyzing
+eval_methods_1000pts/tree_walk_evaluate/Maxwell-Boltzmann
+                        time:   [1.2982 ms 1.2987 ms 1.2992 ms]
+Found 4 outliers among 100 measurements (4.00%)
+  2 (2.00%) high mild
+  2 (2.00%) high severe
+Benchmarking eval_methods_1000pts/compiled_loop/Maxwell-Boltzmann
+Benchmarking eval_methods_1000pts/compiled_loop/Maxwell-Boltzmann: Warming up for 3.0000 s
+Benchmarking eval_methods_1000pts/compiled_loop/Maxwell-Boltzmann: Collecting 100 samples in estimated 5.0514 s (35k iterations)
+Benchmarking eval_methods_1000pts/compiled_loop/Maxwell-Boltzmann: Analyzing
+eval_methods_1000pts/compiled_loop/Maxwell-Boltzmann
+                        time:   [132.81 µs 132.89 µs 132.98 µs]
+Found 8 outliers among 100 measurements (8.00%)
+  5 (5.00%) high mild
+  3 (3.00%) high severe
+Benchmarking eval_methods_1000pts/tree_walk_evaluate/Lorentz Factor
+Benchmarking eval_methods_1000pts/tree_walk_evaluate/Lorentz Factor: Warming up for 3.0000 s
+Benchmarking eval_methods_1000pts/tree_walk_evaluate/Lorentz Factor: Collecting 100 samples in estimated 8.2742 s (10k iterations)
+Benchmarking eval_methods_1000pts/tree_walk_evaluate/Lorentz Factor: Analyzing
+eval_methods_1000pts/tree_walk_evaluate/Lorentz Factor
+                        time:   [822.41 µs 823.17 µs 823.89 µs]
+Benchmarking eval_methods_1000pts/compiled_loop/Lorentz Factor
+Benchmarking eval_methods_1000pts/compiled_loop/Lorentz Factor: Warming up for 3.0000 s
+Benchmarking eval_methods_1000pts/compiled_loop/Lorentz Factor: Collecting 100 samples in estimated 5.2976 s (81k iterations)
+Benchmarking eval_methods_1000pts/compiled_loop/Lorentz Factor: Analyzing
+eval_methods_1000pts/compiled_loop/Lorentz Factor
+                        time:   [65.755 µs 65.811 µs 65.859 µs]
+Benchmarking eval_methods_1000pts/tree_walk_evaluate/Lennard-Jones
+Benchmarking eval_methods_1000pts/tree_walk_evaluate/Lennard-Jones: Warming up for 3.0000 s
+Benchmarking eval_methods_1000pts/tree_walk_evaluate/Lennard-Jones: Collecting 100 samples in estimated 6.7514 s (10k iterations)
+Benchmarking eval_methods_1000pts/tree_walk_evaluate/Lennard-Jones: Analyzing
+eval_methods_1000pts/tree_walk_evaluate/Lennard-Jones
+                        time:   [666.66 µs 668.14 µs 670.64 µs]
+Found 5 outliers among 100 measurements (5.00%)
+  2 (2.00%) high mild
+  3 (3.00%) high severe
+Benchmarking eval_methods_1000pts/compiled_loop/Lennard-Jones
+Benchmarking eval_methods_1000pts/compiled_loop/Lennard-Jones: Warming up for 3.0000 s
+Benchmarking eval_methods_1000pts/compiled_loop/Lennard-Jones: Collecting 100 samples in estimated 5.0126 s (56k iterations)
+Benchmarking eval_methods_1000pts/compiled_loop/Lennard-Jones: Analyzing
+eval_methods_1000pts/compiled_loop/Lennard-Jones
+                        time:   [90.223 µs 90.266 µs 90.312 µs]
+Found 2 outliers among 100 measurements (2.00%)
+  2 (2.00%) high mild
+Benchmarking eval_methods_1000pts/tree_walk_evaluate/Logistic Sigmoid
+Benchmarking eval_methods_1000pts/tree_walk_evaluate/Logistic Sigmoid: Warming up for 3.0000 s
+
+Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 5.5s, enable flat sampling, or reduce sample count to 60.
+Benchmarking eval_methods_1000pts/tree_walk_evaluate/Logistic Sigmoid: Collecting 100 samples in estimated 5.4919 s (5050 iterations)
+Benchmarking eval_methods_1000pts/tree_walk_evaluate/Logistic Sigmoid: Analyzing
+eval_methods_1000pts/tree_walk_evaluate/Logistic Sigmoid
+                        time:   [1.0872 ms 1.0880 ms 1.0888 ms]
+Benchmarking eval_methods_1000pts/compiled_loop/Logistic Sigmoid
+Benchmarking eval_methods_1000pts/compiled_loop/Logistic Sigmoid: Warming up for 3.0000 s
+Benchmarking eval_methods_1000pts/compiled_loop/Logistic Sigmoid: Collecting 100 samples in estimated 5.1053 s (40k iterations)
+Benchmarking eval_methods_1000pts/compiled_loop/Logistic Sigmoid: Analyzing
+eval_methods_1000pts/compiled_loop/Logistic Sigmoid
+                        time:   [126.32 µs 126.33 µs 126.34 µs]
+Found 8 outliers among 100 measurements (8.00%)
+  1 (1.00%) low severe
+  1 (1.00%) low mild
+  5 (5.00%) high mild
+  1 (1.00%) high severe
+Benchmarking eval_methods_1000pts/tree_walk_evaluate/Damped Oscillator
+Benchmarking eval_methods_1000pts/tree_walk_evaluate/Damped Oscillator: Warming up for 3.0000 s
+
+Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 5.2s, enable flat sampling, or reduce sample count to 60.
+Benchmarking eval_methods_1000pts/tree_walk_evaluate/Damped Oscillator: Collecting 100 samples in estimated 5.1632 s (5050 iterations)
+Benchmarking eval_methods_1000pts/tree_walk_evaluate/Damped Oscillator: Analyzing
+eval_methods_1000pts/tree_walk_evaluate/Damped Oscillator
+                        time:   [1.0420 ms 1.0465 ms 1.0506 ms]
+Benchmarking eval_methods_1000pts/compiled_loop/Damped Oscillator
+Benchmarking eval_methods_1000pts/compiled_loop/Damped Oscillator: Warming up for 3.0000 s
+Benchmarking eval_methods_1000pts/compiled_loop/Damped Oscillator: Collecting 100 samples in estimated 5.1875 s (61k iterations)
+Benchmarking eval_methods_1000pts/compiled_loop/Damped Oscillator: Analyzing
+eval_methods_1000pts/compiled_loop/Damped Oscillator
+                        time:   [85.583 µs 85.615 µs 85.652 µs]
+Found 10 outliers among 100 measurements (10.00%)
+  1 (1.00%) low mild
+  5 (5.00%) high mild
+  4 (4.00%) high severe
+Benchmarking eval_methods_1000pts/tree_walk_evaluate/Planck Blackbody
+Benchmarking eval_methods_1000pts/tree_walk_evaluate/Planck Blackbody: Warming up for 3.0000 s
+Benchmarking eval_methods_1000pts/tree_walk_evaluate/Planck Blackbody: Collecting 100 samples in estimated 5.0261 s (2500 iterations)
+Benchmarking eval_methods_1000pts/tree_walk_evaluate/Planck Blackbody: Analyzing
+eval_methods_1000pts/tree_walk_evaluate/Planck Blackbody
+                        time:   [2.0143 ms 2.0156 ms 2.0168 ms]
+Benchmarking eval_methods_1000pts/compiled_loop/Planck Blackbody
+Benchmarking eval_methods_1000pts/compiled_loop/Planck Blackbody: Warming up for 3.0000 s
+Benchmarking eval_methods_1000pts/compiled_loop/Planck Blackbody: Collecting 100 samples in estimated 5.0195 s (25k iterations)
+Benchmarking eval_methods_1000pts/compiled_loop/Planck Blackbody: Analyzing
+eval_methods_1000pts/compiled_loop/Planck Blackbody
+                        time:   [189.26 µs 189.89 µs 190.72 µs]
+Benchmarking eval_methods_1000pts/tree_walk_evaluate/Bessel Wave
+Benchmarking eval_methods_1000pts/tree_walk_evaluate/Bessel Wave: Warming up for 3.0000 s
+
+Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 6.3s, enable flat sampling, or reduce sample count to 60.
+Benchmarking eval_methods_1000pts/tree_walk_evaluate/Bessel Wave: Collecting 100 samples in estimated 6.3183 s (5050 iterations)
+Benchmarking eval_methods_1000pts/tree_walk_evaluate/Bessel Wave: Analyzing
+eval_methods_1000pts/tree_walk_evaluate/Bessel Wave
+                        time:   [1.2760 ms 1.2781 ms 1.2804 ms]
+Benchmarking eval_methods_1000pts/compiled_loop/Bessel Wave
+Benchmarking eval_methods_1000pts/compiled_loop/Bessel Wave: Warming up for 3.0000 s
+Benchmarking eval_methods_1000pts/compiled_loop/Bessel Wave: Collecting 100 samples in estimated 5.6516 s (30k iterations)
+Benchmarking eval_methods_1000pts/compiled_loop/Bessel Wave: Analyzing
+eval_methods_1000pts/compiled_loop/Bessel Wave
+                        time:   [185.89 µs 185.97 µs 186.07 µs]
+Found 6 outliers among 100 measurements (6.00%)
+  1 (1.00%) low mild
+  3 (3.00%) high mild
+  2 (2.00%) high severe
+
+Benchmarking eval_scaling/loop_evaluate/100
+Benchmarking eval_scaling/loop_evaluate/100: Warming up for 3.0000 s
+Benchmarking eval_scaling/loop_evaluate/100: Collecting 100 samples in estimated 5.0281 s (793k iterations)
+Benchmarking eval_scaling/loop_evaluate/100: Analyzing
+eval_scaling/loop_evaluate/100
+                        time:   [6.3335 µs 6.3435 µs 6.3570 µs]
+Found 2 outliers among 100 measurements (2.00%)
+  1 (1.00%) high mild
+  1 (1.00%) high severe
+Benchmarking eval_scaling/eval_batch/100
+Benchmarking eval_scaling/eval_batch/100: Warming up for 3.0000 s
+Benchmarking eval_scaling/eval_batch/100: Collecting 100 samples in estimated 5.0085 s (2.3M iterations)
+Benchmarking eval_scaling/eval_batch/100: Analyzing
+eval_scaling/eval_batch/100
+                        time:   [2.1947 µs 2.1961 µs 2.1973 µs]
+Found 2 outliers among 100 measurements (2.00%)
+  2 (2.00%) high mild
+Benchmarking eval_scaling/loop_evaluate/1000
+Benchmarking eval_scaling/loop_evaluate/1000: Warming up for 3.0000 s
+Benchmarking eval_scaling/loop_evaluate/1000: Collecting 100 samples in estimated 5.1030 s (81k iterations)
+Benchmarking eval_scaling/loop_evaluate/1000: Analyzing
+eval_scaling/loop_evaluate/1000
+                        time:   [63.305 µs 63.346 µs 63.382 µs]
+Benchmarking eval_scaling/eval_batch/1000
+Benchmarking eval_scaling/eval_batch/1000: Warming up for 3.0000 s
+Benchmarking eval_scaling/eval_batch/1000: Collecting 100 samples in estimated 5.0858 s (232k iterations)
+Benchmarking eval_scaling/eval_batch/1000: Analyzing
+eval_scaling/eval_batch/1000
+                        time:   [21.911 µs 21.924 µs 21.940 µs]
+Found 2 outliers among 100 measurements (2.00%)
+  2 (2.00%) high mild
+Benchmarking eval_scaling/loop_evaluate/10000
+Benchmarking eval_scaling/loop_evaluate/10000: Warming up for 3.0000 s
+Benchmarking eval_scaling/loop_evaluate/10000: Collecting 100 samples in estimated 6.3787 s (10k iterations)
+Benchmarking eval_scaling/loop_evaluate/10000: Analyzing
+eval_scaling/loop_evaluate/10000
+                        time:   [631.50 µs 631.80 µs 632.26 µs]
+Found 14 outliers among 100 measurements (14.00%)
+  1 (1.00%) low mild
+  8 (8.00%) high mild
+  5 (5.00%) high severe
+Benchmarking eval_scaling/eval_batch/10000
+Benchmarking eval_scaling/eval_batch/10000: Warming up for 3.0000 s
+Benchmarking eval_scaling/eval_batch/10000: Collecting 100 samples in estimated 5.5202 s (25k iterations)
+Benchmarking eval_scaling/eval_batch/10000: Analyzing
+eval_scaling/eval_batch/10000
+                        time:   [218.83 µs 219.82 µs 221.82 µs]
+Found 6 outliers among 100 measurements (6.00%)
+  1 (1.00%) high mild
+  5 (5.00%) high severe
+Benchmarking eval_scaling/loop_evaluate/100000
+Benchmarking eval_scaling/loop_evaluate/100000: Warming up for 3.0000 s
+Benchmarking eval_scaling/loop_evaluate/100000: Collecting 100 samples in estimated 5.0552 s (800 iterations)
+Benchmarking eval_scaling/loop_evaluate/100000: Analyzing
+eval_scaling/loop_evaluate/100000
+                        time:   [6.3167 ms 6.3226 ms 6.3332 ms]
+Found 10 outliers among 100 measurements (10.00%)
+  4 (4.00%) high mild
+  6 (6.00%) high severe
+Benchmarking eval_scaling/eval_batch/100000
+Benchmarking eval_scaling/eval_batch/100000: Warming up for 3.0000 s
+Benchmarking eval_scaling/eval_batch/100000: Collecting 100 samples in estimated 5.0228 s (2300 iterations)
+Benchmarking eval_scaling/eval_batch/100000: Analyzing
+eval_scaling/eval_batch/100000
+                        time:   [2.1653 ms 2.1670 ms 2.1688 ms]
+Found 3 outliers among 100 measurements (3.00%)
+  3 (3.00%) high mild
+
+Benchmarking multi_expr_batch/sequential_loops
+Benchmarking multi_expr_batch/sequential_loops: Warming up for 3.0000 s
+Benchmarking multi_expr_batch/sequential_loops: Collecting 100 samples in estimated 5.0610 s (40k iterations)
+Benchmarking multi_expr_batch/sequential_loops: Analyzing
+multi_expr_batch/sequential_loops
+                        time:   [125.27 µs 125.31 µs 125.34 µs]
+Found 3 outliers among 100 measurements (3.00%)
+  3 (3.00%) high severe
+Benchmarking multi_expr_batch/eval_batch_per_expr
+Benchmarking multi_expr_batch/eval_batch_per_expr: Warming up for 3.0000 s
+Benchmarking multi_expr_batch/eval_batch_per_expr: Collecting 100 samples in estimated 5.1571 s (126k iterations)
+Benchmarking multi_expr_batch/eval_batch_per_expr: Analyzing
+multi_expr_batch/eval_batch_per_expr
+                        time:   [40.834 µs 40.844 µs 40.856 µs]
+Found 6 outliers among 100 measurements (6.00%)
+  5 (5.00%) high mild
+  1 (1.00%) high severe
+Benchmarking multi_expr_batch/eval_f64_per_expr
+Benchmarking multi_expr_batch/eval_f64_per_expr: Warming up for 3.0000 s
+Benchmarking multi_expr_batch/eval_f64_per_expr: Collecting 100 samples in estimated 5.1535 s (81k iterations)
+Benchmarking multi_expr_batch/eval_f64_per_expr: Analyzing
+multi_expr_batch/eval_f64_per_expr
+                        time:   [64.188 µs 65.094 µs 66.203 µs]
+Found 13 outliers among 100 measurements (13.00%)
+  2 (2.00%) high mild
+  11 (11.00%) high severe
+
+Benchmarking eval_api_comparison/eval_f64
+Benchmarking eval_api_comparison/eval_f64: Warming up for 3.0000 s
+Benchmarking eval_api_comparison/eval_f64: Collecting 100 samples in estimated 5.3667 s (40k iterations)
+Benchmarking eval_api_comparison/eval_f64: Analyzing
+eval_api_comparison/eval_f64
+                        time:   [132.44 µs 133.85 µs 135.30 µs]
+Found 9 outliers among 100 measurements (9.00%)
+  6 (6.00%) high mild
+  3 (3.00%) high severe
+Benchmarking eval_api_comparison/evaluate_parallel
+Benchmarking eval_api_comparison/evaluate_parallel: Warming up for 3.0000 s
+Benchmarking eval_api_comparison/evaluate_parallel: Collecting 100 samples in estimated 5.6322 s (15k iterations)
+Benchmarking eval_api_comparison/evaluate_parallel: Analyzing
+eval_api_comparison/evaluate_parallel
+                        time:   [369.54 µs 369.99 µs 370.50 µs]
+Found 2 outliers among 100 measurements (2.00%)
+  1 (1.00%) high mild
+  1 (1.00%) high severe
+
+[1m[92m     Running[0m benches/rust/benchmark_symbolica.rs (target/release/deps/benchmark_symbolica-ba4548e8e35958ad)
+Gnuplot not found, using plotters backend
+Benchmarking 1_parse/symbolica/Normal PDF
+Benchmarking 1_parse/symbolica/Normal PDF: Warming up for 3.0000 s
+Benchmarking 1_parse/symbolica/Normal PDF: Collecting 100 samples in estimated 5.0267 s (510k iterations)
+Benchmarking 1_parse/symbolica/Normal PDF: Analyzing
+1_parse/symbolica/Normal PDF
+                        time:   [9.7673 µs 9.7877 µs 9.8076 µs]
+Found 1 outliers among 100 measurements (1.00%)
+  1 (1.00%) high severe
+Benchmarking 1_parse/symbolica/Gaussian 2D
+Benchmarking 1_parse/symbolica/Gaussian 2D: Warming up for 3.0000 s
+Benchmarking 1_parse/symbolica/Gaussian 2D: Collecting 100 samples in estimated 5.0219 s (369k iterations)
+Benchmarking 1_parse/symbolica/Gaussian 2D: Analyzing
+1_parse/symbolica/Gaussian 2D
+                        time:   [13.531 µs 13.559 µs 13.586 µs]
+Found 1 outliers among 100 measurements (1.00%)
+  1 (1.00%) high severe
+Benchmarking 1_parse/symbolica/Maxwell-Boltzmann
+Benchmarking 1_parse/symbolica/Maxwell-Boltzmann: Warming up for 3.0000 s
+Benchmarking 1_parse/symbolica/Maxwell-Boltzmann: Collecting 100 samples in estimated 5.0183 s (384k iterations)
+Benchmarking 1_parse/symbolica/Maxwell-Boltzmann: Analyzing
+1_parse/symbolica/Maxwell-Boltzmann
+                        time:   [12.905 µs 12.927 µs 12.949 µs]
+Found 2 outliers among 100 measurements (2.00%)
+  1 (1.00%) high mild
+  1 (1.00%) high severe
+Benchmarking 1_parse/symbolica/Lorentz Factor
+Benchmarking 1_parse/symbolica/Lorentz Factor: Warming up for 3.0000 s
+Benchmarking 1_parse/symbolica/Lorentz Factor: Collecting 100 samples in estimated 5.0088 s (1.0M iterations)
+Benchmarking 1_parse/symbolica/Lorentz Factor: Analyzing
+1_parse/symbolica/Lorentz Factor
+                        time:   [4.8021 µs 4.8172 µs 4.8315 µs]
+Found 1 outliers among 100 measurements (1.00%)
+  1 (1.00%) high mild
+Benchmarking 1_parse/symbolica/Lennard-Jones
+Benchmarking 1_parse/symbolica/Lennard-Jones: Warming up for 3.0000 s
+Benchmarking 1_parse/symbolica/Lennard-Jones: Collecting 100 samples in estimated 5.0302 s (667k iterations)
+Benchmarking 1_parse/symbolica/Lennard-Jones: Analyzing
+1_parse/symbolica/Lennard-Jones
+                        time:   [7.5251 µs 7.5425 µs 7.5592 µs]
+Found 6 outliers among 100 measurements (6.00%)
+  2 (2.00%) high mild
+  4 (4.00%) high severe
+Benchmarking 1_parse/symbolica/Logistic Sigmoid
+Benchmarking 1_parse/symbolica/Logistic Sigmoid: Warming up for 3.0000 s
+Benchmarking 1_parse/symbolica/Logistic Sigmoid: Collecting 100 samples in estimated 5.0086 s (1.1M iterations)
+Benchmarking 1_parse/symbolica/Logistic Sigmoid: Analyzing
+1_parse/symbolica/Logistic Sigmoid
+                        time:   [4.6323 µs 4.6428 µs 4.6531 µs]
+Found 1 outliers among 100 measurements (1.00%)
+  1 (1.00%) high mild
+Benchmarking 1_parse/symbolica/Damped Oscillator
+Benchmarking 1_parse/symbolica/Damped Oscillator: Warming up for 3.0000 s
+Benchmarking 1_parse/symbolica/Damped Oscillator: Collecting 100 samples in estimated 5.0058 s (939k iterations)
+Benchmarking 1_parse/symbolica/Damped Oscillator: Analyzing
+1_parse/symbolica/Damped Oscillator
+                        time:   [5.3282 µs 5.3420 µs 5.3559 µs]
+Found 3 outliers among 100 measurements (3.00%)
+  3 (3.00%) high mild
+Benchmarking 1_parse/symbolica/Planck Blackbody
+Benchmarking 1_parse/symbolica/Planck Blackbody: Warming up for 3.0000 s
+Benchmarking 1_parse/symbolica/Planck Blackbody: Collecting 100 samples in estimated 5.0175 s (576k iterations)
+Benchmarking 1_parse/symbolica/Planck Blackbody: Analyzing
+1_parse/symbolica/Planck Blackbody
+                        time:   [8.7059 µs 8.7212 µs 8.7366 µs]
+Found 1 outliers among 100 measurements (1.00%)
+  1 (1.00%) high mild
+Benchmarking 1_parse/symbolica/Bessel Wave
+Benchmarking 1_parse/symbolica/Bessel Wave: Warming up for 3.0000 s
+Benchmarking 1_parse/symbolica/Bessel Wave: Collecting 100 samples in estimated 5.0221 s (1.0M iterations)
+Benchmarking 1_parse/symbolica/Bessel Wave: Analyzing
+1_parse/symbolica/Bessel Wave
+                        time:   [4.8126 µs 4.8225 µs 4.8322 µs]
+
+Benchmarking 2_diff/symbolica/Normal PDF
+Benchmarking 2_diff/symbolica/Normal PDF: Warming up for 3.0000 s
+Benchmarking 2_diff/symbolica/Normal PDF: Collecting 100 samples in estimated 5.0071 s (1.4M iterations)
+Benchmarking 2_diff/symbolica/Normal PDF: Analyzing
+2_diff/symbolica/Normal PDF
+                        time:   [3.5008 µs 3.5074 µs 3.5166 µs]
+Found 1 outliers among 100 measurements (1.00%)
+  1 (1.00%) high severe
+Benchmarking 2_diff/symbolica/Gaussian 2D
+Benchmarking 2_diff/symbolica/Gaussian 2D: Warming up for 3.0000 s
+Benchmarking 2_diff/symbolica/Gaussian 2D: Collecting 100 samples in estimated 5.0188 s (1.1M iterations)
+Benchmarking 2_diff/symbolica/Gaussian 2D: Analyzing
+2_diff/symbolica/Gaussian 2D
+                        time:   [4.6001 µs 4.6059 µs 4.6120 µs]
+Benchmarking 2_diff/symbolica/Maxwell-Boltzmann
+Benchmarking 2_diff/symbolica/Maxwell-Boltzmann: Warming up for 3.0000 s
+Benchmarking 2_diff/symbolica/Maxwell-Boltzmann: Collecting 100 samples in estimated 5.0055 s (727k iterations)
+Benchmarking 2_diff/symbolica/Maxwell-Boltzmann: Analyzing
+2_diff/symbolica/Maxwell-Boltzmann
+                        time:   [6.9216 µs 6.9329 µs 6.9465 µs]
+Found 1 outliers among 100 measurements (1.00%)
+  1 (1.00%) high severe
+Benchmarking 2_diff/symbolica/Lorentz Factor
+Benchmarking 2_diff/symbolica/Lorentz Factor: Warming up for 3.0000 s
+Benchmarking 2_diff/symbolica/Lorentz Factor: Collecting 100 samples in estimated 5.0131 s (1.3M iterations)
+Benchmarking 2_diff/symbolica/Lorentz Factor: Analyzing
+2_diff/symbolica/Lorentz Factor
+                        time:   [3.7963 µs 3.8025 µs 3.8092 µs]
+Benchmarking 2_diff/symbolica/Lennard-Jones
+Benchmarking 2_diff/symbolica/Lennard-Jones: Warming up for 3.0000 s
+Benchmarking 2_diff/symbolica/Lennard-Jones: Collecting 100 samples in estimated 5.0040 s (1.3M iterations)
+Benchmarking 2_diff/symbolica/Lennard-Jones: Analyzing
+2_diff/symbolica/Lennard-Jones
+                        time:   [3.9679 µs 3.9739 µs 3.9798 µs]
+Found 8 outliers among 100 measurements (8.00%)
+  1 (1.00%) low severe
+  6 (6.00%) low mild
+  1 (1.00%) high mild
+Benchmarking 2_diff/symbolica/Logistic Sigmoid
+Benchmarking 2_diff/symbolica/Logistic Sigmoid: Warming up for 3.0000 s
+Benchmarking 2_diff/symbolica/Logistic Sigmoid: Collecting 100 samples in estimated 5.0094 s (2.1M iterations)
+Benchmarking 2_diff/symbolica/Logistic Sigmoid: Analyzing
+2_diff/symbolica/Logistic Sigmoid
+                        time:   [2.4158 µs 2.4216 µs 2.4276 µs]
+Found 3 outliers among 100 measurements (3.00%)
+  3 (3.00%) high mild
+Benchmarking 2_diff/symbolica/Damped Oscillator
+Benchmarking 2_diff/symbolica/Damped Oscillator: Warming up for 3.0000 s
+Benchmarking 2_diff/symbolica/Damped Oscillator: Collecting 100 samples in estimated 5.0157 s (1.4M iterations)
+Benchmarking 2_diff/symbolica/Damped Oscillator: Analyzing
+2_diff/symbolica/Damped Oscillator
+                        time:   [3.4872 µs 3.4935 µs 3.5004 µs]
+Found 1 outliers among 100 measurements (1.00%)
+  1 (1.00%) high mild
+Benchmarking 2_diff/symbolica/Planck Blackbody
+Benchmarking 2_diff/symbolica/Planck Blackbody: Warming up for 3.0000 s
+Benchmarking 2_diff/symbolica/Planck Blackbody: Collecting 100 samples in estimated 5.0297 s (752k iterations)
+Benchmarking 2_diff/symbolica/Planck Blackbody: Analyzing
+2_diff/symbolica/Planck Blackbody
+                        time:   [6.6055 µs 6.6144 µs 6.6255 µs]
+Found 1 outliers among 100 measurements (1.00%)
+  1 (1.00%) high mild
+Benchmarking 2_diff/symbolica/Bessel Wave
+Benchmarking 2_diff/symbolica/Bessel Wave: Warming up for 3.0000 s
+Benchmarking 2_diff/symbolica/Bessel Wave: Collecting 100 samples in estimated 5.0094 s (1.4M iterations)
+Benchmarking 2_diff/symbolica/Bessel Wave: Analyzing
+2_diff/symbolica/Bessel Wave
+                        time:   [3.5678 µs 3.5738 µs 3.5802 µs]
+
+Benchmarking 5_compile/symbolica/Normal PDF
+Benchmarking 5_compile/symbolica/Normal PDF: Warming up for 3.0000 s
+Benchmarking 5_compile/symbolica/Normal PDF: Collecting 100 samples in estimated 5.0664 s (273k iterations)
+Benchmarking 5_compile/symbolica/Normal PDF: Analyzing
+5_compile/symbolica/Normal PDF
+                        time:   [18.496 µs 18.510 µs 18.526 µs]
+Found 4 outliers among 100 measurements (4.00%)
+  1 (1.00%) high mild
+  3 (3.00%) high severe
+Benchmarking 5_compile/symbolica/Gaussian 2D
+Benchmarking 5_compile/symbolica/Gaussian 2D: Warming up for 3.0000 s
+Benchmarking 5_compile/symbolica/Gaussian 2D: Collecting 100 samples in estimated 5.0619 s (146k iterations)
+Benchmarking 5_compile/symbolica/Gaussian 2D: Analyzing
+5_compile/symbolica/Gaussian 2D
+                        time:   [34.171 µs 34.229 µs 34.289 µs]
+Found 2 outliers among 100 measurements (2.00%)
+  1 (1.00%) high mild
+  1 (1.00%) high severe
+Benchmarking 5_compile/symbolica/Maxwell-Boltzmann
+Benchmarking 5_compile/symbolica/Maxwell-Boltzmann: Warming up for 3.0000 s
+Benchmarking 5_compile/symbolica/Maxwell-Boltzmann: Collecting 100 samples in estimated 5.0056 s (278k iterations)
+Benchmarking 5_compile/symbolica/Maxwell-Boltzmann: Analyzing
+5_compile/symbolica/Maxwell-Boltzmann
+                        time:   [17.929 µs 17.960 µs 18.012 µs]
+Found 9 outliers among 100 measurements (9.00%)
+  3 (3.00%) high mild
+  6 (6.00%) high severe
+Benchmarking 5_compile/symbolica/Lorentz Factor
+Benchmarking 5_compile/symbolica/Lorentz Factor: Warming up for 3.0000 s
+Benchmarking 5_compile/symbolica/Lorentz Factor: Collecting 100 samples in estimated 5.0290 s (515k iterations)
+Benchmarking 5_compile/symbolica/Lorentz Factor: Analyzing
+5_compile/symbolica/Lorentz Factor
+                        time:   [9.7851 µs 9.7924 µs 9.8000 µs]
+Found 5 outliers among 100 measurements (5.00%)
+  4 (4.00%) high mild
+  1 (1.00%) high severe
+Benchmarking 5_compile/symbolica/Lennard-Jones
+Benchmarking 5_compile/symbolica/Lennard-Jones: Warming up for 3.0000 s
+Benchmarking 5_compile/symbolica/Lennard-Jones: Collecting 100 samples in estimated 5.1227 s (187k iterations)
+Benchmarking 5_compile/symbolica/Lennard-Jones: Analyzing
+5_compile/symbolica/Lennard-Jones
+                        time:   [27.343 µs 27.361 µs 27.379 µs]
+Found 6 outliers among 100 measurements (6.00%)
+  1 (1.00%) low mild
+  5 (5.00%) high mild
+Benchmarking 5_compile/symbolica/Logistic Sigmoid
+Benchmarking 5_compile/symbolica/Logistic Sigmoid: Warming up for 3.0000 s
+Benchmarking 5_compile/symbolica/Logistic Sigmoid: Collecting 100 samples in estimated 5.0450 s (515k iterations)
+Benchmarking 5_compile/symbolica/Logistic Sigmoid: Analyzing
+5_compile/symbolica/Logistic Sigmoid
+                        time:   [9.7916 µs 9.7965 µs 9.8015 µs]
+Found 4 outliers among 100 measurements (4.00%)
+  1 (1.00%) high mild
+  3 (3.00%) high severe
+Benchmarking 5_compile/symbolica/Damped Oscillator
+Benchmarking 5_compile/symbolica/Damped Oscillator: Warming up for 3.0000 s
+Benchmarking 5_compile/symbolica/Damped Oscillator: Collecting 100 samples in estimated 5.0324 s (333k iterations)
+Benchmarking 5_compile/symbolica/Damped Oscillator: Analyzing
+5_compile/symbolica/Damped Oscillator
+                        time:   [15.090 µs 15.111 µs 15.140 µs]
+Found 4 outliers among 100 measurements (4.00%)
+  1 (1.00%) low mild
+  2 (2.00%) high mild
+  1 (1.00%) high severe
+Benchmarking 5_compile/symbolica/Planck Blackbody
+Benchmarking 5_compile/symbolica/Planck Blackbody: Warming up for 3.0000 s
+Benchmarking 5_compile/symbolica/Planck Blackbody: Collecting 100 samples in estimated 5.0354 s (460k iterations)
+Benchmarking 5_compile/symbolica/Planck Blackbody: Analyzing
+5_compile/symbolica/Planck Blackbody
+                        time:   [10.923 µs 10.960 µs 11.012 µs]
+Found 12 outliers among 100 measurements (12.00%)
+  6 (6.00%) low mild
+  2 (2.00%) high mild
+  4 (4.00%) high severe
+
+Benchmarking 6_eval_1000pts/symbolica/Normal PDF
+Benchmarking 6_eval_1000pts/symbolica/Normal PDF: Warming up for 3.0000 s
+Benchmarking 6_eval_1000pts/symbolica/Normal PDF: Collecting 100 samples in estimated 5.1451 s (81k iterations)
+Benchmarking 6_eval_1000pts/symbolica/Normal PDF: Analyzing
+6_eval_1000pts/symbolica/Normal PDF
+                        time:   [63.521 µs 63.565 µs 63.619 µs]
+Found 3 outliers among 100 measurements (3.00%)
+  1 (1.00%) high mild
+  2 (2.00%) high severe
+Benchmarking 6_eval_1000pts/symbolica/Gaussian 2D
+Benchmarking 6_eval_1000pts/symbolica/Gaussian 2D: Warming up for 3.0000 s
+Benchmarking 6_eval_1000pts/symbolica/Gaussian 2D: Collecting 100 samples in estimated 5.1993 s (81k iterations)
+Benchmarking 6_eval_1000pts/symbolica/Gaussian 2D: Analyzing
+6_eval_1000pts/symbolica/Gaussian 2D
+                        time:   [64.433 µs 64.464 µs 64.497 µs]
+Found 5 outliers among 100 measurements (5.00%)
+  3 (3.00%) high mild
+  2 (2.00%) high severe
+Benchmarking 6_eval_1000pts/symbolica/Maxwell-Boltzmann
+Benchmarking 6_eval_1000pts/symbolica/Maxwell-Boltzmann: Warming up for 3.0000 s
+Benchmarking 6_eval_1000pts/symbolica/Maxwell-Boltzmann: Collecting 100 samples in estimated 5.3353 s (66k iterations)
+Benchmarking 6_eval_1000pts/symbolica/Maxwell-Boltzmann: Analyzing
+6_eval_1000pts/symbolica/Maxwell-Boltzmann
+                        time:   [81.078 µs 81.105 µs 81.134 µs]
+Found 3 outliers among 100 measurements (3.00%)
+  2 (2.00%) high mild
+  1 (1.00%) high severe
+Benchmarking 6_eval_1000pts/symbolica/Lorentz Factor
+Benchmarking 6_eval_1000pts/symbolica/Lorentz Factor: Warming up for 3.0000 s
+Benchmarking 6_eval_1000pts/symbolica/Lorentz Factor: Collecting 100 samples in estimated 5.2301 s (96k iterations)
+Benchmarking 6_eval_1000pts/symbolica/Lorentz Factor: Analyzing
+6_eval_1000pts/symbolica/Lorentz Factor
+                        time:   [54.530 µs 54.551 µs 54.570 µs]
+Found 6 outliers among 100 measurements (6.00%)
+  4 (4.00%) high mild
+  2 (2.00%) high severe
+Benchmarking 6_eval_1000pts/symbolica/Lennard-Jones
+Benchmarking 6_eval_1000pts/symbolica/Lennard-Jones: Warming up for 3.0000 s
+Benchmarking 6_eval_1000pts/symbolica/Lennard-Jones: Collecting 100 samples in estimated 5.1044 s (81k iterations)
+Benchmarking 6_eval_1000pts/symbolica/Lennard-Jones: Analyzing
+6_eval_1000pts/symbolica/Lennard-Jones
+                        time:   [63.110 µs 63.140 µs 63.171 µs]
+Found 4 outliers among 100 measurements (4.00%)
+  1 (1.00%) high mild
+  3 (3.00%) high severe
+Benchmarking 6_eval_1000pts/symbolica/Logistic Sigmoid
+Benchmarking 6_eval_1000pts/symbolica/Logistic Sigmoid: Warming up for 3.0000 s
+Benchmarking 6_eval_1000pts/symbolica/Logistic Sigmoid: Collecting 100 samples in estimated 5.1023 s (96k iterations)
+Benchmarking 6_eval_1000pts/symbolica/Logistic Sigmoid: Analyzing
+6_eval_1000pts/symbolica/Logistic Sigmoid
+                        time:   [51.116 µs 51.134 µs 51.154 µs]
+Found 15 outliers among 100 measurements (15.00%)
+  6 (6.00%) low mild
+  5 (5.00%) high mild
+  4 (4.00%) high severe
+Benchmarking 6_eval_1000pts/symbolica/Damped Oscillator
+Benchmarking 6_eval_1000pts/symbolica/Damped Oscillator: Warming up for 3.0000 s
+Benchmarking 6_eval_1000pts/symbolica/Damped Oscillator: Collecting 100 samples in estimated 5.2521 s (91k iterations)
+Benchmarking 6_eval_1000pts/symbolica/Damped Oscillator: Analyzing
+6_eval_1000pts/symbolica/Damped Oscillator
+                        time:   [57.738 µs 57.816 µs 57.900 µs]
+Benchmarking 6_eval_1000pts/symbolica/Planck Blackbody
+Benchmarking 6_eval_1000pts/symbolica/Planck Blackbody: Warming up for 3.0000 s
+Benchmarking 6_eval_1000pts/symbolica/Planck Blackbody: Collecting 100 samples in estimated 5.1239 s (81k iterations)
+Benchmarking 6_eval_1000pts/symbolica/Planck Blackbody: Analyzing
+6_eval_1000pts/symbolica/Planck Blackbody
+                        time:   [63.528 µs 63.676 µs 63.916 µs]
+Found 5 outliers among 100 measurements (5.00%)
+  2 (2.00%) high mild
+  3 (3.00%) high severe
+
+Benchmarking 7_full_pipeline/symbolica/Normal PDF
+Benchmarking 7_full_pipeline/symbolica/Normal PDF: Warming up for 3.0000 s
+Benchmarking 7_full_pipeline/symbolica/Normal PDF: Collecting 100 samples in estimated 5.2445 s (40k iterations)
+Benchmarking 7_full_pipeline/symbolica/Normal PDF: Analyzing
+7_full_pipeline/symbolica/Normal PDF
+                        time:   [129.71 µs 130.00 µs 130.30 µs]
+Found 3 outliers among 100 measurements (3.00%)
+  1 (1.00%) low mild
+  2 (2.00%) high mild
+Benchmarking 7_full_pipeline/symbolica/Gaussian 2D
+Benchmarking 7_full_pipeline/symbolica/Gaussian 2D: Warming up for 3.0000 s
+Benchmarking 7_full_pipeline/symbolica/Gaussian 2D: Collecting 100 samples in estimated 5.3809 s (30k iterations)
+Benchmarking 7_full_pipeline/symbolica/Gaussian 2D: Analyzing
+7_full_pipeline/symbolica/Gaussian 2D
+                        time:   [177.91 µs 178.35 µs 178.74 µs]
+Found 2 outliers among 100 measurements (2.00%)
+  2 (2.00%) high severe
+Benchmarking 7_full_pipeline/symbolica/Maxwell-Boltzmann
+Benchmarking 7_full_pipeline/symbolica/Maxwell-Boltzmann: Warming up for 3.0000 s
+Benchmarking 7_full_pipeline/symbolica/Maxwell-Boltzmann: Collecting 100 samples in estimated 5.0725 s (20k iterations)
+Benchmarking 7_full_pipeline/symbolica/Maxwell-Boltzmann: Analyzing
+7_full_pipeline/symbolica/Maxwell-Boltzmann
+                        time:   [250.57 µs 251.03 µs 251.54 µs]
+Found 3 outliers among 100 measurements (3.00%)
+  1 (1.00%) high mild
+  2 (2.00%) high severe
+Benchmarking 7_full_pipeline/symbolica/Lorentz Factor
+Benchmarking 7_full_pipeline/symbolica/Lorentz Factor: Warming up for 3.0000 s
+Benchmarking 7_full_pipeline/symbolica/Lorentz Factor: Collecting 100 samples in estimated 5.3500 s (45k iterations)
+Benchmarking 7_full_pipeline/symbolica/Lorentz Factor: Analyzing
+7_full_pipeline/symbolica/Lorentz Factor
+                        time:   [118.30 µs 118.56 µs 118.84 µs]
+Found 3 outliers among 100 measurements (3.00%)
+  3 (3.00%) high mild
+Benchmarking 7_full_pipeline/symbolica/Lennard-Jones
+Benchmarking 7_full_pipeline/symbolica/Lennard-Jones: Warming up for 3.0000 s
+Benchmarking 7_full_pipeline/symbolica/Lennard-Jones: Collecting 100 samples in estimated 5.5665 s (40k iterations)
+Benchmarking 7_full_pipeline/symbolica/Lennard-Jones: Analyzing
+7_full_pipeline/symbolica/Lennard-Jones
+                        time:   [136.08 µs 136.39 µs 136.69 µs]
+Found 1 outliers among 100 measurements (1.00%)
+  1 (1.00%) high mild
+Benchmarking 7_full_pipeline/symbolica/Logistic Sigmoid
+Benchmarking 7_full_pipeline/symbolica/Logistic Sigmoid: Warming up for 3.0000 s
+Benchmarking 7_full_pipeline/symbolica/Logistic Sigmoid: Collecting 100 samples in estimated 5.3043 s (56k iterations)
+Benchmarking 7_full_pipeline/symbolica/Logistic Sigmoid: Analyzing
+7_full_pipeline/symbolica/Logistic Sigmoid
+                        time:   [95.481 µs 95.719 µs 95.982 µs]
+Found 11 outliers among 100 measurements (11.00%)
+  6 (6.00%) high mild
+  5 (5.00%) high severe
+Benchmarking 7_full_pipeline/symbolica/Damped Oscillator
+Benchmarking 7_full_pipeline/symbolica/Damped Oscillator: Warming up for 3.0000 s
+Benchmarking 7_full_pipeline/symbolica/Damped Oscillator: Collecting 100 samples in estimated 5.5069 s (30k iterations)
+Benchmarking 7_full_pipeline/symbolica/Damped Oscillator: Analyzing
+7_full_pipeline/symbolica/Damped Oscillator
+                        time:   [181.59 µs 181.85 µs 182.09 µs]
+Found 1 outliers among 100 measurements (1.00%)
+  1 (1.00%) high severe
+Benchmarking 7_full_pipeline/symbolica/Planck Blackbody
+Benchmarking 7_full_pipeline/symbolica/Planck Blackbody: Warming up for 3.0000 s
+Benchmarking 7_full_pipeline/symbolica/Planck Blackbody: Collecting 100 samples in estimated 5.8143 s (25k iterations)
+Benchmarking 7_full_pipeline/symbolica/Planck Blackbody: Analyzing
+7_full_pipeline/symbolica/Planck Blackbody
+                        time:   [230.10 µs 230.52 µs 231.06 µs]
+Found 7 outliers among 100 measurements (7.00%)
+  3 (3.00%) low mild
+  2 (2.00%) high mild
+  2 (2.00%) high severe
+
+[1m[92m     Running[0m benches/rust/large_expr.rs (target/release/deps/large_expr-2e84e3e67d062766)
+Gnuplot not found, using plotters backend
+Benchmarking large_expr_100/1_parse/symb_anafis
+Benchmarking large_expr_100/1_parse/symb_anafis: Warming up for 3.0000 s
+Benchmarking large_expr_100/1_parse/symb_anafis: Collecting 10 samples in estimated 10.007 s (63k iterations)
+Benchmarking large_expr_100/1_parse/symb_anafis: Analyzing
+large_expr_100/1_parse/symb_anafis
+                        time:   [147.24 µs 147.82 µs 148.22 µs]
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) low mild
+Benchmarking large_expr_100/1_parse/symbolica
+Benchmarking large_expr_100/1_parse/symbolica: Warming up for 3.0000 s
+Benchmarking large_expr_100/1_parse/symbolica: Collecting 10 samples in estimated 10.011 s (42k iterations)
+Benchmarking large_expr_100/1_parse/symbolica: Analyzing
+large_expr_100/1_parse/symbolica
+                        time:   [234.47 µs 234.62 µs 234.74 µs]
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) high severe
+Benchmarking large_expr_100/2_diff/symb_anafis_diff_only
+Benchmarking large_expr_100/2_diff/symb_anafis_diff_only: Warming up for 3.0000 s
+Benchmarking large_expr_100/2_diff/symb_anafis_diff_only: Collecting 10 samples in estimated 10.003 s (118k iterations)
+Benchmarking large_expr_100/2_diff/symb_anafis_diff_only: Analyzing
+large_expr_100/2_diff/symb_anafis_diff_only
+                        time:   [84.692 µs 84.726 µs 84.763 µs]
+Benchmarking large_expr_100/2_diff/symb_anafis_diff+simplify
+Benchmarking large_expr_100/2_diff/symb_anafis_diff+simplify: Warming up for 3.0000 s
+Benchmarking large_expr_100/2_diff/symb_anafis_diff+simplify: Collecting 10 samples in estimated 10.045 s (1320 iterations)
+Benchmarking large_expr_100/2_diff/symb_anafis_diff+simplify: Analyzing
+large_expr_100/2_diff/symb_anafis_diff+simplify
+                        time:   [7.4795 ms 7.5093 ms 7.5699 ms]
+Benchmarking large_expr_100/2_diff/symbolica
+Benchmarking large_expr_100/2_diff/symbolica: Warming up for 3.0000 s
+Benchmarking large_expr_100/2_diff/symbolica: Collecting 10 samples in estimated 10.006 s (41k iterations)
+Benchmarking large_expr_100/2_diff/symbolica: Analyzing
+large_expr_100/2_diff/symbolica
+                        time:   [247.48 µs 247.97 µs 248.30 µs]
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) low mild
+Benchmarking large_expr_100/3_compile/symb_anafis_raw
+Benchmarking large_expr_100/3_compile/symb_anafis_raw: Warming up for 3.0000 s
+Benchmarking large_expr_100/3_compile/symb_anafis_raw: Collecting 10 samples in estimated 10.001 s (203k iterations)
+Benchmarking large_expr_100/3_compile/symb_anafis_raw: Analyzing
+large_expr_100/3_compile/symb_anafis_raw
+                        time:   [49.248 µs 49.376 µs 49.504 µs]
+Benchmarking large_expr_100/3_compile/symb_anafis_simplified
+Benchmarking large_expr_100/3_compile/symb_anafis_simplified: Warming up for 3.0000 s
+Benchmarking large_expr_100/3_compile/symb_anafis_simplified: Collecting 10 samples in estimated 10.001 s (275k iterations)
+Benchmarking large_expr_100/3_compile/symb_anafis_simplified: Analyzing
+large_expr_100/3_compile/symb_anafis_simplified
+                        time:   [36.448 µs 36.810 µs 36.984 µs]
+Benchmarking large_expr_100/3_compile/symbolica
+Benchmarking large_expr_100/3_compile/symbolica: Warming up for 3.0000 s
+Benchmarking large_expr_100/3_compile/symbolica: Collecting 10 samples in estimated 10.112 s (4730 iterations)
+Benchmarking large_expr_100/3_compile/symbolica: Analyzing
+large_expr_100/3_compile/symbolica
+                        time:   [2.1088 ms 2.1180 ms 2.1307 ms]
+Benchmarking large_expr_100/4_eval_1000pts/symb_anafis_raw/
+Benchmarking large_expr_100/4_eval_1000pts/symb_anafis_raw/: Warming up for 3.0000 s
+Benchmarking large_expr_100/4_eval_1000pts/symb_anafis_raw/: Collecting 10 samples in estimated 10.066 s (1430 iterations)
+Benchmarking large_expr_100/4_eval_1000pts/symb_anafis_raw/: Analyzing
+large_expr_100/4_eval_1000pts/symb_anafis_raw/
+                        time:   [6.4254 ms 6.9230 ms 7.3247 ms]
+Found 2 outliers among 10 measurements (20.00%)
+  1 (10.00%) low severe
+  1 (10.00%) low mild
+Benchmarking large_expr_100/4_eval_1000pts/symb_anafis_simplified/
+Benchmarking large_expr_100/4_eval_1000pts/symb_anafis_simplified/: Warming up for 3.0000 s
+Benchmarking large_expr_100/4_eval_1000pts/symb_anafis_simplified/: Collecting 10 samples in estimated 10.204 s (2145 iterations)
+Benchmarking large_expr_100/4_eval_1000pts/symb_anafis_simplified/: Analyzing
+large_expr_100/4_eval_1000pts/symb_anafis_simplified/
+                        time:   [4.7513 ms 4.7562 ms 4.7601 ms]
+Found 2 outliers among 10 measurements (20.00%)
+  1 (10.00%) low severe
+  1 (10.00%) high mild
+Benchmarking large_expr_100/4_eval_1000pts/symbolica/
+Benchmarking large_expr_100/4_eval_1000pts/symbolica/: Warming up for 3.0000 s
+Benchmarking large_expr_100/4_eval_1000pts/symbolica/: Collecting 10 samples in estimated 10.081 s (2750 iterations)
+Benchmarking large_expr_100/4_eval_1000pts/symbolica/: Analyzing
+large_expr_100/4_eval_1000pts/symbolica/
+                        time:   [3.6437 ms 3.6483 ms 3.6570 ms]
+
+Benchmarking large_expr_300/1_parse/symb_anafis
+Benchmarking large_expr_300/1_parse/symb_anafis: Warming up for 3.0000 s
+Benchmarking large_expr_300/1_parse/symb_anafis: Collecting 10 samples in estimated 10.011 s (20k iterations)
+Benchmarking large_expr_300/1_parse/symb_anafis: Analyzing
+large_expr_300/1_parse/symb_anafis
+                        time:   [466.91 µs 468.10 µs 469.44 µs]
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) low mild
+Benchmarking large_expr_300/1_parse/symbolica
+Benchmarking large_expr_300/1_parse/symbolica: Warming up for 3.0000 s
+Benchmarking large_expr_300/1_parse/symbolica: Collecting 10 samples in estimated 10.022 s (14k iterations)
+Benchmarking large_expr_300/1_parse/symbolica: Analyzing
+large_expr_300/1_parse/symbolica
+                        time:   [723.13 µs 724.02 µs 724.82 µs]
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) high severe
+Benchmarking large_expr_300/2_diff/symb_anafis_diff_only
+Benchmarking large_expr_300/2_diff/symb_anafis_diff_only: Warming up for 3.0000 s
+Benchmarking large_expr_300/2_diff/symb_anafis_diff_only: Collecting 10 samples in estimated 10.002 s (37k iterations)
+Benchmarking large_expr_300/2_diff/symb_anafis_diff_only: Analyzing
+large_expr_300/2_diff/symb_anafis_diff_only
+                        time:   [268.68 µs 269.33 µs 270.41 µs]
+Found 2 outliers among 10 measurements (20.00%)
+  2 (20.00%) high mild
+Benchmarking large_expr_300/2_diff/symb_anafis_diff+simplify
+Benchmarking large_expr_300/2_diff/symb_anafis_diff+simplify: Warming up for 3.0000 s
+Benchmarking large_expr_300/2_diff/symb_anafis_diff+simplify: Collecting 10 samples in estimated 10.891 s (495 iterations)
+Benchmarking large_expr_300/2_diff/symb_anafis_diff+simplify: Analyzing
+large_expr_300/2_diff/symb_anafis_diff+simplify
+                        time:   [21.846 ms 22.291 ms 22.765 ms]
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) high severe
+Benchmarking large_expr_300/2_diff/symbolica
+Benchmarking large_expr_300/2_diff/symbolica: Warming up for 3.0000 s
+Benchmarking large_expr_300/2_diff/symbolica: Collecting 10 samples in estimated 10.030 s (13k iterations)
+Benchmarking large_expr_300/2_diff/symbolica: Analyzing
+large_expr_300/2_diff/symbolica
+                        time:   [791.42 µs 792.04 µs 792.99 µs]
+Benchmarking large_expr_300/3_compile/symb_anafis_raw
+Benchmarking large_expr_300/3_compile/symb_anafis_raw: Warming up for 3.0000 s
+Benchmarking large_expr_300/3_compile/symb_anafis_raw: Collecting 10 samples in estimated 10.003 s (57k iterations)
+Benchmarking large_expr_300/3_compile/symb_anafis_raw: Analyzing
+large_expr_300/3_compile/symb_anafis_raw
+                        time:   [174.50 µs 174.66 µs 174.89 µs]
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) low severe
+Benchmarking large_expr_300/3_compile/symb_anafis_simplified
+Benchmarking large_expr_300/3_compile/symb_anafis_simplified: Warming up for 3.0000 s
+Benchmarking large_expr_300/3_compile/symb_anafis_simplified: Collecting 10 samples in estimated 10.005 s (82k iterations)
+Benchmarking large_expr_300/3_compile/symb_anafis_simplified: Analyzing
+large_expr_300/3_compile/symb_anafis_simplified
+                        time:   [122.25 µs 122.44 µs 122.70 µs]
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) high severe
+Benchmarking large_expr_300/3_compile/symbolica
+Benchmarking large_expr_300/3_compile/symbolica: Warming up for 3.0000 s
+Benchmarking large_expr_300/3_compile/symbolica: Collecting 10 samples in estimated 10.533 s (715 iterations)
+Benchmarking large_expr_300/3_compile/symbolica: Analyzing
+large_expr_300/3_compile/symbolica
+                        time:   [14.464 ms 14.786 ms 15.119 ms]
+Benchmarking large_expr_300/4_eval_1000pts/symb_anafis_raw/
+Benchmarking large_expr_300/4_eval_1000pts/symb_anafis_raw/: Warming up for 3.0000 s
+Benchmarking large_expr_300/4_eval_1000pts/symb_anafis_raw/: Collecting 10 samples in estimated 10.020 s (495 iterations)
+Benchmarking large_expr_300/4_eval_1000pts/symb_anafis_raw/: Analyzing
+large_expr_300/4_eval_1000pts/symb_anafis_raw/
+                        time:   [19.843 ms 19.854 ms 19.884 ms]
+Found 2 outliers among 10 measurements (20.00%)
+  2 (20.00%) high mild
+Benchmarking large_expr_300/4_eval_1000pts/symb_anafis_simplified/
+Benchmarking large_expr_300/4_eval_1000pts/symb_anafis_simplified/: Warming up for 3.0000 s
+Benchmarking large_expr_300/4_eval_1000pts/symb_anafis_simplified/: Collecting 10 samples in estimated 10.138 s (715 iterations)
+Benchmarking large_expr_300/4_eval_1000pts/symb_anafis_simplified/: Analyzing
+large_expr_300/4_eval_1000pts/symb_anafis_simplified/
+                        time:   [14.268 ms 14.286 ms 14.316 ms]
+Found 3 outliers among 10 measurements (30.00%)
+  2 (20.00%) low mild
+  1 (10.00%) high severe
+Benchmarking large_expr_300/4_eval_1000pts/symbolica/
+Benchmarking large_expr_300/4_eval_1000pts/symbolica/: Warming up for 3.0000 s
+Benchmarking large_expr_300/4_eval_1000pts/symbolica/: Collecting 10 samples in estimated 10.365 s (990 iterations)
+Benchmarking large_expr_300/4_eval_1000pts/symbolica/: Analyzing
+large_expr_300/4_eval_1000pts/symbolica/
+                        time:   [10.606 ms 10.625 ms 10.638 ms]
+Found 2 outliers among 10 measurements (20.00%)
+  1 (10.00%) low severe
+  1 (10.00%) low mild
+
