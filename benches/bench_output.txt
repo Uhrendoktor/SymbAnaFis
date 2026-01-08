@@ -1,264 +1,40 @@
 SymbAnaFis Benchmarks
-Date: Thu Jan  8 03:09:03 UTC 2026
-Commit: 48402221cb1ef265a6175e91035095bebe00289e
+Date: Thu Jan  8 15:12:39 UTC 2026
+Commit: c0149f856c65baf8341521d453545d997081b7b1
 ----------------------------------------
 [1m[92m    Updating[0m crates.io index
 [1m[92m     Locking[0m 167 packages to latest Rust 1.92.0 compatible versions
 [1m[92m Downloading[0m crates ...
-[1m[92m  Downloaded[0m plotters-svg v0.3.7
-[1m[92m  Downloaded[0m criterion v0.8.1
-[1m[92m  Downloaded[0m lazy_static v1.5.0
-[1m[92m  Downloaded[0m tracing-log v0.2.0
-[1m[92m  Downloaded[0m memoffset v0.9.1
-[1m[92m  Downloaded[0m clap_lex v0.7.6
-[1m[92m  Downloaded[0m ciborium-io v0.2.2
-[1m[92m  Downloaded[0m bytemuck v1.24.0
-[1m[92m  Downloaded[0m version_check v0.9.5
-[1m[92m  Downloaded[0m pyo3-macros v0.27.2
-[1m[92m  Downloaded[0m alloc-no-stdlib v2.0.4
-[1m[92m  Downloaded[0m serde_derive v1.0.228
-[1m[92m  Downloaded[0m tinyjson v2.5.1
-[1m[92m  Downloaded[0m walkdir v2.5.0
-[1m[92m  Downloaded[0m zmij v1.0.12
-[1m[92m  Downloaded[0m tracing-attributes v0.1.31
-[1m[92m  Downloaded[0m tracing-core v0.1.36
-[1m[92m  Downloaded[0m unicode-ident v1.0.22
-[1m[92m  Downloaded[0m zerocopy-derive v0.8.33
-[1m[92m  Downloaded[0m nu-ansi-term v0.50.3
-[1m[92m  Downloaded[0m serde_json v1.0.149
-[1m[92m  Downloaded[0m wide v1.1.1
-[1m[92m  Downloaded[0m wide v0.8.3
-[1m[92m  Downloaded[0m tracing-subscriber v0.3.22
-[1m[92m  Downloaded[0m serde_core v1.0.228
-[1m[92m  Downloaded[0m plotters v0.3.7
-[1m[92m  Downloaded[0m regex v1.12.2
-[1m[92m  Downloaded[0m rug v1.28.0
-[1m[92m  Downloaded[0m zerocopy v0.8.33
-[1m[92m  Downloaded[0m safe_arch v0.9.3
-[1m[92m  Downloaded[0m syn v2.0.114
-[1m[92m  Downloaded[0m rand v0.8.5
-[1m[92m  Downloaded[0m regex-syntax v0.8.8
-[1m[92m  Downloaded[0m numerica v1.1.0
-[1m[92m  Downloaded[0m safe_arch v1.0.0
-[1m[92m  Downloaded[0m ndarray v0.17.1
-[1m[92m  Downloaded[0m once_cell v1.21.3
-[1m[92m  Downloaded[0m num-integer v0.1.46
-[1m[92m  Downloaded[0m tracing v0.1.44
-[1m[92m  Downloaded[0m pyo3-macros-backend v0.27.2
-[1m[92m  Downloaded[0m rayon v1.11.0
-[1m[92m  Downloaded[0m rayon-core v1.13.0
-[1m[92m  Downloaded[0m libc v0.2.179
-[1m[92m  Downloaded[0m sharded-slab v0.1.7
-[1m[92m  Downloaded[0m regex-automata v0.4.13
-[1m[92m  Downloaded[0m rustc-hash v2.1.1
-[1m[92m  Downloaded[0m pyo3-ffi v0.27.2
-[1m[92m  Downloaded[0m page_size v0.6.0
-[1m[92m  Downloaded[0m libmimalloc-sys v0.1.44
-[1m[92m  Downloaded[0m smallvec v1.15.1
-[1m[92m  Downloaded[0m rand_xoshiro v0.7.0
-[1m[92m  Downloaded[0m quickcheck v1.0.3
-[1m[92m  Downloaded[0m proc-macro2 v1.0.105
-[1m[92m  Downloaded[0m ppv-lite86 v0.2.21
-[1m[92m  Downloaded[0m same-file v1.0.6
-[1m[92m  Downloaded[0m rand_core v0.6.4
-[1m[92m  Downloaded[0m quote v1.0.43
-[1m[92m  Downloaded[0m symbolica v1.2.1
-[1m[92m  Downloaded[0m pin-project-lite v0.2.16
-[1m[92m  Downloaded[0m itertools v0.13.0
-[1m[92m  Downloaded[0m getrandom v0.2.16
-[1m[92m  Downloaded[0m rand v0.9.2
-[1m[92m  Downloaded[0m numpy v0.27.1
-[1m[92m  Downloaded[0m gmp-mpfr-sys v1.6.8
-[1m[92m  Downloaded[0m brotli-decompressor v5.0.0
-[1m[92m  Downloaded[0m brotli v8.0.2
-[1m[92m  Downloaded[0m tinytemplate v1.2.1
-[1m[92m  Downloaded[0m target-lexicon v0.13.4
-[1m[92m  Downloaded[0m static_assertions v1.1.0
-[1m[92m  Downloaded[0m smartstring v1.0.1
-[1m[92m  Downloaded[0m shlex v1.3.0
-[1m[92m  Downloaded[0m rawpointer v0.2.1
-[1m[92m  Downloaded[0m rand_core v0.9.3
-[1m[92m  Downloaded[0m libm v0.2.15
-[1m[92m  Downloaded[0m clap_builder v4.5.54
-[1m[92m  Downloaded[0m cast v0.3.0
-[1m[92m  Downloaded[0m aho-corasick v1.1.4
-[1m[92m  Downloaded[0m thread_local v1.1.9
-[1m[92m  Downloaded[0m num-complex v0.4.6
-[1m[92m  Downloaded[0m memchr v2.7.6
-[1m[92m  Downloaded[0m env_logger v0.8.4
-[1m[92m  Downloaded[0m rand_chacha v0.9.0
-[1m[92m  Downloaded[0m oorandom v11.1.5
-[1m[92m  Downloaded[0m num-traits v0.2.19
-[1m[92m  Downloaded[0m log v0.4.29
-[1m[92m  Downloaded[0m getrandom v0.3.4
-[1m[92m  Downloaded[0m either v1.15.0
-[1m[92m  Downloaded[0m ciborium-ll v0.2.2
-[1m[92m  Downloaded[0m ciborium v0.2.2
-[1m[92m  Downloaded[0m cc v1.2.51
-[1m[92m  Downloaded[0m bytes v1.11.0
-[1m[92m  Downloaded[0m pyo3-build-config v0.27.2
-[1m[92m  Downloaded[0m pyo3 v0.27.2
-[1m[92m  Downloaded[0m serde v1.0.228
-[1m[92m  Downloaded[0m mimalloc v0.1.48
-[1m[92m  Downloaded[0m matchers v0.2.0
-[1m[92m  Downloaded[0m heck v0.5.0
-[1m[92m  Downloaded[0m graphica v1.1.0
-[1m[92m  Downloaded[0m find-msvc-tools v0.1.6
-[1m[92m  Downloaded[0m dyn-clone v1.0.20
-[1m[92m  Downloaded[0m crossbeam-utils v0.8.21
-[1m[92m  Downloaded[0m crossbeam-epoch v0.9.18
-[1m[92m  Downloaded[0m criterion-plot v0.8.1
-[1m[92m  Downloaded[0m colored v3.0.0
-[1m[92m  Downloaded[0m clap v4.5.54
-[1m[92m  Downloaded[0m autocfg v1.5.0
-[1m[92m  Downloaded[0m anstyle v1.0.13
-[1m[92m  Downloaded[0m anes v0.1.6
-[1m[92m  Downloaded[0m alloca v0.4.0
-[1m[92m  Downloaded[0m unindent v0.2.4
-[1m[92m  Downloaded[0m self_cell v1.2.2
-[1m[92m  Downloaded[0m rustversion v1.0.22
-[1m[92m  Downloaded[0m plotters-backend v0.3.7
-[1m[92m  Downloaded[0m matrixmultiply v0.3.10
-[1m[92m  Downloaded[0m libloading v0.9.0
-[1m[92m  Downloaded[0m half v2.7.1
-[1m[92m  Downloaded[0m dotenvy v0.15.7
-[1m[92m  Downloaded[0m crossbeam-deque v0.8.6
-[1m[92m  Downloaded[0m alloc-stdlib v0.2.2
-[1m[92m  Downloaded[0m indoc v2.0.7
-[1m[92m  Downloaded[0m byteorder v1.5.0
-[1m[92m  Downloaded[0m itoa v1.0.17
-[1m[92m  Downloaded[0m cfg-if v1.0.4
-[1m[92m  Downloaded[0m append-only-vec v0.1.8
-[1m[92m  Downloaded[0m ahash v0.8.12
-[1m[92m  Downloaded[0m az v1.2.1
-[1m[92m   Compiling[0m proc-macro2 v1.0.105
-[1m[92m   Compiling[0m unicode-ident v1.0.22
-[1m[92m   Compiling[0m quote v1.0.43
-[1m[92m   Compiling[0m libc v0.2.179
-[1m[92m   Compiling[0m autocfg v1.5.0
-[1m[92m   Compiling[0m cfg-if v1.0.4
-[1m[92m   Compiling[0m target-lexicon v0.13.4
-[1m[92m   Compiling[0m zerocopy v0.8.33
+[1m[92m  Downloaded[0m libc v0.2.180
+[1m[92m   Compiling[0m libc v0.2.180
 [1m[92m   Compiling[0m pyo3-build-config v0.27.2
-[1m[92m   Compiling[0m memchr v2.7.6
-[1m[92m   Compiling[0m syn v2.0.114
-[1m[92m   Compiling[0m once_cell v1.21.3
-[1m[92m   Compiling[0m find-msvc-tools v0.1.6
-[1m[92m   Compiling[0m shlex v1.3.0
+[1m[92m   Compiling[0m pyo3-ffi v0.27.2
+[1m[92m   Compiling[0m pyo3-macros-backend v0.27.2
+[1m[92m   Compiling[0m pyo3 v0.27.2
+[1m[92m   Compiling[0m numpy v0.27.1
 [1m[92m   Compiling[0m getrandom v0.3.4
-[1m[92m   Compiling[0m cc v1.2.51
-[1m[92m   Compiling[0m num-traits v0.2.19
-[1m[92m   Compiling[0m crossbeam-utils v0.8.21
-[1m[92m   Compiling[0m version_check v0.9.5
-[1m[92m   Compiling[0m aho-corasick v1.1.4
-[1m[92m   Compiling[0m regex-syntax v0.8.8
-[1m[92m   Compiling[0m bytemuck v1.24.0
-[1m[92m   Compiling[0m regex-automata v0.4.13
-[1m[92m   Compiling[0m zerocopy-derive v0.8.33
-[1m[92m   Compiling[0m serde_core v1.0.228
 [1m[92m   Compiling[0m gmp-mpfr-sys v1.6.8
 [1m[92m   Compiling[0m rand_core v0.9.3
-[1m[92m   Compiling[0m crossbeam-epoch v0.9.18
-[1m[92m   Compiling[0m pyo3-macros-backend v0.27.2
-[1m[92m   Compiling[0m pyo3-ffi v0.27.2
-[1m[92m   Compiling[0m az v1.2.1
-[1m[92m   Compiling[0m libm v0.2.15
-[1m[92m   Compiling[0m either v1.15.0
-[1m[92m   Compiling[0m rayon-core v1.13.0
-[1m[92m   Compiling[0m crossbeam-deque v0.8.6
-[1m[92m   Compiling[0m ppv-lite86 v0.2.21
-[1m[92m   Compiling[0m ahash v0.8.12
-[1m[92m   Compiling[0m matrixmultiply v0.3.10
-[1m[92m   Compiling[0m memoffset v0.9.1
-[1m[92m   Compiling[0m log v0.4.29
 [1m[92m   Compiling[0m rug v1.28.0
-[1m[92m   Compiling[0m zmij v1.0.12
-[1m[92m   Compiling[0m heck v0.5.0
-[1m[92m   Compiling[0m serde v1.0.228
 [1m[92m   Compiling[0m rand_chacha v0.9.0
-[1m[92m   Compiling[0m serde_derive v1.0.228
-[1m[92m   Compiling[0m safe_arch v0.9.3
-[1m[92m   Compiling[0m libmimalloc-sys v0.1.44
-[1m[92m   Compiling[0m pyo3 v0.27.2
-[1m[92m   Compiling[0m tracing-core v0.1.36
-[1m[92m   Compiling[0m smallvec v1.15.1
-[1m[92m   Compiling[0m rawpointer v0.2.1
-[1m[92m   Compiling[0m serde_json v1.0.149
-[1m[92m   Compiling[0m alloc-no-stdlib v2.0.4
-[1m[92m   Compiling[0m alloc-stdlib v0.2.2
-[1m[92m   Compiling[0m wide v0.8.3
-[1m[92m   Compiling[0m pyo3-macros v0.27.2
-[1m[92m   Compiling[0m rayon v1.11.0
-[1m[92m   Compiling[0m rand v0.9.2
 [1m[92m   Compiling[0m rand_xoshiro v0.7.0
-[1m[92m   Compiling[0m half v2.7.1
-[1m[92m   Compiling[0m regex v1.12.2
-[1m[92m   Compiling[0m tracing-attributes v0.1.31
-[1m[92m   Compiling[0m num-integer v0.1.46
-[1m[92m   Compiling[0m num-complex v0.4.6
-[1m[92m   Compiling[0m alloca v0.4.0
-[1m[92m   Compiling[0m smartstring v1.0.1
-[1m[92m   Compiling[0m numpy v0.27.1
+[1m[92m   Compiling[0m rand v0.9.2
+[1m[92m   Compiling[0m ahash v0.8.12
 [1m[92m   Compiling[0m getrandom v0.2.16
-[1m[92m   Compiling[0m itoa v1.0.17
-[1m[92m   Compiling[0m ciborium-io v0.2.2
-[1m[92m   Compiling[0m clap_lex v0.7.6
-[1m[92m   Compiling[0m colored v3.0.0
-[1m[92m   Compiling[0m indoc v2.0.7
-[1m[92m   Compiling[0m dyn-clone v1.0.20
-[1m[92m   Compiling[0m plotters-backend v0.3.7
-[1m[92m   Compiling[0m lazy_static v1.5.0
-[1m[92m   Compiling[0m pin-project-lite v0.2.16
-[1m[92m   Compiling[0m anstyle v1.0.13
-[1m[92m   Compiling[0m unindent v0.2.4
-[1m[92m   Compiling[0m clap_builder v4.5.54
-[1m[92m   Compiling[0m plotters-svg v0.3.7
-[1m[92m   Compiling[0m tracing v0.1.44
-[1m[92m   Compiling[0m sharded-slab v0.1.7
 [1m[92m   Compiling[0m rand_core v0.6.4
-[1m[92m   Compiling[0m ciborium-ll v0.2.2
-[1m[92m   Compiling[0m ndarray v0.17.1
-[1m[92m   Compiling[0m brotli-decompressor v5.0.0
-[1m[92m   Compiling[0m tracing-log v0.2.0
-[1m[92m   Compiling[0m itertools v0.13.0
-[1m[92m   Compiling[0m matchers v0.2.0
-[1m[92m   Compiling[0m safe_arch v1.0.0
-[1m[92m   Compiling[0m thread_local v1.1.9
-[1m[92m   Compiling[0m rustc-hash v2.1.1
-[1m[92m   Compiling[0m cast v0.3.0
-[1m[92m   Compiling[0m same-file v1.0.6
-[1m[92m   Compiling[0m symbolica v1.2.1
-[1m[92m   Compiling[0m static_assertions v1.1.0
-[1m[92m   Compiling[0m nu-ansi-term v0.50.3
-[1m[92m   Compiling[0m tracing-subscriber v0.3.22
-[1m[92m   Compiling[0m walkdir v2.5.0
-[1m[92m   Compiling[0m criterion-plot v0.8.1
-[1m[92m   Compiling[0m wide v1.1.1
-[1m[92m   Compiling[0m brotli v8.0.2
+[1m[92m   Compiling[0m libmimalloc-sys v0.1.44
 [1m[92m   Compiling[0m mimalloc v0.1.48
-[1m[92m   Compiling[0m ciborium v0.2.2
 [1m[92m   Compiling[0m rand v0.8.5
-[1m[92m   Compiling[0m clap v4.5.54
-[1m[92m   Compiling[0m tinytemplate v1.2.1
-[1m[92m   Compiling[0m plotters v0.3.7
-[1m[92m   Compiling[0m env_logger v0.8.4
 [1m[92m   Compiling[0m page_size v0.6.0
-[1m[92m   Compiling[0m libloading v0.9.0
-[1m[92m   Compiling[0m bytes v1.11.0
-[1m[92m   Compiling[0m oorandom v11.1.5
-[1m[92m   Compiling[0m self_cell v1.2.2
-[1m[92m   Compiling[0m byteorder v1.5.0
-[1m[92m   Compiling[0m append-only-vec v0.1.8
-[1m[92m   Compiling[0m anes v0.1.6
-[1m[92m   Compiling[0m tinyjson v2.5.1
-[1m[92m   Compiling[0m quickcheck v1.0.3
 [1m[92m   Compiling[0m criterion v0.8.1
-[1m[92m   Compiling[0m dotenvy v0.15.7
-[1m[92m   Compiling[0m symb_anafis v0.5.1 (/home/runner/work/SymbAnaFis/SymbAnaFis)
+[1m[92m   Compiling[0m quickcheck v1.0.3
+[1m[92m   Compiling[0m pyo3-macros v0.27.2
 [1m[92m   Compiling[0m numerica v1.1.0
 [1m[92m   Compiling[0m graphica v1.1.0
-[1m[92m    Finished[0m `bench` profile [optimized] target(s) in 7m 10s
-[1m[92m     Running[0m unittests src/lib.rs (target/release/deps/symb_anafis-0fda30e88aaa4850)
+[1m[92m   Compiling[0m symbolica v1.2.1
+[1m[92m   Compiling[0m symb_anafis v0.5.1 (/home/runner/work/SymbAnaFis/SymbAnaFis)
+[1m[92m    Finished[0m `bench` profile [optimized] target(s) in 4m 09s
+[1m[92m     Running[0m unittests src/lib.rs (target/release/deps/symb_anafis-109ea898d154e2a2)
 
 running 897 tests
 test api::builder::tests::test_custom_eval_with_evaluate ... ignored
@@ -1161,1497 +937,1464 @@ test uncertainty::tests::test_single_variable ... ignored
 
 test result: ok. 0 passed; 0 failed; 897 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-[1m[92m     Running[0m benches/rust/benchmark.rs (target/release/deps/benchmark-3924272f6f9cd514)
+[1m[92m     Running[0m benches/rust/benchmark.rs (target/release/deps/benchmark-cedb99ac72176a13)
 Gnuplot not found, using plotters backend
 Benchmarking 1_parse/symb_anafis/Normal PDF
 Benchmarking 1_parse/symb_anafis/Normal PDF: Warming up for 3.0000 s
-Benchmarking 1_parse/symb_anafis/Normal PDF: Collecting 100 samples in estimated 5.0058 s (995k iterations)
+Benchmarking 1_parse/symb_anafis/Normal PDF: Collecting 100 samples in estimated 5.0177 s (995k iterations)
 Benchmarking 1_parse/symb_anafis/Normal PDF: Analyzing
 1_parse/symb_anafis/Normal PDF
-                        time:   [5.0687 µs 5.0761 µs 5.0847 µs]
-Found 2 outliers among 100 measurements (2.00%)
-  2 (2.00%) high severe
+                        time:   [5.0438 µs 5.0527 µs 5.0662 µs]
+Found 6 outliers among 100 measurements (6.00%)
+  2 (2.00%) high mild
+  4 (4.00%) high severe
 Benchmarking 1_parse/symb_anafis/Gaussian 2D
 Benchmarking 1_parse/symb_anafis/Gaussian 2D: Warming up for 3.0000 s
-Benchmarking 1_parse/symb_anafis/Gaussian 2D: Collecting 100 samples in estimated 5.0137 s (778k iterations)
+Benchmarking 1_parse/symb_anafis/Gaussian 2D: Collecting 100 samples in estimated 5.0224 s (747k iterations)
 Benchmarking 1_parse/symb_anafis/Gaussian 2D: Analyzing
 1_parse/symb_anafis/Gaussian 2D
-                        time:   [6.5435 µs 6.5510 µs 6.5594 µs]
+                        time:   [6.6571 µs 6.6621 µs 6.6678 µs]
 Found 4 outliers among 100 measurements (4.00%)
   2 (2.00%) high mild
   2 (2.00%) high severe
 Benchmarking 1_parse/symb_anafis/Maxwell-Boltzmann
 Benchmarking 1_parse/symb_anafis/Maxwell-Boltzmann: Warming up for 3.0000 s
-Benchmarking 1_parse/symb_anafis/Maxwell-Boltzmann: Collecting 100 samples in estimated 5.0218 s (646k iterations)
+Benchmarking 1_parse/symb_anafis/Maxwell-Boltzmann: Collecting 100 samples in estimated 5.0119 s (646k iterations)
 Benchmarking 1_parse/symb_anafis/Maxwell-Boltzmann: Analyzing
 1_parse/symb_anafis/Maxwell-Boltzmann
-                        time:   [7.8333 µs 7.8838 µs 7.9469 µs]
+                        time:   [7.7278 µs 7.7440 µs 7.7667 µs]
 Found 4 outliers among 100 measurements (4.00%)
+  1 (1.00%) low mild
   1 (1.00%) high mild
-  3 (3.00%) high severe
+  2 (2.00%) high severe
 Benchmarking 1_parse/symb_anafis/Lorentz Factor
 Benchmarking 1_parse/symb_anafis/Lorentz Factor: Warming up for 3.0000 s
-Benchmarking 1_parse/symb_anafis/Lorentz Factor: Collecting 100 samples in estimated 5.0094 s (2.0M iterations)
+Benchmarking 1_parse/symb_anafis/Lorentz Factor: Collecting 100 samples in estimated 5.0059 s (2.0M iterations)
 Benchmarking 1_parse/symb_anafis/Lorentz Factor: Analyzing
 1_parse/symb_anafis/Lorentz Factor
-                        time:   [2.4997 µs 2.5056 µs 2.5139 µs]
-Found 2 outliers among 100 measurements (2.00%)
-  2 (2.00%) high severe
+                        time:   [2.5851 µs 2.5896 µs 2.5940 µs]
+Found 1 outliers among 100 measurements (1.00%)
+  1 (1.00%) high severe
 Benchmarking 1_parse/symb_anafis/Lennard-Jones
 Benchmarking 1_parse/symb_anafis/Lennard-Jones: Warming up for 3.0000 s
-Benchmarking 1_parse/symb_anafis/Lennard-Jones: Collecting 100 samples in estimated 5.0044 s (1.3M iterations)
+Benchmarking 1_parse/symb_anafis/Lennard-Jones: Collecting 100 samples in estimated 5.0027 s (1.3M iterations)
 Benchmarking 1_parse/symb_anafis/Lennard-Jones: Analyzing
 1_parse/symb_anafis/Lennard-Jones
-                        time:   [3.9100 µs 3.9464 µs 4.0177 µs]
-Found 5 outliers among 100 measurements (5.00%)
-  3 (3.00%) high mild
-  2 (2.00%) high severe
+                        time:   [3.7909 µs 3.8043 µs 3.8220 µs]
+Found 2 outliers among 100 measurements (2.00%)
+  1 (1.00%) high mild
+  1 (1.00%) high severe
 Benchmarking 1_parse/symb_anafis/Logistic Sigmoid
 Benchmarking 1_parse/symb_anafis/Logistic Sigmoid: Warming up for 3.0000 s
-Benchmarking 1_parse/symb_anafis/Logistic Sigmoid: Collecting 100 samples in estimated 5.0053 s (1.7M iterations)
+Benchmarking 1_parse/symb_anafis/Logistic Sigmoid: Collecting 100 samples in estimated 5.0128 s (1.6M iterations)
 Benchmarking 1_parse/symb_anafis/Logistic Sigmoid: Analyzing
 1_parse/symb_anafis/Logistic Sigmoid
-                        time:   [2.9894 µs 2.9955 µs 3.0045 µs]
-Found 3 outliers among 100 measurements (3.00%)
-  2 (2.00%) high mild
-  1 (1.00%) high severe
+                        time:   [3.2132 µs 3.2202 µs 3.2263 µs]
 Benchmarking 1_parse/symb_anafis/Damped Oscillator
 Benchmarking 1_parse/symb_anafis/Damped Oscillator: Warming up for 3.0000 s
-Benchmarking 1_parse/symb_anafis/Damped Oscillator: Collecting 100 samples in estimated 5.0036 s (1.4M iterations)
+Benchmarking 1_parse/symb_anafis/Damped Oscillator: Collecting 100 samples in estimated 5.0145 s (1.4M iterations)
 Benchmarking 1_parse/symb_anafis/Damped Oscillator: Analyzing
 1_parse/symb_anafis/Damped Oscillator
-                        time:   [3.5975 µs 3.6014 µs 3.6052 µs]
+                        time:   [3.6856 µs 3.6899 µs 3.6946 µs]
+Found 1 outliers among 100 measurements (1.00%)
+  1 (1.00%) high severe
 Benchmarking 1_parse/symb_anafis/Planck Blackbody
 Benchmarking 1_parse/symb_anafis/Planck Blackbody: Warming up for 3.0000 s
-Benchmarking 1_parse/symb_anafis/Planck Blackbody: Collecting 100 samples in estimated 5.0196 s (1.0M iterations)
+Benchmarking 1_parse/symb_anafis/Planck Blackbody: Collecting 100 samples in estimated 5.0193 s (1.0M iterations)
 Benchmarking 1_parse/symb_anafis/Planck Blackbody: Analyzing
 1_parse/symb_anafis/Planck Blackbody
-                        time:   [4.9130 µs 4.9229 µs 4.9345 µs]
-Found 11 outliers among 100 measurements (11.00%)
-  8 (8.00%) low mild
+                        time:   [4.9111 µs 4.9172 µs 4.9237 µs]
+Found 1 outliers among 100 measurements (1.00%)
   1 (1.00%) high mild
-  2 (2.00%) high severe
 Benchmarking 1_parse/symb_anafis/Bessel Wave
 Benchmarking 1_parse/symb_anafis/Bessel Wave: Warming up for 3.0000 s
-Benchmarking 1_parse/symb_anafis/Bessel Wave: Collecting 100 samples in estimated 5.0161 s (1.5M iterations)
+Benchmarking 1_parse/symb_anafis/Bessel Wave: Collecting 100 samples in estimated 5.0046 s (1.5M iterations)
 Benchmarking 1_parse/symb_anafis/Bessel Wave: Analyzing
 1_parse/symb_anafis/Bessel Wave
-                        time:   [3.4231 µs 3.4290 µs 3.4357 µs]
-Found 16 outliers among 100 measurements (16.00%)
-  15 (15.00%) high mild
-  1 (1.00%) high severe
+                        time:   [3.3123 µs 3.3166 µs 3.3213 µs]
+Found 4 outliers among 100 measurements (4.00%)
+  2 (2.00%) low mild
+  2 (2.00%) high mild
 
 Benchmarking 2_diff/symb_anafis_light/Normal PDF
 Benchmarking 2_diff/symb_anafis_light/Normal PDF: Warming up for 3.0000 s
-Benchmarking 2_diff/symb_anafis_light/Normal PDF: Collecting 100 samples in estimated 5.0016 s (3.0M iterations)
+Benchmarking 2_diff/symb_anafis_light/Normal PDF: Collecting 100 samples in estimated 5.0013 s (2.9M iterations)
 Benchmarking 2_diff/symb_anafis_light/Normal PDF: Analyzing
 2_diff/symb_anafis_light/Normal PDF
-                        time:   [1.6611 µs 1.6619 µs 1.6627 µs]
-Found 5 outliers among 100 measurements (5.00%)
-  3 (3.00%) high mild
-  2 (2.00%) high severe
+                        time:   [1.7098 µs 1.7117 µs 1.7133 µs]
+Found 2 outliers among 100 measurements (2.00%)
+  1 (1.00%) high mild
+  1 (1.00%) high severe
 Benchmarking 2_diff/symb_anafis_light/Gaussian 2D
 Benchmarking 2_diff/symb_anafis_light/Gaussian 2D: Warming up for 3.0000 s
-Benchmarking 2_diff/symb_anafis_light/Gaussian 2D: Collecting 100 samples in estimated 5.0001 s (3.4M iterations)
+Benchmarking 2_diff/symb_anafis_light/Gaussian 2D: Collecting 100 samples in estimated 5.0016 s (3.4M iterations)
 Benchmarking 2_diff/symb_anafis_light/Gaussian 2D: Analyzing
 2_diff/symb_anafis_light/Gaussian 2D
-                        time:   [1.4701 µs 1.4758 µs 1.4819 µs]
-Benchmarking 2_diff/symb_anafis_light/Maxwell-Boltzmann
-Benchmarking 2_diff/symb_anafis_light/Maxwell-Boltzmann: Warming up for 3.0000 s
-Benchmarking 2_diff/symb_anafis_light/Maxwell-Boltzmann: Collecting 100 samples in estimated 5.0035 s (2.1M iterations)
-Benchmarking 2_diff/symb_anafis_light/Maxwell-Boltzmann: Analyzing
-2_diff/symb_anafis_light/Maxwell-Boltzmann
-                        time:   [2.4213 µs 2.4280 µs 2.4374 µs]
-Found 4 outliers among 100 measurements (4.00%)
-  4 (4.00%) high severe
-Benchmarking 2_diff/symb_anafis_light/Lorentz Factor
-Benchmarking 2_diff/symb_anafis_light/Lorentz Factor: Warming up for 3.0000 s
-Benchmarking 2_diff/symb_anafis_light/Lorentz Factor: Collecting 100 samples in estimated 5.0036 s (3.1M iterations)
-Benchmarking 2_diff/symb_anafis_light/Lorentz Factor: Analyzing
-2_diff/symb_anafis_light/Lorentz Factor
-                        time:   [1.5916 µs 1.5926 µs 1.5937 µs]
-Found 4 outliers among 100 measurements (4.00%)
-  2 (2.00%) high mild
-  2 (2.00%) high severe
-Benchmarking 2_diff/symb_anafis_light/Lennard-Jones
-Benchmarking 2_diff/symb_anafis_light/Lennard-Jones: Warming up for 3.0000 s
-Benchmarking 2_diff/symb_anafis_light/Lennard-Jones: Collecting 100 samples in estimated 5.0045 s (2.9M iterations)
-Benchmarking 2_diff/symb_anafis_light/Lennard-Jones: Analyzing
-2_diff/symb_anafis_light/Lennard-Jones
-                        time:   [1.7647 µs 1.7670 µs 1.7698 µs]
-Found 1 outliers among 100 measurements (1.00%)
-  1 (1.00%) high severe
-Benchmarking 2_diff/symb_anafis_light/Logistic Sigmoid
-Benchmarking 2_diff/symb_anafis_light/Logistic Sigmoid: Warming up for 3.0000 s
-Benchmarking 2_diff/symb_anafis_light/Logistic Sigmoid: Collecting 100 samples in estimated 5.0026 s (5.7M iterations)
-Benchmarking 2_diff/symb_anafis_light/Logistic Sigmoid: Analyzing
-2_diff/symb_anafis_light/Logistic Sigmoid
-                        time:   [854.53 ns 855.73 ns 857.08 ns]
+                        time:   [1.4690 µs 1.4705 µs 1.4721 µs]
 Found 1 outliers among 100 measurements (1.00%)
   1 (1.00%) high mild
+Benchmarking 2_diff/symb_anafis_light/Maxwell-Boltzmann
+Benchmarking 2_diff/symb_anafis_light/Maxwell-Boltzmann: Warming up for 3.0000 s
+Benchmarking 2_diff/symb_anafis_light/Maxwell-Boltzmann: Collecting 100 samples in estimated 5.0081 s (2.0M iterations)
+Benchmarking 2_diff/symb_anafis_light/Maxwell-Boltzmann: Analyzing
+2_diff/symb_anafis_light/Maxwell-Boltzmann
+                        time:   [2.4306 µs 2.4328 µs 2.4355 µs]
+Found 10 outliers among 100 measurements (10.00%)
+  2 (2.00%) low mild
+  3 (3.00%) high mild
+  5 (5.00%) high severe
+Benchmarking 2_diff/symb_anafis_light/Lorentz Factor
+Benchmarking 2_diff/symb_anafis_light/Lorentz Factor: Warming up for 3.0000 s
+Benchmarking 2_diff/symb_anafis_light/Lorentz Factor: Collecting 100 samples in estimated 5.0082 s (3.1M iterations)
+Benchmarking 2_diff/symb_anafis_light/Lorentz Factor: Analyzing
+2_diff/symb_anafis_light/Lorentz Factor
+                        time:   [1.6005 µs 1.6018 µs 1.6034 µs]
+Benchmarking 2_diff/symb_anafis_light/Lennard-Jones
+Benchmarking 2_diff/symb_anafis_light/Lennard-Jones: Warming up for 3.0000 s
+Benchmarking 2_diff/symb_anafis_light/Lennard-Jones: Collecting 100 samples in estimated 5.0003 s (2.8M iterations)
+Benchmarking 2_diff/symb_anafis_light/Lennard-Jones: Analyzing
+2_diff/symb_anafis_light/Lennard-Jones
+                        time:   [1.7513 µs 1.7530 µs 1.7549 µs]
+Benchmarking 2_diff/symb_anafis_light/Logistic Sigmoid
+Benchmarking 2_diff/symb_anafis_light/Logistic Sigmoid: Warming up for 3.0000 s
+Benchmarking 2_diff/symb_anafis_light/Logistic Sigmoid: Collecting 100 samples in estimated 5.0007 s (5.8M iterations)
+Benchmarking 2_diff/symb_anafis_light/Logistic Sigmoid: Analyzing
+2_diff/symb_anafis_light/Logistic Sigmoid
+                        time:   [853.60 ns 854.77 ns 856.20 ns]
 Benchmarking 2_diff/symb_anafis_light/Damped Oscillator
 Benchmarking 2_diff/symb_anafis_light/Damped Oscillator: Warming up for 3.0000 s
-Benchmarking 2_diff/symb_anafis_light/Damped Oscillator: Collecting 100 samples in estimated 5.0031 s (3.3M iterations)
+Benchmarking 2_diff/symb_anafis_light/Damped Oscillator: Collecting 100 samples in estimated 5.0019 s (3.2M iterations)
 Benchmarking 2_diff/symb_anafis_light/Damped Oscillator: Analyzing
 2_diff/symb_anafis_light/Damped Oscillator
-                        time:   [1.5174 µs 1.5191 µs 1.5209 µs]
-Found 3 outliers among 100 measurements (3.00%)
-  3 (3.00%) high severe
+                        time:   [1.5497 µs 1.5517 µs 1.5541 µs]
+Found 1 outliers among 100 measurements (1.00%)
+  1 (1.00%) high mild
 Benchmarking 2_diff/symb_anafis_light/Planck Blackbody
 Benchmarking 2_diff/symb_anafis_light/Planck Blackbody: Warming up for 3.0000 s
-Benchmarking 2_diff/symb_anafis_light/Planck Blackbody: Collecting 100 samples in estimated 5.0083 s (2.4M iterations)
+Benchmarking 2_diff/symb_anafis_light/Planck Blackbody: Collecting 100 samples in estimated 5.0094 s (2.4M iterations)
 Benchmarking 2_diff/symb_anafis_light/Planck Blackbody: Analyzing
 2_diff/symb_anafis_light/Planck Blackbody
-                        time:   [2.0534 µs 2.0549 µs 2.0566 µs]
+                        time:   [2.0591 µs 2.0612 µs 2.0632 µs]
 Found 1 outliers among 100 measurements (1.00%)
-  1 (1.00%) high severe
+  1 (1.00%) high mild
 Benchmarking 2_diff/symb_anafis_light/Bessel Wave
 Benchmarking 2_diff/symb_anafis_light/Bessel Wave: Warming up for 3.0000 s
-Benchmarking 2_diff/symb_anafis_light/Bessel Wave: Collecting 100 samples in estimated 5.0090 s (2.3M iterations)
+Benchmarking 2_diff/symb_anafis_light/Bessel Wave: Collecting 100 samples in estimated 5.0083 s (2.3M iterations)
 Benchmarking 2_diff/symb_anafis_light/Bessel Wave: Analyzing
 2_diff/symb_anafis_light/Bessel Wave
-                        time:   [2.1846 µs 2.1865 µs 2.1882 µs]
-Found 1 outliers among 100 measurements (1.00%)
-  1 (1.00%) high severe
+                        time:   [2.1847 µs 2.1883 µs 2.1926 µs]
+Found 4 outliers among 100 measurements (4.00%)
+  1 (1.00%) high mild
+  3 (3.00%) high severe
 
 Benchmarking 3_diff_simplified/symb_anafis_full/Normal PDF
 Benchmarking 3_diff_simplified/symb_anafis_full/Normal PDF: Warming up for 3.0000 s
-Benchmarking 3_diff_simplified/symb_anafis_full/Normal PDF: Collecting 100 samples in estimated 5.2163 s (35k iterations)
+Benchmarking 3_diff_simplified/symb_anafis_full/Normal PDF: Collecting 100 samples in estimated 5.2359 s (35k iterations)
 Benchmarking 3_diff_simplified/symb_anafis_full/Normal PDF: Analyzing
 3_diff_simplified/symb_anafis_full/Normal PDF
-                        time:   [147.48 µs 147.57 µs 147.68 µs]
-Found 6 outliers among 100 measurements (6.00%)
-  2 (2.00%) high mild
-  4 (4.00%) high severe
+                        time:   [147.76 µs 147.87 µs 148.02 µs]
+Found 8 outliers among 100 measurements (8.00%)
+  2 (2.00%) low mild
+  4 (4.00%) high mild
+  2 (2.00%) high severe
 Benchmarking 3_diff_simplified/symb_anafis_full/Gaussian 2D
 Benchmarking 3_diff_simplified/symb_anafis_full/Gaussian 2D: Warming up for 3.0000 s
-Benchmarking 3_diff_simplified/symb_anafis_full/Gaussian 2D: Collecting 100 samples in estimated 5.5063 s (40k iterations)
+Benchmarking 3_diff_simplified/symb_anafis_full/Gaussian 2D: Collecting 100 samples in estimated 5.4915 s (40k iterations)
 Benchmarking 3_diff_simplified/symb_anafis_full/Gaussian 2D: Analyzing
 3_diff_simplified/symb_anafis_full/Gaussian 2D
-                        time:   [136.16 µs 136.40 µs 136.82 µs]
-Found 8 outliers among 100 measurements (8.00%)
-  6 (6.00%) high mild
-  2 (2.00%) high severe
+                        time:   [135.64 µs 135.75 µs 135.88 µs]
+Found 6 outliers among 100 measurements (6.00%)
+  3 (3.00%) high mild
+  3 (3.00%) high severe
 Benchmarking 3_diff_simplified/symb_anafis_full/Maxwell-Boltzmann
 Benchmarking 3_diff_simplified/symb_anafis_full/Maxwell-Boltzmann: Warming up for 3.0000 s
-Benchmarking 3_diff_simplified/symb_anafis_full/Maxwell-Boltzmann: Collecting 100 samples in estimated 5.0866 s (15k iterations)
+Benchmarking 3_diff_simplified/symb_anafis_full/Maxwell-Boltzmann: Collecting 100 samples in estimated 5.0735 s (15k iterations)
 Benchmarking 3_diff_simplified/symb_anafis_full/Maxwell-Boltzmann: Analyzing
 3_diff_simplified/symb_anafis_full/Maxwell-Boltzmann
-                        time:   [334.90 µs 335.25 µs 335.66 µs]
-Found 5 outliers among 100 measurements (5.00%)
-  3 (3.00%) high mild
-  2 (2.00%) high severe
+                        time:   [334.84 µs 335.05 µs 335.26 µs]
+Found 6 outliers among 100 measurements (6.00%)
+  5 (5.00%) high mild
+  1 (1.00%) high severe
 Benchmarking 3_diff_simplified/symb_anafis_full/Lorentz Factor
 Benchmarking 3_diff_simplified/symb_anafis_full/Lorentz Factor: Warming up for 3.0000 s
-Benchmarking 3_diff_simplified/symb_anafis_full/Lorentz Factor: Collecting 100 samples in estimated 5.3691 s (20k iterations)
+Benchmarking 3_diff_simplified/symb_anafis_full/Lorentz Factor: Collecting 100 samples in estimated 5.4176 s (20k iterations)
 Benchmarking 3_diff_simplified/symb_anafis_full/Lorentz Factor: Analyzing
 3_diff_simplified/symb_anafis_full/Lorentz Factor
-                        time:   [265.29 µs 265.54 µs 265.81 µs]
-Found 5 outliers among 100 measurements (5.00%)
-  4 (4.00%) high mild
+                        time:   [265.70 µs 265.94 µs 266.21 µs]
+Found 6 outliers among 100 measurements (6.00%)
+  5 (5.00%) high mild
   1 (1.00%) high severe
 Benchmarking 3_diff_simplified/symb_anafis_full/Lennard-Jones
 Benchmarking 3_diff_simplified/symb_anafis_full/Lennard-Jones: Warming up for 3.0000 s
-Benchmarking 3_diff_simplified/symb_anafis_full/Lennard-Jones: Collecting 100 samples in estimated 5.1466 s (177k iterations)
+Benchmarking 3_diff_simplified/symb_anafis_full/Lennard-Jones: Collecting 100 samples in estimated 5.1245 s (172k iterations)
 Benchmarking 3_diff_simplified/symb_anafis_full/Lennard-Jones: Analyzing
 3_diff_simplified/symb_anafis_full/Lennard-Jones
-                        time:   [29.173 µs 29.189 µs 29.207 µs]
-Found 1 outliers among 100 measurements (1.00%)
-  1 (1.00%) high mild
-Benchmarking 3_diff_simplified/symb_anafis_full/Logistic Sigmoid
-Benchmarking 3_diff_simplified/symb_anafis_full/Logistic Sigmoid: Warming up for 3.0000 s
-Benchmarking 3_diff_simplified/symb_anafis_full/Logistic Sigmoid: Collecting 100 samples in estimated 5.4943 s (45k iterations)
-Benchmarking 3_diff_simplified/symb_anafis_full/Logistic Sigmoid: Analyzing
-3_diff_simplified/symb_anafis_full/Logistic Sigmoid
-                        time:   [119.41 µs 119.89 µs 120.82 µs]
-Found 6 outliers among 100 measurements (6.00%)
-  2 (2.00%) high mild
-  4 (4.00%) high severe
-Benchmarking 3_diff_simplified/symb_anafis_full/Damped Oscillator
-Benchmarking 3_diff_simplified/symb_anafis_full/Damped Oscillator: Warming up for 3.0000 s
-Benchmarking 3_diff_simplified/symb_anafis_full/Damped Oscillator: Collecting 100 samples in estimated 5.4515 s (35k iterations)
-Benchmarking 3_diff_simplified/symb_anafis_full/Damped Oscillator: Analyzing
-3_diff_simplified/symb_anafis_full/Damped Oscillator
-                        time:   [153.93 µs 154.08 µs 154.32 µs]
-Found 5 outliers among 100 measurements (5.00%)
-  1 (1.00%) low mild
-  4 (4.00%) high severe
-Benchmarking 3_diff_simplified/symb_anafis_full/Planck Blackbody
-Benchmarking 3_diff_simplified/symb_anafis_full/Planck Blackbody: Warming up for 3.0000 s
-Benchmarking 3_diff_simplified/symb_anafis_full/Planck Blackbody: Collecting 100 samples in estimated 5.1038 s (15k iterations)
-Benchmarking 3_diff_simplified/symb_anafis_full/Planck Blackbody: Analyzing
-3_diff_simplified/symb_anafis_full/Planck Blackbody
-                        time:   [336.29 µs 336.58 µs 336.94 µs]
-Found 6 outliers among 100 measurements (6.00%)
-  3 (3.00%) high mild
-  3 (3.00%) high severe
-Benchmarking 3_diff_simplified/symb_anafis_full/Bessel Wave
-Benchmarking 3_diff_simplified/symb_anafis_full/Bessel Wave: Warming up for 3.0000 s
-Benchmarking 3_diff_simplified/symb_anafis_full/Bessel Wave: Collecting 100 samples in estimated 5.3762 s (40k iterations)
-Benchmarking 3_diff_simplified/symb_anafis_full/Bessel Wave: Analyzing
-3_diff_simplified/symb_anafis_full/Bessel Wave
-                        time:   [132.76 µs 132.84 µs 132.93 µs]
-Found 4 outliers among 100 measurements (4.00%)
-  2 (2.00%) high mild
-  2 (2.00%) high severe
-
-Benchmarking 4_simplify/symb_anafis/Normal PDF
-Benchmarking 4_simplify/symb_anafis/Normal PDF: Warming up for 3.0000 s
-Benchmarking 4_simplify/symb_anafis/Normal PDF: Collecting 100 samples in estimated 5.1010 s (35k iterations)
-Benchmarking 4_simplify/symb_anafis/Normal PDF: Analyzing
-4_simplify/symb_anafis/Normal PDF
-                        time:   [144.15 µs 144.26 µs 144.40 µs]
-Found 4 outliers among 100 measurements (4.00%)
-  3 (3.00%) high mild
-  1 (1.00%) high severe
-Benchmarking 4_simplify/symb_anafis/Gaussian 2D
-Benchmarking 4_simplify/symb_anafis/Gaussian 2D: Warming up for 3.0000 s
-Benchmarking 4_simplify/symb_anafis/Gaussian 2D: Collecting 100 samples in estimated 5.4076 s (40k iterations)
-Benchmarking 4_simplify/symb_anafis/Gaussian 2D: Analyzing
-4_simplify/symb_anafis/Gaussian 2D
-                        time:   [133.71 µs 133.79 µs 133.87 µs]
+                        time:   [29.747 µs 29.766 µs 29.787 µs]
 Found 6 outliers among 100 measurements (6.00%)
   4 (4.00%) high mild
   2 (2.00%) high severe
+Benchmarking 3_diff_simplified/symb_anafis_full/Logistic Sigmoid
+Benchmarking 3_diff_simplified/symb_anafis_full/Logistic Sigmoid: Warming up for 3.0000 s
+Benchmarking 3_diff_simplified/symb_anafis_full/Logistic Sigmoid: Collecting 100 samples in estimated 5.4882 s (45k iterations)
+Benchmarking 3_diff_simplified/symb_anafis_full/Logistic Sigmoid: Analyzing
+3_diff_simplified/symb_anafis_full/Logistic Sigmoid
+                        time:   [120.58 µs 120.66 µs 120.75 µs]
+Found 7 outliers among 100 measurements (7.00%)
+  1 (1.00%) low mild
+  4 (4.00%) high mild
+  2 (2.00%) high severe
+Benchmarking 3_diff_simplified/symb_anafis_full/Damped Oscillator
+Benchmarking 3_diff_simplified/symb_anafis_full/Damped Oscillator: Warming up for 3.0000 s
+Benchmarking 3_diff_simplified/symb_anafis_full/Damped Oscillator: Collecting 100 samples in estimated 5.5052 s (35k iterations)
+Benchmarking 3_diff_simplified/symb_anafis_full/Damped Oscillator: Analyzing
+3_diff_simplified/symb_anafis_full/Damped Oscillator
+                        time:   [155.85 µs 155.97 µs 156.09 µs]
+Found 7 outliers among 100 measurements (7.00%)
+  5 (5.00%) high mild
+  2 (2.00%) high severe
+Benchmarking 3_diff_simplified/symb_anafis_full/Planck Blackbody
+Benchmarking 3_diff_simplified/symb_anafis_full/Planck Blackbody: Warming up for 3.0000 s
+Benchmarking 3_diff_simplified/symb_anafis_full/Planck Blackbody: Collecting 100 samples in estimated 5.1060 s (15k iterations)
+Benchmarking 3_diff_simplified/symb_anafis_full/Planck Blackbody: Analyzing
+3_diff_simplified/symb_anafis_full/Planck Blackbody
+                        time:   [336.78 µs 337.06 µs 337.37 µs]
+Found 5 outliers among 100 measurements (5.00%)
+  1 (1.00%) low mild
+  3 (3.00%) high mild
+  1 (1.00%) high severe
+Benchmarking 3_diff_simplified/symb_anafis_full/Bessel Wave
+Benchmarking 3_diff_simplified/symb_anafis_full/Bessel Wave: Warming up for 3.0000 s
+Benchmarking 3_diff_simplified/symb_anafis_full/Bessel Wave: Collecting 100 samples in estimated 5.3935 s (40k iterations)
+Benchmarking 3_diff_simplified/symb_anafis_full/Bessel Wave: Analyzing
+3_diff_simplified/symb_anafis_full/Bessel Wave
+                        time:   [133.25 µs 133.33 µs 133.43 µs]
+Found 2 outliers among 100 measurements (2.00%)
+  1 (1.00%) high mild
+  1 (1.00%) high severe
+
+Benchmarking 4_simplify/symb_anafis/Normal PDF
+Benchmarking 4_simplify/symb_anafis/Normal PDF: Warming up for 3.0000 s
+Benchmarking 4_simplify/symb_anafis/Normal PDF: Collecting 100 samples in estimated 5.0995 s (35k iterations)
+Benchmarking 4_simplify/symb_anafis/Normal PDF: Analyzing
+4_simplify/symb_anafis/Normal PDF
+                        time:   [143.81 µs 143.91 µs 144.01 µs]
+Found 6 outliers among 100 measurements (6.00%)
+  3 (3.00%) high mild
+  3 (3.00%) high severe
+Benchmarking 4_simplify/symb_anafis/Gaussian 2D
+Benchmarking 4_simplify/symb_anafis/Gaussian 2D: Warming up for 3.0000 s
+Benchmarking 4_simplify/symb_anafis/Gaussian 2D: Collecting 100 samples in estimated 5.3658 s (40k iterations)
+Benchmarking 4_simplify/symb_anafis/Gaussian 2D: Analyzing
+4_simplify/symb_anafis/Gaussian 2D
+                        time:   [132.78 µs 132.89 µs 133.02 µs]
+Found 4 outliers among 100 measurements (4.00%)
+  1 (1.00%) high mild
+  3 (3.00%) high severe
 Benchmarking 4_simplify/symb_anafis/Maxwell-Boltzmann
 Benchmarking 4_simplify/symb_anafis/Maxwell-Boltzmann: Warming up for 3.0000 s
-Benchmarking 4_simplify/symb_anafis/Maxwell-Boltzmann: Collecting 100 samples in estimated 5.0119 s (15k iterations)
+Benchmarking 4_simplify/symb_anafis/Maxwell-Boltzmann: Collecting 100 samples in estimated 5.0340 s (15k iterations)
 Benchmarking 4_simplify/symb_anafis/Maxwell-Boltzmann: Analyzing
 4_simplify/symb_anafis/Maxwell-Boltzmann
-                        time:   [329.58 µs 329.76 µs 329.96 µs]
-Found 9 outliers among 100 measurements (9.00%)
-  6 (6.00%) high mild
-  3 (3.00%) high severe
+                        time:   [331.56 µs 331.75 µs 331.97 µs]
+Found 6 outliers among 100 measurements (6.00%)
+  4 (4.00%) high mild
+  2 (2.00%) high severe
 Benchmarking 4_simplify/symb_anafis/Lorentz Factor
 Benchmarking 4_simplify/symb_anafis/Lorentz Factor: Warming up for 3.0000 s
-Benchmarking 4_simplify/symb_anafis/Lorentz Factor: Collecting 100 samples in estimated 5.2665 s (20k iterations)
+Benchmarking 4_simplify/symb_anafis/Lorentz Factor: Collecting 100 samples in estimated 5.2418 s (20k iterations)
 Benchmarking 4_simplify/symb_anafis/Lorentz Factor: Analyzing
 4_simplify/symb_anafis/Lorentz Factor
-                        time:   [260.68 µs 262.15 µs 264.69 µs]
-Found 10 outliers among 100 measurements (10.00%)
+                        time:   [259.04 µs 259.63 µs 260.47 µs]
+Found 7 outliers among 100 measurements (7.00%)
   3 (3.00%) high mild
-  7 (7.00%) high severe
+  4 (4.00%) high severe
 Benchmarking 4_simplify/symb_anafis/Lennard-Jones
 Benchmarking 4_simplify/symb_anafis/Lennard-Jones: Warming up for 3.0000 s
-Benchmarking 4_simplify/symb_anafis/Lennard-Jones: Collecting 100 samples in estimated 5.0139 s (187k iterations)
+Benchmarking 4_simplify/symb_anafis/Lennard-Jones: Collecting 100 samples in estimated 5.0518 s (187k iterations)
 Benchmarking 4_simplify/symb_anafis/Lennard-Jones: Analyzing
 4_simplify/symb_anafis/Lennard-Jones
-                        time:   [26.892 µs 26.941 µs 27.012 µs]
+                        time:   [26.864 µs 26.916 µs 27.000 µs]
 Found 4 outliers among 100 measurements (4.00%)
   2 (2.00%) high mild
   2 (2.00%) high severe
 Benchmarking 4_simplify/symb_anafis/Logistic Sigmoid
 Benchmarking 4_simplify/symb_anafis/Logistic Sigmoid: Warming up for 3.0000 s
-Benchmarking 4_simplify/symb_anafis/Logistic Sigmoid: Collecting 100 samples in estimated 5.3246 s (45k iterations)
+Benchmarking 4_simplify/symb_anafis/Logistic Sigmoid: Collecting 100 samples in estimated 5.3941 s (45k iterations)
 Benchmarking 4_simplify/symb_anafis/Logistic Sigmoid: Analyzing
 4_simplify/symb_anafis/Logistic Sigmoid
-                        time:   [116.93 µs 117.00 µs 117.09 µs]
-Found 4 outliers among 100 measurements (4.00%)
-  2 (2.00%) high mild
-  2 (2.00%) high severe
+                        time:   [118.52 µs 118.59 µs 118.67 µs]
+Found 6 outliers among 100 measurements (6.00%)
+  5 (5.00%) high mild
+  1 (1.00%) high severe
 Benchmarking 4_simplify/symb_anafis/Damped Oscillator
 Benchmarking 4_simplify/symb_anafis/Damped Oscillator: Warming up for 3.0000 s
-Benchmarking 4_simplify/symb_anafis/Damped Oscillator: Collecting 100 samples in estimated 5.3378 s (35k iterations)
+Benchmarking 4_simplify/symb_anafis/Damped Oscillator: Collecting 100 samples in estimated 5.3810 s (35k iterations)
 Benchmarking 4_simplify/symb_anafis/Damped Oscillator: Analyzing
 4_simplify/symb_anafis/Damped Oscillator
-                        time:   [150.64 µs 150.72 µs 150.82 µs]
-Found 9 outliers among 100 measurements (9.00%)
-  1 (1.00%) low mild
+                        time:   [151.95 µs 152.03 µs 152.11 µs]
+Found 3 outliers among 100 measurements (3.00%)
   3 (3.00%) high mild
-  5 (5.00%) high severe
 Benchmarking 4_simplify/symb_anafis/Planck Blackbody
 Benchmarking 4_simplify/symb_anafis/Planck Blackbody: Warming up for 3.0000 s
-Benchmarking 4_simplify/symb_anafis/Planck Blackbody: Collecting 100 samples in estimated 5.0330 s (15k iterations)
+Benchmarking 4_simplify/symb_anafis/Planck Blackbody: Collecting 100 samples in estimated 5.0464 s (15k iterations)
 Benchmarking 4_simplify/symb_anafis/Planck Blackbody: Analyzing
 4_simplify/symb_anafis/Planck Blackbody
-                        time:   [332.09 µs 332.42 µs 332.84 µs]
-Found 5 outliers among 100 measurements (5.00%)
+                        time:   [333.92 µs 334.17 µs 334.44 µs]
+Found 3 outliers among 100 measurements (3.00%)
   1 (1.00%) low mild
   2 (2.00%) high mild
-  2 (2.00%) high severe
 Benchmarking 4_simplify/symb_anafis/Bessel Wave
 Benchmarking 4_simplify/symb_anafis/Bessel Wave: Warming up for 3.0000 s
-Benchmarking 4_simplify/symb_anafis/Bessel Wave: Collecting 100 samples in estimated 5.2121 s (40k iterations)
+Benchmarking 4_simplify/symb_anafis/Bessel Wave: Collecting 100 samples in estimated 5.2528 s (40k iterations)
 Benchmarking 4_simplify/symb_anafis/Bessel Wave: Analyzing
 4_simplify/symb_anafis/Bessel Wave
-                        time:   [129.02 µs 129.12 µs 129.25 µs]
-Found 3 outliers among 100 measurements (3.00%)
-  1 (1.00%) high mild
-  2 (2.00%) high severe
+                        time:   [129.71 µs 129.78 µs 129.86 µs]
+Found 9 outliers among 100 measurements (9.00%)
+  6 (6.00%) high mild
+  3 (3.00%) high severe
 
 Benchmarking 5_compile/raw/Normal PDF
 Benchmarking 5_compile/raw/Normal PDF: Warming up for 3.0000 s
-Benchmarking 5_compile/raw/Normal PDF: Collecting 100 samples in estimated 5.0029 s (3.1M iterations)
+Benchmarking 5_compile/raw/Normal PDF: Collecting 100 samples in estimated 5.0060 s (3.0M iterations)
 Benchmarking 5_compile/raw/Normal PDF: Analyzing
 5_compile/raw/Normal PDF
-                        time:   [1.6512 µs 1.6591 µs 1.6678 µs]
-Found 6 outliers among 100 measurements (6.00%)
-  3 (3.00%) high mild
-  3 (3.00%) high severe
+                        time:   [1.6660 µs 1.6686 µs 1.6716 µs]
+Found 1 outliers among 100 measurements (1.00%)
+  1 (1.00%) high mild
 Benchmarking 5_compile/simplified/Normal PDF
 Benchmarking 5_compile/simplified/Normal PDF: Warming up for 3.0000 s
-Benchmarking 5_compile/simplified/Normal PDF: Collecting 100 samples in estimated 5.0043 s (3.3M iterations)
+Benchmarking 5_compile/simplified/Normal PDF: Collecting 100 samples in estimated 5.0055 s (3.2M iterations)
 Benchmarking 5_compile/simplified/Normal PDF: Analyzing
 5_compile/simplified/Normal PDF
-                        time:   [1.5289 µs 1.5307 µs 1.5326 µs]
-Found 3 outliers among 100 measurements (3.00%)
-  2 (2.00%) high mild
-  1 (1.00%) high severe
+                        time:   [1.5624 µs 1.5642 µs 1.5662 µs]
 Benchmarking 5_compile/raw/Gaussian 2D
 Benchmarking 5_compile/raw/Gaussian 2D: Warming up for 3.0000 s
-Benchmarking 5_compile/raw/Gaussian 2D: Collecting 100 samples in estimated 5.0069 s (2.4M iterations)
+Benchmarking 5_compile/raw/Gaussian 2D: Collecting 100 samples in estimated 5.0046 s (2.3M iterations)
 Benchmarking 5_compile/raw/Gaussian 2D: Analyzing
 5_compile/raw/Gaussian 2D
-                        time:   [2.0675 µs 2.0685 µs 2.0696 µs]
-Found 8 outliers among 100 measurements (8.00%)
-  4 (4.00%) high mild
-  4 (4.00%) high severe
+                        time:   [2.1453 µs 2.1489 µs 2.1531 µs]
+Found 1 outliers among 100 measurements (1.00%)
+  1 (1.00%) high severe
 Benchmarking 5_compile/simplified/Gaussian 2D
 Benchmarking 5_compile/simplified/Gaussian 2D: Warming up for 3.0000 s
-Benchmarking 5_compile/simplified/Gaussian 2D: Collecting 100 samples in estimated 5.0043 s (2.6M iterations)
+Benchmarking 5_compile/simplified/Gaussian 2D: Collecting 100 samples in estimated 5.0083 s (2.5M iterations)
 Benchmarking 5_compile/simplified/Gaussian 2D: Analyzing
 5_compile/simplified/Gaussian 2D
-                        time:   [1.8976 µs 1.8989 µs 1.9002 µs]
-Found 3 outliers among 100 measurements (3.00%)
-  2 (2.00%) high mild
-  1 (1.00%) high severe
+                        time:   [1.9768 µs 1.9788 µs 1.9812 µs]
+Found 9 outliers among 100 measurements (9.00%)
+  1 (1.00%) low mild
+  4 (4.00%) high mild
+  4 (4.00%) high severe
 Benchmarking 5_compile/raw/Maxwell-Boltzmann
 Benchmarking 5_compile/raw/Maxwell-Boltzmann: Warming up for 3.0000 s
-Benchmarking 5_compile/raw/Maxwell-Boltzmann: Collecting 100 samples in estimated 5.0117 s (1.7M iterations)
+Benchmarking 5_compile/raw/Maxwell-Boltzmann: Collecting 100 samples in estimated 5.0112 s (1.7M iterations)
 Benchmarking 5_compile/raw/Maxwell-Boltzmann: Analyzing
 5_compile/raw/Maxwell-Boltzmann
-                        time:   [2.9790 µs 2.9889 µs 2.9985 µs]
+                        time:   [2.9705 µs 2.9725 µs 2.9749 µs]
 Benchmarking 5_compile/simplified/Maxwell-Boltzmann
 Benchmarking 5_compile/simplified/Maxwell-Boltzmann: Warming up for 3.0000 s
-Benchmarking 5_compile/simplified/Maxwell-Boltzmann: Collecting 100 samples in estimated 5.0077 s (2.5M iterations)
+Benchmarking 5_compile/simplified/Maxwell-Boltzmann: Collecting 100 samples in estimated 5.0026 s (2.4M iterations)
 Benchmarking 5_compile/simplified/Maxwell-Boltzmann: Analyzing
 5_compile/simplified/Maxwell-Boltzmann
-                        time:   [2.0532 µs 2.0678 µs 2.0896 µs]
+                        time:   [2.0764 µs 2.0788 µs 2.0820 µs]
 Found 3 outliers among 100 measurements (3.00%)
-  2 (2.00%) high mild
-  1 (1.00%) high severe
+  1 (1.00%) high mild
+  2 (2.00%) high severe
 Benchmarking 5_compile/raw/Lorentz Factor
 Benchmarking 5_compile/raw/Lorentz Factor: Warming up for 3.0000 s
-Benchmarking 5_compile/raw/Lorentz Factor: Collecting 100 samples in estimated 5.0069 s (3.4M iterations)
+Benchmarking 5_compile/raw/Lorentz Factor: Collecting 100 samples in estimated 5.0076 s (3.3M iterations)
 Benchmarking 5_compile/raw/Lorentz Factor: Analyzing
 5_compile/raw/Lorentz Factor
-                        time:   [1.4492 µs 1.4529 µs 1.4570 µs]
-Found 5 outliers among 100 measurements (5.00%)
-  4 (4.00%) high mild
-  1 (1.00%) high severe
-Benchmarking 5_compile/simplified/Lorentz Factor
-Benchmarking 5_compile/simplified/Lorentz Factor: Warming up for 3.0000 s
-Benchmarking 5_compile/simplified/Lorentz Factor: Collecting 100 samples in estimated 5.0056 s (3.8M iterations)
-Benchmarking 5_compile/simplified/Lorentz Factor: Analyzing
-5_compile/simplified/Lorentz Factor
-                        time:   [1.3073 µs 1.3124 µs 1.3175 µs]
+                        time:   [1.5140 µs 1.5150 µs 1.5160 µs]
 Found 2 outliers among 100 measurements (2.00%)
   2 (2.00%) high mild
+Benchmarking 5_compile/simplified/Lorentz Factor
+Benchmarking 5_compile/simplified/Lorentz Factor: Warming up for 3.0000 s
+Benchmarking 5_compile/simplified/Lorentz Factor: Collecting 100 samples in estimated 5.0060 s (4.0M iterations)
+Benchmarking 5_compile/simplified/Lorentz Factor: Analyzing
+5_compile/simplified/Lorentz Factor
+                        time:   [1.2404 µs 1.2416 µs 1.2435 µs]
+Found 1 outliers among 100 measurements (1.00%)
+  1 (1.00%) high severe
 Benchmarking 5_compile/raw/Lennard-Jones
 Benchmarking 5_compile/raw/Lennard-Jones: Warming up for 3.0000 s
-Benchmarking 5_compile/raw/Lennard-Jones: Collecting 100 samples in estimated 5.0049 s (4.6M iterations)
+Benchmarking 5_compile/raw/Lennard-Jones: Collecting 100 samples in estimated 5.0055 s (4.5M iterations)
 Benchmarking 5_compile/raw/Lennard-Jones: Analyzing
 5_compile/raw/Lennard-Jones
-                        time:   [1.1008 µs 1.1032 µs 1.1059 µs]
-Found 11 outliers among 100 measurements (11.00%)
-  4 (4.00%) low mild
-  2 (2.00%) high mild
-  5 (5.00%) high severe
+                        time:   [1.1151 µs 1.1157 µs 1.1164 µs]
+Found 3 outliers among 100 measurements (3.00%)
+  3 (3.00%) high mild
 Benchmarking 5_compile/simplified/Lennard-Jones
 Benchmarking 5_compile/simplified/Lennard-Jones: Warming up for 3.0000 s
-Benchmarking 5_compile/simplified/Lennard-Jones: Collecting 100 samples in estimated 5.0044 s (4.1M iterations)
+Benchmarking 5_compile/simplified/Lennard-Jones: Collecting 100 samples in estimated 5.0026 s (4.0M iterations)
 Benchmarking 5_compile/simplified/Lennard-Jones: Analyzing
 5_compile/simplified/Lennard-Jones
-                        time:   [1.2256 µs 1.2272 µs 1.2287 µs]
-Found 5 outliers among 100 measurements (5.00%)
-  5 (5.00%) low mild
+                        time:   [1.2376 µs 1.2385 µs 1.2394 µs]
+Found 2 outliers among 100 measurements (2.00%)
+  2 (2.00%) high mild
 Benchmarking 5_compile/raw/Logistic Sigmoid
 Benchmarking 5_compile/raw/Logistic Sigmoid: Warming up for 3.0000 s
-Benchmarking 5_compile/raw/Logistic Sigmoid: Collecting 100 samples in estimated 5.0013 s (3.9M iterations)
+Benchmarking 5_compile/raw/Logistic Sigmoid: Collecting 100 samples in estimated 5.0061 s (3.6M iterations)
 Benchmarking 5_compile/raw/Logistic Sigmoid: Analyzing
 5_compile/raw/Logistic Sigmoid
-                        time:   [1.3010 µs 1.3023 µs 1.3037 µs]
-Found 3 outliers among 100 measurements (3.00%)
-  2 (2.00%) high mild
-  1 (1.00%) high severe
+                        time:   [1.3763 µs 1.3779 µs 1.3797 µs]
+Found 1 outliers among 100 measurements (1.00%)
+  1 (1.00%) high mild
 Benchmarking 5_compile/simplified/Logistic Sigmoid
 Benchmarking 5_compile/simplified/Logistic Sigmoid: Warming up for 3.0000 s
-Benchmarking 5_compile/simplified/Logistic Sigmoid: Collecting 100 samples in estimated 5.0061 s (3.3M iterations)
+Benchmarking 5_compile/simplified/Logistic Sigmoid: Collecting 100 samples in estimated 5.0008 s (3.2M iterations)
 Benchmarking 5_compile/simplified/Logistic Sigmoid: Analyzing
 5_compile/simplified/Logistic Sigmoid
-                        time:   [1.5355 µs 1.5404 µs 1.5465 µs]
-Found 8 outliers among 100 measurements (8.00%)
-  5 (5.00%) high mild
+                        time:   [1.5457 µs 1.5472 µs 1.5491 µs]
+Found 4 outliers among 100 measurements (4.00%)
+  1 (1.00%) high mild
   3 (3.00%) high severe
 Benchmarking 5_compile/raw/Damped Oscillator
 Benchmarking 5_compile/raw/Damped Oscillator: Warming up for 3.0000 s
-Benchmarking 5_compile/raw/Damped Oscillator: Collecting 100 samples in estimated 5.0001 s (2.4M iterations)
+Benchmarking 5_compile/raw/Damped Oscillator: Collecting 100 samples in estimated 5.0047 s (2.4M iterations)
 Benchmarking 5_compile/raw/Damped Oscillator: Analyzing
 5_compile/raw/Damped Oscillator
-                        time:   [2.1069 µs 2.1170 µs 2.1264 µs]
-Found 7 outliers among 100 measurements (7.00%)
-  5 (5.00%) low mild
-  1 (1.00%) high mild
-  1 (1.00%) high severe
+                        time:   [2.0820 µs 2.0839 µs 2.0861 µs]
+Found 5 outliers among 100 measurements (5.00%)
+  5 (5.00%) high mild
 Benchmarking 5_compile/simplified/Damped Oscillator
 Benchmarking 5_compile/simplified/Damped Oscillator: Warming up for 3.0000 s
-Benchmarking 5_compile/simplified/Damped Oscillator: Collecting 100 samples in estimated 5.0047 s (2.6M iterations)
+Benchmarking 5_compile/simplified/Damped Oscillator: Collecting 100 samples in estimated 5.0064 s (2.7M iterations)
 Benchmarking 5_compile/simplified/Damped Oscillator: Analyzing
 5_compile/simplified/Damped Oscillator
-                        time:   [1.8658 µs 1.8709 µs 1.8764 µs]
-Found 8 outliers among 100 measurements (8.00%)
-  4 (4.00%) low mild
-  4 (4.00%) high mild
-Benchmarking 5_compile/raw/Planck Blackbody
-Benchmarking 5_compile/raw/Planck Blackbody: Warming up for 3.0000 s
-Benchmarking 5_compile/raw/Planck Blackbody: Collecting 100 samples in estimated 5.0016 s (1.7M iterations)
-Benchmarking 5_compile/raw/Planck Blackbody: Analyzing
-5_compile/raw/Planck Blackbody
-                        time:   [2.8363 µs 2.8434 µs 2.8511 µs]
-Found 3 outliers among 100 measurements (3.00%)
-  1 (1.00%) high mild
-  2 (2.00%) high severe
-Benchmarking 5_compile/simplified/Planck Blackbody
-Benchmarking 5_compile/simplified/Planck Blackbody: Warming up for 3.0000 s
-Benchmarking 5_compile/simplified/Planck Blackbody: Collecting 100 samples in estimated 5.0089 s (1.6M iterations)
-Benchmarking 5_compile/simplified/Planck Blackbody: Analyzing
-5_compile/simplified/Planck Blackbody
-                        time:   [3.0744 µs 3.0886 µs 3.1013 µs]
+                        time:   [1.8291 µs 1.8305 µs 1.8321 µs]
 Found 1 outliers among 100 measurements (1.00%)
   1 (1.00%) high mild
+Benchmarking 5_compile/raw/Planck Blackbody
+Benchmarking 5_compile/raw/Planck Blackbody: Warming up for 3.0000 s
+Benchmarking 5_compile/raw/Planck Blackbody: Collecting 100 samples in estimated 5.0010 s (1.7M iterations)
+Benchmarking 5_compile/raw/Planck Blackbody: Analyzing
+5_compile/raw/Planck Blackbody
+                        time:   [2.9044 µs 2.9070 µs 2.9108 µs]
+Found 7 outliers among 100 measurements (7.00%)
+  2 (2.00%) high mild
+  5 (5.00%) high severe
+Benchmarking 5_compile/simplified/Planck Blackbody
+Benchmarking 5_compile/simplified/Planck Blackbody: Warming up for 3.0000 s
+Benchmarking 5_compile/simplified/Planck Blackbody: Collecting 100 samples in estimated 5.0070 s (1.7M iterations)
+Benchmarking 5_compile/simplified/Planck Blackbody: Analyzing
+5_compile/simplified/Planck Blackbody
+                        time:   [2.9399 µs 2.9418 µs 2.9437 µs]
+Found 2 outliers among 100 measurements (2.00%)
+  2 (2.00%) high mild
 Benchmarking 5_compile/raw/Bessel Wave
 Benchmarking 5_compile/raw/Bessel Wave: Warming up for 3.0000 s
-Benchmarking 5_compile/raw/Bessel Wave: Collecting 100 samples in estimated 5.0097 s (2.3M iterations)
+Benchmarking 5_compile/raw/Bessel Wave: Collecting 100 samples in estimated 5.0096 s (2.4M iterations)
 Benchmarking 5_compile/raw/Bessel Wave: Analyzing
 5_compile/raw/Bessel Wave
-                        time:   [2.0989 µs 2.1055 µs 2.1125 µs]
-Found 3 outliers among 100 measurements (3.00%)
-  1 (1.00%) high mild
-  2 (2.00%) high severe
+                        time:   [2.1413 µs 2.1456 µs 2.1501 µs]
 Benchmarking 5_compile/simplified/Bessel Wave
 Benchmarking 5_compile/simplified/Bessel Wave: Warming up for 3.0000 s
-Benchmarking 5_compile/simplified/Bessel Wave: Collecting 100 samples in estimated 5.0004 s (2.7M iterations)
+Benchmarking 5_compile/simplified/Bessel Wave: Collecting 100 samples in estimated 5.0036 s (2.7M iterations)
 Benchmarking 5_compile/simplified/Bessel Wave: Analyzing
 5_compile/simplified/Bessel Wave
-                        time:   [1.8443 µs 1.8486 µs 1.8531 µs]
-Found 4 outliers among 100 measurements (4.00%)
-  2 (2.00%) high mild
-  2 (2.00%) high severe
+                        time:   [1.8446 µs 1.8530 µs 1.8691 µs]
+Found 5 outliers among 100 measurements (5.00%)
+  4 (4.00%) high mild
+  1 (1.00%) high severe
 
 Benchmarking 6_eval_1000pts/compiled_raw/Normal PDF
 Benchmarking 6_eval_1000pts/compiled_raw/Normal PDF: Warming up for 3.0000 s
-Benchmarking 6_eval_1000pts/compiled_raw/Normal PDF: Collecting 100 samples in estimated 5.1968 s (40k iterations)
+Benchmarking 6_eval_1000pts/compiled_raw/Normal PDF: Collecting 100 samples in estimated 5.2714 s (40k iterations)
 Benchmarking 6_eval_1000pts/compiled_raw/Normal PDF: Analyzing
 6_eval_1000pts/compiled_raw/Normal PDF
-                        time:   [128.46 µs 128.73 µs 128.98 µs]
+                        time:   [127.14 µs 127.73 µs 128.38 µs]
 Benchmarking 6_eval_1000pts/compiled_simplified/Normal PDF
 Benchmarking 6_eval_1000pts/compiled_simplified/Normal PDF: Warming up for 3.0000 s
-Benchmarking 6_eval_1000pts/compiled_simplified/Normal PDF: Collecting 100 samples in estimated 5.4132 s (56k iterations)
+Benchmarking 6_eval_1000pts/compiled_simplified/Normal PDF: Collecting 100 samples in estimated 5.0265 s (50k iterations)
 Benchmarking 6_eval_1000pts/compiled_simplified/Normal PDF: Analyzing
 6_eval_1000pts/compiled_simplified/Normal PDF
-                        time:   [98.698 µs 99.055 µs 99.402 µs]
+                        time:   [97.847 µs 98.134 µs 98.437 µs]
 Benchmarking 6_eval_1000pts/compiled_raw/Gaussian 2D
 Benchmarking 6_eval_1000pts/compiled_raw/Gaussian 2D: Warming up for 3.0000 s
-Benchmarking 6_eval_1000pts/compiled_raw/Gaussian 2D: Collecting 100 samples in estimated 5.1909 s (35k iterations)
+Benchmarking 6_eval_1000pts/compiled_raw/Gaussian 2D: Collecting 100 samples in estimated 5.2255 s (35k iterations)
 Benchmarking 6_eval_1000pts/compiled_raw/Gaussian 2D: Analyzing
 6_eval_1000pts/compiled_raw/Gaussian 2D
-                        time:   [146.40 µs 146.88 µs 147.34 µs]
+                        time:   [145.37 µs 145.83 µs 146.30 µs]
 Benchmarking 6_eval_1000pts/compiled_simplified/Gaussian 2D
 Benchmarking 6_eval_1000pts/compiled_simplified/Gaussian 2D: Warming up for 3.0000 s
-Benchmarking 6_eval_1000pts/compiled_simplified/Gaussian 2D: Collecting 100 samples in estimated 5.5156 s (50k iterations)
+Benchmarking 6_eval_1000pts/compiled_simplified/Gaussian 2D: Collecting 100 samples in estimated 5.0825 s (45k iterations)
 Benchmarking 6_eval_1000pts/compiled_simplified/Gaussian 2D: Analyzing
 6_eval_1000pts/compiled_simplified/Gaussian 2D
-                        time:   [110.11 µs 110.39 µs 110.65 µs]
+                        time:   [111.19 µs 111.37 µs 111.55 µs]
 Benchmarking 6_eval_1000pts/compiled_raw/Maxwell-Boltzmann
 Benchmarking 6_eval_1000pts/compiled_raw/Maxwell-Boltzmann: Warming up for 3.0000 s
-Benchmarking 6_eval_1000pts/compiled_raw/Maxwell-Boltzmann: Collecting 100 samples in estimated 5.6996 s (20k iterations)
+Benchmarking 6_eval_1000pts/compiled_raw/Maxwell-Boltzmann: Collecting 100 samples in estimated 5.7816 s (20k iterations)
 Benchmarking 6_eval_1000pts/compiled_raw/Maxwell-Boltzmann: Analyzing
 6_eval_1000pts/compiled_raw/Maxwell-Boltzmann
-                        time:   [288.89 µs 289.46 µs 290.29 µs]
-Found 13 outliers among 100 measurements (13.00%)
-  5 (5.00%) low mild
+                        time:   [299.11 µs 299.76 µs 300.40 µs]
+Found 2 outliers among 100 measurements (2.00%)
   2 (2.00%) high mild
-  6 (6.00%) high severe
 Benchmarking 6_eval_1000pts/compiled_simplified/Maxwell-Boltzmann
 Benchmarking 6_eval_1000pts/compiled_simplified/Maxwell-Boltzmann: Warming up for 3.0000 s
-Benchmarking 6_eval_1000pts/compiled_simplified/Maxwell-Boltzmann: Collecting 100 samples in estimated 5.3179 s (40k iterations)
+Benchmarking 6_eval_1000pts/compiled_simplified/Maxwell-Boltzmann: Collecting 100 samples in estimated 5.3437 s (40k iterations)
 Benchmarking 6_eval_1000pts/compiled_simplified/Maxwell-Boltzmann: Analyzing
 6_eval_1000pts/compiled_simplified/Maxwell-Boltzmann
-                        time:   [131.59 µs 131.89 µs 132.19 µs]
-Found 3 outliers among 100 measurements (3.00%)
-  2 (2.00%) high mild
-  1 (1.00%) high severe
+                        time:   [134.59 µs 135.07 µs 135.51 µs]
 Benchmarking 6_eval_1000pts/compiled_raw/Lorentz Factor
 Benchmarking 6_eval_1000pts/compiled_raw/Lorentz Factor: Warming up for 3.0000 s
-Benchmarking 6_eval_1000pts/compiled_raw/Lorentz Factor: Collecting 100 samples in estimated 5.1129 s (40k iterations)
+Benchmarking 6_eval_1000pts/compiled_raw/Lorentz Factor: Collecting 100 samples in estimated 5.0777 s (40k iterations)
 Benchmarking 6_eval_1000pts/compiled_raw/Lorentz Factor: Analyzing
 6_eval_1000pts/compiled_raw/Lorentz Factor
-                        time:   [125.63 µs 125.69 µs 125.76 µs]
+                        time:   [125.59 µs 125.77 µs 125.95 µs]
+Found 7 outliers among 100 measurements (7.00%)
+  5 (5.00%) high mild
+  2 (2.00%) high severe
 Benchmarking 6_eval_1000pts/compiled_simplified/Lorentz Factor
 Benchmarking 6_eval_1000pts/compiled_simplified/Lorentz Factor: Warming up for 3.0000 s
-Benchmarking 6_eval_1000pts/compiled_simplified/Lorentz Factor: Collecting 100 samples in estimated 5.0784 s (71k iterations)
+Benchmarking 6_eval_1000pts/compiled_simplified/Lorentz Factor: Collecting 100 samples in estimated 5.2300 s (71k iterations)
 Benchmarking 6_eval_1000pts/compiled_simplified/Lorentz Factor: Analyzing
 6_eval_1000pts/compiled_simplified/Lorentz Factor
-                        time:   [72.707 µs 73.019 µs 73.315 µs]
+                        time:   [72.446 µs 72.718 µs 73.004 µs]
 Benchmarking 6_eval_1000pts/compiled_raw/Lennard-Jones
 Benchmarking 6_eval_1000pts/compiled_raw/Lennard-Jones: Warming up for 3.0000 s
-Benchmarking 6_eval_1000pts/compiled_raw/Lennard-Jones: Collecting 100 samples in estimated 5.0505 s (50k iterations)
+Benchmarking 6_eval_1000pts/compiled_raw/Lennard-Jones: Collecting 100 samples in estimated 5.0494 s (50k iterations)
 Benchmarking 6_eval_1000pts/compiled_raw/Lennard-Jones: Analyzing
 6_eval_1000pts/compiled_raw/Lennard-Jones
-                        time:   [100.67 µs 100.73 µs 100.80 µs]
-Found 5 outliers among 100 measurements (5.00%)
-  5 (5.00%) high mild
+                        time:   [99.191 µs 99.454 µs 99.681 µs]
+Found 1 outliers among 100 measurements (1.00%)
+  1 (1.00%) high severe
 Benchmarking 6_eval_1000pts/compiled_simplified/Lennard-Jones
 Benchmarking 6_eval_1000pts/compiled_simplified/Lennard-Jones: Warming up for 3.0000 s
-Benchmarking 6_eval_1000pts/compiled_simplified/Lennard-Jones: Collecting 100 samples in estimated 5.2656 s (56k iterations)
+Benchmarking 6_eval_1000pts/compiled_simplified/Lennard-Jones: Collecting 100 samples in estimated 5.2079 s (56k iterations)
 Benchmarking 6_eval_1000pts/compiled_simplified/Lennard-Jones: Analyzing
 6_eval_1000pts/compiled_simplified/Lennard-Jones
-                        time:   [94.504 µs 94.608 µs 94.708 µs]
-Found 6 outliers among 100 measurements (6.00%)
-  2 (2.00%) low mild
-  1 (1.00%) high mild
-  3 (3.00%) high severe
+                        time:   [93.634 µs 93.697 µs 93.764 µs]
+Found 3 outliers among 100 measurements (3.00%)
+  1 (1.00%) low mild
+  2 (2.00%) high severe
 Benchmarking 6_eval_1000pts/compiled_raw/Logistic Sigmoid
 Benchmarking 6_eval_1000pts/compiled_raw/Logistic Sigmoid: Warming up for 3.0000 s
-Benchmarking 6_eval_1000pts/compiled_raw/Logistic Sigmoid: Collecting 100 samples in estimated 5.2661 s (50k iterations)
+Benchmarking 6_eval_1000pts/compiled_raw/Logistic Sigmoid: Collecting 100 samples in estimated 5.2650 s (50k iterations)
 Benchmarking 6_eval_1000pts/compiled_raw/Logistic Sigmoid: Analyzing
 6_eval_1000pts/compiled_raw/Logistic Sigmoid
-                        time:   [105.86 µs 105.93 µs 106.00 µs]
-Found 10 outliers among 100 measurements (10.00%)
-  5 (5.00%) low mild
-  1 (1.00%) high mild
-  4 (4.00%) high severe
+                        time:   [104.46 µs 104.55 µs 104.65 µs]
 Benchmarking 6_eval_1000pts/compiled_simplified/Logistic Sigmoid
 Benchmarking 6_eval_1000pts/compiled_simplified/Logistic Sigmoid: Warming up for 3.0000 s
-Benchmarking 6_eval_1000pts/compiled_simplified/Logistic Sigmoid: Collecting 100 samples in estimated 5.3025 s (40k iterations)
+Benchmarking 6_eval_1000pts/compiled_simplified/Logistic Sigmoid: Collecting 100 samples in estimated 5.3575 s (40k iterations)
 Benchmarking 6_eval_1000pts/compiled_simplified/Logistic Sigmoid: Analyzing
 6_eval_1000pts/compiled_simplified/Logistic Sigmoid
-                        time:   [131.97 µs 132.25 µs 132.52 µs]
+                        time:   [131.31 µs 131.55 µs 131.80 µs]
 Benchmarking 6_eval_1000pts/compiled_raw/Damped Oscillator
 Benchmarking 6_eval_1000pts/compiled_raw/Damped Oscillator: Warming up for 3.0000 s
-Benchmarking 6_eval_1000pts/compiled_raw/Damped Oscillator: Collecting 100 samples in estimated 5.4437 s (45k iterations)
+Benchmarking 6_eval_1000pts/compiled_raw/Damped Oscillator: Collecting 100 samples in estimated 5.3078 s (45k iterations)
 Benchmarking 6_eval_1000pts/compiled_raw/Damped Oscillator: Analyzing
 6_eval_1000pts/compiled_raw/Damped Oscillator
-                        time:   [121.79 µs 122.74 µs 123.63 µs]
-Found 19 outliers among 100 measurements (19.00%)
-  1 (1.00%) high mild
-  18 (18.00%) high severe
+                        time:   [117.03 µs 117.15 µs 117.26 µs]
 Benchmarking 6_eval_1000pts/compiled_simplified/Damped Oscillator
 Benchmarking 6_eval_1000pts/compiled_simplified/Damped Oscillator: Warming up for 3.0000 s
-Benchmarking 6_eval_1000pts/compiled_simplified/Damped Oscillator: Collecting 100 samples in estimated 5.3392 s (61k iterations)
+Benchmarking 6_eval_1000pts/compiled_simplified/Damped Oscillator: Collecting 100 samples in estimated 5.3893 s (61k iterations)
 Benchmarking 6_eval_1000pts/compiled_simplified/Damped Oscillator: Analyzing
 6_eval_1000pts/compiled_simplified/Damped Oscillator
-                        time:   [88.994 µs 89.278 µs 89.531 µs]
-Found 19 outliers among 100 measurements (19.00%)
-  17 (17.00%) high mild
-  2 (2.00%) high severe
-Benchmarking 6_eval_1000pts/compiled_raw/Planck Blackbody
-Benchmarking 6_eval_1000pts/compiled_raw/Planck Blackbody: Warming up for 3.0000 s
-Benchmarking 6_eval_1000pts/compiled_raw/Planck Blackbody: Collecting 100 samples in estimated 5.3871 s (35k iterations)
-Benchmarking 6_eval_1000pts/compiled_raw/Planck Blackbody: Analyzing
-6_eval_1000pts/compiled_raw/Planck Blackbody
-                        time:   [152.26 µs 152.32 µs 152.38 µs]
-Found 1 outliers among 100 measurements (1.00%)
-  1 (1.00%) low mild
-Benchmarking 6_eval_1000pts/compiled_simplified/Planck Blackbody
-Benchmarking 6_eval_1000pts/compiled_simplified/Planck Blackbody: Warming up for 3.0000 s
-Benchmarking 6_eval_1000pts/compiled_simplified/Planck Blackbody: Collecting 100 samples in estimated 5.0539 s (30k iterations)
-Benchmarking 6_eval_1000pts/compiled_simplified/Planck Blackbody: Analyzing
-6_eval_1000pts/compiled_simplified/Planck Blackbody
-                        time:   [165.60 µs 166.18 µs 167.21 µs]
-Found 18 outliers among 100 measurements (18.00%)
-  4 (4.00%) low severe
-  7 (7.00%) low mild
-  3 (3.00%) high mild
-  4 (4.00%) high severe
-Benchmarking 6_eval_1000pts/compiled_raw/Bessel Wave
-Benchmarking 6_eval_1000pts/compiled_raw/Bessel Wave: Warming up for 3.0000 s
-Benchmarking 6_eval_1000pts/compiled_raw/Bessel Wave: Collecting 100 samples in estimated 5.2198 s (20k iterations)
-Benchmarking 6_eval_1000pts/compiled_raw/Bessel Wave: Analyzing
-6_eval_1000pts/compiled_raw/Bessel Wave
-                        time:   [258.25 µs 258.42 µs 258.60 µs]
+                        time:   [88.909 µs 88.958 µs 89.007 µs]
 Found 1 outliers among 100 measurements (1.00%)
   1 (1.00%) high mild
+Benchmarking 6_eval_1000pts/compiled_raw/Planck Blackbody
+Benchmarking 6_eval_1000pts/compiled_raw/Planck Blackbody: Warming up for 3.0000 s
+Benchmarking 6_eval_1000pts/compiled_raw/Planck Blackbody: Collecting 100 samples in estimated 5.6906 s (35k iterations)
+Benchmarking 6_eval_1000pts/compiled_raw/Planck Blackbody: Analyzing
+6_eval_1000pts/compiled_raw/Planck Blackbody
+                        time:   [156.09 µs 157.14 µs 158.13 µs]
+Found 1 outliers among 100 measurements (1.00%)
+  1 (1.00%) high mild
+Benchmarking 6_eval_1000pts/compiled_simplified/Planck Blackbody
+Benchmarking 6_eval_1000pts/compiled_simplified/Planck Blackbody: Warming up for 3.0000 s
+Benchmarking 6_eval_1000pts/compiled_simplified/Planck Blackbody: Collecting 100 samples in estimated 5.0416 s (30k iterations)
+Benchmarking 6_eval_1000pts/compiled_simplified/Planck Blackbody: Analyzing
+6_eval_1000pts/compiled_simplified/Planck Blackbody
+                        time:   [168.79 µs 169.53 µs 170.52 µs]
+Found 1 outliers among 100 measurements (1.00%)
+  1 (1.00%) high severe
+Benchmarking 6_eval_1000pts/compiled_raw/Bessel Wave
+Benchmarking 6_eval_1000pts/compiled_raw/Bessel Wave: Warming up for 3.0000 s
+Benchmarking 6_eval_1000pts/compiled_raw/Bessel Wave: Collecting 100 samples in estimated 5.2296 s (20k iterations)
+Benchmarking 6_eval_1000pts/compiled_raw/Bessel Wave: Analyzing
+6_eval_1000pts/compiled_raw/Bessel Wave
+                        time:   [259.26 µs 259.61 µs 259.97 µs]
+Found 2 outliers among 100 measurements (2.00%)
+  2 (2.00%) high mild
 Benchmarking 6_eval_1000pts/compiled_simplified/Bessel Wave
 Benchmarking 6_eval_1000pts/compiled_simplified/Bessel Wave: Warming up for 3.0000 s
-Benchmarking 6_eval_1000pts/compiled_simplified/Bessel Wave: Collecting 100 samples in estimated 5.0134 s (25k iterations)
+Benchmarking 6_eval_1000pts/compiled_simplified/Bessel Wave: Collecting 100 samples in estimated 5.9857 s (30k iterations)
 Benchmarking 6_eval_1000pts/compiled_simplified/Bessel Wave: Analyzing
 6_eval_1000pts/compiled_simplified/Bessel Wave
-                        time:   [198.61 µs 198.67 µs 198.74 µs]
-Found 7 outliers among 100 measurements (7.00%)
-  4 (4.00%) high mild
-  3 (3.00%) high severe
+                        time:   [197.39 µs 197.63 µs 197.88 µs]
+Found 11 outliers among 100 measurements (11.00%)
+  6 (6.00%) low severe
+  1 (1.00%) high mild
+  4 (4.00%) high severe
 
 Benchmarking 7_full_pipeline/symb_anafis/Normal PDF
 Benchmarking 7_full_pipeline/symb_anafis/Normal PDF: Warming up for 3.0000 s
-Benchmarking 7_full_pipeline/symb_anafis/Normal PDF: Collecting 100 samples in estimated 5.6451 s (20k iterations)
+Benchmarking 7_full_pipeline/symb_anafis/Normal PDF: Collecting 100 samples in estimated 5.7494 s (20k iterations)
 Benchmarking 7_full_pipeline/symb_anafis/Normal PDF: Analyzing
 7_full_pipeline/symb_anafis/Normal PDF
-                        time:   [281.03 µs 281.64 µs 282.25 µs]
+                        time:   [281.25 µs 281.87 µs 282.53 µs]
 Benchmarking 7_full_pipeline/symb_anafis/Gaussian 2D
 Benchmarking 7_full_pipeline/symb_anafis/Gaussian 2D: Warming up for 3.0000 s
-Benchmarking 7_full_pipeline/symb_anafis/Gaussian 2D: Collecting 100 samples in estimated 5.7405 s (20k iterations)
+Benchmarking 7_full_pipeline/symb_anafis/Gaussian 2D: Collecting 100 samples in estimated 5.7356 s (20k iterations)
 Benchmarking 7_full_pipeline/symb_anafis/Gaussian 2D: Analyzing
 7_full_pipeline/symb_anafis/Gaussian 2D
-                        time:   [285.65 µs 286.09 µs 286.51 µs]
+                        time:   [281.74 µs 282.21 µs 282.71 µs]
 Found 1 outliers among 100 measurements (1.00%)
   1 (1.00%) high mild
 Benchmarking 7_full_pipeline/symb_anafis/Maxwell-Boltzmann
 Benchmarking 7_full_pipeline/symb_anafis/Maxwell-Boltzmann: Warming up for 3.0000 s
-Benchmarking 7_full_pipeline/symb_anafis/Maxwell-Boltzmann: Collecting 100 samples in estimated 5.2686 s (10k iterations)
+Benchmarking 7_full_pipeline/symb_anafis/Maxwell-Boltzmann: Collecting 100 samples in estimated 5.2565 s (10k iterations)
 Benchmarking 7_full_pipeline/symb_anafis/Maxwell-Boltzmann: Analyzing
 7_full_pipeline/symb_anafis/Maxwell-Boltzmann
-                        time:   [520.30 µs 521.82 µs 524.35 µs]
+                        time:   [518.89 µs 520.23 µs 522.51 µs]
 Found 6 outliers among 100 measurements (6.00%)
   3 (3.00%) high mild
   3 (3.00%) high severe
 Benchmarking 7_full_pipeline/symb_anafis/Lorentz Factor
 Benchmarking 7_full_pipeline/symb_anafis/Lorentz Factor: Warming up for 3.0000 s
-Benchmarking 7_full_pipeline/symb_anafis/Lorentz Factor: Collecting 100 samples in estimated 5.5499 s (15k iterations)
+Benchmarking 7_full_pipeline/symb_anafis/Lorentz Factor: Collecting 100 samples in estimated 5.4977 s (15k iterations)
 Benchmarking 7_full_pipeline/symb_anafis/Lorentz Factor: Analyzing
 7_full_pipeline/symb_anafis/Lorentz Factor
-                        time:   [366.08 µs 366.39 µs 366.76 µs]
-Found 4 outliers among 100 measurements (4.00%)
-  1 (1.00%) high mild
-  3 (3.00%) high severe
+                        time:   [362.79 µs 363.09 µs 363.43 µs]
+Found 9 outliers among 100 measurements (9.00%)
+  5 (5.00%) high mild
+  4 (4.00%) high severe
 Benchmarking 7_full_pipeline/symb_anafis/Lennard-Jones
 Benchmarking 7_full_pipeline/symb_anafis/Lennard-Jones: Warming up for 3.0000 s
-Benchmarking 7_full_pipeline/symb_anafis/Lennard-Jones: Collecting 100 samples in estimated 5.1371 s (40k iterations)
+Benchmarking 7_full_pipeline/symb_anafis/Lennard-Jones: Collecting 100 samples in estimated 5.1708 s (40k iterations)
 Benchmarking 7_full_pipeline/symb_anafis/Lennard-Jones: Analyzing
 7_full_pipeline/symb_anafis/Lennard-Jones
-                        time:   [127.09 µs 127.27 µs 127.50 µs]
-Found 10 outliers among 100 measurements (10.00%)
-  3 (3.00%) high mild
-  7 (7.00%) high severe
+                        time:   [128.09 µs 128.18 µs 128.29 µs]
+Found 13 outliers among 100 measurements (13.00%)
+  2 (2.00%) low mild
+  6 (6.00%) high mild
+  5 (5.00%) high severe
 Benchmarking 7_full_pipeline/symb_anafis/Logistic Sigmoid
 Benchmarking 7_full_pipeline/symb_anafis/Logistic Sigmoid: Warming up for 3.0000 s
-Benchmarking 7_full_pipeline/symb_anafis/Logistic Sigmoid: Collecting 100 samples in estimated 5.1514 s (20k iterations)
+Benchmarking 7_full_pipeline/symb_anafis/Logistic Sigmoid: Collecting 100 samples in estimated 5.0431 s (20k iterations)
 Benchmarking 7_full_pipeline/symb_anafis/Logistic Sigmoid: Analyzing
 7_full_pipeline/symb_anafis/Logistic Sigmoid
-                        time:   [249.94 µs 250.15 µs 250.38 µs]
+                        time:   [250.27 µs 250.50 µs 250.78 µs]
 Found 4 outliers among 100 measurements (4.00%)
-  3 (3.00%) high mild
+  1 (1.00%) low mild
+  2 (2.00%) high mild
   1 (1.00%) high severe
 Benchmarking 7_full_pipeline/symb_anafis/Damped Oscillator
 Benchmarking 7_full_pipeline/symb_anafis/Damped Oscillator: Warming up for 3.0000 s
-Benchmarking 7_full_pipeline/symb_anafis/Damped Oscillator: Collecting 100 samples in estimated 5.3660 s (20k iterations)
+Benchmarking 7_full_pipeline/symb_anafis/Damped Oscillator: Collecting 100 samples in estimated 5.4066 s (20k iterations)
 Benchmarking 7_full_pipeline/symb_anafis/Damped Oscillator: Analyzing
 7_full_pipeline/symb_anafis/Damped Oscillator
-                        time:   [265.44 µs 265.80 µs 266.35 µs]
-Found 2 outliers among 100 measurements (2.00%)
-  1 (1.00%) high mild
-  1 (1.00%) high severe
+                        time:   [267.12 µs 267.39 µs 267.71 µs]
+Found 12 outliers among 100 measurements (12.00%)
+  2 (2.00%) low mild
+  8 (8.00%) high mild
+  2 (2.00%) high severe
 Benchmarking 7_full_pipeline/symb_anafis/Planck Blackbody
 Benchmarking 7_full_pipeline/symb_anafis/Planck Blackbody: Warming up for 3.0000 s
-Benchmarking 7_full_pipeline/symb_anafis/Planck Blackbody: Collecting 100 samples in estimated 5.7000 s (10k iterations)
+Benchmarking 7_full_pipeline/symb_anafis/Planck Blackbody: Collecting 100 samples in estimated 5.7117 s (10k iterations)
 Benchmarking 7_full_pipeline/symb_anafis/Planck Blackbody: Analyzing
 7_full_pipeline/symb_anafis/Planck Blackbody
-                        time:   [564.12 µs 564.74 µs 565.49 µs]
-Found 5 outliers among 100 measurements (5.00%)
-  1 (1.00%) low mild
+                        time:   [566.16 µs 566.79 µs 567.57 µs]
+Found 4 outliers among 100 measurements (4.00%)
   2 (2.00%) high mild
   2 (2.00%) high severe
 Benchmarking 7_full_pipeline/symb_anafis/Bessel Wave
 Benchmarking 7_full_pipeline/symb_anafis/Bessel Wave: Warming up for 3.0000 s
-Benchmarking 7_full_pipeline/symb_anafis/Bessel Wave: Collecting 100 samples in estimated 5.2218 s (15k iterations)
+Benchmarking 7_full_pipeline/symb_anafis/Bessel Wave: Collecting 100 samples in estimated 5.1692 s (15k iterations)
 Benchmarking 7_full_pipeline/symb_anafis/Bessel Wave: Analyzing
 7_full_pipeline/symb_anafis/Bessel Wave
-                        time:   [344.29 µs 344.74 µs 345.35 µs]
-Found 3 outliers among 100 measurements (3.00%)
-  1 (1.00%) low mild
-  1 (1.00%) high mild
-  1 (1.00%) high severe
+                        time:   [341.14 µs 341.42 µs 341.78 µs]
+Found 10 outliers among 100 measurements (10.00%)
+  2 (2.00%) low mild
+  5 (5.00%) high mild
+  3 (3.00%) high severe
 
-[1m[92m     Running[0m benches/rust/benchmark_parallel.rs (target/release/deps/benchmark_parallel-de766aa966102598)
+[1m[92m     Running[0m benches/rust/benchmark_parallel.rs (target/release/deps/benchmark_parallel-bf7530da873c62a9)
 Gnuplot not found, using plotters backend
 Benchmarking eval_methods_1000pts/tree_walk_evaluate/Normal PDF
 Benchmarking eval_methods_1000pts/tree_walk_evaluate/Normal PDF: Warming up for 3.0000 s
 
 Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 5.3s, enable flat sampling, or reduce sample count to 60.
-Benchmarking eval_methods_1000pts/tree_walk_evaluate/Normal PDF: Collecting 100 samples in estimated 5.3189 s (5050 iterations)
+Benchmarking eval_methods_1000pts/tree_walk_evaluate/Normal PDF: Collecting 100 samples in estimated 5.3326 s (5050 iterations)
 Benchmarking eval_methods_1000pts/tree_walk_evaluate/Normal PDF: Analyzing
 eval_methods_1000pts/tree_walk_evaluate/Normal PDF
-                        time:   [1.0470 ms 1.0481 ms 1.0493 ms]
-Found 3 outliers among 100 measurements (3.00%)
-  3 (3.00%) high mild
+                        time:   [1.0813 ms 1.0850 ms 1.0882 ms]
 Benchmarking eval_methods_1000pts/compiled_loop/Normal PDF
 Benchmarking eval_methods_1000pts/compiled_loop/Normal PDF: Warming up for 3.0000 s
-Benchmarking eval_methods_1000pts/compiled_loop/Normal PDF: Collecting 100 samples in estimated 5.1665 s (56k iterations)
+Benchmarking eval_methods_1000pts/compiled_loop/Normal PDF: Collecting 100 samples in estimated 5.3062 s (56k iterations)
 Benchmarking eval_methods_1000pts/compiled_loop/Normal PDF: Analyzing
 eval_methods_1000pts/compiled_loop/Normal PDF
-                        time:   [94.259 µs 94.623 µs 94.970 µs]
+                        time:   [93.978 µs 94.228 µs 94.493 µs]
 Benchmarking eval_methods_1000pts/tree_walk_evaluate/Gaussian 2D
 Benchmarking eval_methods_1000pts/tree_walk_evaluate/Gaussian 2D: Warming up for 3.0000 s
 
-Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 9.3s, enable flat sampling, or reduce sample count to 50.
-Benchmarking eval_methods_1000pts/tree_walk_evaluate/Gaussian 2D: Collecting 100 samples in estimated 9.3105 s (5050 iterations)
+Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 9.2s, enable flat sampling, or reduce sample count to 50.
+Benchmarking eval_methods_1000pts/tree_walk_evaluate/Gaussian 2D: Collecting 100 samples in estimated 9.1879 s (5050 iterations)
 Benchmarking eval_methods_1000pts/tree_walk_evaluate/Gaussian 2D: Analyzing
 eval_methods_1000pts/tree_walk_evaluate/Gaussian 2D
-                        time:   [1.8302 ms 1.8326 ms 1.8351 ms]
-Found 1 outliers among 100 measurements (1.00%)
-  1 (1.00%) high mild
+                        time:   [1.8414 ms 1.8446 ms 1.8479 ms]
 Benchmarking eval_methods_1000pts/compiled_loop/Gaussian 2D
 Benchmarking eval_methods_1000pts/compiled_loop/Gaussian 2D: Warming up for 3.0000 s
-Benchmarking eval_methods_1000pts/compiled_loop/Gaussian 2D: Collecting 100 samples in estimated 5.3441 s (50k iterations)
+Benchmarking eval_methods_1000pts/compiled_loop/Gaussian 2D: Collecting 100 samples in estimated 5.3433 s (50k iterations)
 Benchmarking eval_methods_1000pts/compiled_loop/Gaussian 2D: Analyzing
 eval_methods_1000pts/compiled_loop/Gaussian 2D
-                        time:   [106.23 µs 106.51 µs 106.76 µs]
+                        time:   [104.33 µs 104.63 µs 104.94 µs]
 Benchmarking eval_methods_1000pts/tree_walk_evaluate/Maxwell-Boltzmann
 Benchmarking eval_methods_1000pts/tree_walk_evaluate/Maxwell-Boltzmann: Warming up for 3.0000 s
 
 Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 6.6s, enable flat sampling, or reduce sample count to 60.
-Benchmarking eval_methods_1000pts/tree_walk_evaluate/Maxwell-Boltzmann: Collecting 100 samples in estimated 6.5508 s (5050 iterations)
+Benchmarking eval_methods_1000pts/tree_walk_evaluate/Maxwell-Boltzmann: Collecting 100 samples in estimated 6.5745 s (5050 iterations)
 Benchmarking eval_methods_1000pts/tree_walk_evaluate/Maxwell-Boltzmann: Analyzing
 eval_methods_1000pts/tree_walk_evaluate/Maxwell-Boltzmann
-                        time:   [1.2982 ms 1.2987 ms 1.2992 ms]
-Found 4 outliers among 100 measurements (4.00%)
-  2 (2.00%) high mild
-  2 (2.00%) high severe
+                        time:   [1.3008 ms 1.3014 ms 1.3023 ms]
+Found 2 outliers among 100 measurements (2.00%)
+  1 (1.00%) low mild
+  1 (1.00%) high severe
 Benchmarking eval_methods_1000pts/compiled_loop/Maxwell-Boltzmann
 Benchmarking eval_methods_1000pts/compiled_loop/Maxwell-Boltzmann: Warming up for 3.0000 s
-Benchmarking eval_methods_1000pts/compiled_loop/Maxwell-Boltzmann: Collecting 100 samples in estimated 5.0514 s (35k iterations)
+Benchmarking eval_methods_1000pts/compiled_loop/Maxwell-Boltzmann: Collecting 100 samples in estimated 5.0734 s (35k iterations)
 Benchmarking eval_methods_1000pts/compiled_loop/Maxwell-Boltzmann: Analyzing
 eval_methods_1000pts/compiled_loop/Maxwell-Boltzmann
-                        time:   [132.81 µs 132.89 µs 132.98 µs]
-Found 8 outliers among 100 measurements (8.00%)
-  5 (5.00%) high mild
-  3 (3.00%) high severe
+                        time:   [146.14 µs 146.57 µs 146.98 µs]
 Benchmarking eval_methods_1000pts/tree_walk_evaluate/Lorentz Factor
 Benchmarking eval_methods_1000pts/tree_walk_evaluate/Lorentz Factor: Warming up for 3.0000 s
-Benchmarking eval_methods_1000pts/tree_walk_evaluate/Lorentz Factor: Collecting 100 samples in estimated 8.2742 s (10k iterations)
+Benchmarking eval_methods_1000pts/tree_walk_evaluate/Lorentz Factor: Collecting 100 samples in estimated 8.2410 s (10k iterations)
 Benchmarking eval_methods_1000pts/tree_walk_evaluate/Lorentz Factor: Analyzing
 eval_methods_1000pts/tree_walk_evaluate/Lorentz Factor
-                        time:   [822.41 µs 823.17 µs 823.89 µs]
+                        time:   [820.97 µs 821.82 µs 822.75 µs]
+Found 4 outliers among 100 measurements (4.00%)
+  3 (3.00%) high mild
+  1 (1.00%) high severe
 Benchmarking eval_methods_1000pts/compiled_loop/Lorentz Factor
 Benchmarking eval_methods_1000pts/compiled_loop/Lorentz Factor: Warming up for 3.0000 s
-Benchmarking eval_methods_1000pts/compiled_loop/Lorentz Factor: Collecting 100 samples in estimated 5.2976 s (81k iterations)
+Benchmarking eval_methods_1000pts/compiled_loop/Lorentz Factor: Collecting 100 samples in estimated 5.3048 s (81k iterations)
 Benchmarking eval_methods_1000pts/compiled_loop/Lorentz Factor: Analyzing
 eval_methods_1000pts/compiled_loop/Lorentz Factor
-                        time:   [65.755 µs 65.811 µs 65.859 µs]
+                        time:   [65.881 µs 65.906 µs 65.937 µs]
+Found 2 outliers among 100 measurements (2.00%)
+  2 (2.00%) high severe
 Benchmarking eval_methods_1000pts/tree_walk_evaluate/Lennard-Jones
 Benchmarking eval_methods_1000pts/tree_walk_evaluate/Lennard-Jones: Warming up for 3.0000 s
-Benchmarking eval_methods_1000pts/tree_walk_evaluate/Lennard-Jones: Collecting 100 samples in estimated 6.7514 s (10k iterations)
+Benchmarking eval_methods_1000pts/tree_walk_evaluate/Lennard-Jones: Collecting 100 samples in estimated 6.7437 s (10k iterations)
 Benchmarking eval_methods_1000pts/tree_walk_evaluate/Lennard-Jones: Analyzing
 eval_methods_1000pts/tree_walk_evaluate/Lennard-Jones
-                        time:   [666.66 µs 668.14 µs 670.64 µs]
-Found 5 outliers among 100 measurements (5.00%)
-  2 (2.00%) high mild
+                        time:   [667.29 µs 667.77 µs 668.32 µs]
+Found 4 outliers among 100 measurements (4.00%)
+  1 (1.00%) low mild
   3 (3.00%) high severe
 Benchmarking eval_methods_1000pts/compiled_loop/Lennard-Jones
 Benchmarking eval_methods_1000pts/compiled_loop/Lennard-Jones: Warming up for 3.0000 s
-Benchmarking eval_methods_1000pts/compiled_loop/Lennard-Jones: Collecting 100 samples in estimated 5.0126 s (56k iterations)
+Benchmarking eval_methods_1000pts/compiled_loop/Lennard-Jones: Collecting 100 samples in estimated 5.2165 s (61k iterations)
 Benchmarking eval_methods_1000pts/compiled_loop/Lennard-Jones: Analyzing
 eval_methods_1000pts/compiled_loop/Lennard-Jones
-                        time:   [90.223 µs 90.266 µs 90.312 µs]
-Found 2 outliers among 100 measurements (2.00%)
-  2 (2.00%) high mild
+                        time:   [86.343 µs 86.367 µs 86.392 µs]
+Found 12 outliers among 100 measurements (12.00%)
+  7 (7.00%) low mild
+  3 (3.00%) high mild
+  2 (2.00%) high severe
 Benchmarking eval_methods_1000pts/tree_walk_evaluate/Logistic Sigmoid
 Benchmarking eval_methods_1000pts/tree_walk_evaluate/Logistic Sigmoid: Warming up for 3.0000 s
 
 Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 5.5s, enable flat sampling, or reduce sample count to 60.
-Benchmarking eval_methods_1000pts/tree_walk_evaluate/Logistic Sigmoid: Collecting 100 samples in estimated 5.4919 s (5050 iterations)
+Benchmarking eval_methods_1000pts/tree_walk_evaluate/Logistic Sigmoid: Collecting 100 samples in estimated 5.4816 s (5050 iterations)
 Benchmarking eval_methods_1000pts/tree_walk_evaluate/Logistic Sigmoid: Analyzing
 eval_methods_1000pts/tree_walk_evaluate/Logistic Sigmoid
-                        time:   [1.0872 ms 1.0880 ms 1.0888 ms]
+                        time:   [1.0962 ms 1.0981 ms 1.0999 ms]
 Benchmarking eval_methods_1000pts/compiled_loop/Logistic Sigmoid
 Benchmarking eval_methods_1000pts/compiled_loop/Logistic Sigmoid: Warming up for 3.0000 s
-Benchmarking eval_methods_1000pts/compiled_loop/Logistic Sigmoid: Collecting 100 samples in estimated 5.1053 s (40k iterations)
+Benchmarking eval_methods_1000pts/compiled_loop/Logistic Sigmoid: Collecting 100 samples in estimated 5.0948 s (40k iterations)
 Benchmarking eval_methods_1000pts/compiled_loop/Logistic Sigmoid: Analyzing
 eval_methods_1000pts/compiled_loop/Logistic Sigmoid
-                        time:   [126.32 µs 126.33 µs 126.34 µs]
-Found 8 outliers among 100 measurements (8.00%)
-  1 (1.00%) low severe
-  1 (1.00%) low mild
-  5 (5.00%) high mild
-  1 (1.00%) high severe
+                        time:   [126.22 µs 126.30 µs 126.38 µs]
+Found 14 outliers among 100 measurements (14.00%)
+  12 (12.00%) high mild
+  2 (2.00%) high severe
 Benchmarking eval_methods_1000pts/tree_walk_evaluate/Damped Oscillator
 Benchmarking eval_methods_1000pts/tree_walk_evaluate/Damped Oscillator: Warming up for 3.0000 s
 
 Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 5.2s, enable flat sampling, or reduce sample count to 60.
-Benchmarking eval_methods_1000pts/tree_walk_evaluate/Damped Oscillator: Collecting 100 samples in estimated 5.1632 s (5050 iterations)
+Benchmarking eval_methods_1000pts/tree_walk_evaluate/Damped Oscillator: Collecting 100 samples in estimated 5.1922 s (5050 iterations)
 Benchmarking eval_methods_1000pts/tree_walk_evaluate/Damped Oscillator: Analyzing
 eval_methods_1000pts/tree_walk_evaluate/Damped Oscillator
-                        time:   [1.0420 ms 1.0465 ms 1.0506 ms]
+                        time:   [1.0274 ms 1.0283 ms 1.0294 ms]
+Found 19 outliers among 100 measurements (19.00%)
+  3 (3.00%) low mild
+  13 (13.00%) high mild
+  3 (3.00%) high severe
 Benchmarking eval_methods_1000pts/compiled_loop/Damped Oscillator
 Benchmarking eval_methods_1000pts/compiled_loop/Damped Oscillator: Warming up for 3.0000 s
-Benchmarking eval_methods_1000pts/compiled_loop/Damped Oscillator: Collecting 100 samples in estimated 5.1875 s (61k iterations)
+Benchmarking eval_methods_1000pts/compiled_loop/Damped Oscillator: Collecting 100 samples in estimated 5.0612 s (61k iterations)
 Benchmarking eval_methods_1000pts/compiled_loop/Damped Oscillator: Analyzing
 eval_methods_1000pts/compiled_loop/Damped Oscillator
-                        time:   [85.583 µs 85.615 µs 85.652 µs]
-Found 10 outliers among 100 measurements (10.00%)
-  1 (1.00%) low mild
-  5 (5.00%) high mild
-  4 (4.00%) high severe
+                        time:   [83.092 µs 83.173 µs 83.321 µs]
+Found 5 outliers among 100 measurements (5.00%)
+  2 (2.00%) high mild
+  3 (3.00%) high severe
 Benchmarking eval_methods_1000pts/tree_walk_evaluate/Planck Blackbody
 Benchmarking eval_methods_1000pts/tree_walk_evaluate/Planck Blackbody: Warming up for 3.0000 s
-Benchmarking eval_methods_1000pts/tree_walk_evaluate/Planck Blackbody: Collecting 100 samples in estimated 5.0261 s (2500 iterations)
+Benchmarking eval_methods_1000pts/tree_walk_evaluate/Planck Blackbody: Collecting 100 samples in estimated 5.0284 s (2500 iterations)
 Benchmarking eval_methods_1000pts/tree_walk_evaluate/Planck Blackbody: Analyzing
 eval_methods_1000pts/tree_walk_evaluate/Planck Blackbody
-                        time:   [2.0143 ms 2.0156 ms 2.0168 ms]
+                        time:   [2.0135 ms 2.0148 ms 2.0163 ms]
+Found 3 outliers among 100 measurements (3.00%)
+  2 (2.00%) low mild
+  1 (1.00%) high severe
 Benchmarking eval_methods_1000pts/compiled_loop/Planck Blackbody
 Benchmarking eval_methods_1000pts/compiled_loop/Planck Blackbody: Warming up for 3.0000 s
-Benchmarking eval_methods_1000pts/compiled_loop/Planck Blackbody: Collecting 100 samples in estimated 5.0195 s (25k iterations)
+Benchmarking eval_methods_1000pts/compiled_loop/Planck Blackbody: Collecting 100 samples in estimated 5.1215 s (25k iterations)
 Benchmarking eval_methods_1000pts/compiled_loop/Planck Blackbody: Analyzing
 eval_methods_1000pts/compiled_loop/Planck Blackbody
-                        time:   [189.26 µs 189.89 µs 190.72 µs]
+                        time:   [205.66 µs 206.11 µs 206.56 µs]
+Found 6 outliers among 100 measurements (6.00%)
+  5 (5.00%) low mild
+  1 (1.00%) high mild
 Benchmarking eval_methods_1000pts/tree_walk_evaluate/Bessel Wave
 Benchmarking eval_methods_1000pts/tree_walk_evaluate/Bessel Wave: Warming up for 3.0000 s
 
-Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 6.3s, enable flat sampling, or reduce sample count to 60.
-Benchmarking eval_methods_1000pts/tree_walk_evaluate/Bessel Wave: Collecting 100 samples in estimated 6.3183 s (5050 iterations)
+Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 6.2s, enable flat sampling, or reduce sample count to 60.
+Benchmarking eval_methods_1000pts/tree_walk_evaluate/Bessel Wave: Collecting 100 samples in estimated 6.2290 s (5050 iterations)
 Benchmarking eval_methods_1000pts/tree_walk_evaluate/Bessel Wave: Analyzing
 eval_methods_1000pts/tree_walk_evaluate/Bessel Wave
-                        time:   [1.2760 ms 1.2781 ms 1.2804 ms]
+                        time:   [1.2394 ms 1.2413 ms 1.2433 ms]
 Benchmarking eval_methods_1000pts/compiled_loop/Bessel Wave
 Benchmarking eval_methods_1000pts/compiled_loop/Bessel Wave: Warming up for 3.0000 s
-Benchmarking eval_methods_1000pts/compiled_loop/Bessel Wave: Collecting 100 samples in estimated 5.6516 s (30k iterations)
+Benchmarking eval_methods_1000pts/compiled_loop/Bessel Wave: Collecting 100 samples in estimated 5.6228 s (30k iterations)
 Benchmarking eval_methods_1000pts/compiled_loop/Bessel Wave: Analyzing
 eval_methods_1000pts/compiled_loop/Bessel Wave
-                        time:   [185.89 µs 185.97 µs 186.07 µs]
-Found 6 outliers among 100 measurements (6.00%)
-  1 (1.00%) low mild
+                        time:   [186.48 µs 186.55 µs 186.62 µs]
+Found 12 outliers among 100 measurements (12.00%)
+  1 (1.00%) low severe
+  4 (4.00%) low mild
   3 (3.00%) high mild
-  2 (2.00%) high severe
+  4 (4.00%) high severe
 
 Benchmarking eval_scaling/loop_evaluate/100
 Benchmarking eval_scaling/loop_evaluate/100: Warming up for 3.0000 s
-Benchmarking eval_scaling/loop_evaluate/100: Collecting 100 samples in estimated 5.0281 s (793k iterations)
+Benchmarking eval_scaling/loop_evaluate/100: Collecting 100 samples in estimated 5.0013 s (788k iterations)
 Benchmarking eval_scaling/loop_evaluate/100: Analyzing
 eval_scaling/loop_evaluate/100
-                        time:   [6.3335 µs 6.3435 µs 6.3570 µs]
-Found 2 outliers among 100 measurements (2.00%)
-  1 (1.00%) high mild
-  1 (1.00%) high severe
+                        time:   [6.3459 µs 6.3478 µs 6.3502 µs]
+Found 8 outliers among 100 measurements (8.00%)
+  5 (5.00%) high mild
+  3 (3.00%) high severe
 Benchmarking eval_scaling/eval_batch/100
 Benchmarking eval_scaling/eval_batch/100: Warming up for 3.0000 s
-Benchmarking eval_scaling/eval_batch/100: Collecting 100 samples in estimated 5.0085 s (2.3M iterations)
+Benchmarking eval_scaling/eval_batch/100: Collecting 100 samples in estimated 5.0093 s (2.3M iterations)
 Benchmarking eval_scaling/eval_batch/100: Analyzing
 eval_scaling/eval_batch/100
-                        time:   [2.1947 µs 2.1961 µs 2.1973 µs]
-Found 2 outliers among 100 measurements (2.00%)
+                        time:   [2.1660 µs 2.1724 µs 2.1850 µs]
+Found 3 outliers among 100 measurements (3.00%)
   2 (2.00%) high mild
+  1 (1.00%) high severe
 Benchmarking eval_scaling/loop_evaluate/1000
 Benchmarking eval_scaling/loop_evaluate/1000: Warming up for 3.0000 s
-Benchmarking eval_scaling/loop_evaluate/1000: Collecting 100 samples in estimated 5.1030 s (81k iterations)
+Benchmarking eval_scaling/loop_evaluate/1000: Collecting 100 samples in estimated 5.1313 s (81k iterations)
 Benchmarking eval_scaling/loop_evaluate/1000: Analyzing
 eval_scaling/loop_evaluate/1000
-                        time:   [63.305 µs 63.346 µs 63.382 µs]
-Benchmarking eval_scaling/eval_batch/1000
-Benchmarking eval_scaling/eval_batch/1000: Warming up for 3.0000 s
-Benchmarking eval_scaling/eval_batch/1000: Collecting 100 samples in estimated 5.0858 s (232k iterations)
-Benchmarking eval_scaling/eval_batch/1000: Analyzing
-eval_scaling/eval_batch/1000
-                        time:   [21.911 µs 21.924 µs 21.940 µs]
+                        time:   [63.720 µs 63.739 µs 63.761 µs]
 Found 2 outliers among 100 measurements (2.00%)
   2 (2.00%) high mild
+Benchmarking eval_scaling/eval_batch/1000
+Benchmarking eval_scaling/eval_batch/1000: Warming up for 3.0000 s
+Benchmarking eval_scaling/eval_batch/1000: Collecting 100 samples in estimated 5.0286 s (232k iterations)
+Benchmarking eval_scaling/eval_batch/1000: Analyzing
+eval_scaling/eval_batch/1000
+                        time:   [21.637 µs 21.648 µs 21.660 µs]
+Found 3 outliers among 100 measurements (3.00%)
+  2 (2.00%) high mild
+  1 (1.00%) high severe
 Benchmarking eval_scaling/loop_evaluate/10000
 Benchmarking eval_scaling/loop_evaluate/10000: Warming up for 3.0000 s
-Benchmarking eval_scaling/loop_evaluate/10000: Collecting 100 samples in estimated 6.3787 s (10k iterations)
+Benchmarking eval_scaling/loop_evaluate/10000: Collecting 100 samples in estimated 6.4141 s (10k iterations)
 Benchmarking eval_scaling/loop_evaluate/10000: Analyzing
 eval_scaling/loop_evaluate/10000
-                        time:   [631.50 µs 631.80 µs 632.26 µs]
-Found 14 outliers among 100 measurements (14.00%)
-  1 (1.00%) low mild
-  8 (8.00%) high mild
-  5 (5.00%) high severe
+                        time:   [634.52 µs 634.63 µs 634.76 µs]
+Found 8 outliers among 100 measurements (8.00%)
+  4 (4.00%) high mild
+  4 (4.00%) high severe
 Benchmarking eval_scaling/eval_batch/10000
 Benchmarking eval_scaling/eval_batch/10000: Warming up for 3.0000 s
-Benchmarking eval_scaling/eval_batch/10000: Collecting 100 samples in estimated 5.5202 s (25k iterations)
+Benchmarking eval_scaling/eval_batch/10000: Collecting 100 samples in estimated 5.4650 s (25k iterations)
 Benchmarking eval_scaling/eval_batch/10000: Analyzing
 eval_scaling/eval_batch/10000
-                        time:   [218.83 µs 219.82 µs 221.82 µs]
-Found 6 outliers among 100 measurements (6.00%)
+                        time:   [216.54 µs 216.66 µs 216.83 µs]
+Found 4 outliers among 100 measurements (4.00%)
   1 (1.00%) high mild
-  5 (5.00%) high severe
+  3 (3.00%) high severe
 Benchmarking eval_scaling/loop_evaluate/100000
 Benchmarking eval_scaling/loop_evaluate/100000: Warming up for 3.0000 s
-Benchmarking eval_scaling/loop_evaluate/100000: Collecting 100 samples in estimated 5.0552 s (800 iterations)
+Benchmarking eval_scaling/loop_evaluate/100000: Collecting 100 samples in estimated 5.0824 s (800 iterations)
 Benchmarking eval_scaling/loop_evaluate/100000: Analyzing
 eval_scaling/loop_evaluate/100000
-                        time:   [6.3167 ms 6.3226 ms 6.3332 ms]
-Found 10 outliers among 100 measurements (10.00%)
-  4 (4.00%) high mild
-  6 (6.00%) high severe
+                        time:   [6.3561 ms 6.3587 ms 6.3614 ms]
 Benchmarking eval_scaling/eval_batch/100000
 Benchmarking eval_scaling/eval_batch/100000: Warming up for 3.0000 s
-Benchmarking eval_scaling/eval_batch/100000: Collecting 100 samples in estimated 5.0228 s (2300 iterations)
+Benchmarking eval_scaling/eval_batch/100000: Collecting 100 samples in estimated 5.2108 s (2400 iterations)
 Benchmarking eval_scaling/eval_batch/100000: Analyzing
 eval_scaling/eval_batch/100000
-                        time:   [2.1653 ms 2.1670 ms 2.1688 ms]
-Found 3 outliers among 100 measurements (3.00%)
-  3 (3.00%) high mild
+                        time:   [2.1724 ms 2.1730 ms 2.1737 ms]
+Found 1 outliers among 100 measurements (1.00%)
+  1 (1.00%) high mild
 
 Benchmarking multi_expr_batch/sequential_loops
 Benchmarking multi_expr_batch/sequential_loops: Warming up for 3.0000 s
-Benchmarking multi_expr_batch/sequential_loops: Collecting 100 samples in estimated 5.0610 s (40k iterations)
+Benchmarking multi_expr_batch/sequential_loops: Collecting 100 samples in estimated 5.0907 s (40k iterations)
 Benchmarking multi_expr_batch/sequential_loops: Analyzing
 multi_expr_batch/sequential_loops
-                        time:   [125.27 µs 125.31 µs 125.34 µs]
-Found 3 outliers among 100 measurements (3.00%)
-  3 (3.00%) high severe
+                        time:   [125.65 µs 125.71 µs 125.81 µs]
+Found 12 outliers among 100 measurements (12.00%)
+  4 (4.00%) high mild
+  8 (8.00%) high severe
 Benchmarking multi_expr_batch/eval_batch_per_expr
 Benchmarking multi_expr_batch/eval_batch_per_expr: Warming up for 3.0000 s
-Benchmarking multi_expr_batch/eval_batch_per_expr: Collecting 100 samples in estimated 5.1571 s (126k iterations)
+Benchmarking multi_expr_batch/eval_batch_per_expr: Collecting 100 samples in estimated 5.1555 s (126k iterations)
 Benchmarking multi_expr_batch/eval_batch_per_expr: Analyzing
 multi_expr_batch/eval_batch_per_expr
-                        time:   [40.834 µs 40.844 µs 40.856 µs]
-Found 6 outliers among 100 measurements (6.00%)
-  5 (5.00%) high mild
-  1 (1.00%) high severe
+                        time:   [40.820 µs 40.847 µs 40.879 µs]
+Found 9 outliers among 100 measurements (9.00%)
+  7 (7.00%) high mild
+  2 (2.00%) high severe
 Benchmarking multi_expr_batch/eval_f64_per_expr
 Benchmarking multi_expr_batch/eval_f64_per_expr: Warming up for 3.0000 s
-Benchmarking multi_expr_batch/eval_f64_per_expr: Collecting 100 samples in estimated 5.1535 s (81k iterations)
+Benchmarking multi_expr_batch/eval_f64_per_expr: Collecting 100 samples in estimated 5.0799 s (81k iterations)
 Benchmarking multi_expr_batch/eval_f64_per_expr: Analyzing
 multi_expr_batch/eval_f64_per_expr
-                        time:   [64.188 µs 65.094 µs 66.203 µs]
-Found 13 outliers among 100 measurements (13.00%)
+                        time:   [62.659 µs 63.652 µs 64.979 µs]
+Found 10 outliers among 100 measurements (10.00%)
+  1 (1.00%) low mild
   2 (2.00%) high mild
-  11 (11.00%) high severe
+  7 (7.00%) high severe
 
 Benchmarking eval_api_comparison/eval_f64
 Benchmarking eval_api_comparison/eval_f64: Warming up for 3.0000 s
-Benchmarking eval_api_comparison/eval_f64: Collecting 100 samples in estimated 5.3667 s (40k iterations)
+Benchmarking eval_api_comparison/eval_f64: Collecting 100 samples in estimated 5.2468 s (40k iterations)
 Benchmarking eval_api_comparison/eval_f64: Analyzing
 eval_api_comparison/eval_f64
-                        time:   [132.44 µs 133.85 µs 135.30 µs]
-Found 9 outliers among 100 measurements (9.00%)
-  6 (6.00%) high mild
-  3 (3.00%) high severe
+                        time:   [128.66 µs 130.98 µs 134.27 µs]
+Found 3 outliers among 100 measurements (3.00%)
+  1 (1.00%) high mild
+  2 (2.00%) high severe
 Benchmarking eval_api_comparison/evaluate_parallel
 Benchmarking eval_api_comparison/evaluate_parallel: Warming up for 3.0000 s
-Benchmarking eval_api_comparison/evaluate_parallel: Collecting 100 samples in estimated 5.6322 s (15k iterations)
+Benchmarking eval_api_comparison/evaluate_parallel: Collecting 100 samples in estimated 5.5069 s (15k iterations)
 Benchmarking eval_api_comparison/evaluate_parallel: Analyzing
 eval_api_comparison/evaluate_parallel
-                        time:   [369.54 µs 369.99 µs 370.50 µs]
-Found 2 outliers among 100 measurements (2.00%)
-  1 (1.00%) high mild
-  1 (1.00%) high severe
+                        time:   [366.06 µs 366.64 µs 367.22 µs]
+Found 4 outliers among 100 measurements (4.00%)
+  2 (2.00%) low mild
+  2 (2.00%) high mild
 
-[1m[92m     Running[0m benches/rust/benchmark_symbolica.rs (target/release/deps/benchmark_symbolica-ba4548e8e35958ad)
+[1m[92m     Running[0m benches/rust/benchmark_symbolica.rs (target/release/deps/benchmark_symbolica-1b615446caac9b90)
 Gnuplot not found, using plotters backend
 Benchmarking 1_parse/symbolica/Normal PDF
 Benchmarking 1_parse/symbolica/Normal PDF: Warming up for 3.0000 s
-Benchmarking 1_parse/symbolica/Normal PDF: Collecting 100 samples in estimated 5.0267 s (510k iterations)
+Benchmarking 1_parse/symbolica/Normal PDF: Collecting 100 samples in estimated 5.0348 s (500k iterations)
 Benchmarking 1_parse/symbolica/Normal PDF: Analyzing
 1_parse/symbolica/Normal PDF
-                        time:   [9.7673 µs 9.7877 µs 9.8076 µs]
+                        time:   [10.104 µs 10.127 µs 10.153 µs]
 Found 1 outliers among 100 measurements (1.00%)
-  1 (1.00%) high severe
+  1 (1.00%) high mild
 Benchmarking 1_parse/symbolica/Gaussian 2D
 Benchmarking 1_parse/symbolica/Gaussian 2D: Warming up for 3.0000 s
-Benchmarking 1_parse/symbolica/Gaussian 2D: Collecting 100 samples in estimated 5.0219 s (369k iterations)
+Benchmarking 1_parse/symbolica/Gaussian 2D: Collecting 100 samples in estimated 5.0236 s (364k iterations)
 Benchmarking 1_parse/symbolica/Gaussian 2D: Analyzing
 1_parse/symbolica/Gaussian 2D
-                        time:   [13.531 µs 13.559 µs 13.586 µs]
-Found 1 outliers among 100 measurements (1.00%)
-  1 (1.00%) high severe
+                        time:   [13.927 µs 13.954 µs 13.984 µs]
 Benchmarking 1_parse/symbolica/Maxwell-Boltzmann
 Benchmarking 1_parse/symbolica/Maxwell-Boltzmann: Warming up for 3.0000 s
-Benchmarking 1_parse/symbolica/Maxwell-Boltzmann: Collecting 100 samples in estimated 5.0183 s (384k iterations)
+Benchmarking 1_parse/symbolica/Maxwell-Boltzmann: Collecting 100 samples in estimated 5.0484 s (384k iterations)
 Benchmarking 1_parse/symbolica/Maxwell-Boltzmann: Analyzing
 1_parse/symbolica/Maxwell-Boltzmann
-                        time:   [12.905 µs 12.927 µs 12.949 µs]
-Found 2 outliers among 100 measurements (2.00%)
+                        time:   [13.097 µs 13.121 µs 13.147 µs]
+Found 1 outliers among 100 measurements (1.00%)
   1 (1.00%) high mild
-  1 (1.00%) high severe
 Benchmarking 1_parse/symbolica/Lorentz Factor
 Benchmarking 1_parse/symbolica/Lorentz Factor: Warming up for 3.0000 s
-Benchmarking 1_parse/symbolica/Lorentz Factor: Collecting 100 samples in estimated 5.0088 s (1.0M iterations)
+Benchmarking 1_parse/symbolica/Lorentz Factor: Collecting 100 samples in estimated 5.0164 s (1.0M iterations)
 Benchmarking 1_parse/symbolica/Lorentz Factor: Analyzing
 1_parse/symbolica/Lorentz Factor
-                        time:   [4.8021 µs 4.8172 µs 4.8315 µs]
+                        time:   [4.9041 µs 4.9179 µs 4.9338 µs]
 Found 1 outliers among 100 measurements (1.00%)
   1 (1.00%) high mild
 Benchmarking 1_parse/symbolica/Lennard-Jones
 Benchmarking 1_parse/symbolica/Lennard-Jones: Warming up for 3.0000 s
-Benchmarking 1_parse/symbolica/Lennard-Jones: Collecting 100 samples in estimated 5.0302 s (667k iterations)
+Benchmarking 1_parse/symbolica/Lennard-Jones: Collecting 100 samples in estimated 5.0301 s (656k iterations)
 Benchmarking 1_parse/symbolica/Lennard-Jones: Analyzing
 1_parse/symbolica/Lennard-Jones
-                        time:   [7.5251 µs 7.5425 µs 7.5592 µs]
-Found 6 outliers among 100 measurements (6.00%)
-  2 (2.00%) high mild
-  4 (4.00%) high severe
+                        time:   [7.6237 µs 7.6382 µs 7.6537 µs]
 Benchmarking 1_parse/symbolica/Logistic Sigmoid
 Benchmarking 1_parse/symbolica/Logistic Sigmoid: Warming up for 3.0000 s
-Benchmarking 1_parse/symbolica/Logistic Sigmoid: Collecting 100 samples in estimated 5.0086 s (1.1M iterations)
+Benchmarking 1_parse/symbolica/Logistic Sigmoid: Collecting 100 samples in estimated 5.0194 s (1.1M iterations)
 Benchmarking 1_parse/symbolica/Logistic Sigmoid: Analyzing
 1_parse/symbolica/Logistic Sigmoid
-                        time:   [4.6323 µs 4.6428 µs 4.6531 µs]
-Found 1 outliers among 100 measurements (1.00%)
-  1 (1.00%) high mild
+                        time:   [4.6423 µs 4.6544 µs 4.6673 µs]
 Benchmarking 1_parse/symbolica/Damped Oscillator
 Benchmarking 1_parse/symbolica/Damped Oscillator: Warming up for 3.0000 s
-Benchmarking 1_parse/symbolica/Damped Oscillator: Collecting 100 samples in estimated 5.0058 s (939k iterations)
+Benchmarking 1_parse/symbolica/Damped Oscillator: Collecting 100 samples in estimated 5.0189 s (934k iterations)
 Benchmarking 1_parse/symbolica/Damped Oscillator: Analyzing
 1_parse/symbolica/Damped Oscillator
-                        time:   [5.3282 µs 5.3420 µs 5.3559 µs]
-Found 3 outliers among 100 measurements (3.00%)
-  3 (3.00%) high mild
-Benchmarking 1_parse/symbolica/Planck Blackbody
-Benchmarking 1_parse/symbolica/Planck Blackbody: Warming up for 3.0000 s
-Benchmarking 1_parse/symbolica/Planck Blackbody: Collecting 100 samples in estimated 5.0175 s (576k iterations)
-Benchmarking 1_parse/symbolica/Planck Blackbody: Analyzing
-1_parse/symbolica/Planck Blackbody
-                        time:   [8.7059 µs 8.7212 µs 8.7366 µs]
+                        time:   [5.3896 µs 5.4007 µs 5.4123 µs]
 Found 1 outliers among 100 measurements (1.00%)
   1 (1.00%) high mild
+Benchmarking 1_parse/symbolica/Planck Blackbody
+Benchmarking 1_parse/symbolica/Planck Blackbody: Warming up for 3.0000 s
+Benchmarking 1_parse/symbolica/Planck Blackbody: Collecting 100 samples in estimated 5.0134 s (576k iterations)
+Benchmarking 1_parse/symbolica/Planck Blackbody: Analyzing
+1_parse/symbolica/Planck Blackbody
+                        time:   [8.7925 µs 8.8062 µs 8.8203 µs]
 Benchmarking 1_parse/symbolica/Bessel Wave
 Benchmarking 1_parse/symbolica/Bessel Wave: Warming up for 3.0000 s
-Benchmarking 1_parse/symbolica/Bessel Wave: Collecting 100 samples in estimated 5.0221 s (1.0M iterations)
+Benchmarking 1_parse/symbolica/Bessel Wave: Collecting 100 samples in estimated 5.0227 s (1.1M iterations)
 Benchmarking 1_parse/symbolica/Bessel Wave: Analyzing
 1_parse/symbolica/Bessel Wave
-                        time:   [4.8126 µs 4.8225 µs 4.8322 µs]
+                        time:   [4.8131 µs 4.8224 µs 4.8323 µs]
 
 Benchmarking 2_diff/symbolica/Normal PDF
 Benchmarking 2_diff/symbolica/Normal PDF: Warming up for 3.0000 s
-Benchmarking 2_diff/symbolica/Normal PDF: Collecting 100 samples in estimated 5.0071 s (1.4M iterations)
+Benchmarking 2_diff/symbolica/Normal PDF: Collecting 100 samples in estimated 5.0055 s (1.5M iterations)
 Benchmarking 2_diff/symbolica/Normal PDF: Analyzing
 2_diff/symbolica/Normal PDF
-                        time:   [3.5008 µs 3.5074 µs 3.5166 µs]
+                        time:   [3.4185 µs 3.4230 µs 3.4274 µs]
 Found 1 outliers among 100 measurements (1.00%)
-  1 (1.00%) high severe
+  1 (1.00%) high mild
 Benchmarking 2_diff/symbolica/Gaussian 2D
 Benchmarking 2_diff/symbolica/Gaussian 2D: Warming up for 3.0000 s
-Benchmarking 2_diff/symbolica/Gaussian 2D: Collecting 100 samples in estimated 5.0188 s (1.1M iterations)
+Benchmarking 2_diff/symbolica/Gaussian 2D: Collecting 100 samples in estimated 5.0203 s (1.1M iterations)
 Benchmarking 2_diff/symbolica/Gaussian 2D: Analyzing
 2_diff/symbolica/Gaussian 2D
-                        time:   [4.6001 µs 4.6059 µs 4.6120 µs]
+                        time:   [4.5788 µs 4.5882 µs 4.5983 µs]
+Found 3 outliers among 100 measurements (3.00%)
+  2 (2.00%) high mild
+  1 (1.00%) high severe
 Benchmarking 2_diff/symbolica/Maxwell-Boltzmann
 Benchmarking 2_diff/symbolica/Maxwell-Boltzmann: Warming up for 3.0000 s
-Benchmarking 2_diff/symbolica/Maxwell-Boltzmann: Collecting 100 samples in estimated 5.0055 s (727k iterations)
+Benchmarking 2_diff/symbolica/Maxwell-Boltzmann: Collecting 100 samples in estimated 5.0095 s (722k iterations)
 Benchmarking 2_diff/symbolica/Maxwell-Boltzmann: Analyzing
 2_diff/symbolica/Maxwell-Boltzmann
-                        time:   [6.9216 µs 6.9329 µs 6.9465 µs]
+                        time:   [6.8683 µs 6.8793 µs 6.8911 µs]
 Found 1 outliers among 100 measurements (1.00%)
   1 (1.00%) high severe
 Benchmarking 2_diff/symbolica/Lorentz Factor
 Benchmarking 2_diff/symbolica/Lorentz Factor: Warming up for 3.0000 s
-Benchmarking 2_diff/symbolica/Lorentz Factor: Collecting 100 samples in estimated 5.0131 s (1.3M iterations)
+Benchmarking 2_diff/symbolica/Lorentz Factor: Collecting 100 samples in estimated 5.0099 s (1.3M iterations)
 Benchmarking 2_diff/symbolica/Lorentz Factor: Analyzing
 2_diff/symbolica/Lorentz Factor
-                        time:   [3.7963 µs 3.8025 µs 3.8092 µs]
+                        time:   [3.7682 µs 3.7740 µs 3.7796 µs]
+Found 4 outliers among 100 measurements (4.00%)
+  2 (2.00%) high mild
+  2 (2.00%) high severe
 Benchmarking 2_diff/symbolica/Lennard-Jones
 Benchmarking 2_diff/symbolica/Lennard-Jones: Warming up for 3.0000 s
-Benchmarking 2_diff/symbolica/Lennard-Jones: Collecting 100 samples in estimated 5.0040 s (1.3M iterations)
+Benchmarking 2_diff/symbolica/Lennard-Jones: Collecting 100 samples in estimated 5.0086 s (1.2M iterations)
 Benchmarking 2_diff/symbolica/Lennard-Jones: Analyzing
 2_diff/symbolica/Lennard-Jones
-                        time:   [3.9679 µs 3.9739 µs 3.9798 µs]
-Found 8 outliers among 100 measurements (8.00%)
-  1 (1.00%) low severe
-  6 (6.00%) low mild
+                        time:   [3.9909 µs 3.9955 µs 4.0012 µs]
+Found 2 outliers among 100 measurements (2.00%)
   1 (1.00%) high mild
+  1 (1.00%) high severe
 Benchmarking 2_diff/symbolica/Logistic Sigmoid
 Benchmarking 2_diff/symbolica/Logistic Sigmoid: Warming up for 3.0000 s
-Benchmarking 2_diff/symbolica/Logistic Sigmoid: Collecting 100 samples in estimated 5.0094 s (2.1M iterations)
+Benchmarking 2_diff/symbolica/Logistic Sigmoid: Collecting 100 samples in estimated 5.0107 s (2.1M iterations)
 Benchmarking 2_diff/symbolica/Logistic Sigmoid: Analyzing
 2_diff/symbolica/Logistic Sigmoid
-                        time:   [2.4158 µs 2.4216 µs 2.4276 µs]
+                        time:   [2.3665 µs 2.3723 µs 2.3798 µs]
 Found 3 outliers among 100 measurements (3.00%)
-  3 (3.00%) high mild
+  3 (3.00%) high severe
 Benchmarking 2_diff/symbolica/Damped Oscillator
 Benchmarking 2_diff/symbolica/Damped Oscillator: Warming up for 3.0000 s
-Benchmarking 2_diff/symbolica/Damped Oscillator: Collecting 100 samples in estimated 5.0157 s (1.4M iterations)
+Benchmarking 2_diff/symbolica/Damped Oscillator: Collecting 100 samples in estimated 5.0039 s (1.4M iterations)
 Benchmarking 2_diff/symbolica/Damped Oscillator: Analyzing
 2_diff/symbolica/Damped Oscillator
-                        time:   [3.4872 µs 3.4935 µs 3.5004 µs]
-Found 1 outliers among 100 measurements (1.00%)
-  1 (1.00%) high mild
+                        time:   [3.5305 µs 3.5375 µs 3.5443 µs]
 Benchmarking 2_diff/symbolica/Planck Blackbody
 Benchmarking 2_diff/symbolica/Planck Blackbody: Warming up for 3.0000 s
-Benchmarking 2_diff/symbolica/Planck Blackbody: Collecting 100 samples in estimated 5.0297 s (752k iterations)
+Benchmarking 2_diff/symbolica/Planck Blackbody: Collecting 100 samples in estimated 5.0039 s (763k iterations)
 Benchmarking 2_diff/symbolica/Planck Blackbody: Analyzing
 2_diff/symbolica/Planck Blackbody
-                        time:   [6.6055 µs 6.6144 µs 6.6255 µs]
+                        time:   [6.6024 µs 6.6140 µs 6.6246 µs]
 Found 1 outliers among 100 measurements (1.00%)
   1 (1.00%) high mild
 Benchmarking 2_diff/symbolica/Bessel Wave
 Benchmarking 2_diff/symbolica/Bessel Wave: Warming up for 3.0000 s
-Benchmarking 2_diff/symbolica/Bessel Wave: Collecting 100 samples in estimated 5.0094 s (1.4M iterations)
+Benchmarking 2_diff/symbolica/Bessel Wave: Collecting 100 samples in estimated 5.0077 s (1.4M iterations)
 Benchmarking 2_diff/symbolica/Bessel Wave: Analyzing
 2_diff/symbolica/Bessel Wave
-                        time:   [3.5678 µs 3.5738 µs 3.5802 µs]
+                        time:   [3.6445 µs 3.6497 µs 3.6547 µs]
 
 Benchmarking 5_compile/symbolica/Normal PDF
 Benchmarking 5_compile/symbolica/Normal PDF: Warming up for 3.0000 s
-Benchmarking 5_compile/symbolica/Normal PDF: Collecting 100 samples in estimated 5.0664 s (273k iterations)
+Benchmarking 5_compile/symbolica/Normal PDF: Collecting 100 samples in estimated 5.0741 s (273k iterations)
 Benchmarking 5_compile/symbolica/Normal PDF: Analyzing
 5_compile/symbolica/Normal PDF
-                        time:   [18.496 µs 18.510 µs 18.526 µs]
-Found 4 outliers among 100 measurements (4.00%)
+                        time:   [18.437 µs 18.454 µs 18.479 µs]
+Found 3 outliers among 100 measurements (3.00%)
   1 (1.00%) high mild
-  3 (3.00%) high severe
+  2 (2.00%) high severe
 Benchmarking 5_compile/symbolica/Gaussian 2D
 Benchmarking 5_compile/symbolica/Gaussian 2D: Warming up for 3.0000 s
-Benchmarking 5_compile/symbolica/Gaussian 2D: Collecting 100 samples in estimated 5.0619 s (146k iterations)
+Benchmarking 5_compile/symbolica/Gaussian 2D: Collecting 100 samples in estimated 5.0559 s (146k iterations)
 Benchmarking 5_compile/symbolica/Gaussian 2D: Analyzing
 5_compile/symbolica/Gaussian 2D
-                        time:   [34.171 µs 34.229 µs 34.289 µs]
-Found 2 outliers among 100 measurements (2.00%)
-  1 (1.00%) high mild
+                        time:   [34.420 µs 34.480 µs 34.540 µs]
+Found 1 outliers among 100 measurements (1.00%)
   1 (1.00%) high severe
 Benchmarking 5_compile/symbolica/Maxwell-Boltzmann
 Benchmarking 5_compile/symbolica/Maxwell-Boltzmann: Warming up for 3.0000 s
-Benchmarking 5_compile/symbolica/Maxwell-Boltzmann: Collecting 100 samples in estimated 5.0056 s (278k iterations)
+Benchmarking 5_compile/symbolica/Maxwell-Boltzmann: Collecting 100 samples in estimated 5.0419 s (283k iterations)
 Benchmarking 5_compile/symbolica/Maxwell-Boltzmann: Analyzing
 5_compile/symbolica/Maxwell-Boltzmann
-                        time:   [17.929 µs 17.960 µs 18.012 µs]
-Found 9 outliers among 100 measurements (9.00%)
-  3 (3.00%) high mild
-  6 (6.00%) high severe
+                        time:   [17.791 µs 17.807 µs 17.823 µs]
+Found 7 outliers among 100 measurements (7.00%)
+  4 (4.00%) high mild
+  3 (3.00%) high severe
 Benchmarking 5_compile/symbolica/Lorentz Factor
 Benchmarking 5_compile/symbolica/Lorentz Factor: Warming up for 3.0000 s
-Benchmarking 5_compile/symbolica/Lorentz Factor: Collecting 100 samples in estimated 5.0290 s (515k iterations)
+Benchmarking 5_compile/symbolica/Lorentz Factor: Collecting 100 samples in estimated 5.0270 s (520k iterations)
 Benchmarking 5_compile/symbolica/Lorentz Factor: Analyzing
 5_compile/symbolica/Lorentz Factor
-                        time:   [9.7851 µs 9.7924 µs 9.8000 µs]
-Found 5 outliers among 100 measurements (5.00%)
-  4 (4.00%) high mild
-  1 (1.00%) high severe
+                        time:   [9.6589 µs 9.6638 µs 9.6695 µs]
+Found 6 outliers among 100 measurements (6.00%)
+  3 (3.00%) high mild
+  3 (3.00%) high severe
 Benchmarking 5_compile/symbolica/Lennard-Jones
 Benchmarking 5_compile/symbolica/Lennard-Jones: Warming up for 3.0000 s
-Benchmarking 5_compile/symbolica/Lennard-Jones: Collecting 100 samples in estimated 5.1227 s (187k iterations)
+Benchmarking 5_compile/symbolica/Lennard-Jones: Collecting 100 samples in estimated 5.1151 s (187k iterations)
 Benchmarking 5_compile/symbolica/Lennard-Jones: Analyzing
 5_compile/symbolica/Lennard-Jones
-                        time:   [27.343 µs 27.361 µs 27.379 µs]
-Found 6 outliers among 100 measurements (6.00%)
-  1 (1.00%) low mild
-  5 (5.00%) high mild
+                        time:   [27.358 µs 27.378 µs 27.405 µs]
+Found 4 outliers among 100 measurements (4.00%)
+  2 (2.00%) high mild
+  2 (2.00%) high severe
 Benchmarking 5_compile/symbolica/Logistic Sigmoid
 Benchmarking 5_compile/symbolica/Logistic Sigmoid: Warming up for 3.0000 s
-Benchmarking 5_compile/symbolica/Logistic Sigmoid: Collecting 100 samples in estimated 5.0450 s (515k iterations)
+Benchmarking 5_compile/symbolica/Logistic Sigmoid: Collecting 100 samples in estimated 5.0253 s (505k iterations)
 Benchmarking 5_compile/symbolica/Logistic Sigmoid: Analyzing
 5_compile/symbolica/Logistic Sigmoid
-                        time:   [9.7916 µs 9.7965 µs 9.8015 µs]
+                        time:   [9.9728 µs 9.9791 µs 9.9857 µs]
 Found 4 outliers among 100 measurements (4.00%)
-  1 (1.00%) high mild
-  3 (3.00%) high severe
+  4 (4.00%) high mild
 Benchmarking 5_compile/symbolica/Damped Oscillator
 Benchmarking 5_compile/symbolica/Damped Oscillator: Warming up for 3.0000 s
-Benchmarking 5_compile/symbolica/Damped Oscillator: Collecting 100 samples in estimated 5.0324 s (333k iterations)
+Benchmarking 5_compile/symbolica/Damped Oscillator: Collecting 100 samples in estimated 5.0246 s (328k iterations)
 Benchmarking 5_compile/symbolica/Damped Oscillator: Analyzing
 5_compile/symbolica/Damped Oscillator
-                        time:   [15.090 µs 15.111 µs 15.140 µs]
-Found 4 outliers among 100 measurements (4.00%)
-  1 (1.00%) low mild
-  2 (2.00%) high mild
-  1 (1.00%) high severe
+                        time:   [15.206 µs 15.213 µs 15.221 µs]
+Found 7 outliers among 100 measurements (7.00%)
+  3 (3.00%) high mild
+  4 (4.00%) high severe
 Benchmarking 5_compile/symbolica/Planck Blackbody
 Benchmarking 5_compile/symbolica/Planck Blackbody: Warming up for 3.0000 s
-Benchmarking 5_compile/symbolica/Planck Blackbody: Collecting 100 samples in estimated 5.0354 s (460k iterations)
+Benchmarking 5_compile/symbolica/Planck Blackbody: Collecting 100 samples in estimated 5.0534 s (465k iterations)
 Benchmarking 5_compile/symbolica/Planck Blackbody: Analyzing
 5_compile/symbolica/Planck Blackbody
-                        time:   [10.923 µs 10.960 µs 11.012 µs]
-Found 12 outliers among 100 measurements (12.00%)
-  6 (6.00%) low mild
-  2 (2.00%) high mild
-  4 (4.00%) high severe
+                        time:   [10.817 µs 10.832 µs 10.849 µs]
+Found 5 outliers among 100 measurements (5.00%)
+  3 (3.00%) high mild
+  2 (2.00%) high severe
 
 Benchmarking 6_eval_1000pts/symbolica/Normal PDF
 Benchmarking 6_eval_1000pts/symbolica/Normal PDF: Warming up for 3.0000 s
-Benchmarking 6_eval_1000pts/symbolica/Normal PDF: Collecting 100 samples in estimated 5.1451 s (81k iterations)
+Benchmarking 6_eval_1000pts/symbolica/Normal PDF: Collecting 100 samples in estimated 5.1553 s (81k iterations)
 Benchmarking 6_eval_1000pts/symbolica/Normal PDF: Analyzing
 6_eval_1000pts/symbolica/Normal PDF
-                        time:   [63.521 µs 63.565 µs 63.619 µs]
-Found 3 outliers among 100 measurements (3.00%)
-  1 (1.00%) high mild
-  2 (2.00%) high severe
-Benchmarking 6_eval_1000pts/symbolica/Gaussian 2D
-Benchmarking 6_eval_1000pts/symbolica/Gaussian 2D: Warming up for 3.0000 s
-Benchmarking 6_eval_1000pts/symbolica/Gaussian 2D: Collecting 100 samples in estimated 5.1993 s (81k iterations)
-Benchmarking 6_eval_1000pts/symbolica/Gaussian 2D: Analyzing
-6_eval_1000pts/symbolica/Gaussian 2D
-                        time:   [64.433 µs 64.464 µs 64.497 µs]
-Found 5 outliers among 100 measurements (5.00%)
-  3 (3.00%) high mild
-  2 (2.00%) high severe
-Benchmarking 6_eval_1000pts/symbolica/Maxwell-Boltzmann
-Benchmarking 6_eval_1000pts/symbolica/Maxwell-Boltzmann: Warming up for 3.0000 s
-Benchmarking 6_eval_1000pts/symbolica/Maxwell-Boltzmann: Collecting 100 samples in estimated 5.3353 s (66k iterations)
-Benchmarking 6_eval_1000pts/symbolica/Maxwell-Boltzmann: Analyzing
-6_eval_1000pts/symbolica/Maxwell-Boltzmann
-                        time:   [81.078 µs 81.105 µs 81.134 µs]
-Found 3 outliers among 100 measurements (3.00%)
+                        time:   [63.816 µs 63.858 µs 63.904 µs]
+Found 4 outliers among 100 measurements (4.00%)
+  1 (1.00%) low mild
   2 (2.00%) high mild
   1 (1.00%) high severe
+Benchmarking 6_eval_1000pts/symbolica/Gaussian 2D
+Benchmarking 6_eval_1000pts/symbolica/Gaussian 2D: Warming up for 3.0000 s
+Benchmarking 6_eval_1000pts/symbolica/Gaussian 2D: Collecting 100 samples in estimated 5.2317 s (81k iterations)
+Benchmarking 6_eval_1000pts/symbolica/Gaussian 2D: Analyzing
+6_eval_1000pts/symbolica/Gaussian 2D
+                        time:   [64.598 µs 64.624 µs 64.653 µs]
+Found 5 outliers among 100 measurements (5.00%)
+  1 (1.00%) high mild
+  4 (4.00%) high severe
+Benchmarking 6_eval_1000pts/symbolica/Maxwell-Boltzmann
+Benchmarking 6_eval_1000pts/symbolica/Maxwell-Boltzmann: Warming up for 3.0000 s
+Benchmarking 6_eval_1000pts/symbolica/Maxwell-Boltzmann: Collecting 100 samples in estimated 5.3633 s (66k iterations)
+Benchmarking 6_eval_1000pts/symbolica/Maxwell-Boltzmann: Analyzing
+6_eval_1000pts/symbolica/Maxwell-Boltzmann
+                        time:   [81.444 µs 81.487 µs 81.530 µs]
+Found 9 outliers among 100 measurements (9.00%)
+  7 (7.00%) high mild
+  2 (2.00%) high severe
 Benchmarking 6_eval_1000pts/symbolica/Lorentz Factor
 Benchmarking 6_eval_1000pts/symbolica/Lorentz Factor: Warming up for 3.0000 s
-Benchmarking 6_eval_1000pts/symbolica/Lorentz Factor: Collecting 100 samples in estimated 5.2301 s (96k iterations)
+Benchmarking 6_eval_1000pts/symbolica/Lorentz Factor: Collecting 100 samples in estimated 5.2352 s (96k iterations)
 Benchmarking 6_eval_1000pts/symbolica/Lorentz Factor: Analyzing
 6_eval_1000pts/symbolica/Lorentz Factor
-                        time:   [54.530 µs 54.551 µs 54.570 µs]
-Found 6 outliers among 100 measurements (6.00%)
+                        time:   [54.551 µs 54.565 µs 54.579 µs]
+Found 11 outliers among 100 measurements (11.00%)
+  1 (1.00%) low mild
   4 (4.00%) high mild
-  2 (2.00%) high severe
+  6 (6.00%) high severe
 Benchmarking 6_eval_1000pts/symbolica/Lennard-Jones
 Benchmarking 6_eval_1000pts/symbolica/Lennard-Jones: Warming up for 3.0000 s
-Benchmarking 6_eval_1000pts/symbolica/Lennard-Jones: Collecting 100 samples in estimated 5.1044 s (81k iterations)
+Benchmarking 6_eval_1000pts/symbolica/Lennard-Jones: Collecting 100 samples in estimated 5.1444 s (81k iterations)
 Benchmarking 6_eval_1000pts/symbolica/Lennard-Jones: Analyzing
 6_eval_1000pts/symbolica/Lennard-Jones
-                        time:   [63.110 µs 63.140 µs 63.171 µs]
-Found 4 outliers among 100 measurements (4.00%)
-  1 (1.00%) high mild
-  3 (3.00%) high severe
-Benchmarking 6_eval_1000pts/symbolica/Logistic Sigmoid
-Benchmarking 6_eval_1000pts/symbolica/Logistic Sigmoid: Warming up for 3.0000 s
-Benchmarking 6_eval_1000pts/symbolica/Logistic Sigmoid: Collecting 100 samples in estimated 5.1023 s (96k iterations)
-Benchmarking 6_eval_1000pts/symbolica/Logistic Sigmoid: Analyzing
-6_eval_1000pts/symbolica/Logistic Sigmoid
-                        time:   [51.116 µs 51.134 µs 51.154 µs]
-Found 15 outliers among 100 measurements (15.00%)
-  6 (6.00%) low mild
+                        time:   [63.657 µs 63.709 µs 63.790 µs]
+Found 9 outliers among 100 measurements (9.00%)
   5 (5.00%) high mild
   4 (4.00%) high severe
+Benchmarking 6_eval_1000pts/symbolica/Logistic Sigmoid
+Benchmarking 6_eval_1000pts/symbolica/Logistic Sigmoid: Warming up for 3.0000 s
+Benchmarking 6_eval_1000pts/symbolica/Logistic Sigmoid: Collecting 100 samples in estimated 5.1741 s (96k iterations)
+Benchmarking 6_eval_1000pts/symbolica/Logistic Sigmoid: Analyzing
+6_eval_1000pts/symbolica/Logistic Sigmoid
+                        time:   [51.175 µs 51.194 µs 51.214 µs]
+Found 4 outliers among 100 measurements (4.00%)
+  1 (1.00%) low mild
+  2 (2.00%) high mild
+  1 (1.00%) high severe
 Benchmarking 6_eval_1000pts/symbolica/Damped Oscillator
 Benchmarking 6_eval_1000pts/symbolica/Damped Oscillator: Warming up for 3.0000 s
-Benchmarking 6_eval_1000pts/symbolica/Damped Oscillator: Collecting 100 samples in estimated 5.2521 s (91k iterations)
+Benchmarking 6_eval_1000pts/symbolica/Damped Oscillator: Collecting 100 samples in estimated 5.0070 s (86k iterations)
 Benchmarking 6_eval_1000pts/symbolica/Damped Oscillator: Analyzing
 6_eval_1000pts/symbolica/Damped Oscillator
-                        time:   [57.738 µs 57.816 µs 57.900 µs]
+                        time:   [57.971 µs 58.046 µs 58.118 µs]
 Benchmarking 6_eval_1000pts/symbolica/Planck Blackbody
 Benchmarking 6_eval_1000pts/symbolica/Planck Blackbody: Warming up for 3.0000 s
-Benchmarking 6_eval_1000pts/symbolica/Planck Blackbody: Collecting 100 samples in estimated 5.1239 s (81k iterations)
+Benchmarking 6_eval_1000pts/symbolica/Planck Blackbody: Collecting 100 samples in estimated 5.1997 s (81k iterations)
 Benchmarking 6_eval_1000pts/symbolica/Planck Blackbody: Analyzing
 6_eval_1000pts/symbolica/Planck Blackbody
-                        time:   [63.528 µs 63.676 µs 63.916 µs]
-Found 5 outliers among 100 measurements (5.00%)
+                        time:   [64.200 µs 64.225 µs 64.250 µs]
+Found 4 outliers among 100 measurements (4.00%)
   2 (2.00%) high mild
-  3 (3.00%) high severe
+  2 (2.00%) high severe
 
 Benchmarking 7_full_pipeline/symbolica/Normal PDF
 Benchmarking 7_full_pipeline/symbolica/Normal PDF: Warming up for 3.0000 s
-Benchmarking 7_full_pipeline/symbolica/Normal PDF: Collecting 100 samples in estimated 5.2445 s (40k iterations)
+Benchmarking 7_full_pipeline/symbolica/Normal PDF: Collecting 100 samples in estimated 5.6230 s (45k iterations)
 Benchmarking 7_full_pipeline/symbolica/Normal PDF: Analyzing
 7_full_pipeline/symbolica/Normal PDF
-                        time:   [129.71 µs 130.00 µs 130.30 µs]
+                        time:   [123.82 µs 123.93 µs 124.05 µs]
+Found 7 outliers among 100 measurements (7.00%)
+  4 (4.00%) high mild
+  3 (3.00%) high severe
+Benchmarking 7_full_pipeline/symbolica/Gaussian 2D
+Benchmarking 7_full_pipeline/symbolica/Gaussian 2D: Warming up for 3.0000 s
+Benchmarking 7_full_pipeline/symbolica/Gaussian 2D: Collecting 100 samples in estimated 5.6659 s (35k iterations)
+Benchmarking 7_full_pipeline/symbolica/Gaussian 2D: Analyzing
+7_full_pipeline/symbolica/Gaussian 2D
+                        time:   [159.84 µs 160.04 µs 160.29 µs]
+Found 5 outliers among 100 measurements (5.00%)
+  4 (4.00%) high mild
+  1 (1.00%) high severe
+Benchmarking 7_full_pipeline/symbolica/Maxwell-Boltzmann
+Benchmarking 7_full_pipeline/symbolica/Maxwell-Boltzmann: Warming up for 3.0000 s
+Benchmarking 7_full_pipeline/symbolica/Maxwell-Boltzmann: Collecting 100 samples in estimated 5.1198 s (20k iterations)
+Benchmarking 7_full_pipeline/symbolica/Maxwell-Boltzmann: Analyzing
+7_full_pipeline/symbolica/Maxwell-Boltzmann
+                        time:   [252.24 µs 252.65 µs 253.09 µs]
 Found 3 outliers among 100 measurements (3.00%)
   1 (1.00%) low mild
   2 (2.00%) high mild
-Benchmarking 7_full_pipeline/symbolica/Gaussian 2D
-Benchmarking 7_full_pipeline/symbolica/Gaussian 2D: Warming up for 3.0000 s
-Benchmarking 7_full_pipeline/symbolica/Gaussian 2D: Collecting 100 samples in estimated 5.3809 s (30k iterations)
-Benchmarking 7_full_pipeline/symbolica/Gaussian 2D: Analyzing
-7_full_pipeline/symbolica/Gaussian 2D
-                        time:   [177.91 µs 178.35 µs 178.74 µs]
-Found 2 outliers among 100 measurements (2.00%)
-  2 (2.00%) high severe
-Benchmarking 7_full_pipeline/symbolica/Maxwell-Boltzmann
-Benchmarking 7_full_pipeline/symbolica/Maxwell-Boltzmann: Warming up for 3.0000 s
-Benchmarking 7_full_pipeline/symbolica/Maxwell-Boltzmann: Collecting 100 samples in estimated 5.0725 s (20k iterations)
-Benchmarking 7_full_pipeline/symbolica/Maxwell-Boltzmann: Analyzing
-7_full_pipeline/symbolica/Maxwell-Boltzmann
-                        time:   [250.57 µs 251.03 µs 251.54 µs]
-Found 3 outliers among 100 measurements (3.00%)
-  1 (1.00%) high mild
-  2 (2.00%) high severe
 Benchmarking 7_full_pipeline/symbolica/Lorentz Factor
 Benchmarking 7_full_pipeline/symbolica/Lorentz Factor: Warming up for 3.0000 s
-Benchmarking 7_full_pipeline/symbolica/Lorentz Factor: Collecting 100 samples in estimated 5.3500 s (45k iterations)
+Benchmarking 7_full_pipeline/symbolica/Lorentz Factor: Collecting 100 samples in estimated 5.4271 s (45k iterations)
 Benchmarking 7_full_pipeline/symbolica/Lorentz Factor: Analyzing
 7_full_pipeline/symbolica/Lorentz Factor
-                        time:   [118.30 µs 118.56 µs 118.84 µs]
-Found 3 outliers among 100 measurements (3.00%)
-  3 (3.00%) high mild
+                        time:   [119.46 µs 119.60 µs 119.75 µs]
+Found 11 outliers among 100 measurements (11.00%)
+  2 (2.00%) low mild
+  5 (5.00%) high mild
+  4 (4.00%) high severe
 Benchmarking 7_full_pipeline/symbolica/Lennard-Jones
 Benchmarking 7_full_pipeline/symbolica/Lennard-Jones: Warming up for 3.0000 s
-Benchmarking 7_full_pipeline/symbolica/Lennard-Jones: Collecting 100 samples in estimated 5.5665 s (40k iterations)
+Benchmarking 7_full_pipeline/symbolica/Lennard-Jones: Collecting 100 samples in estimated 5.2209 s (40k iterations)
 Benchmarking 7_full_pipeline/symbolica/Lennard-Jones: Analyzing
 7_full_pipeline/symbolica/Lennard-Jones
-                        time:   [136.08 µs 136.39 µs 136.69 µs]
-Found 1 outliers among 100 measurements (1.00%)
-  1 (1.00%) high mild
-Benchmarking 7_full_pipeline/symbolica/Logistic Sigmoid
-Benchmarking 7_full_pipeline/symbolica/Logistic Sigmoid: Warming up for 3.0000 s
-Benchmarking 7_full_pipeline/symbolica/Logistic Sigmoid: Collecting 100 samples in estimated 5.3043 s (56k iterations)
-Benchmarking 7_full_pipeline/symbolica/Logistic Sigmoid: Analyzing
-7_full_pipeline/symbolica/Logistic Sigmoid
-                        time:   [95.481 µs 95.719 µs 95.982 µs]
-Found 11 outliers among 100 measurements (11.00%)
-  6 (6.00%) high mild
-  5 (5.00%) high severe
-Benchmarking 7_full_pipeline/symbolica/Damped Oscillator
-Benchmarking 7_full_pipeline/symbolica/Damped Oscillator: Warming up for 3.0000 s
-Benchmarking 7_full_pipeline/symbolica/Damped Oscillator: Collecting 100 samples in estimated 5.5069 s (30k iterations)
-Benchmarking 7_full_pipeline/symbolica/Damped Oscillator: Analyzing
-7_full_pipeline/symbolica/Damped Oscillator
-                        time:   [181.59 µs 181.85 µs 182.09 µs]
+                        time:   [129.39 µs 129.59 µs 129.81 µs]
 Found 1 outliers among 100 measurements (1.00%)
   1 (1.00%) high severe
+Benchmarking 7_full_pipeline/symbolica/Logistic Sigmoid
+Benchmarking 7_full_pipeline/symbolica/Logistic Sigmoid: Warming up for 3.0000 s
+Benchmarking 7_full_pipeline/symbolica/Logistic Sigmoid: Collecting 100 samples in estimated 5.2491 s (56k iterations)
+Benchmarking 7_full_pipeline/symbolica/Logistic Sigmoid: Analyzing
+7_full_pipeline/symbolica/Logistic Sigmoid
+                        time:   [94.427 µs 94.513 µs 94.608 µs]
+Found 6 outliers among 100 measurements (6.00%)
+  4 (4.00%) high mild
+  2 (2.00%) high severe
+Benchmarking 7_full_pipeline/symbolica/Damped Oscillator
+Benchmarking 7_full_pipeline/symbolica/Damped Oscillator: Warming up for 3.0000 s
+Benchmarking 7_full_pipeline/symbolica/Damped Oscillator: Collecting 100 samples in estimated 5.3945 s (30k iterations)
+Benchmarking 7_full_pipeline/symbolica/Damped Oscillator: Analyzing
+7_full_pipeline/symbolica/Damped Oscillator
+                        time:   [177.76 µs 177.88 µs 178.00 µs]
+Found 5 outliers among 100 measurements (5.00%)
+  3 (3.00%) high mild
+  2 (2.00%) high severe
 Benchmarking 7_full_pipeline/symbolica/Planck Blackbody
 Benchmarking 7_full_pipeline/symbolica/Planck Blackbody: Warming up for 3.0000 s
-Benchmarking 7_full_pipeline/symbolica/Planck Blackbody: Collecting 100 samples in estimated 5.8143 s (25k iterations)
+Benchmarking 7_full_pipeline/symbolica/Planck Blackbody: Collecting 100 samples in estimated 5.3881 s (25k iterations)
 Benchmarking 7_full_pipeline/symbolica/Planck Blackbody: Analyzing
 7_full_pipeline/symbolica/Planck Blackbody
-                        time:   [230.10 µs 230.52 µs 231.06 µs]
-Found 7 outliers among 100 measurements (7.00%)
-  3 (3.00%) low mild
-  2 (2.00%) high mild
+                        time:   [212.97 µs 213.24 µs 213.55 µs]
+Found 5 outliers among 100 measurements (5.00%)
+  3 (3.00%) high mild
   2 (2.00%) high severe
 
-[1m[92m     Running[0m benches/rust/large_expr.rs (target/release/deps/large_expr-2e84e3e67d062766)
+[1m[92m     Running[0m benches/rust/large_expr.rs (target/release/deps/large_expr-1ed838998930c4ea)
 Gnuplot not found, using plotters backend
 Benchmarking large_expr_100/1_parse/symb_anafis
 Benchmarking large_expr_100/1_parse/symb_anafis: Warming up for 3.0000 s
-Benchmarking large_expr_100/1_parse/symb_anafis: Collecting 10 samples in estimated 10.007 s (63k iterations)
+Benchmarking large_expr_100/1_parse/symb_anafis: Collecting 10 samples in estimated 10.005 s (65k iterations)
 Benchmarking large_expr_100/1_parse/symb_anafis: Analyzing
 large_expr_100/1_parse/symb_anafis
-                        time:   [147.24 µs 147.82 µs 148.22 µs]
-Found 1 outliers among 10 measurements (10.00%)
-  1 (10.00%) low mild
+                        time:   [149.11 µs 149.58 µs 149.89 µs]
 Benchmarking large_expr_100/1_parse/symbolica
 Benchmarking large_expr_100/1_parse/symbolica: Warming up for 3.0000 s
 Benchmarking large_expr_100/1_parse/symbolica: Collecting 10 samples in estimated 10.011 s (42k iterations)
 Benchmarking large_expr_100/1_parse/symbolica: Analyzing
 large_expr_100/1_parse/symbolica
-                        time:   [234.47 µs 234.62 µs 234.74 µs]
+                        time:   [234.21 µs 234.36 µs 234.45 µs]
 Found 1 outliers among 10 measurements (10.00%)
   1 (10.00%) high severe
 Benchmarking large_expr_100/2_diff/symb_anafis_diff_only
 Benchmarking large_expr_100/2_diff/symb_anafis_diff_only: Warming up for 3.0000 s
-Benchmarking large_expr_100/2_diff/symb_anafis_diff_only: Collecting 10 samples in estimated 10.003 s (118k iterations)
+Benchmarking large_expr_100/2_diff/symb_anafis_diff_only: Collecting 10 samples in estimated 10.000 s (114k iterations)
 Benchmarking large_expr_100/2_diff/symb_anafis_diff_only: Analyzing
 large_expr_100/2_diff/symb_anafis_diff_only
-                        time:   [84.692 µs 84.726 µs 84.763 µs]
+                        time:   [87.662 µs 87.896 µs 88.013 µs]
+Found 2 outliers among 10 measurements (20.00%)
+  1 (10.00%) low severe
+  1 (10.00%) high severe
 Benchmarking large_expr_100/2_diff/symb_anafis_diff+simplify
 Benchmarking large_expr_100/2_diff/symb_anafis_diff+simplify: Warming up for 3.0000 s
-Benchmarking large_expr_100/2_diff/symb_anafis_diff+simplify: Collecting 10 samples in estimated 10.045 s (1320 iterations)
+Benchmarking large_expr_100/2_diff/symb_anafis_diff+simplify: Collecting 10 samples in estimated 10.302 s (1375 iterations)
 Benchmarking large_expr_100/2_diff/symb_anafis_diff+simplify: Analyzing
 large_expr_100/2_diff/symb_anafis_diff+simplify
-                        time:   [7.4795 ms 7.5093 ms 7.5699 ms]
+                        time:   [7.4781 ms 7.4845 ms 7.4916 ms]
 Benchmarking large_expr_100/2_diff/symbolica
 Benchmarking large_expr_100/2_diff/symbolica: Warming up for 3.0000 s
-Benchmarking large_expr_100/2_diff/symbolica: Collecting 10 samples in estimated 10.006 s (41k iterations)
+Benchmarking large_expr_100/2_diff/symbolica: Collecting 10 samples in estimated 10.007 s (40k iterations)
 Benchmarking large_expr_100/2_diff/symbolica: Analyzing
 large_expr_100/2_diff/symbolica
-                        time:   [247.48 µs 247.97 µs 248.30 µs]
-Found 1 outliers among 10 measurements (10.00%)
-  1 (10.00%) low mild
+                        time:   [249.30 µs 249.51 µs 249.71 µs]
 Benchmarking large_expr_100/3_compile/symb_anafis_raw
 Benchmarking large_expr_100/3_compile/symb_anafis_raw: Warming up for 3.0000 s
-Benchmarking large_expr_100/3_compile/symb_anafis_raw: Collecting 10 samples in estimated 10.001 s (203k iterations)
+Benchmarking large_expr_100/3_compile/symb_anafis_raw: Collecting 10 samples in estimated 10.001 s (204k iterations)
 Benchmarking large_expr_100/3_compile/symb_anafis_raw: Analyzing
 large_expr_100/3_compile/symb_anafis_raw
-                        time:   [49.248 µs 49.376 µs 49.504 µs]
+                        time:   [48.865 µs 49.157 µs 49.300 µs]
 Benchmarking large_expr_100/3_compile/symb_anafis_simplified
 Benchmarking large_expr_100/3_compile/symb_anafis_simplified: Warming up for 3.0000 s
-Benchmarking large_expr_100/3_compile/symb_anafis_simplified: Collecting 10 samples in estimated 10.001 s (275k iterations)
+Benchmarking large_expr_100/3_compile/symb_anafis_simplified: Collecting 10 samples in estimated 10.002 s (278k iterations)
 Benchmarking large_expr_100/3_compile/symb_anafis_simplified: Analyzing
 large_expr_100/3_compile/symb_anafis_simplified
-                        time:   [36.448 µs 36.810 µs 36.984 µs]
+                        time:   [35.879 µs 35.918 µs 35.968 µs]
 Benchmarking large_expr_100/3_compile/symbolica
 Benchmarking large_expr_100/3_compile/symbolica: Warming up for 3.0000 s
-Benchmarking large_expr_100/3_compile/symbolica: Collecting 10 samples in estimated 10.112 s (4730 iterations)
+Benchmarking large_expr_100/3_compile/symbolica: Collecting 10 samples in estimated 10.037 s (4730 iterations)
 Benchmarking large_expr_100/3_compile/symbolica: Analyzing
 large_expr_100/3_compile/symbolica
-                        time:   [2.1088 ms 2.1180 ms 2.1307 ms]
+                        time:   [2.1003 ms 2.1027 ms 2.1052 ms]
 Benchmarking large_expr_100/4_eval_1000pts/symb_anafis_raw/
 Benchmarking large_expr_100/4_eval_1000pts/symb_anafis_raw/: Warming up for 3.0000 s
-Benchmarking large_expr_100/4_eval_1000pts/symb_anafis_raw/: Collecting 10 samples in estimated 10.066 s (1430 iterations)
+Benchmarking large_expr_100/4_eval_1000pts/symb_anafis_raw/: Collecting 10 samples in estimated 10.188 s (1595 iterations)
 Benchmarking large_expr_100/4_eval_1000pts/symb_anafis_raw/: Analyzing
 large_expr_100/4_eval_1000pts/symb_anafis_raw/
-                        time:   [6.4254 ms 6.9230 ms 7.3247 ms]
-Found 2 outliers among 10 measurements (20.00%)
-  1 (10.00%) low severe
-  1 (10.00%) low mild
+                        time:   [6.5674 ms 6.5890 ms 6.6086 ms]
 Benchmarking large_expr_100/4_eval_1000pts/symb_anafis_simplified/
 Benchmarking large_expr_100/4_eval_1000pts/symb_anafis_simplified/: Warming up for 3.0000 s
-Benchmarking large_expr_100/4_eval_1000pts/symb_anafis_simplified/: Collecting 10 samples in estimated 10.204 s (2145 iterations)
+Benchmarking large_expr_100/4_eval_1000pts/symb_anafis_simplified/: Collecting 10 samples in estimated 10.156 s (2090 iterations)
 Benchmarking large_expr_100/4_eval_1000pts/symb_anafis_simplified/: Analyzing
 large_expr_100/4_eval_1000pts/symb_anafis_simplified/
-                        time:   [4.7513 ms 4.7562 ms 4.7601 ms]
+                        time:   [5.0197 ms 5.0691 ms 5.0874 ms]
 Found 2 outliers among 10 measurements (20.00%)
-  1 (10.00%) low severe
-  1 (10.00%) high mild
+  2 (20.00%) low severe
 Benchmarking large_expr_100/4_eval_1000pts/symbolica/
 Benchmarking large_expr_100/4_eval_1000pts/symbolica/: Warming up for 3.0000 s
-Benchmarking large_expr_100/4_eval_1000pts/symbolica/: Collecting 10 samples in estimated 10.081 s (2750 iterations)
+Benchmarking large_expr_100/4_eval_1000pts/symbolica/: Collecting 10 samples in estimated 10.157 s (2695 iterations)
 Benchmarking large_expr_100/4_eval_1000pts/symbolica/: Analyzing
 large_expr_100/4_eval_1000pts/symbolica/
-                        time:   [3.6437 ms 3.6483 ms 3.6570 ms]
+                        time:   [3.7157 ms 3.7251 ms 3.7324 ms]
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) low mild
 
 Benchmarking large_expr_300/1_parse/symb_anafis
 Benchmarking large_expr_300/1_parse/symb_anafis: Warming up for 3.0000 s
-Benchmarking large_expr_300/1_parse/symb_anafis: Collecting 10 samples in estimated 10.011 s (20k iterations)
+Benchmarking large_expr_300/1_parse/symb_anafis: Collecting 10 samples in estimated 10.020 s (21k iterations)
 Benchmarking large_expr_300/1_parse/symb_anafis: Analyzing
 large_expr_300/1_parse/symb_anafis
-                        time:   [466.91 µs 468.10 µs 469.44 µs]
-Found 1 outliers among 10 measurements (10.00%)
-  1 (10.00%) low mild
+                        time:   [469.34 µs 469.98 µs 470.97 µs]
 Benchmarking large_expr_300/1_parse/symbolica
 Benchmarking large_expr_300/1_parse/symbolica: Warming up for 3.0000 s
-Benchmarking large_expr_300/1_parse/symbolica: Collecting 10 samples in estimated 10.022 s (14k iterations)
+Benchmarking large_expr_300/1_parse/symbolica: Collecting 10 samples in estimated 10.039 s (14k iterations)
 Benchmarking large_expr_300/1_parse/symbolica: Analyzing
 large_expr_300/1_parse/symbolica
-                        time:   [723.13 µs 724.02 µs 724.82 µs]
+                        time:   [727.04 µs 727.41 µs 727.97 µs]
 Found 1 outliers among 10 measurements (10.00%)
   1 (10.00%) high severe
 Benchmarking large_expr_300/2_diff/symb_anafis_diff_only
 Benchmarking large_expr_300/2_diff/symb_anafis_diff_only: Warming up for 3.0000 s
-Benchmarking large_expr_300/2_diff/symb_anafis_diff_only: Collecting 10 samples in estimated 10.002 s (37k iterations)
+Benchmarking large_expr_300/2_diff/symb_anafis_diff_only: Collecting 10 samples in estimated 10.013 s (36k iterations)
 Benchmarking large_expr_300/2_diff/symb_anafis_diff_only: Analyzing
 large_expr_300/2_diff/symb_anafis_diff_only
-                        time:   [268.68 µs 269.33 µs 270.41 µs]
-Found 2 outliers among 10 measurements (20.00%)
-  2 (20.00%) high mild
+                        time:   [276.57 µs 276.85 µs 277.06 µs]
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) high mild
 Benchmarking large_expr_300/2_diff/symb_anafis_diff+simplify
 Benchmarking large_expr_300/2_diff/symb_anafis_diff+simplify: Warming up for 3.0000 s
-Benchmarking large_expr_300/2_diff/symb_anafis_diff+simplify: Collecting 10 samples in estimated 10.891 s (495 iterations)
+Benchmarking large_expr_300/2_diff/symb_anafis_diff+simplify: Collecting 10 samples in estimated 10.909 s (495 iterations)
 Benchmarking large_expr_300/2_diff/symb_anafis_diff+simplify: Analyzing
 large_expr_300/2_diff/symb_anafis_diff+simplify
-                        time:   [21.846 ms 22.291 ms 22.765 ms]
-Found 1 outliers among 10 measurements (10.00%)
-  1 (10.00%) high severe
-Benchmarking large_expr_300/2_diff/symbolica
-Benchmarking large_expr_300/2_diff/symbolica: Warming up for 3.0000 s
-Benchmarking large_expr_300/2_diff/symbolica: Collecting 10 samples in estimated 10.030 s (13k iterations)
-Benchmarking large_expr_300/2_diff/symbolica: Analyzing
-large_expr_300/2_diff/symbolica
-                        time:   [791.42 µs 792.04 µs 792.99 µs]
-Benchmarking large_expr_300/3_compile/symb_anafis_raw
-Benchmarking large_expr_300/3_compile/symb_anafis_raw: Warming up for 3.0000 s
-Benchmarking large_expr_300/3_compile/symb_anafis_raw: Collecting 10 samples in estimated 10.003 s (57k iterations)
-Benchmarking large_expr_300/3_compile/symb_anafis_raw: Analyzing
-large_expr_300/3_compile/symb_anafis_raw
-                        time:   [174.50 µs 174.66 µs 174.89 µs]
-Found 1 outliers among 10 measurements (10.00%)
-  1 (10.00%) low severe
-Benchmarking large_expr_300/3_compile/symb_anafis_simplified
-Benchmarking large_expr_300/3_compile/symb_anafis_simplified: Warming up for 3.0000 s
-Benchmarking large_expr_300/3_compile/symb_anafis_simplified: Collecting 10 samples in estimated 10.005 s (82k iterations)
-Benchmarking large_expr_300/3_compile/symb_anafis_simplified: Analyzing
-large_expr_300/3_compile/symb_anafis_simplified
-                        time:   [122.25 µs 122.44 µs 122.70 µs]
-Found 1 outliers among 10 measurements (10.00%)
-  1 (10.00%) high severe
-Benchmarking large_expr_300/3_compile/symbolica
-Benchmarking large_expr_300/3_compile/symbolica: Warming up for 3.0000 s
-Benchmarking large_expr_300/3_compile/symbolica: Collecting 10 samples in estimated 10.533 s (715 iterations)
-Benchmarking large_expr_300/3_compile/symbolica: Analyzing
-large_expr_300/3_compile/symbolica
-                        time:   [14.464 ms 14.786 ms 15.119 ms]
-Benchmarking large_expr_300/4_eval_1000pts/symb_anafis_raw/
-Benchmarking large_expr_300/4_eval_1000pts/symb_anafis_raw/: Warming up for 3.0000 s
-Benchmarking large_expr_300/4_eval_1000pts/symb_anafis_raw/: Collecting 10 samples in estimated 10.020 s (495 iterations)
-Benchmarking large_expr_300/4_eval_1000pts/symb_anafis_raw/: Analyzing
-large_expr_300/4_eval_1000pts/symb_anafis_raw/
-                        time:   [19.843 ms 19.854 ms 19.884 ms]
+                        time:   [21.905 ms 22.047 ms 22.176 ms]
 Found 2 outliers among 10 measurements (20.00%)
   2 (20.00%) high mild
+Benchmarking large_expr_300/2_diff/symbolica
+Benchmarking large_expr_300/2_diff/symbolica: Warming up for 3.0000 s
+Benchmarking large_expr_300/2_diff/symbolica: Collecting 10 samples in estimated 10.031 s (13k iterations)
+Benchmarking large_expr_300/2_diff/symbolica: Analyzing
+large_expr_300/2_diff/symbolica
+                        time:   [790.18 µs 791.48 µs 792.89 µs]
+Benchmarking large_expr_300/3_compile/symb_anafis_raw
+Benchmarking large_expr_300/3_compile/symb_anafis_raw: Warming up for 3.0000 s
+Benchmarking large_expr_300/3_compile/symb_anafis_raw: Collecting 10 samples in estimated 10.006 s (57k iterations)
+Benchmarking large_expr_300/3_compile/symb_anafis_raw: Analyzing
+large_expr_300/3_compile/symb_anafis_raw
+                        time:   [175.42 µs 175.56 µs 175.75 µs]
+Benchmarking large_expr_300/3_compile/symb_anafis_simplified
+Benchmarking large_expr_300/3_compile/symb_anafis_simplified: Warming up for 3.0000 s
+Benchmarking large_expr_300/3_compile/symb_anafis_simplified: Collecting 10 samples in estimated 10.006 s (78k iterations)
+Benchmarking large_expr_300/3_compile/symb_anafis_simplified: Analyzing
+large_expr_300/3_compile/symb_anafis_simplified
+                        time:   [128.74 µs 129.01 µs 129.40 µs]
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) high mild
+Benchmarking large_expr_300/3_compile/symbolica
+Benchmarking large_expr_300/3_compile/symbolica: Warming up for 3.0000 s
+Benchmarking large_expr_300/3_compile/symbolica: Collecting 10 samples in estimated 10.634 s (715 iterations)
+Benchmarking large_expr_300/3_compile/symbolica: Analyzing
+large_expr_300/3_compile/symbolica
+                        time:   [14.760 ms 15.198 ms 15.783 ms]
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) high mild
+Benchmarking large_expr_300/4_eval_1000pts/symb_anafis_raw/
+Benchmarking large_expr_300/4_eval_1000pts/symb_anafis_raw/: Warming up for 3.0000 s
+Benchmarking large_expr_300/4_eval_1000pts/symb_anafis_raw/: Collecting 10 samples in estimated 10.237 s (495 iterations)
+Benchmarking large_expr_300/4_eval_1000pts/symb_anafis_raw/: Analyzing
+large_expr_300/4_eval_1000pts/symb_anafis_raw/
+                        time:   [20.543 ms 20.665 ms 20.757 ms]
 Benchmarking large_expr_300/4_eval_1000pts/symb_anafis_simplified/
 Benchmarking large_expr_300/4_eval_1000pts/symb_anafis_simplified/: Warming up for 3.0000 s
-Benchmarking large_expr_300/4_eval_1000pts/symb_anafis_simplified/: Collecting 10 samples in estimated 10.138 s (715 iterations)
+Benchmarking large_expr_300/4_eval_1000pts/symb_anafis_simplified/: Collecting 10 samples in estimated 10.157 s (715 iterations)
 Benchmarking large_expr_300/4_eval_1000pts/symb_anafis_simplified/: Analyzing
 large_expr_300/4_eval_1000pts/symb_anafis_simplified/
-                        time:   [14.268 ms 14.286 ms 14.316 ms]
-Found 3 outliers among 10 measurements (30.00%)
-  2 (20.00%) low mild
-  1 (10.00%) high severe
+                        time:   [14.239 ms 14.472 ms 14.638 ms]
+Found 4 outliers among 10 measurements (40.00%)
+  2 (20.00%) low severe
+  2 (20.00%) high mild
 Benchmarking large_expr_300/4_eval_1000pts/symbolica/
 Benchmarking large_expr_300/4_eval_1000pts/symbolica/: Warming up for 3.0000 s
-Benchmarking large_expr_300/4_eval_1000pts/symbolica/: Collecting 10 samples in estimated 10.365 s (990 iterations)
+Benchmarking large_expr_300/4_eval_1000pts/symbolica/: Collecting 10 samples in estimated 10.205 s (990 iterations)
 Benchmarking large_expr_300/4_eval_1000pts/symbolica/: Analyzing
 large_expr_300/4_eval_1000pts/symbolica/
-                        time:   [10.606 ms 10.625 ms 10.638 ms]
-Found 2 outliers among 10 measurements (20.00%)
-  1 (10.00%) low severe
-  1 (10.00%) low mild
+                        time:   [10.264 ms 10.386 ms 10.437 ms]
 
