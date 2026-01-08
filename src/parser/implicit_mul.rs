@@ -22,6 +22,7 @@ pub fn insert_implicit_multiplication<S: std::hash::BuildHasher>(
         return tokens;
     }
 
+    #[allow(clippy::integer_division)]
     let mut result = Vec::with_capacity(tokens.len() * 3 / 2);
     let mut it = tokens.into_iter().peekable();
 
@@ -70,13 +71,21 @@ pub fn insert_implicit_multiplication<S: std::hash::BuildHasher>(
 }
 
 #[cfg(test)]
+#[allow(
+    clippy::unwrap_used,
+    clippy::panic,
+    clippy::cast_precision_loss,
+    clippy::items_after_statements,
+    clippy::let_underscore_must_use,
+    clippy::no_effect_underscore_binding
+)]
 mod tests {
     use super::*;
     use std::collections::HashSet;
 
     #[test]
     fn test_number_identifier() {
-        let tokens = vec![Token::Number(2.0), Token::Identifier("x".to_string())];
+        let tokens = vec![Token::Number(2.0), Token::Identifier("x".to_owned())];
         let result = insert_implicit_multiplication(tokens, &HashSet::new());
         assert_eq!(result.len(), 3);
         assert!(matches!(result[1], Token::Operator(Operator::Mul)));
@@ -85,8 +94,8 @@ mod tests {
     #[test]
     fn test_identifier_identifier() {
         let tokens = vec![
-            Token::Identifier("a".to_string()),
-            Token::Identifier("x".to_string()),
+            Token::Identifier("a".to_owned()),
+            Token::Identifier("x".to_owned()),
         ];
         let result = insert_implicit_multiplication(tokens, &HashSet::new());
         assert_eq!(result.len(), 3);
@@ -95,7 +104,7 @@ mod tests {
 
     #[test]
     fn test_paren_identifier() {
-        let tokens = vec![Token::RightParen, Token::Identifier("x".to_string())];
+        let tokens = vec![Token::RightParen, Token::Identifier("x".to_owned())];
         let result = insert_implicit_multiplication(tokens, &HashSet::new());
         assert_eq!(result.len(), 3);
         assert!(matches!(result[1], Token::Operator(Operator::Mul)));
@@ -119,7 +128,7 @@ mod tests {
     #[test]
     fn test_identifier_function() {
         let tokens = vec![
-            Token::Identifier("x".to_string()),
+            Token::Identifier("x".to_owned()),
             Token::Operator(Operator::Sin),
         ];
         let result = insert_implicit_multiplication(tokens, &HashSet::new());

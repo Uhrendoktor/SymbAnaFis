@@ -1,3 +1,5 @@
+// Algebraic combination operations on validated expressions
+
 use crate::simplification::rules::{ExprKind, Rule, RuleCategory, RuleContext};
 use crate::{Expr, ExprKind as AstKind};
 use std::sync::Arc;
@@ -18,17 +20,17 @@ rule_arc!(
                         .iter()
                         .enumerate()
                         .filter(|(j, _)| *j != i)
-                        .map(|(_, f)| f.clone())
+                        .map(|(_, f)| Arc::clone(f))
                         .collect();
-                    new_numerator_factors.push(num.clone());
+                    new_numerator_factors.push(Arc::clone(num));
 
                     let new_num = if new_numerator_factors.len() == 1 {
-                        new_numerator_factors[0].clone()
+                        Arc::clone(&new_numerator_factors[0])
                     } else {
                         Arc::new(Expr::product_from_arcs(new_numerator_factors))
                     };
 
-                    return Some(Arc::new(Expr::div_from_arcs(new_num, den.clone())));
+                    return Some(Arc::new(Expr::div_from_arcs(new_num, Arc::clone(den))));
                 }
             }
         }
@@ -97,7 +99,12 @@ rule_arc!(
             result.sort_by(|a, b| crate::simplification::helpers::compare_expr(a, b));
 
             if result.len() == 1 {
-                return Some(result.into_iter().next().unwrap());
+                return Some(
+                    result
+                        .into_iter()
+                        .next()
+                        .expect("Iterator guaranteed to have one element"),
+                );
             }
 
             Some(Arc::new(Expr::sum_from_arcs(result)))
@@ -130,13 +137,13 @@ rule_arc!(
                 match &factor.kind {
                     AstKind::Pow(base, exp) => {
                         factor_groups
-                            .entry(base.clone())
+                            .entry(Arc::clone(base))
                             .or_default()
-                            .push(exp.clone());
+                            .push(Arc::clone(exp));
                     }
                     _ => {
                         factor_groups
-                            .entry(factor.clone())
+                            .entry(Arc::clone(factor))
                             .or_default()
                             .push(Arc::new(Expr::number(1.0)));
                     }
@@ -152,8 +159,10 @@ rule_arc!(
                     {
                         combined_factors.push(base);
                     } else {
-                        combined_factors
-                            .push(Arc::new(Expr::pow_from_arcs(base, exponents[0].clone())));
+                        combined_factors.push(Arc::new(Expr::pow_from_arcs(
+                            base,
+                            Arc::clone(&exponents[0]),
+                        )));
                     }
                 } else {
                     // Sum all exponents using n-ary Sum
@@ -166,7 +175,12 @@ rule_arc!(
             if combined_factors.len() == factors_len {
                 None
             } else if combined_factors.len() == 1 {
-                Some(combined_factors.into_iter().next().unwrap())
+                Some(
+                    combined_factors
+                        .into_iter()
+                        .next()
+                        .expect("Iterator guaranteed to have one element"),
+                )
             } else {
                 Some(Arc::new(Expr::product_from_arcs(combined_factors)))
             }
@@ -193,7 +207,10 @@ fn extract_product_with_sum(expr: &Expr) -> Option<(Expr, Vec<Expr>)> {
                 let combined_factor = if other_factors.is_empty() {
                     Expr::number(1.0)
                 } else if other_factors.len() == 1 {
-                    other_factors.into_iter().next().unwrap()
+                    other_factors
+                        .into_iter()
+                        .next()
+                        .expect("Iterator guaranteed to have one element")
                 } else {
                     Expr::product(other_factors)
                 };
@@ -271,12 +288,20 @@ fn distribute_factor(factor: &Expr, addends: &[Expr]) -> Vec<Expr> {
             let total_coeff = factor_coeff * addend_coeff;
 
             // Combine variable parts, converting x*x to x^2 etc.
-            let combined_var = if matches!(factor_var.kind, AstKind::Number(n) if n == 1.0) {
-                addend_var
-            } else if matches!(addend_var.kind, AstKind::Number(n) if n == 1.0) {
-                factor_var
-            } else {
-                combine_var_parts(factor_var, addend_var)
+            let combined_var = {
+                // Exact check for 1.0 to avoid redundant multiplication
+                #[allow(clippy::float_cmp)] // Comparing against exact constant 1.0
+                let factor_var_is_one = matches!(factor_var.kind, AstKind::Number(n) if n == 1.0);
+                #[allow(clippy::float_cmp)] // Comparing against exact constant 1.0
+                let addend_var_is_one = matches!(addend_var.kind, AstKind::Number(n) if n == 1.0);
+
+                if factor_var_is_one {
+                    addend_var
+                } else if addend_var_is_one {
+                    factor_var
+                } else {
+                    combine_var_parts(factor_var, addend_var)
+                }
             };
 
             // Build canonical result (coefficient first)
@@ -341,13 +366,18 @@ rule_arc!(
                         }
                     }
                 }
-                expanded_terms.push(term.clone());
+                expanded_terms.push(Arc::clone(term));
             }
 
             // If we expanded anything, return the expanded form (will be re-simplified)
             if did_expand {
                 if expanded_terms.len() == 1 {
-                    return Some(expanded_terms.into_iter().next().unwrap());
+                    return Some(
+                        expanded_terms
+                            .into_iter()
+                            .next()
+                            .expect("Iterator guaranteed to have one element"),
+                    );
                 }
                 return Some(Arc::new(Expr::sum_from_arcs(expanded_terms)));
             }
@@ -360,14 +390,14 @@ rule_arc!(
 
             for term in terms_vec {
                 let key = crate::simplification::helpers::get_term_hash(term);
-                like_terms.entry(key).or_default().push(term.clone());
+                like_terms.entry(key).or_default().push(Arc::clone(term));
             }
 
             // Combine like terms
             let mut combined_terms = Vec::new();
             for (_signature, group_terms) in like_terms {
                 if group_terms.len() == 1 {
-                    combined_terms.push(group_terms[0].clone());
+                    combined_terms.push(Arc::clone(&group_terms[0]));
                 } else {
                     // Sum the coefficients of like terms
                     let mut total_coeff = 0.0;
@@ -387,7 +417,7 @@ rule_arc!(
                         continue;
                     }
 
-                    let base_term = base_term.unwrap();
+                    let base_term = base_term.expect("Base term guaranteed to exist");
                     if (total_coeff - 1.0).abs() < 1e-10 {
                         combined_terms.push(base_term);
                     } else {
@@ -404,7 +434,12 @@ rule_arc!(
             } else if combined_terms.is_empty() {
                 Some(Arc::new(Expr::number(0.0)))
             } else if combined_terms.len() == 1 {
-                Some(combined_terms.into_iter().next().unwrap())
+                Some(
+                    combined_terms
+                        .into_iter()
+                        .next()
+                        .expect("Iterator guaranteed to have one element"),
+                )
             } else {
                 Some(Arc::new(Expr::sum_from_arcs(combined_terms)))
             }

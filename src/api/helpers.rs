@@ -231,6 +231,7 @@ pub fn evaluate_str(formula: &str, vars: &[(&str, f64)]) -> Result<String, DiffE
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)] // Standard test relaxations
 mod tests {
     use super::*;
 
@@ -262,7 +263,7 @@ mod tests {
     #[test]
     fn test_evaluate_str_partial() {
         let result = evaluate_str("x * y", &[("x", 3.0)]).unwrap();
-        assert!(result.contains("3") && result.contains("y"));
+        assert!(result.contains('3') && result.contains('y'));
     }
 
     #[test]

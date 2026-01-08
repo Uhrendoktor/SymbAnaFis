@@ -44,19 +44,25 @@ static ID_REGISTRY: std::sync::LazyLock<RwLock<HashMap<u64, InternedSymbol>>> =
     std::sync::LazyLock::new(|| RwLock::new(HashMap::new()));
 
 fn get_registry_mut() -> std::sync::RwLockWriteGuard<'static, HashMap<String, InternedSymbol>> {
-    SYMBOL_REGISTRY.write().unwrap()
+    SYMBOL_REGISTRY
+        .write()
+        .expect("Global symbol registry poisoned")
 }
 
 fn get_id_registry_mut() -> std::sync::RwLockWriteGuard<'static, HashMap<u64, InternedSymbol>> {
-    ID_REGISTRY.write().unwrap()
+    ID_REGISTRY.write().expect("Global ID registry poisoned")
 }
 
 fn get_id_registry_read() -> std::sync::RwLockReadGuard<'static, HashMap<u64, InternedSymbol>> {
-    ID_REGISTRY.read().unwrap()
+    ID_REGISTRY
+        .read()
+        .expect("Global ID registry poisoned shadow mapping")
 }
 
 fn get_registry_read() -> std::sync::RwLockReadGuard<'static, HashMap<String, InternedSymbol>> {
-    SYMBOL_REGISTRY.read().unwrap()
+    SYMBOL_REGISTRY
+        .read()
+        .expect("Global symbol registry poisoned")
 }
 
 fn with_registry_mut<F, R>(f: F) -> R
@@ -408,8 +414,8 @@ impl Symbol {
 /// use symb_anafis::{symb_new, symbol_exists};
 /// // Use unique names to avoid conflicts with other tests
 /// if !symbol_exists("symb_new_doc_x") {
-///     let x = symb_new("symb_new_doc_x").unwrap();
-///     let y = symb_new("symb_new_doc_y").unwrap();
+///     let x = symb_new("symb_new_doc_x").expect("Should pass");
+///     let y = symb_new("symb_new_doc_y").expect("Should pass");
 ///     let expr = x.pow(2.0) + y;
 ///     assert!(format!("{}", expr).contains("symb_new_doc"));
 /// }
@@ -420,11 +426,11 @@ impl Symbol {
 pub fn symb_new(name: &str) -> Result<Symbol, SymbolError> {
     with_registry_mut(|registry, id_registry| {
         if registry.contains_key(name) {
-            return Err(SymbolError::DuplicateName(name.to_string()));
+            return Err(SymbolError::DuplicateName(name.to_owned()));
         }
         let interned = InternedSymbol::new_named(name);
         let id = interned.id();
-        registry.insert(name.to_string(), interned.clone());
+        registry.insert(name.to_owned(), interned.clone());
         id_registry.insert(id, interned);
         Ok(Symbol(id))
     })
@@ -439,7 +445,7 @@ pub fn symb_new(name: &str) -> Result<Symbol, SymbolError> {
 /// ```
 /// use symb_anafis::{symb, symb_get};
 /// let x = symb("symb_get_doc_x");
-/// let x2 = symb_get("symb_get_doc_x").unwrap();
+/// let x2 = symb_get("symb_get_doc_x").expect("Should pass");
 /// assert_eq!(x.id(), x2.id());  // Same symbol!
 /// ```
 ///
@@ -448,7 +454,7 @@ pub fn symb_new(name: &str) -> Result<Symbol, SymbolError> {
 pub fn symb_get(name: &str) -> Result<Symbol, SymbolError> {
     let guard = get_registry_read();
     guard.get(name).map_or_else(
-        || Err(SymbolError::NotFound(name.to_string())),
+        || Err(SymbolError::NotFound(name.to_owned())),
         |interned| Ok(Symbol(interned.id())),
     )
 }
@@ -564,7 +570,7 @@ pub fn symb_interned(name: &str) -> InternedSymbol {
         }
         let interned = InternedSymbol::new_named(name);
         let id = interned.id();
-        registry.insert(name.to_string(), interned.clone());
+        registry.insert(name.to_owned(), interned.clone());
         id_registry.insert(id, interned.clone());
         interned
     })
@@ -1545,6 +1551,14 @@ impl Expr {
 // ============================================================================
 
 #[cfg(test)]
+#[allow(
+    clippy::unwrap_used,
+    clippy::panic,
+    clippy::cast_precision_loss,
+    clippy::items_after_statements,
+    clippy::let_underscore_must_use,
+    clippy::no_effect_underscore_binding
+)]
 mod tests {
     use super::*;
 
@@ -1553,15 +1567,15 @@ mod tests {
 
     #[test]
     fn test_symb_new_creates_new_symbol() {
-        let x = symb_new("test_create_x").unwrap();
-        assert_eq!(x.name(), Some("test_create_x".to_string()));
+        let x = symb_new("test_create_x").expect("Should pass");
+        assert_eq!(x.name(), Some("test_create_x".to_owned()));
     }
 
     #[test]
     fn test_symb_new_errors_on_duplicate() {
         let name = "test_dup_x";
         // First try to create, if exists that's fine (from previous run)
-        let _ = symb_new(name);
+        let _unused = symb_new(name);
         // Second attempt should fail
         let result = symb_new(name);
         assert!(matches!(result, Err(SymbolError::DuplicateName(_))));
@@ -1571,7 +1585,7 @@ mod tests {
     fn test_symb_get_returns_existing() {
         let name = "test_get_existing";
         let x = symb(name); // Use sym to ensure it exists
-        let x2 = symb_get(name).unwrap();
+        let x2 = symb_get(name).expect("Should pass");
         assert_eq!(x.id(), x2.id());
     }
 
@@ -1608,7 +1622,7 @@ mod tests {
     fn test_symbol_equality() {
         let name = "test_equality_x";
         let x1 = symb(name); // Use sym to ensure it exists  
-        let x2 = symb_get(name).unwrap();
+        let x2 = symb_get(name).expect("Should pass");
         assert_eq!(x1, x2); // Same ID, equal
     }
 
@@ -1619,17 +1633,17 @@ mod tests {
 
         // No clone() needed - Symbol is Copy!
         let sum = x + y;
-        assert_eq!(format!("{}", sum), "test_arith_x2 + test_arith_y2");
+        assert_eq!(format!("{sum}"), "test_arith_x2 + test_arith_y2");
 
         let scaled = 2.0 * x;
-        assert_eq!(format!("{}", scaled), "2*test_arith_x2");
+        assert_eq!(format!("{scaled}"), "2*test_arith_x2");
     }
 
     #[test]
     fn test_symbol_power() {
         let x = symb("test_pow_x2");
         let squared = x.pow(2.0);
-        assert_eq!(format!("{}", squared), "test_pow_x2^2");
+        assert_eq!(format!("{squared}"), "test_pow_x2^2");
     }
 
     #[test]
@@ -1644,7 +1658,7 @@ mod tests {
         // Can now use x multiple times without clone!
         let res = x.cos() + x.sin();
         // Sorts alphabetically: cos before sin
-        assert_eq!(format!("{}", res), "cos(test_fn_x2) + sin(test_fn_x2)");
+        assert_eq!(format!("{res}"), "cos(test_fn_x2) + sin(test_fn_x2)");
     }
 
     #[test]
@@ -1654,15 +1668,15 @@ mod tests {
 
         // a + a - uses the same symbol twice without .clone()
         let expr = a + a;
-        assert!(format!("{}", expr).contains("test_copy_a"));
+        assert!(format!("{expr}").contains("test_copy_a"));
 
         // Multiple uses in complex expression
         let expr2 = a * a + a;
-        assert!(format!("{}", expr2).contains("test_copy_a"));
+        assert!(format!("{expr2}").contains("test_copy_a"));
 
         // Mixed with functions (which take &self)
         let expr3 = a.sin() + a.cos() + a;
-        assert!(format!("{}", expr3).contains("test_copy_a"));
+        assert!(format!("{expr3}").contains("test_copy_a"));
     }
 
     // =========================================================================
@@ -1675,19 +1689,19 @@ mod tests {
 
         // Symbol + f64
         let e1 = x + 1.5;
-        assert!(format!("{}", e1).contains("test_f64_x"));
+        assert!(format!("{e1}").contains("test_f64_x"));
 
         // f64 + Symbol
         let e2 = 2.5 + x;
-        assert!(format!("{}", e2).contains("test_f64_x"));
+        assert!(format!("{e2}").contains("test_f64_x"));
 
         // All operations
-        let _ = x - 1.0;
-        let _ = x * 2.0;
-        let _ = x / 3.0;
-        let _ = 1.0 - x;
-        let _ = 2.0 * x;
-        let _ = 3.0 / x;
+        let _unused = x - 1.0;
+        let _unused = x * 2.0;
+        let _unused = x / 3.0;
+        let _unused = 1.0 - x;
+        let _unused = 2.0 * x;
+        let _unused = 3.0 / x;
     }
 
     #[test]
@@ -1696,19 +1710,19 @@ mod tests {
 
         // Symbol + i32
         let e1 = x + 1;
-        assert!(format!("{}", e1).contains("test_i32_x"));
+        assert!(format!("{e1}").contains("test_i32_x"));
 
         // i32 + Symbol
         let e2 = 2 + x;
-        assert!(format!("{}", e2).contains("test_i32_x"));
+        assert!(format!("{e2}").contains("test_i32_x"));
 
         // All operations
-        let _ = x - 1;
-        let _ = x * 2;
-        let _ = x / 3;
-        let _ = 1 - x;
-        let _ = 2 * x;
-        let _ = 3 / x;
+        let _unused = x - 1;
+        let _unused = x * 2;
+        let _unused = x / 3;
+        let _unused = 1 - x;
+        let _unused = 2 * x;
+        let _unused = 3 / x;
     }
 
     #[test]
@@ -1717,12 +1731,12 @@ mod tests {
 
         // &Symbol + f64
         let e1 = &x + 1.5;
-        assert!(format!("{}", e1).contains("test_ref_f64_x"));
+        assert!(format!("{e1}").contains("test_ref_f64_x"));
 
         // All operations
-        let _ = &x - 1.0;
-        let _ = &x * 2.0;
-        let _ = &x / 3.0;
+        let _unused = &x - 1.0;
+        let _unused = &x * 2.0;
+        let _unused = &x / 3.0;
     }
 
     #[test]
@@ -1731,12 +1745,12 @@ mod tests {
 
         // &Symbol + i32
         let e1 = &x + 1;
-        assert!(format!("{}", e1).contains("test_ref_i32_x"));
+        assert!(format!("{e1}").contains("test_ref_i32_x"));
 
         // All operations
-        let _ = &x - 1;
-        let _ = &x * 2;
-        let _ = &x / 3;
+        let _unused = &x - 1;
+        let _unused = &x * 2;
+        let _unused = &x / 3;
     }
 
     #[test]
@@ -1746,19 +1760,19 @@ mod tests {
 
         // Expr + f64
         let e1 = expr.clone() + 1.5;
-        assert!(format!("{}", e1).contains("sin"));
+        assert!(format!("{e1}").contains("sin"));
 
         // f64 + Expr
         let e2 = 2.5 + expr.clone();
-        assert!(format!("{}", e2).contains("sin"));
+        assert!(format!("{e2}").contains("sin"));
 
         // All operations
-        let _ = expr.clone() - 1.0;
-        let _ = expr.clone() * 2.0;
-        let _ = expr.clone() / 3.0;
-        let _ = 1.0 - expr.clone();
-        let _ = 2.0 * expr.clone();
-        let _ = 3.0 / expr;
+        let _unused = expr.clone() - 1.0;
+        let _unused = expr.clone() * 2.0;
+        let _unused = expr.clone() / 3.0;
+        let _unused = 1.0 - expr.clone();
+        let _unused = 2.0 * expr.clone();
+        let _unused = 3.0 / expr;
     }
 
     #[test]
@@ -1768,19 +1782,19 @@ mod tests {
 
         // Expr + i32
         let e1 = expr.clone() + 1;
-        assert!(format!("{}", e1).contains("cos"));
+        assert!(format!("{e1}").contains("cos"));
 
         // i32 + Expr
         let e2 = 2 + expr.clone();
-        assert!(format!("{}", e2).contains("cos"));
+        assert!(format!("{e2}").contains("cos"));
 
         // All operations
-        let _ = expr.clone() - 1;
-        let _ = expr.clone() * 2;
-        let _ = expr.clone() / 3;
-        let _ = 1 - expr.clone();
-        let _ = 2 * expr.clone();
-        let _ = 3 / expr;
+        let _unused = expr.clone() - 1;
+        let _unused = expr.clone() * 2;
+        let _unused = expr.clone() / 3;
+        let _unused = 1 - expr.clone();
+        let _unused = 2 * expr.clone();
+        let _unused = 3 / expr;
     }
 
     #[test]
@@ -1790,19 +1804,19 @@ mod tests {
 
         // &Expr + f64
         let e1 = &expr + 1.5;
-        assert!(format!("{}", e1).contains("exp"));
+        assert!(format!("{e1}").contains("exp"));
 
         // f64 + &Expr
         let e2 = 2.5 + &expr;
-        assert!(format!("{}", e2).contains("exp"));
+        assert!(format!("{e2}").contains("exp"));
 
         // All operations
-        let _ = &expr - 1.0;
-        let _ = &expr * 2.0;
-        let _ = &expr / 3.0;
-        let _ = 1.0 - &expr;
-        let _ = 2.0 * &expr;
-        let _ = 3.0 / &expr;
+        let _unused = &expr - 1.0;
+        let _unused = &expr * 2.0;
+        let _unused = &expr / 3.0;
+        let _unused = 1.0 - &expr;
+        let _unused = 2.0 * &expr;
+        let _unused = 3.0 / &expr;
     }
 
     #[test]
@@ -1812,19 +1826,19 @@ mod tests {
 
         // &Expr + i32
         let e1 = &expr + 1;
-        assert!(format!("{}", e1).contains("ln"));
+        assert!(format!("{e1}").contains("ln"));
 
         // i32 + &Expr
         let e2 = 2 + &expr;
-        assert!(format!("{}", e2).contains("ln"));
+        assert!(format!("{e2}").contains("ln"));
 
         // All operations
-        let _ = &expr - 1;
-        let _ = &expr * 2;
-        let _ = &expr / 3;
-        let _ = 1 - &expr;
-        let _ = 2 * &expr;
-        let _ = 3 / &expr;
+        let _unused = &expr - 1;
+        let _unused = &expr * 2;
+        let _unused = &expr / 3;
+        let _unused = 1 - &expr;
+        let _unused = 2 * &expr;
+        let _unused = 3 / &expr;
     }
 
     #[test]
@@ -1834,21 +1848,21 @@ mod tests {
 
         // Symbol + Symbol
         let e1 = x + y;
-        assert!(format!("{}", e1).contains("test_ss_x"));
-        assert!(format!("{}", e1).contains("test_ss_y"));
+        assert!(format!("{e1}").contains("test_ss_x"));
+        assert!(format!("{e1}").contains("test_ss_y"));
 
         // &Symbol + Symbol
         let e2 = x + y;
-        assert!(format!("{}", e2).contains("test_ss_x"));
+        assert!(format!("{e2}").contains("test_ss_x"));
 
         // Symbol + &Symbol
         let e3 = x + y;
-        assert!(format!("{}", e3).contains("test_ss_y"));
+        assert!(format!("{e3}").contains("test_ss_y"));
 
         // &Symbol + &Symbol
         let e4 = x + y;
-        assert!(format!("{}", e4).contains("test_ss_x"));
-        assert!(format!("{}", e4).contains("test_ss_y"));
+        assert!(format!("{e4}").contains("test_ss_x"));
+        assert!(format!("{e4}").contains("test_ss_y"));
     }
 
     #[test]
@@ -1859,20 +1873,20 @@ mod tests {
 
         // Symbol + Expr
         let e1 = x + expr.clone();
-        assert!(format!("{}", e1).contains("test_se_x"));
-        assert!(format!("{}", e1).contains("sin"));
+        assert!(format!("{e1}").contains("test_se_x"));
+        assert!(format!("{e1}").contains("sin"));
 
         // Expr + Symbol
         let e2 = expr.clone() + x;
-        assert!(format!("{}", e2).contains("test_se_x"));
+        assert!(format!("{e2}").contains("test_se_x"));
 
         // &Symbol + Expr
         let e3 = x + expr.clone();
-        assert!(format!("{}", e3).contains("test_se_x"));
+        assert!(format!("{e3}").contains("test_se_x"));
 
         // Symbol + &Expr
         let e4 = x + &expr;
-        assert!(format!("{}", e4).contains("sin"));
+        assert!(format!("{e4}").contains("sin"));
     }
 
     #[test]
@@ -1884,20 +1898,20 @@ mod tests {
 
         // Expr + Expr
         let e1 = expr1.clone() + expr2.clone();
-        assert!(format!("{}", e1).contains("sin"));
-        assert!(format!("{}", e1).contains("cos"));
+        assert!(format!("{e1}").contains("sin"));
+        assert!(format!("{e1}").contains("cos"));
 
         // &Expr + &Expr
         let e2 = &expr1 + &expr2;
-        assert!(format!("{}", e2).contains("sin"));
+        assert!(format!("{e2}").contains("sin"));
 
         // &Expr + Expr
         let e3 = &expr1 + expr2.clone();
-        assert!(format!("{}", e3).contains("sin"));
+        assert!(format!("{e3}").contains("sin"));
 
         // Expr + &Expr
         let e4 = expr1 + &expr2;
-        assert!(format!("{}", e4).contains("cos"));
+        assert!(format!("{e4}").contains("cos"));
     }
 
     #[test]
@@ -1908,7 +1922,7 @@ mod tests {
         // Complex expression mixing all types
         // (x + 1) * (y - 2.0) + 3 * x.sin()
         let expr = (x + 1) * (y - 2.0) + 3 * x.sin();
-        let s = format!("{}", expr);
+        let s = format!("{expr}");
         assert!(s.contains("test_mix_x"));
         assert!(s.contains("test_mix_y"));
         assert!(s.contains("sin"));
@@ -1921,19 +1935,19 @@ mod tests {
 
         // -Symbol
         let e1 = -x;
-        assert!(format!("{}", e1).contains("test_neg_x"));
+        assert!(format!("{e1}").contains("test_neg_x"));
 
         // -&Symbol
         let e2 = -&x;
-        assert!(format!("{}", e2).contains("test_neg_x"));
+        assert!(format!("{e2}").contains("test_neg_x"));
 
         // -Expr
         let e3 = -expr.clone();
-        assert!(format!("{}", e3).contains("sin"));
+        assert!(format!("{e3}").contains("sin"));
 
         // -&Expr
         let e4 = -&expr;
-        assert!(format!("{}", e4).contains("sin"));
+        assert!(format!("{e4}").contains("sin"));
     }
 
     #[test]
@@ -1942,20 +1956,20 @@ mod tests {
 
         // Symbol.pow(f64)
         let e1 = x.pow(2.0);
-        assert!(format!("{}", e1).contains("^2"));
+        assert!(format!("{e1}").contains("^2"));
 
         // Symbol.pow(i32)
         let e2 = x.pow(3);
-        assert!(format!("{}", e2).contains("^3"));
+        assert!(format!("{e2}").contains("^3"));
 
         // Symbol.pow(Expr)
         let y = symb("test_pow_all_y");
         let e3 = x.pow(y);
-        assert!(format!("{}", e3).contains("test_pow_all_y"));
+        assert!(format!("{e3}").contains("test_pow_all_y"));
 
         // Expr.pow(f64)
         let expr = x.sin();
         let e4 = expr.pow(2.0);
-        assert!(format!("{}", e4).contains("sin"));
+        assert!(format!("{e4}").contains("sin"));
     }
 }

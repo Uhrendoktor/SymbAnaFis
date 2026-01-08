@@ -546,21 +546,21 @@ impl RuleRegistry {
         for rule in &self.rules {
             for &kind in rule.applies_to() {
                 if let Some(rules) = self.rules_by_kind.get_mut(&kind) {
-                    rules.push(rule.clone());
+                    rules.push(Arc::clone(rule));
                 }
 
                 // Special indexing for Function kind
                 if kind == ExprKind::Function {
                     let targets = rule.target_functions();
                     if targets.is_empty() {
-                        self.generic_func_rules.push(rule.clone());
+                        self.generic_func_rules.push(Arc::clone(rule));
                     } else {
                         for &fname in targets {
                             let sym = crate::core::symbol::symb_interned(fname);
                             self.rules_by_func
                                 .entry(sym.id())
                                 .or_default()
-                                .push(rule.clone());
+                                .push(Arc::clone(rule));
                         }
                     }
                 }

@@ -1,3 +1,7 @@
+// =============================================================================
+// Test module lint relaxations
+// Tests need unwrap/expect/panic for assertions and are not public API.
+// =============================================================================
 mod actual_division_bug;
 mod advanced_simplification_tests;
 mod advanced_tests;

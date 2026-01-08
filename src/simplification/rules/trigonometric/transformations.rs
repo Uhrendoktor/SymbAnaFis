@@ -36,7 +36,10 @@ rule!(
                 // Check for pi/2
                 let is_pi_div_2 = |e: &Expr| {
                     if let AstKind::Div(num, den) = &e.kind {
-                        helpers::is_pi(num) && matches!(&den.kind, AstKind::Number(n) if *n == 2.0)
+                        // Exact check for denominator 2.0 (PI/2)
+                        #[allow(clippy::float_cmp)] // Comparing against exact constant 2.0
+                        let is_two = matches!(&den.kind, AstKind::Number(n) if *n == 2.0);
+                        helpers::is_pi(num) && is_two
                     } else {
                         helpers::get_numeric_value(e)
                             .is_some_and(|v| helpers::approx_eq(v, std::f64::consts::PI / 2.0))
@@ -264,7 +267,12 @@ rule!(
             if let AstKind::Product(factors) = &arg.kind
                 && factors.len() == 2
                 && let AstKind::Number(n) = &factors[0].kind
-                && *n == -1.0
+                && {
+                    // Exact check for -1.0 coefficient
+                    #[allow(clippy::float_cmp)] // Comparing against exact constant -1.0
+                    let is_neg_one = *n == -1.0;
+                    is_neg_one
+                }
             {
                 let inner = (*factors[1]).clone();
                 match &name {

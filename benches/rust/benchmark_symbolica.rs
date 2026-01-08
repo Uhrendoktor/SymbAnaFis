@@ -1,4 +1,7 @@
+// Benchmark requirements: unwrap for setup, stdout for progress, similar names for math variables
+#![allow(clippy::unwrap_used, clippy::print_stdout, clippy::similar_names)]
 //! Symbolica Benchmarks (Comparison)
+
 //!
 //! Replicates the structure of benchmark.rs but using Symbolica's API.
 //! Tests: parse → diff → simplify → compile → evaluate

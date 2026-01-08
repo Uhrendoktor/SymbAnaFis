@@ -330,7 +330,7 @@ impl Context {
         crate::core::symbol::register_in_id_registry(id, interned.clone());
 
         // Save in local context
-        inner.symbols.insert(name.to_string(), interned);
+        inner.symbols.insert(name.to_owned(), interned);
         drop(inner);
 
         Symbol::from_id(id)
@@ -338,6 +338,9 @@ impl Context {
 
     /// Register a symbol (mutating version).
     fn register_symbol(&self, name: &str) {
+        // Side-effect of registration is the primary goal here
+        #[allow(clippy::let_underscore_must_use)] // Side-effect of registration is the goal
+        // SAFETY: We only care about the registration side-effect in the isolated registry
         let _ = self.symb(name);
     }
 
@@ -405,7 +408,7 @@ impl Context {
     /// Register a user-defined function (builder pattern).
     #[must_use]
     pub fn with_function(mut self, name: &str, func: UserFunction) -> Self {
-        self.user_functions.insert(name.to_string(), func);
+        self.user_functions.insert(name.to_owned(), func);
         self
     }
 
@@ -418,7 +421,7 @@ impl Context {
         if !self.user_functions.contains_key(name) {
             // Create a placeholder with default arity (any number of args)
             self.user_functions
-                .insert(name.to_string(), UserFunction::new(0..=usize::MAX));
+                .insert(name.to_owned(), UserFunction::new(0..=usize::MAX));
         }
         self
     }
@@ -580,6 +583,14 @@ impl std::fmt::Debug for Context {
 }
 
 #[cfg(test)]
+#[allow(
+    clippy::unwrap_used,
+    clippy::panic,
+    clippy::cast_precision_loss,
+    clippy::items_after_statements,
+    clippy::let_underscore_must_use,
+    clippy::no_effect_underscore_binding
+)]
 mod tests {
     use super::*;
 
@@ -618,7 +629,7 @@ mod tests {
         assert!(ctx.has_function("f"));
         assert!(!ctx.has_function("g"));
 
-        let f = ctx.get_user_fn("f").unwrap();
+        let f = ctx.get_user_fn("f").expect("Should pass");
         assert!(f.has_body());
         assert!(f.accepts_arity(1));
         assert!(!f.accepts_arity(2));
@@ -629,7 +640,7 @@ mod tests {
         let ctx = Context::new().with_function_name("g");
 
         assert!(ctx.has_function("g"));
-        let g = ctx.get_user_fn("g").unwrap();
+        let g = ctx.get_user_fn("g").expect("Should pass");
         assert!(!g.has_body()); // No body defined
     }
 

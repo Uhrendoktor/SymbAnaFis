@@ -14,9 +14,13 @@ rule!(
         if let AstKind::FunctionCall { name, args } = &expr.kind
             && name.id() == *LN
             && args.len() == 1
-            && matches!(&args[0].kind, AstKind::Number(n) if *n == 1.0)
+        {
+            #[allow(clippy::float_cmp)] // Comparing against exact constant 1.0
+            let is_one = matches!(&args[0].kind, AstKind::Number(n) if *n == 1.0);
+            if is_one
         {
             return Some(Expr::number(0.0));
+        }
         }
         None
     }
@@ -35,8 +39,20 @@ rule!(
             && args.len() == 1
         {
             // Check for ln(exp(1))
-            if matches!(&args[0].kind, AstKind::FunctionCall { name: exp_name, args: exp_args }
-                       if exp_name.id() == *EXP && exp_args.len() == 1 && matches!(&exp_args[0].kind, AstKind::Number(n) if *n == 1.0))
+            let is_exp_one = if let AstKind::FunctionCall { name: exp_name, args: exp_args } = &args[0].kind
+                && exp_name.id() == *EXP && exp_args.len() == 1
+            {
+                if let AstKind::Number(n) = &exp_args[0].kind {
+                    #[allow(clippy::float_cmp)] // Comparing against exact constant 1.0
+                    let is_one = *n == 1.0;
+                    is_one
+                } else {
+                    false
+                }
+            } else {
+                false
+            };
+            if is_exp_one
             {
                 return Some(Expr::number(1.0));
             }
@@ -63,9 +79,13 @@ rule!(
         if let AstKind::FunctionCall { name, args } = &expr.kind
             && name.id() == *EXP
             && args.len() == 1
-            && matches!(&args[0].kind, AstKind::Number(n) if *n == 0.0)
+        {
+            #[allow(clippy::float_cmp)] // Comparing against exact constant 0.0
+            let is_zero = matches!(&args[0].kind, AstKind::Number(n) if *n == 0.0);
+            if is_zero
         {
             return Some(Expr::number(1.0));
+        }
         }
         None
     }
@@ -136,7 +156,10 @@ rule!(
             if let AstKind::Pow(base, exp) = &content.kind {
                 // Check if exponent is an even integer
                 if let AstKind::Number(n) = &exp.kind {
+                    // Exact comparison for integer check and cast for parity
+                    #[allow(clippy::float_cmp, clippy::cast_possible_truncation)] // Comparing against exact constant 0.0 for integer check
                     let is_even_int = n.fract() == 0.0 && (*n as i64) % 2 == 0;
+                    #[allow(clippy::float_cmp, clippy::cast_possible_truncation)] // Comparing against exact constant 0.0 for integer check
                     let is_odd_int = n.fract() == 0.0 && (*n as i64) % 2 != 0;
 
                     if is_even_int && *n != 0.0 {
@@ -144,9 +167,9 @@ rule!(
                         return Some(Expr::product(vec![
                             (**exp).clone(),
                             match args.len() {
-                                1 => Expr::func_multi_from_arcs_symbol(name.clone(), vec![Arc::new(Expr::func_multi_from_arcs("abs", vec![base.clone()]))]),
-                                2 => Expr::func_multi_from_arcs_symbol(name.clone(), vec![args[0].clone(), Arc::new(Expr::func_multi_from_arcs("abs", vec![base.clone()]))]),
-                                _ => unreachable!(),
+                                1 => Expr::func_multi_from_arcs_symbol(name.clone(), vec![Arc::new(Expr::func_multi_from_arcs("abs", vec![Arc::clone(base)]))]),
+                                2 => Expr::func_multi_from_arcs_symbol(name.clone(), vec![Arc::clone(&args[0]), Arc::new(Expr::func_multi_from_arcs("abs", vec![Arc::clone(base)]))]),
+                                _ => return None, // Invalid number of arguments
                             }
                         ]));
                     } else if is_odd_int {
@@ -163,9 +186,9 @@ rule!(
                         return Some(Expr::product(vec![
                             (**exp).clone(),
                             match args.len() {
-                                1 => Expr::func_multi_from_arcs_symbol(name.clone(), vec![base.clone()]),
-                                2 => Expr::func_multi_from_arcs_symbol(name.clone(), vec![args[0].clone(), base.clone()]),
-                                _ => unreachable!(),
+                                1 => Expr::func_multi_from_arcs_symbol(name.clone(), vec![Arc::clone(base)]),
+                                2 => Expr::func_multi_from_arcs_symbol(name.clone(), vec![Arc::clone(&args[0]), Arc::clone(base)]),
+                                _ => return None, // Invalid number of arguments
                             }
                         ]));
                     }
@@ -179,9 +202,9 @@ rule!(
                 return Some(Expr::product(vec![
                     (**exp).clone(),
                     match args.len() {
-                        1 => Expr::func_multi_from_arcs_symbol(name.clone(), vec![base.clone()]),
-                        2 => Expr::func_multi_from_arcs_symbol(name.clone(), vec![args[0].clone(), base.clone()]),
-                        _ => unreachable!(),
+                        1 => Expr::func_multi_from_arcs_symbol(name.clone(), vec![Arc::clone(base)]),
+                        2 => Expr::func_multi_from_arcs_symbol(name.clone(), vec![Arc::clone(&args[0]), Arc::clone(base)]),
+                        _ => return None, // Invalid number of arguments
                     }
                 ]));
             }
@@ -198,9 +221,9 @@ rule!(
                     return Some(Expr::product(vec![
                         Expr::number(0.5),
                         match args.len() {
-                            1 => Expr::func_multi_from_arcs_symbol(name.clone(), vec![inner_args[0].clone()]),
-                            2 => Expr::func_multi_from_arcs_symbol(name.clone(), vec![args[0].clone(), inner_args[0].clone()]),
-                            _ => unreachable!(),
+                            1 => Expr::func_multi_from_arcs_symbol(name.clone(), vec![Arc::clone(&inner_args[0])]),
+                            2 => Expr::func_multi_from_arcs_symbol(name.clone(), vec![Arc::clone(&args[0]), Arc::clone(&inner_args[0])]),
+                            _ => return None, // Invalid number of arguments
                         }
                     ]));
                 }
@@ -212,9 +235,9 @@ rule!(
                     return Some(Expr::product(vec![
                         Expr::div_expr(Expr::number(1.0), Expr::number(3.0)),
                         match args.len() {
-                            1 => Expr::func_multi_from_arcs_symbol(name.clone(), vec![inner_args[0].clone()]),
-                            2 => Expr::func_multi_from_arcs_symbol(name.clone(), vec![args[0].clone(), inner_args[0].clone()]),
-                            _ => unreachable!(),
+                            1 => Expr::func_multi_from_arcs_symbol(name.clone(), vec![Arc::clone(&inner_args[0])]),
+                            2 => Expr::func_multi_from_arcs_symbol(name.clone(), vec![Arc::clone(&args[0]), Arc::clone(&inner_args[0])]),
+                            _ => return None, // Invalid number of arguments
                         }
                     ]));
                 }
@@ -235,25 +258,35 @@ rule!(
         if let AstKind::FunctionCall { name, args } = &expr.kind {
             if args.len() == 1 {
                 if name.id() == *LOG10 {
-                if matches!(&args[0].kind, AstKind::Number(n) if *n == 1.0) {
-                    return Some(Expr::number(0.0));
+                    #[allow(clippy::float_cmp)] // Comparing against exact constant 1.0
+                    let is_one = matches!(&args[0].kind, AstKind::Number(n) if *n == 1.0);
+                    if is_one {
+                        return Some(Expr::number(0.0));
+                    }
+                    #[allow(clippy::float_cmp)] // Comparing against exact constant 10.0
+                    let is_ten = matches!(&args[0].kind, AstKind::Number(n) if *n == 10.0);
+                    if is_ten {
+                        return Some(Expr::number(1.0));
+                    }
+                } else if name.id() == *LOG2 {
+                    #[allow(clippy::float_cmp)] // Comparing against exact constant 1.0
+                    let is_one = matches!(&args[0].kind, AstKind::Number(n) if *n == 1.0);
+                    if is_one {
+                        return Some(Expr::number(0.0));
+                    }
+                    #[allow(clippy::float_cmp)] // Comparing against exact constant 2.0
+                    let is_two = matches!(&args[0].kind, AstKind::Number(n) if *n == 2.0);
+                    if is_two {
+                        return Some(Expr::number(1.0));
+                    }
                 }
-                if matches!(&args[0].kind, AstKind::Number(n) if *n == 10.0) {
-                    return Some(Expr::number(1.0));
+            } else if args.len() == 2 && name.id() == *LOG {
+                // log(base, 1) = 0
+                #[allow(clippy::float_cmp)] // Comparing against exact constant 1.0
+                let is_one = matches!(&args[1].kind, AstKind::Number(n) if *n == 1.0);
+                if is_one {
+                     return Some(Expr::number(0.0));
                 }
-            } else if name.id() == *LOG2 {
-                if matches!(&args[0].kind, AstKind::Number(n) if *n == 1.0) {
-                    return Some(Expr::number(0.0));
-                }
-                if matches!(&args[0].kind, AstKind::Number(n) if *n == 2.0) {
-                    return Some(Expr::number(1.0));
-                }
-            }
-        } else if args.len() == 2 && name.id() == *LOG {
-            // log(base, 1) = 0
-            if matches!(&args[1].kind, AstKind::Number(n) if *n == 1.0) {
-                 return Some(Expr::number(0.0));
-            }
             // log(base, base) = 1
             if args[0] == args[1] {
                 return Some(Expr::number(1.0));
@@ -276,7 +309,7 @@ rule!(
             && name.id() == *EXP
             && args.len() == 1
         {
-            return Some(Expr::pow_from_arcs(Arc::new(Expr::symbol("e")), args[0].clone()));
+            return Some(Expr::pow_from_arcs(Arc::new(Expr::symbol("e")), Arc::clone(&args[0])));
         }
         None
     }

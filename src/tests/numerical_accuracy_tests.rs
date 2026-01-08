@@ -1,5 +1,4 @@
 // Numerical accuracy tests - verify derivatives are computed correctly
-
 use crate::diff;
 
 #[test]

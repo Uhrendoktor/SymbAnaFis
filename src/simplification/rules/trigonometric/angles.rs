@@ -20,18 +20,22 @@ rule_with_helpers_arc!(
                 && let AstKind::Number(n) = &factors[0].kind
                 && (*n + 1.0).abs() < 1e-10
             {
-                return Some(factors[1].clone());
+                return Some(Arc::clone(&factors[1]));
             }
             None
         }
 
         fn get_fn_pow_symbol_arc(expr: &Expr, power: f64) -> Option<(InternedSymbol, Arc<Expr>)> {
             if let AstKind::Pow(base, exp) = &expr.kind
-                && matches!(exp.kind, AstKind::Number(n) if n == power)
                 && let AstKind::FunctionCall { name, args } = &base.kind
                 && args.len() == 1
             {
-                return Some((name.clone(), args[0].clone()));
+                // Exact check for expected power exponent
+                #[allow(clippy::float_cmp)] // Comparing against exact constant (power)
+                let matches_power = matches!(exp.kind, AstKind::Number(n) if n == power);
+                if matches_power {
+                    return Some((name.clone(), Arc::clone(&args[0])));
+                }
             }
             None
         }
@@ -99,11 +103,15 @@ rule_with_helpers_arc!(
     helpers: {
         fn get_fn_pow_symbol_arc(expr: &Expr, power: f64) -> Option<(InternedSymbol, Arc<Expr>)> {
             if let AstKind::Pow(base, exp) = &expr.kind
-                && matches!(exp.kind, AstKind::Number(n) if n == power)
                 && let AstKind::FunctionCall { name, args } = &base.kind
                 && args.len() == 1
             {
-                return Some((name.clone(), args[0].clone()));
+                // Exact check for expected power exponent
+                #[allow(clippy::float_cmp)] // Comparing against exact constant (power)
+                let matches_power = matches!(exp.kind, AstKind::Number(n) if n == power);
+                if matches_power {
+                    return Some((name.clone(), Arc::clone(&args[0])));
+                }
             }
             None
         }
@@ -128,7 +136,7 @@ rule_with_helpers_arc!(
                     if let AstKind::FunctionCall { name, args } = &t.kind
                         && args.len() == 1
                     {
-                        return Some((name.clone(), args[0].clone()));
+                        return Some((name.clone(), Arc::clone(&args[0])));
                     }
                     get_fn_pow_symbol_arc(t, 1.0)
                 };
@@ -228,11 +236,7 @@ fn is_sin(expr: &Expr) -> bool {
 
 fn get_cos_arg_arc(expr: &Expr) -> Option<Arc<Expr>> {
     if let AstKind::FunctionCall { name, args } = &expr.kind {
-        if name.id() == *COS && args.len() == 1 {
-            Some(args[0].clone())
-        } else {
-            None
-        }
+        (name.id() == *COS && args.len() == 1).then(|| Arc::clone(&args[0]))
     } else if let AstKind::Sum(terms) = &expr.kind {
         if terms.is_empty() {
             None
@@ -246,11 +250,7 @@ fn get_cos_arg_arc(expr: &Expr) -> Option<Arc<Expr>> {
 
 fn get_sin_arg_arc(expr: &Expr) -> Option<Arc<Expr>> {
     if let AstKind::FunctionCall { name, args } = &expr.kind {
-        if name.id() == *SIN && args.len() == 1 {
-            Some(args[0].clone())
-        } else {
-            None
-        }
+        (name.id() == *SIN && args.len() == 1).then(|| Arc::clone(&args[0]))
     } else if let AstKind::Sum(terms) = &expr.kind {
         if terms.len() >= 2 {
             // Look in second term (which may be -sin(x) = Product([-1, sin(x)]))
@@ -293,9 +293,9 @@ rule_arc!(
             };
 
             if let Some(arg) = get_cos_arg_arc(cos_minus_sin)
-                && get_cos_arg_arc(cos_plus_sin) == Some(arg.clone())
-                && get_sin_arg_arc(cos_minus_sin) == Some(arg.clone())
-                && get_sin_arg_arc(cos_plus_sin) == Some(arg.clone())
+                && get_cos_arg_arc(cos_plus_sin) == Some(Arc::clone(&arg))
+                && get_sin_arg_arc(cos_minus_sin) == Some(Arc::clone(&arg))
+                && get_sin_arg_arc(cos_plus_sin) == Some(Arc::clone(&arg))
             {
                 // (cos(x) - sin(x))(cos(x) + sin(x)) = cos(2x)
                 let doubled_arg = Arc::new(Expr::product_from_arcs(vec![
@@ -341,9 +341,9 @@ rule_arc!(
                     {
                         if sin_arg.is_some() {
                             // Multiple sin factors - don't handle
-                            other_factors.push(f.clone());
+                            other_factors.push(Arc::clone(f));
                         } else {
-                            sin_arg = Some(args[0].clone());
+                            sin_arg = Some(Arc::clone(&args[0]));
                         }
                     }
                     AstKind::FunctionCall { name, args }
@@ -351,13 +351,13 @@ rule_arc!(
                     {
                         if cos_arg.is_some() {
                             // Multiple cos factors - don't handle
-                            other_factors.push(f.clone());
+                            other_factors.push(Arc::clone(f));
                         } else {
-                            cos_arg = Some(args[0].clone());
+                            cos_arg = Some(Arc::clone(&args[0]));
                         }
                     }
                     _ => {
-                        other_factors.push(f.clone());
+                        other_factors.push(Arc::clone(f));
                     }
                 }
             }

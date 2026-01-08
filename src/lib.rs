@@ -1,16 +1,3 @@
-#![deny(unsafe_code)]
-// Obriga a ter documentação em tudo o que é público
-#![deny(missing_docs)]
-// Obriga a ter exemplos de código na doc que funcionem
-#![deny(rustdoc::broken_intra_doc_links)]
-#![deny(clippy::all)]
-#![deny(clippy::perf)] // Apanha ineficiências de performance
-#![deny(clippy::style)] // Garante estilo idiomático
-// Allow intentional float/cast behavior in symbolic math
-#![allow(clippy::float_cmp)] // Exact comparisons for small integers like 1.0, 2.0
-#![allow(clippy::missing_panics_doc)] // Panics are defensive assertions on impossible conditions
-#![allow(clippy::cast_possible_truncation)] // Integer casts are intentional in math logic
-
 //! Symbolic Differentiation Library
 //!
 //! A fast, focused Rust library for symbolic differentiation.
@@ -41,7 +28,10 @@
 //! let derivative = Diff::new().differentiate(&expr, &x).unwrap();
 //! // derivative is: 2*x + cos(x)
 //! ```
-
+#![cfg_attr(
+    test,
+    allow(clippy::float_cmp, clippy::cast_possible_truncation, clippy::pedantic)
+)]
 // New module structure
 mod api; // User-facing builders: Diff, Simplify, helpers
 mod bindings; // External bindings (Python, parallel)
@@ -58,6 +48,10 @@ mod uncertainty;
 pub use core::visitor;
 
 #[cfg(test)]
+#[allow(missing_docs)]
+#[allow(clippy::pedantic, clippy::nursery, clippy::restriction)]
+#[allow(clippy::cast_possible_truncation, clippy::float_cmp)]
+#[allow(clippy::print_stdout, clippy::unwrap_used)] // Standard in tests
 mod tests;
 
 // ============================================================================

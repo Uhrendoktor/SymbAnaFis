@@ -7,7 +7,7 @@ fn test_bessel_j_forward_regime() {
     let x: f64 = 5.0;
     let n = 2;
     let result = bessel_j(n, x).unwrap();
-    assert!((result - 0.046565116277749).abs() < 1e-7);
+    assert!((result - 0.046_565_116_277_749).abs() < 1e-7);
 }
 
 #[test]
@@ -19,7 +19,7 @@ fn test_bessel_j_backward_regime_miller() {
     let n = 10;
     let result = bessel_j(n, x).unwrap();
     // Tolerance might need to be relaxed depending on implementation precision
-    assert!((result - 2.515386286e-7).abs() < 1e-10);
+    assert!((result - 2.515_386_286e-7).abs() < 1e-10);
 }
 
 #[test]
@@ -56,11 +56,11 @@ fn test_bessel_j_hybrid_transition() {
 
     // n < x: forward recurrence
     let j4 = bessel_j(4, x).unwrap();
-    let j4_ref = 0.391232351; // WolframAlpha
+    let j4_ref = 0.391_232_351; // WolframAlpha
 
     // n > x: Miller's algorithm
     let j10 = bessel_j(10, x).unwrap();
-    let j10_ref = 0.00146780264731; // Verified against SciPy
+    let j10_ref = 0.001_467_802_647_31; // Verified against SciPy
 
     assert!((j4 - j4_ref).abs() < 1e-7);
     assert!((j10 - j10_ref).abs() < 1e-10);

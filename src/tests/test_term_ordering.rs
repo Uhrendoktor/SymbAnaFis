@@ -35,7 +35,7 @@ mod tests {
             assert_eq!(name.as_str(), "cosh");
             assert_eq!(*args[0], Expr::symbol("x"));
         } else {
-            panic!("Expected cosh(x), got {:?}", simplified);
+            panic!("Expected cosh(x), got {simplified:?}");
         }
     }
 
@@ -67,7 +67,7 @@ mod tests {
             assert_eq!(name.as_str(), "cosh");
             assert_eq!(*args[0], Expr::symbol("x"));
         } else {
-            panic!("Expected cosh(x), got {:?}", simplified);
+            panic!("Expected cosh(x), got {simplified:?}");
         }
     }
 
@@ -107,7 +107,7 @@ mod tests {
             assert_eq!(name.as_str(), "coth");
             assert_eq!(*args[0], Expr::symbol("x"));
         } else {
-            panic!("Expected coth(x), got {:?}", simplified);
+            panic!("Expected coth(x), got {simplified:?}");
         }
     }
 
@@ -147,7 +147,7 @@ mod tests {
             assert_eq!(name.as_str(), "tanh");
             assert_eq!(*args[0], Expr::symbol("x"));
         } else {
-            panic!("Expected tanh(x), got {:?}", simplified);
+            panic!("Expected tanh(x), got {simplified:?}");
         }
     }
 
@@ -179,7 +179,7 @@ mod tests {
             assert_eq!(name.as_str(), "sech");
             assert_eq!(*args[0], Expr::symbol("x"));
         } else {
-            panic!("Expected sech(x), got {:?}", simplified);
+            panic!("Expected sech(x), got {simplified:?}");
         }
     }
 
@@ -213,7 +213,7 @@ mod tests {
             assert_eq!(name.as_str(), "sinh");
             assert_eq!(*args[0], Expr::symbol("x"));
         } else {
-            panic!("Expected sinh(x), got {:?}", simplified);
+            panic!("Expected sinh(x), got {simplified:?}");
         }
     }
 
@@ -248,7 +248,7 @@ mod tests {
             assert_eq!(name.as_str(), "sinh");
             assert_eq!(*args[0], Expr::symbol("x"));
         } else {
-            panic!("Expected sinh(x), got {:?}", simplified);
+            panic!("Expected sinh(x), got {simplified:?}");
         }
     }
 }

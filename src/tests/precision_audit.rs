@@ -1,23 +1,3 @@
-//! Precision Audit: Systematic review of function accuracy
-//!
-//! This module contains comprehensive precision tests for all mathematical functions,
-//! comparing against reference values from DLMF, Abramowitz & Stegun, and other
-//! authoritative sources.
-//!
-//! # Testing Methodology
-//!
-//! Each function is tested with:
-//! - **Reference values**: Known exact or high-precision values
-//! - **Relative error**: |computed - expected| / |expected|
-//! - **Absolute error**: |computed - expected| (near zero or singularities)
-//! - **Edge cases**: Domain boundaries, poles, asymptotic limits
-//!
-//! # Precision Criteria
-//!
-//! - Standard functions (sin, cos, exp, ln): < 1e-12 relative error
-//! - Special functions (gamma, bessel): < 1e-10 relative error
-//! - Near singularities: < 1e-8 absolute error
-
 use crate::parser::parse;
 use crate::{ExprKind, diff};
 use std::collections::{HashMap, HashSet};
@@ -85,8 +65,13 @@ fn precision_sin() {
     // Known values from DLMF Table 4.3.1
     check_rel_error(eval("sin(0)"), 0.0, REL_TOL, "sin(0)");
     check_rel_error(eval("sin(1.5707963267948966)"), 1.0, REL_TOL, "sin(π/2)");
-    check_rel_error(eval("sin(3.141592653589793)"), 0.0, REL_TOL, "sin(π)");
-    check_rel_error(eval("sin(0.5235987755982988)"), 0.5, REL_TOL, "sin(π/6)");
+    check_rel_error(eval("sin(3.141_592_653_589_793)"), 0.0, REL_TOL, "sin(π)");
+    check_rel_error(
+        eval("sin(0.523_598_775_598_298_8)"),
+        0.5,
+        REL_TOL,
+        "sin(π/6)",
+    );
 
     // sin(π/4) = √2/2
     check_rel_error(
@@ -123,7 +108,7 @@ fn precision_inverse_trig() {
     check_rel_error(eval("asin(0)"), 0.0, REL_TOL, "asin(0)");
     check_rel_error(
         eval("asin(0.5)"),
-        0.5235987755982988,
+        0.523_598_775_598_298_8,
         REL_TOL,
         "asin(0.5) = π/6",
     );
@@ -161,22 +146,32 @@ fn precision_inverse_trig() {
 #[test]
 fn precision_sinh() {
     check_rel_error(eval("sinh(0)"), 0.0, REL_TOL, "sinh(0)");
-    check_rel_error(eval("sinh(1)"), 1.1752011936438014, REL_TOL, "sinh(1)");
-    check_rel_error(eval("sinh(-1)"), -1.1752011936438014, REL_TOL, "sinh(-1)");
+    check_rel_error(eval("sinh(1)"), 1.175_201_193_643_801_4, REL_TOL, "sinh(1)");
+    check_rel_error(
+        eval("sinh(-1)"),
+        -1.175_201_193_643_801_4,
+        REL_TOL,
+        "sinh(-1)",
+    );
 }
 
 #[test]
 fn precision_cosh() {
     check_rel_error(eval("cosh(0)"), 1.0, REL_TOL, "cosh(0)");
-    check_rel_error(eval("cosh(1)"), 1.5430806348152437, REL_TOL, "cosh(1)");
+    check_rel_error(eval("cosh(1)"), 1.543_080_634_815_243_7, REL_TOL, "cosh(1)");
     // cosh is even
-    check_rel_error(eval("cosh(-1)"), 1.5430806348152437, REL_TOL, "cosh(-1)");
+    check_rel_error(
+        eval("cosh(-1)"),
+        1.543_080_634_815_243_7,
+        REL_TOL,
+        "cosh(-1)",
+    );
 }
 
 #[test]
 fn precision_tanh() {
     check_rel_error(eval("tanh(0)"), 0.0, REL_TOL, "tanh(0)");
-    check_rel_error(eval("tanh(1)"), 0.7615941559557649, REL_TOL, "tanh(1)");
+    check_rel_error(eval("tanh(1)"), 0.761_594_155_955_764_9, REL_TOL, "tanh(1)");
     // Verify identity: tanh² + sech² = 1
     let tanh1 = eval("tanh(1)");
     let sech1 = eval("sech(1)");
@@ -191,13 +186,18 @@ fn precision_inverse_hyperbolic() {
 
     // acosh(x) = ln(x + √(x²-1))
     check_rel_error(eval("acosh(1)"), 0.0, REL_TOL, "acosh(1)");
-    check_rel_error(eval("acosh(2)"), 1.3169578969248166, REL_TOL, "acosh(2)");
+    check_rel_error(
+        eval("acosh(2)"),
+        1.316_957_896_924_816_6,
+        REL_TOL,
+        "acosh(2)",
+    );
 
     // atanh
     check_rel_error(eval("atanh(0)"), 0.0, REL_TOL, "atanh(0)");
     check_rel_error(
         eval("atanh(0.5)"),
-        0.5493061443340549,
+        0.549_306_144_334_054_9,
         REL_TOL,
         "atanh(0.5)",
     );
@@ -229,7 +229,7 @@ fn precision_exp() {
 #[test]
 fn precision_ln() {
     check_rel_error(eval("ln(1)"), 0.0, REL_TOL, "ln(1)");
-    check_rel_error(eval("ln(2.718281828459045)"), 1.0, REL_TOL, "ln(e)");
+    check_rel_error(eval("ln(2.718_281_828_459_045)"), 1.0, REL_TOL, "ln(e)");
     check_rel_error(eval("ln(2)"), std::f64::consts::LN_2, REL_TOL, "ln(2)");
     check_rel_error(eval("ln(10)"), std::f64::consts::LN_10, REL_TOL, "ln(10)");
 }
@@ -277,17 +277,27 @@ fn precision_erf() {
     check_rel_error(eval("erf(0)"), 0.0, REL_TOL_GAMMA, "erf(0)");
     check_rel_error(
         eval("erf(0.5)"),
-        0.5204998778130465,
+        0.520_499_877_813_046_5,
         REL_TOL_GAMMA,
         "erf(0.5)",
     );
-    check_rel_error(eval("erf(1)"), 0.8427007929497149, REL_TOL_GAMMA, "erf(1)");
-    check_rel_error(eval("erf(2)"), 0.9953222650189527, REL_TOL_GAMMA, "erf(2)");
+    check_rel_error(
+        eval("erf(1)"),
+        0.842_700_792_949_714_9,
+        REL_TOL_GAMMA,
+        "erf(1)",
+    );
+    check_rel_error(
+        eval("erf(2)"),
+        0.995_322_265_018_952_7,
+        REL_TOL_GAMMA,
+        "erf(2)",
+    );
 
     // erf is odd
     check_rel_error(
         eval("erf(-1)"),
-        -0.8427007929497149,
+        -0.842_700_792_949_714_9,
         REL_TOL_GAMMA,
         "erf(-1)",
     );
@@ -301,12 +311,12 @@ fn precision_erfc() {
     // Verify identity: erf + erfc = 1
     for x in [0.0, 0.5, 1.0, 2.0] {
         let erf_val = eval_with_var("erf(x)", "x", x);
-        let erfc_val = eval_with_var("erfc(x)", "x", x);
+        let erfc_res = eval_with_var("erfc(x)", "x", x);
         check_rel_error(
-            erf_val + erfc_val,
+            erf_val + erfc_res,
             1.0,
             REL_TOL_GAMMA,
-            &format!("erf({}) + erfc({}) = 1", x, x),
+            &format!("erf({x}) + erfc({x}) = 1"),
         );
     }
 }
@@ -346,7 +356,7 @@ fn precision_gamma() {
 #[test]
 fn precision_digamma() {
     // ψ(1) = -γ (Euler-Mascheroni constant)
-    const EULER_GAMMA: f64 = 0.5772156649015329;
+    const EULER_GAMMA: f64 = 0.577_215_664_901_532_9;
     check_rel_error(eval("digamma(1)"), -EULER_GAMMA, REL_TOL_GAMMA, "ψ(1) = -γ");
 
     // ψ(2) = 1 - γ
@@ -389,13 +399,13 @@ fn precision_bessel_j0() {
     // Reference values from A&S Table 9.1
     check_rel_error(
         eval("besselj(0, 1)"),
-        0.7651976865579666,
+        0.765_197_686_557_966_6,
         REL_TOL_BESSEL,
         "J₀(1)",
     );
     check_rel_error(
         eval("besselj(0, 2)"),
-        0.2238907791412357,
+        0.223_890_779_141_235_7,
         REL_TOL_BESSEL,
         "J₀(2)",
     );
@@ -409,13 +419,13 @@ fn precision_bessel_j1() {
     // Reference values from A&S Table 9.1
     check_rel_error(
         eval("besselj(1, 1)"),
-        0.4400505857449335,
+        0.440_050_585_744_933_5,
         REL_TOL_BESSEL,
         "J₁(1)",
     );
     check_rel_error(
         eval("besselj(1, 2)"),
-        0.5767248077568734,
+        0.576_724_807_756_873_4,
         REL_TOL_BESSEL,
         "J₁(2)",
     );
@@ -426,13 +436,13 @@ fn precision_bessel_y0() {
     // Y₀(1) ≈ 0.0883 (A&S Table 9.1)
     check_rel_error(
         eval("bessely(0, 1)"),
-        0.08825696421567696,
+        0.088_256_964_215_676_96,
         REL_TOL_BESSEL,
         "Y₀(1)",
     );
     check_rel_error(
         eval("bessely(0, 2)"),
-        0.5103756726497451,
+        0.510_375_672_649_745_1,
         REL_TOL_BESSEL,
         "Y₀(2)",
     );
@@ -446,7 +456,7 @@ fn precision_bessel_i0() {
     // Reference values from A&S Table 9.8
     check_rel_error(
         eval("besseli(0, 1)"),
-        1.2660658777520084,
+        1.266_065_877_752_008_4,
         REL_TOL_BESSEL,
         "I₀(1)",
     );
@@ -460,7 +470,7 @@ fn precision_bessel_i1() {
     // Reference values from A&S Table 9.8
     check_rel_error(
         eval("besseli(1, 1)"),
-        0.5651591039924851,
+        0.565_159_103_992_485_1,
         REL_TOL_BESSEL,
         "I₁(1)",
     );
@@ -478,7 +488,7 @@ fn precision_lambert_w() {
 
     // W(e) = 1
     check_rel_error(
-        eval("lambertw(2.718281828459045)"),
+        eval("lambertw(2.718_281_828_459_045)"),
         1.0,
         REL_TOL_GAMMA,
         "W(e) = 1",
@@ -487,7 +497,7 @@ fn precision_lambert_w() {
     // W(1) ≈ 0.567143...
     check_rel_error(
         eval("lambertw(1)"),
-        0.5671432904097838,
+        0.567_143_290_409_783_8,
         REL_TOL_GAMMA,
         "W(1)",
     );

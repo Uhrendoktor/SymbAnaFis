@@ -21,6 +21,7 @@ use crate::core::unified_context::{Context, UserFunction};
 use crate::{DiffError, Expr, Symbol, parser, simplification};
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::sync::Arc;
 
 /// Builder for differentiation operations
 #[derive(Clone, Default)]
@@ -130,7 +131,7 @@ impl Diff {
     fn build_bodies_map(&self) -> simplification::CustomBodyMap {
         self.user_fns
             .iter()
-            .filter_map(|(name, func)| func.body.as_ref().map(|b| (name.clone(), b.clone())))
+            .filter_map(|(name, func)| func.body.as_ref().map(|b| (name.clone(), Arc::clone(b))))
             .collect()
     }
 
@@ -157,7 +158,7 @@ impl Diff {
     pub(crate) fn differentiate_by_name(&self, expr: &Expr, var: &str) -> Result<Expr, DiffError> {
         if self.known_symbols.contains(var) {
             return Err(DiffError::VariableInBothFixedAndDiff {
-                var: var.to_string(),
+                var: var.to_owned(),
             });
         }
 
@@ -225,7 +226,7 @@ impl Diff {
 
         if symbols.contains(var) {
             return Err(DiffError::VariableInBothFixedAndDiff {
-                var: var.to_string(),
+                var: var.to_owned(),
             });
         }
 
@@ -343,7 +344,7 @@ impl Simplify {
     fn build_bodies_map(&self) -> simplification::CustomBodyMap {
         self.user_fns
             .iter()
-            .filter_map(|(name, func)| func.body.as_ref().map(|b| (name.clone(), b.clone())))
+            .filter_map(|(name, func)| func.body.as_ref().map(|b| (name.clone(), Arc::clone(b))))
             .collect()
     }
 
@@ -405,6 +406,7 @@ impl Simplify {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::items_after_statements)] // Standard test relaxations
 mod tests {
     use super::*;
     use crate::core::symbol::symb;
@@ -435,7 +437,7 @@ mod tests {
         let x = symb("test_diff_x");
         let expr = x.pow(2.0);
         let result = Diff::new().differentiate(&expr, &x).unwrap();
-        assert_eq!(format!("{}", result), "2*test_diff_x");
+        assert_eq!(format!("{result}"), "2*test_diff_x");
     }
 
     #[test]
@@ -459,12 +461,12 @@ mod tests {
         type CustomEval = Arc<dyn Fn(&[f64]) -> Option<f64> + Send + Sync>;
         let mut custom_evals: HashMap<String, CustomEval> = HashMap::new();
         custom_evals.insert(
-            "f".to_string(),
-            Arc::new(|args: &[f64]| Some(args[0].powi(2) + 1.0)),
+            "f".to_owned(),
+            Arc::new(|args: &[f64]| Some(args[0].mul_add(args[0], 1.0))),
         );
 
         let result = f_of_x.evaluate(&vars, &custom_evals);
-        assert_eq!(format!("{}", result), "10");
+        assert_eq!(format!("{result}"), "10");
     }
 
     #[test]
@@ -479,7 +481,7 @@ mod tests {
         vars.insert("test_noeval_x", 3.0);
 
         let result = f_of_x.evaluate(&vars, &HashMap::new());
-        assert_eq!(format!("{}", result), "f(3)");
+        assert_eq!(format!("{result}"), "f(3)");
     }
 
     #[test]

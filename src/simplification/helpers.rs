@@ -244,7 +244,7 @@ pub fn extract_coeff(expr: &Expr) -> (f64, Expr) {
                 if let ExprKind::Number(n) = &f.kind {
                     coeff *= n;
                 } else {
-                    non_num_arcs.push(f.clone());
+                    non_num_arcs.push(Arc::clone(f));
                 }
             }
 
@@ -252,7 +252,10 @@ pub fn extract_coeff(expr: &Expr) -> (f64, Expr) {
                 Expr::number(1.0)
             } else if non_num_arcs.len() == 1 {
                 // Unwrap Arc if possible or clone contents
-                let arc = non_num_arcs.into_iter().next().unwrap();
+                let arc = non_num_arcs
+                    .into_iter()
+                    .next()
+                    .expect("Non-numeric arcs guaranteed to have one element");
                 match Arc::try_unwrap(arc) {
                     Ok(e) => e,
                     Err(a) => (*a).clone(),
@@ -280,14 +283,14 @@ pub fn extract_coeff_arc(expr: &Expr) -> (f64, Arc<Expr>) {
                 if let ExprKind::Number(n) = &f.kind {
                     coeff *= n;
                 } else {
-                    non_num_arcs.push(f.clone());
+                    non_num_arcs.push(Arc::clone(f));
                 }
             }
 
             let base = if non_num_arcs.is_empty() {
                 Arc::new(Expr::number(1.0))
             } else if non_num_arcs.len() == 1 {
-                non_num_arcs[0].clone()
+                Arc::clone(&non_num_arcs[0])
             } else {
                 Arc::new(Expr::product_from_arcs(non_num_arcs))
             };
@@ -310,12 +313,16 @@ pub fn prettify_roots(expr: Expr) -> Expr {
 
             // x^(1/2) -> sqrt(x)
             if let ExprKind::Div(num, den) = &exp_pretty.kind {
+                // Precise match for 1.0 and 2.0 is required for sqrt transformation
+                #[allow(clippy::float_cmp)]
                 if matches!(num.kind, ExprKind::Number(n) if n == 1.0)
                     && matches!(den.kind, ExprKind::Number(n) if n == 2.0)
                 {
                     return Expr::func("sqrt", base_pretty);
                 }
                 // x^(1/3) -> cbrt(x)
+                // Precise match for 1.0 and 3.0 is required for cbrt transformation
+                #[allow(clippy::float_cmp)]
                 if matches!(num.kind, ExprKind::Number(n) if n == 1.0)
                     && matches!(den.kind, ExprKind::Number(n) if n == 3.0)
                 {
@@ -399,8 +406,17 @@ pub fn is_known_non_negative(expr: &Expr) -> bool {
         ExprKind::Pow(base, exp) => {
             if let ExprKind::Number(n) = &exp.kind {
                 // Even positive integer exponents: x^2, x^4, etc.
-                if *n > 0.0 && n.fract() == 0.0 && (*n as i64) % 2 == 0 {
-                    return true;
+                // Checked fract() == 0.0, so cast is safe
+                if *n > 0.0 && n.fract() == 0.0 {
+                    let is_even = {
+                        #[allow(clippy::cast_possible_truncation)]
+                        {
+                            (*n as i64) % 2 == 0
+                        }
+                    };
+                    if is_even {
+                        return true;
+                    }
                 }
                 // Non-negative base with any positive exponent: (x^2)^0.5, abs(x)^1.5
                 if *n > 0.0 && is_known_non_negative(base) {
@@ -447,7 +463,11 @@ pub fn is_fractional_root_exponent(expr: &Expr) -> bool {
         ExprKind::Div(_, den) => {
             if let ExprKind::Number(d) = &den.kind {
                 // Check if denominator is an even integer
-                d.fract() == 0.0 && (*d as i64) % 2 == 0
+                // Checked fract() == 0.0, so cast is safe
+                #[allow(clippy::cast_possible_truncation)]
+                {
+                    d.fract() == 0.0 && (*d as i64) % 2 == 0
+                }
             } else {
                 // Can't determine, be conservative
                 false
@@ -710,7 +730,7 @@ pub fn normalize_for_comparison(expr: &Expr) -> Expr {
             if (coeff - 1.0).abs() < 1e-14 {
                 // Coefficient is 1, just return non-numeric factors
                 if non_numeric.len() == 1 {
-                    return non_numeric.into_iter().next().unwrap();
+                    return non_numeric.remove(0);
                 }
                 return Expr::product(non_numeric);
             }

@@ -26,7 +26,7 @@ impl Rule for FractionCancellationRule {
     }
 
     // Fraction cancellation handles many expression patterns, length is justified
-    #[allow(clippy::too_many_lines)]
+    #[allow(clippy::too_many_lines)] // Complex fraction simplification logic
     fn apply(&self, expr: &Arc<Expr>, context: &RuleContext) -> Option<Arc<Expr>> {
         // For Product expressions, check if there's a Div nested inside
         if let AstKind::Product(factors) = &expr.kind {
@@ -38,17 +38,20 @@ impl Rule for FractionCancellationRule {
                         .iter()
                         .enumerate()
                         .filter(|(j, _)| *j != i)
-                        .map(|(_, f)| f.clone())
+                        .map(|(_, f)| Arc::clone(f))
                         .collect();
-                    new_num_factors.push(num.clone());
+                    new_num_factors.push(Arc::clone(num));
 
                     let combined_num = if new_num_factors.len() == 1 {
-                        new_num_factors.into_iter().next().unwrap()
+                        new_num_factors
+                            .into_iter()
+                            .next()
+                            .expect("Vector guaranteed to have exactly one element")
                     } else {
                         Arc::new(Expr::product_from_arcs(new_num_factors))
                     };
 
-                    let new_div = Expr::div_from_arcs(combined_num, den.clone());
+                    let new_div = Expr::div_from_arcs(combined_num, Arc::clone(den));
                     return self.apply(&Arc::new(new_div), context);
                 }
             }
@@ -59,21 +62,21 @@ impl Rule for FractionCancellationRule {
             // Helper to get base and exponent
             fn get_base_exp(e: &Arc<Expr>) -> (Arc<Expr>, Arc<Expr>) {
                 match &e.kind {
-                    AstKind::Pow(b, exp) => (b.clone(), exp.clone()),
+                    AstKind::Pow(b, exp) => (Arc::clone(b), Arc::clone(exp)),
                     AstKind::FunctionCall { name, args } if args.len() == 1 => {
                         // Use ID validation via known_symbols
                         if name.id() == *SQRT {
-                            (args[0].clone(), Arc::new(Expr::number(0.5)))
+                            (Arc::clone(&args[0]), Arc::new(Expr::number(0.5)))
                         } else if name.id() == *CBRT {
                             (
-                                args[0].clone(),
+                                Arc::clone(&args[0]),
                                 Arc::new(Expr::div_expr(Expr::number(1.0), Expr::number(3.0))),
                             )
                         } else {
-                            (e.clone(), Arc::new(Expr::number(1.0)))
+                            (Arc::clone(e), Arc::new(Expr::number(1.0)))
                         }
                     }
-                    _ => (e.clone(), Arc::new(Expr::number(1.0))),
+                    _ => (Arc::clone(e), Arc::new(Expr::number(1.0))),
                 }
             }
 
@@ -150,10 +153,10 @@ impl Rule for FractionCancellationRule {
                             Expr::number(n1 - n2)
                         } else {
                             Expr::sum_from_arcs(vec![
-                                exp_i.clone(),
+                                Arc::clone(&exp_i),
                                 Arc::new(Expr::product_from_arcs(vec![
                                     Arc::new(Expr::number(-1.0)),
-                                    exp_j.clone(),
+                                    Arc::clone(&exp_j),
                                 ])),
                             ])
                         };
@@ -166,11 +169,18 @@ impl Rule for FractionCancellationRule {
                                 matched = true;
                                 break;
                             } else if n > 0.0 {
-                                if n == 1.0 {
-                                    new_num_factors[i] = base_i.clone();
+                                let is_one_exponent = {
+                                    // Exact check for 1.0 exponent
+                                    #[allow(clippy::float_cmp)]
+                                    // Comparing against exact constant 1.0
+                                    let res = n == 1.0;
+                                    res
+                                };
+                                if is_one_exponent {
+                                    new_num_factors[i] = Arc::clone(&base_i);
                                 } else {
                                     new_num_factors[i] = Arc::new(Expr::pow_from_arcs(
-                                        base_i.clone(),
+                                        Arc::clone(&base_i),
                                         Arc::new(Expr::number(n)),
                                     ));
                                 }
@@ -178,11 +188,18 @@ impl Rule for FractionCancellationRule {
                             } else {
                                 new_num_factors.remove(i);
                                 let pos_n = -n;
-                                if pos_n == 1.0 {
-                                    new_den_factors[j] = base_i.clone();
+                                let is_one_exponent = {
+                                    // Exact check for 1.0 exponent
+                                    #[allow(clippy::float_cmp)]
+                                    // Comparing against exact constant 1.0
+                                    let res = pos_n == 1.0;
+                                    res
+                                };
+                                if is_one_exponent {
+                                    new_den_factors[j] = Arc::clone(&base_i);
                                 } else {
                                     new_den_factors[j] = Arc::new(Expr::pow_from_arcs(
-                                        base_i.clone(),
+                                        Arc::clone(&base_i),
                                         Arc::new(Expr::number(pos_n)),
                                     ));
                                 }
@@ -191,7 +208,7 @@ impl Rule for FractionCancellationRule {
                             break;
                         }
                         new_num_factors[i] = Arc::new(Expr::pow_from_arcs(
-                            base_i.clone(),
+                            Arc::clone(&base_i),
                             Arc::new(simplified_exp),
                         ));
                         new_den_factors.remove(j);
@@ -206,10 +223,22 @@ impl Rule for FractionCancellationRule {
             }
 
             // Add coefficients back
-            if num_coeff != 1.0 {
+            let num_not_one = {
+                // Exact check for 1.0 coefficient
+                #[allow(clippy::float_cmp)] // Comparing against exact constant 1.0
+                let res = num_coeff != 1.0;
+                res
+            };
+            if num_not_one {
                 new_num_factors.insert(0, Arc::new(Expr::number(num_coeff)));
             }
-            if den_coeff != 1.0 {
+            let den_not_one = {
+                // Exact check for 1.0 coefficient
+                #[allow(clippy::float_cmp)] // Comparing against exact constant 1.0
+                let res = den_coeff != 1.0;
+                res
+            };
+            if den_not_one {
                 new_den_factors.insert(0, Arc::new(Expr::number(den_coeff)));
             }
 
@@ -217,7 +246,10 @@ impl Rule for FractionCancellationRule {
             let new_num = if new_num_factors.is_empty() {
                 Arc::new(Expr::number(1.0))
             } else if new_num_factors.len() == 1 {
-                new_num_factors.into_iter().next().unwrap()
+                new_num_factors
+                    .into_iter()
+                    .next()
+                    .expect("Vector guaranteed to have exactly one element")
             } else {
                 Arc::new(Expr::product_from_arcs(new_num_factors))
             };
@@ -226,15 +258,24 @@ impl Rule for FractionCancellationRule {
             let new_den = if new_den_factors.is_empty() {
                 Arc::new(Expr::number(1.0))
             } else if new_den_factors.len() == 1 {
-                new_den_factors.into_iter().next().unwrap()
+                new_den_factors
+                    .into_iter()
+                    .next()
+                    .expect("Filtered vector guaranteed to have one element")
             } else {
                 Arc::new(Expr::product_from_arcs(new_den_factors))
             };
 
-            if let AstKind::Number(n) = &new_den.kind
-                && *n == 1.0
-            {
-                return Some(new_num);
+            if let AstKind::Number(n) = &new_den.kind {
+                let is_one_denominator = {
+                    // Exact check for 1.0 denominator
+                    #[allow(clippy::float_cmp)] // Comparing against exact constant 1.0
+                    let res = *n == 1.0;
+                    res
+                };
+                if is_one_denominator {
+                    return Some(new_num);
+                }
             }
 
             let res = Expr::div_from_arcs(new_num, new_den);
@@ -250,7 +291,7 @@ impl Rule for FractionCancellationRule {
 fn get_factors_arcs(expr: &Arc<Expr>) -> Vec<Arc<Expr>> {
     match &expr.kind {
         AstKind::Product(factors) => factors.clone(),
-        _ => vec![expr.clone()],
+        _ => vec![Arc::clone(expr)],
     }
 }
 
@@ -274,7 +315,7 @@ impl Rule for PerfectSquareRule {
         &[ExprKind::Sum, ExprKind::Poly]
     }
 
-    #[allow(clippy::too_many_lines)]
+    #[allow(clippy::too_many_lines)] // Complex polynomial GCD logic
     fn apply(&self, expr: &Arc<Expr>, _context: &RuleContext) -> Option<Arc<Expr>> {
         fn apply_inner(expr: &Arc<Expr>) -> Option<Arc<Expr>> {
             fn extract_coeff_and_factors(term: &Arc<Expr>) -> (f64, Vec<Arc<Expr>>) {
@@ -286,13 +327,13 @@ impl Rule for PerfectSquareRule {
                             if let AstKind::Number(n) = &f.kind {
                                 coeff *= n;
                             } else {
-                                non_numeric.push(f.clone());
+                                non_numeric.push(Arc::clone(f));
                             }
                         }
                         (coeff, non_numeric)
                     }
                     AstKind::Number(n) => (*n, vec![]),
-                    _ => (1.0, vec![term.clone()]),
+                    _ => (1.0, vec![Arc::clone(term)]),
                 }
             }
 
@@ -306,7 +347,7 @@ impl Rule for PerfectSquareRule {
                         if let AstKind::Poly(poly) = &t.kind {
                             flat_terms.extend(poly.to_expr_terms().into_iter().map(Arc::new));
                         } else {
-                            flat_terms.push(t.clone());
+                            flat_terms.push(Arc::clone(t));
                         }
                     }
                     if flat_terms.len() == 3 {
@@ -331,10 +372,10 @@ impl Rule for PerfectSquareRule {
                         if let AstKind::Number(n) = &exp.kind
                             && (*n - 2.0).abs() < 1e-10
                         {
-                            square_terms.push((1.0, base.clone()));
+                            square_terms.push((1.0, Arc::clone(base)));
                             continue;
                         }
-                        linear_terms.push((1.0, term.clone(), Arc::new(Expr::number(1.0))));
+                        linear_terms.push((1.0, Arc::clone(term), Arc::new(Expr::number(1.0))));
                     }
                     AstKind::Number(n) => {
                         // Check if number is a perfect square (positive)
@@ -352,7 +393,7 @@ impl Rule for PerfectSquareRule {
                         // Actually linear term is 2ab. If we have constant 9, it's b^2.
                         // If we have constant 6, maybe 2*3?
                         // For now fallback to linear term with var=1
-                        linear_terms.push((1.0, term.clone(), Arc::new(Expr::number(1.0))));
+                        linear_terms.push((1.0, Arc::clone(term), Arc::new(Expr::number(1.0))));
                     }
                     AstKind::Product(_) => {
                         let (coeff, factors) = extract_coeff_and_factors(term);
@@ -362,23 +403,31 @@ impl Rule for PerfectSquareRule {
                                 && let AstKind::Number(n) = &exp.kind
                                 && (*n - 2.0).abs() < 1e-10
                             {
-                                square_terms.push((coeff, base.clone()));
+                                square_terms.push((coeff, Arc::clone(base)));
                                 continue;
                             }
                             linear_terms.push((
                                 coeff,
-                                factors[0].clone(),
+                                Arc::clone(&factors[0]),
                                 Arc::new(Expr::number(1.0)),
                             ));
                         } else if factors.len() == 2 {
-                            linear_terms.push((coeff, factors[0].clone(), factors[1].clone()));
+                            linear_terms.push((
+                                coeff,
+                                Arc::clone(&factors[0]),
+                                Arc::clone(&factors[1]),
+                            ));
                         } else {
                             // Complex product -> treat as linear term unit?
-                            linear_terms.push((coeff, term.clone(), Arc::new(Expr::number(1.0))));
+                            linear_terms.push((
+                                coeff,
+                                Arc::clone(term),
+                                Arc::new(Expr::number(1.0)),
+                            ));
                         }
                     }
                     _ => {
-                        linear_terms.push((1.0, term.clone(), Arc::new(Expr::number(1.0))));
+                        linear_terms.push((1.0, Arc::clone(term), Arc::new(Expr::number(1.0))));
                     }
                 }
             }
@@ -410,20 +459,20 @@ impl Rule for PerfectSquareRule {
                         let sign = cross_coeff.signum();
 
                         let term_a = if (sqrt_c1 - 1.0).abs() < 1e-10 {
-                            a.clone()
+                            Arc::clone(a)
                         } else {
                             Arc::new(Expr::product_from_arcs(vec![
                                 Arc::new(Expr::number(sqrt_c1.round())),
-                                a.clone(),
+                                Arc::clone(a),
                             ]))
                         };
 
                         let term_b = if (sqrt_c2 - 1.0).abs() < 1e-10 {
-                            b.clone()
+                            Arc::clone(b)
                         } else {
                             Arc::new(Expr::product_from_arcs(vec![
                                 Arc::new(Expr::number(sqrt_c2.round())),
-                                b.clone(),
+                                Arc::clone(b),
                             ]))
                         };
 
@@ -462,11 +511,11 @@ rule_arc!(
             if let AstKind::Pow(base, exp) = &e.kind {
                 if let AstKind::Number(n) = &exp.kind {
                     if (*n - 2.0).abs() < 1e-10 {
-                        return Some(base.clone());
+                        return Some(Arc::clone(base));
                     } else if n.fract() == 0.0 && *n > 2.0 && (n / 2.0).fract() == 0.0 {
                         let half_exp = n / 2.0;
                         return Some(Arc::new(Expr::pow_from_arcs(
-                            base.clone(),
+                            Arc::clone(base),
                             Arc::new(Expr::number(half_exp)),
                         )));
                     }
@@ -520,10 +569,10 @@ rule_arc!(
                 // Note: canonical order usually puts numbers first, so (a-b)(a+b) might become (-b+a)(a+b)
                 // We'll construct (a-b)(a+b)
                 let diff_term = Expr::sum_from_arcs(vec![
-                    sqrt_a.clone(),
+                    Arc::clone(&sqrt_a),
                     Arc::new(Expr::product_from_arcs(vec![
                         Arc::new(Expr::number(-1.0)),
-                        sqrt_b.clone(),
+                        Arc::clone(&sqrt_b),
                     ])),
                 ]);
                 let sum_term = Expr::sum_from_arcs(vec![sqrt_a, sqrt_b]);
@@ -539,10 +588,10 @@ rule_arc!(
             {
                 // a^2 - b^2 = (a-b)(a+b)
                 let diff_term = Expr::sum_from_arcs(vec![
-                    sqrt_a.clone(),
+                    Arc::clone(&sqrt_a),
                     Arc::new(Expr::product_from_arcs(vec![
                         Arc::new(Expr::number(-1.0)),
-                        sqrt_b.clone(),
+                        Arc::clone(&sqrt_b),
                     ])),
                 ]);
                 let sum_term = Expr::sum_from_arcs(vec![sqrt_a, sqrt_b]);
@@ -578,13 +627,16 @@ rule_arc!(
                             if let AstKind::Number(n) = &f.kind {
                                 coeff *= n;
                             } else {
-                                non_numeric.push(f.clone());
+                                non_numeric.push(Arc::clone(f));
                             }
                         }
                         let var_part = if non_numeric.is_empty() {
                             Arc::new(Expr::number(1.0))
                         } else if non_numeric.len() == 1 {
-                            non_numeric.into_iter().next().unwrap()
+                            non_numeric
+                                .into_iter()
+                                .next()
+                                .expect("Non-numeric factors guaranteed to have one element")
                         } else {
                             Arc::new(Expr::product_from_arcs(non_numeric))
                         };
@@ -594,7 +646,7 @@ rule_arc!(
                         coeffs_and_terms.push((*n, Arc::new(Expr::number(1.0))));
                     }
                     _ => {
-                        coeffs_and_terms.push((1.0, term.clone()));
+                        coeffs_and_terms.push((1.0, Arc::clone(term)));
                     }
                 }
             }
@@ -602,7 +654,12 @@ rule_arc!(
             // Find GCD of coefficients
             let coeffs: Vec<i64> = coeffs_and_terms
                 .iter()
-                .map(|(c, _)| *c as i64)
+                .map(|(c, _)| {
+                    // GCD calculation safe for small integers, precision loss handled
+                    #[allow(clippy::cast_possible_truncation)]
+                    // Safe: checked fract()==0.0 before cast
+                    (*c as i64)
+                })
                 .filter(|&c| c != 0)
                 .collect();
 
@@ -620,13 +677,13 @@ rule_arc!(
 
             // Factor out the GCD
             // i64->f64: GCD values in symbolic math are typically small integers
-            #[allow(clippy::cast_precision_loss)]
+            #[allow(clippy::cast_precision_loss)] // GCD values are typically small integers
             let gcd_expr = Arc::new(Expr::number(gcd as f64));
             let mut new_terms = Vec::new();
 
             for (coeff, term) in coeffs_and_terms {
                 // i64->f64: GCD values in symbolic math are typically small integers
-                #[allow(clippy::cast_precision_loss)]
+                #[allow(clippy::cast_precision_loss)] // GCD values are typically small integers
                 let new_coeff = coeff / (gcd as f64);
                 if (new_coeff - 1.0).abs() < 1e-10 {
                     new_terms.push(term);
@@ -644,7 +701,10 @@ rule_arc!(
             }
 
             let factored_terms = if new_terms.len() == 1 {
-                new_terms.into_iter().next().unwrap()
+                new_terms
+                    .into_iter()
+                    .next()
+                    .expect("New terms collection guaranteed to have one element")
             } else {
                 Arc::new(Expr::sum_from_arcs(new_terms))
             };
@@ -676,7 +736,7 @@ rule_arc!(
             // Start with factors from first term
             let first_factors: Vec<Arc<Expr>> = match &terms[0].kind {
                 AstKind::Product(factors) => factors.clone(),
-                _ => vec![terms[0].clone()],
+                _ => vec![Arc::clone(&terms[0])],
             };
 
             for factor in &first_factors {
@@ -689,7 +749,7 @@ rule_arc!(
                     }
                 }
                 if all_have_factor {
-                    common_factors.push(factor.clone());
+                    common_factors.push(Arc::clone(factor));
                 }
             }
 
@@ -708,7 +768,7 @@ rule_arc!(
 
             // Factor out common factors
             let common_part = if common_factors.len() == 1 {
-                common_factors[0].clone()
+                Arc::clone(&common_factors[0])
             } else {
                 Arc::new(Expr::product_from_arcs(common_factors))
             };
@@ -722,7 +782,10 @@ rule_arc!(
             }
 
             let remaining_sum = if remaining_terms.len() == 1 {
-                remaining_terms.into_iter().next().unwrap()
+                remaining_terms
+                    .into_iter()
+                    .next()
+                    .expect("remaining_terms has exactly one element")
             } else {
                 Arc::new(Expr::sum_from_arcs(remaining_terms))
             };
@@ -764,7 +827,7 @@ rule_arc!(
                         base_exponents
                             .entry(base_key)
                             .or_default()
-                            .push((*exp_val, term.clone()));
+                            .push((*exp_val, Arc::clone(term)));
                     }
                 } else if let AstKind::Symbol(_s) = &base_expr.kind {
                     // Use get_term_hash for consistency
@@ -772,7 +835,7 @@ rule_arc!(
                     base_exponents
                         .entry(base_key)
                         .or_default()
-                        .push((1.0, term.clone()));
+                        .push((1.0, Arc::clone(term)));
                 }
             }
 
@@ -791,23 +854,17 @@ rule_arc!(
                         let (_, sample_base) =
                             crate::simplification::helpers::extract_coeff(sample_term);
 
-                        // sample_base is Expr (deep copy from extract_coeff?).
-                        // Actually extract_coeff usually returns (f64, Expr).
-                        // We must wrap it in Arc or clone it.
-                        // Ideally extract_coeff should return (f64, Arc<Expr>).
-                        // For now we assume sample_base is Expr and we wrap it/clone.
-
                         let base = if let AstKind::Pow(b, _) = &sample_base.kind {
-                            b.clone()
+                            Arc::clone(b)
                         } else {
                             Arc::new(sample_base)
                         };
 
                         let common_factor = if (min_exp - 1.0).abs() < 1e-10 {
-                            base.clone()
+                            Arc::clone(&base)
                         } else {
                             Arc::new(Expr::pow_from_arcs(
-                                base.clone(),
+                                Arc::clone(&base),
                                 Arc::new(Expr::number(min_exp)),
                             ))
                         };
@@ -832,16 +889,16 @@ rule_arc!(
                                 Arc::new(Expr::number(coeff))
                             } else if (new_exp - 1.0).abs() < 1e-10 {
                                 if (coeff - 1.0).abs() < 1e-10 {
-                                    base.clone()
+                                    Arc::clone(&base)
                                 } else {
                                     Arc::new(Expr::product_from_arcs(vec![
                                         Arc::new(Expr::number(coeff)),
-                                        base.clone(),
+                                        Arc::clone(&base),
                                     ]))
                                 }
                             } else {
                                 let power = Arc::new(Expr::pow_from_arcs(
-                                    base.clone(),
+                                    Arc::clone(&base),
                                     Arc::new(Expr::number(new_exp)),
                                 ));
                                 if (coeff - 1.0).abs() < 1e-10 {
@@ -858,7 +915,10 @@ rule_arc!(
                         }
 
                         let remaining_sum = if remaining_terms.len() == 1 {
-                            remaining_terms.into_iter().next().unwrap()
+                            remaining_terms
+                                .into_iter()
+                                .next()
+                                .expect("remaining_terms has exactly one element")
                         } else {
                             Arc::new(Expr::sum_from_arcs(remaining_terms))
                         };
@@ -900,9 +960,13 @@ rule_arc!(
             fn get_cube_root(e: &Arc<Expr>) -> Option<Arc<Expr>> {
                 if let AstKind::Pow(base, exp) = &e.kind
                     && let AstKind::Number(n) = &exp.kind
-                    && *n == 3.0
                 {
-                    return Some(base.clone());
+                    // Exact check for cube exponent
+                    #[allow(clippy::float_cmp)] // Comparing against exact constant 3.0
+                    let is_cube = *n == 3.0;
+                    if is_cube {
+                        return Some(Arc::clone(base));
+                    }
                 }
                 None
             }
@@ -913,7 +977,7 @@ rule_arc!(
                     && let AstKind::Number(n) = &factors[0].kind
                     && (*n + 1.0).abs() < 1e-10
                 {
-                    return Some(factors[1].clone());
+                    return Some(Arc::clone(&factors[1]));
                 }
                 None
             }
@@ -923,10 +987,19 @@ rule_arc!(
 
             // a^3 + b^3 = (a+b)(a^2 - ab + b^2)
             if let (Some(a), Some(b)) = (get_cube_root(t1), get_cube_root(t2)) {
-                let sum = Expr::sum_from_arcs(vec![a.clone(), b.clone()]);
-                let a2 = Arc::new(Expr::pow_from_arcs(a.clone(), Arc::new(Expr::number(2.0))));
-                let ab = Arc::new(Expr::product_from_arcs(vec![a, b.clone()]));
-                let b2 = Arc::new(Expr::pow_from_arcs(b, Arc::new(Expr::number(2.0))));
+                let sum = Expr::sum_from_arcs(vec![Arc::clone(&a), Arc::clone(&b)]);
+                let a2 = Arc::new(Expr::pow_from_arcs(
+                    Arc::clone(&a),
+                    Arc::new(Expr::number(2.0)),
+                ));
+                let ab = Arc::new(Expr::product_from_arcs(vec![
+                    Arc::clone(&a),
+                    Arc::clone(&b),
+                ]));
+                let b2 = Arc::new(Expr::pow_from_arcs(
+                    Arc::clone(&b),
+                    Arc::new(Expr::number(2.0)),
+                ));
                 let neg_ab = Arc::new(Expr::product_from_arcs(vec![
                     Arc::new(Expr::number(-1.0)),
                     ab,
@@ -944,12 +1017,21 @@ rule_arc!(
             {
                 let neg_b = Arc::new(Expr::product_from_arcs(vec![
                     Arc::new(Expr::number(-1.0)),
-                    b.clone(),
+                    Arc::clone(&b),
                 ]));
-                let diff = Expr::sum_from_arcs(vec![a.clone(), neg_b]);
-                let a2 = Arc::new(Expr::pow_from_arcs(a.clone(), Arc::new(Expr::number(2.0))));
-                let ab = Arc::new(Expr::product_from_arcs(vec![a, b.clone()]));
-                let b2 = Arc::new(Expr::pow_from_arcs(b, Arc::new(Expr::number(2.0))));
+                let diff = Expr::sum_from_arcs(vec![Arc::clone(&a), neg_b]);
+                let a2 = Arc::new(Expr::pow_from_arcs(
+                    Arc::clone(&a),
+                    Arc::new(Expr::number(2.0)),
+                ));
+                let ab = Arc::new(Expr::product_from_arcs(vec![
+                    Arc::clone(&a),
+                    Arc::clone(&b),
+                ]));
+                let b2 = Arc::new(Expr::pow_from_arcs(
+                    Arc::clone(&b),
+                    Arc::new(Expr::number(2.0)),
+                ));
                 let trinomial = Expr::sum_from_arcs(vec![a2, ab, b2]);
                 return Some(Arc::new(Expr::product_from_arcs(vec![
                     Arc::new(diff),

@@ -70,7 +70,13 @@ rule!(
                 && let AstKind::Number(n) = &exp.kind
                 && *n > 1.0
                 && n.fract() == 0.0
-                && (*n as i64) < 10
+                && {
+                    // Checked fract() == 0.0, so cast is safe. Limit expansion to small powers.
+                    #[allow(clippy::cast_possible_truncation)]
+                    // Checked fract()==0.0, limit to small powers
+                    let small_pow = (*n as i64) < 10;
+                    small_pow
+                }
             {
                 // Check if expansion would enable simplification
                 let has_simplifiable = base_factors.iter().any(|f| match &f.kind {
@@ -109,7 +115,13 @@ rule!(
                 && let AstKind::Number(n) = &exp.kind
                 && *n > 1.0
                 && n.fract() == 0.0
-                && (*n as i64) < 10
+                && {
+                    // Checked fract() == 0.0, so cast is safe. Limit expansion to small powers.
+                    #[allow(clippy::cast_possible_truncation)]
+                    // Checked fract()==0.0, limit to small powers
+                    let small_pow = (*n as i64) < 10;
+                    small_pow
+                }
             {
                 // Helper to check if a term would simplify when raised to power n
                 let would_simplify = |term: &Expr| -> bool {

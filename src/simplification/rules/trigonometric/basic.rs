@@ -16,7 +16,12 @@ rule_arc!(
         if let AstKind::FunctionCall { name, args } = &expr.kind
             && name.id() == *SIN
             && args.len() == 1
-            && matches!(&args[0].kind, AstKind::Number(n) if *n == 0.0)
+            && {
+                // Exact check for sin(0.0)
+                #[allow(clippy::float_cmp)] // Comparing against exact constant 0.0
+                let is_zero = matches!(&args[0].kind, AstKind::Number(n) if *n == 0.0);
+                is_zero
+            }
         {
             return Some(Arc::new(Expr::number(0.0)));
         }
@@ -113,9 +118,13 @@ rule_arc!(
             && args.len() == 1
             && let AstKind::Div(num, den) = &args[0].kind
             && helpers::is_pi(num)
-            && matches!(&den.kind, AstKind::Number(n) if *n == 2.0)
         {
-            return Some(Arc::new(Expr::number(1.0)));
+            // Exact check for pi/2 denominator
+            #[allow(clippy::float_cmp)] // Comparing against exact constant 2.0
+            let is_two = matches!(&den.kind, AstKind::Number(n) if *n == 2.0);
+            if is_two {
+                return Some(Arc::new(Expr::number(1.0)));
+            }
         }
         None
     }
@@ -134,9 +143,13 @@ rule_arc!(
             && args.len() == 1
             && let AstKind::Div(num, den) = &args[0].kind
             && helpers::is_pi(num)
-            && matches!(&den.kind, AstKind::Number(n) if *n == 2.0)
         {
-            return Some(Arc::new(Expr::number(0.0)));
+            // Exact check for pi/2 denominator
+            #[allow(clippy::float_cmp)] // Comparing against exact constant 2.0
+            let is_two = matches!(&den.kind, AstKind::Number(n) if *n == 2.0);
+            if is_two {
+                return Some(Arc::new(Expr::number(0.0)));
+            }
         }
         None
     }
@@ -159,8 +172,13 @@ rule_arc!(
 
             match name {
                 n if n.id() == *SIN => {
-                    if helpers::approx_eq(arg_val, PI / 6.0)
-                        || (matches!(&arg.kind, AstKind::Div(num, den) if helpers::is_pi(num) && matches!(&den.kind, AstKind::Number(n) if *n == 6.0)))
+                    let matches_pi_six = {
+                        // Exact check for denominator 6.0 (PI/6)
+                        #[allow(clippy::float_cmp)] // Comparing against exact constant 6.0
+                        let is_six = matches!(&arg.kind, AstKind::Div(num, den) if helpers::is_pi(num) && matches!(&den.kind, AstKind::Number(n) if *n == 6.0));
+                        is_six
+                    };
+                    if helpers::approx_eq(arg_val, PI / 6.0) || matches_pi_six
                     {
                         return if is_numeric_input {
                             Some(Arc::new(Expr::number(0.5)))
@@ -168,11 +186,16 @@ rule_arc!(
                             Some(Arc::new(Expr::div_from_arcs(Arc::new(Expr::number(1.0)), Arc::new(Expr::number(2.0)))))
                         };
                     }
-                    if helpers::approx_eq(arg_val, PI / 4.0)
-                        || (matches!(&arg.kind, AstKind::Div(num, den) if helpers::is_pi(num) && matches!(&den.kind, AstKind::Number(n) if *n == 4.0)))
+                    let matches_pi_four = {
+                        // Exact check for denominator 4.0 (PI/4)
+                        #[allow(clippy::float_cmp)] // Comparing against exact constant 4.0
+                        let is_four = matches!(&arg.kind, AstKind::Div(num, den) if helpers::is_pi(num) && matches!(&den.kind, AstKind::Number(n) if *n == 4.0));
+                        is_four
+                    };
+                    if helpers::approx_eq(arg_val, PI / 4.0) || matches_pi_four
                     {
                         return if is_numeric_input {
-                            Some(Arc::new(Expr::number((2.0f64).sqrt() / 2.0)))
+                            Some(Arc::new(Expr::number((2.0_f64).sqrt() / 2.0)))
                         } else {
                             Some(Arc::new(Expr::div_from_arcs(
                                 Arc::new(Expr::func_symbol(get_symbol(&SQRT), Expr::number(2.0))),
@@ -182,8 +205,13 @@ rule_arc!(
                     }
                 }
                 n if n.id() == *COS => {
-                    if helpers::approx_eq(arg_val, PI / 3.0)
-                        || (matches!(&arg.kind, AstKind::Div(num, den) if helpers::is_pi(num) && matches!(&den.kind, AstKind::Number(n) if *n == 3.0)))
+                    let matches_pi_three = {
+                        // Exact check for denominator 3.0 (PI/3)
+                        #[allow(clippy::float_cmp)] // Comparing against exact constant 3.0
+                        let is_three = matches!(&arg.kind, AstKind::Div(num, den) if helpers::is_pi(num) && matches!(&den.kind, AstKind::Number(n) if *n == 3.0));
+                        is_three
+                    };
+                    if helpers::approx_eq(arg_val, PI / 3.0) || matches_pi_three
                     {
                         return if is_numeric_input {
                             Some(Arc::new(Expr::number(0.5)))
@@ -191,11 +219,16 @@ rule_arc!(
                             Some(Arc::new(Expr::div_from_arcs(Arc::new(Expr::number(1.0)), Arc::new(Expr::number(2.0)))))
                         };
                     }
-                    if helpers::approx_eq(arg_val, PI / 4.0)
-                        || (matches!(&arg.kind, AstKind::Div(num, den) if helpers::is_pi(num) && matches!(&den.kind, AstKind::Number(n) if *n == 4.0)))
+                    let matches_pi_four = {
+                        // Exact check for denominator 4.0 (PI/4)
+                        #[allow(clippy::float_cmp)] // Comparing against exact constant 4.0
+                        let is_four = matches!(&arg.kind, AstKind::Div(num, den) if helpers::is_pi(num) && matches!(&den.kind, AstKind::Number(n) if *n == 4.0));
+                        is_four
+                    };
+                    if helpers::approx_eq(arg_val, PI / 4.0) || matches_pi_four
                     {
                         return if is_numeric_input {
-                            Some(Arc::new(Expr::number((2.0f64).sqrt() / 2.0)))
+                            Some(Arc::new(Expr::number((2.0_f64).sqrt() / 2.0)))
                         } else {
                             Some(Arc::new(Expr::div_from_arcs(
                                 Arc::new(Expr::func_symbol(get_symbol(&SQRT), Expr::number(2.0))),
@@ -205,25 +238,40 @@ rule_arc!(
                     }
                 }
                 n if n.id() == *TAN => {
-                    if helpers::approx_eq(arg_val, PI / 4.0)
-                        || (matches!(&arg.kind, AstKind::Div(num, den) if helpers::is_pi(num) && matches!(&den.kind, AstKind::Number(n) if *n == 4.0)))
+                    let matches_pi_four = {
+                        // Exact check for denominator 4.0 (PI/4)
+                        #[allow(clippy::float_cmp)] // Comparing against exact constant 4.0
+                        let is_four = matches!(&arg.kind, AstKind::Div(num, den) if helpers::is_pi(num) && matches!(&den.kind, AstKind::Number(n) if *n == 4.0));
+                        is_four
+                    };
+                    if helpers::approx_eq(arg_val, PI / 4.0) || matches_pi_four
                     {
                         return Some(Arc::new(Expr::number(1.0)));
                     }
-                    if helpers::approx_eq(arg_val, PI / 3.0)
-                        || (matches!(&arg.kind, AstKind::Div(num, den) if helpers::is_pi(num) && matches!(&den.kind, AstKind::Number(n) if *n == 3.0)))
+                    let matches_pi_three = {
+                        // Exact check for denominator 3.0 (PI/3)
+                        #[allow(clippy::float_cmp)] // Comparing against exact constant 3.0
+                        let is_three = matches!(&arg.kind, AstKind::Div(num, den) if helpers::is_pi(num) && matches!(&den.kind, AstKind::Number(n) if *n == 3.0));
+                        is_three
+                    };
+                    if helpers::approx_eq(arg_val, PI / 3.0) || matches_pi_three
                     {
                         return if is_numeric_input {
-                            Some(Arc::new(Expr::number((3.0f64).sqrt())))
+                            Some(Arc::new(Expr::number((3.0_f64).sqrt())))
                         } else {
                             Some(Arc::new(Expr::func_symbol(get_symbol(&SQRT), Expr::number(3.0))))
                         };
                     }
-                    if helpers::approx_eq(arg_val, PI / 6.0)
-                        || (matches!(&arg.kind, AstKind::Div(num, den) if helpers::is_pi(num) && matches!(&den.kind, AstKind::Number(n) if *n == 6.0)))
+                    let matches_pi_six = {
+                        // Exact check for denominator 6.0 (PI/6)
+                        #[allow(clippy::float_cmp)] // Comparing against exact constant 6.0
+                        let is_six = matches!(&arg.kind, AstKind::Div(num, den) if helpers::is_pi(num) && matches!(&den.kind, AstKind::Number(n) if *n == 6.0));
+                        is_six
+                    };
+                    if helpers::approx_eq(arg_val, PI / 6.0) || matches_pi_six
                     {
                         return if is_numeric_input {
-                            Some(Arc::new(Expr::number(1.0 / (3.0f64).sqrt())))
+                            Some(Arc::new(Expr::number(1.0 / (3.0_f64).sqrt())))
                         } else {
                             Some(Arc::new(Expr::div_from_arcs(
                                 Arc::new(Expr::func_symbol(get_symbol(&SQRT), Expr::number(3.0))),
@@ -259,7 +307,7 @@ rule_arc!(
                 // Efficiently constructing using Arc<Expr>
                 return Some(Arc::new(Expr::func_multi_from_arcs_symbol(
                     get_symbol(&SEC),
-                    vec![args[0].clone()],
+                    vec![Arc::clone(&args[0])],
                 )));
             }
             // 1/cos(x)^n → sec(x)^n
@@ -269,10 +317,10 @@ rule_arc!(
                 && args.len() == 1
             {
                 let sec_expr =
-                    Expr::func_multi_from_arcs_symbol(get_symbol(&SEC), vec![args[0].clone()]);
+                    Expr::func_multi_from_arcs_symbol(get_symbol(&SEC), vec![Arc::clone(&args[0])]);
                 return Some(Arc::new(Expr::pow_from_arcs(
                     Arc::new(sec_expr),
-                    exp.clone(),
+                    Arc::clone(exp),
                 )));
             }
         }
@@ -298,7 +346,7 @@ rule_arc!(
             {
                 return Some(Arc::new(Expr::func_multi_from_arcs_symbol(
                     get_symbol(&CSC),
-                    vec![args[0].clone()],
+                    vec![Arc::clone(&args[0])],
                 )));
             }
             // 1/sin(x)^n → csc(x)^n
@@ -308,10 +356,10 @@ rule_arc!(
                 && args.len() == 1
             {
                 let csc_expr =
-                    Expr::func_multi_from_arcs_symbol(get_symbol(&CSC), vec![args[0].clone()]);
+                    Expr::func_multi_from_arcs_symbol(get_symbol(&CSC), vec![Arc::clone(&args[0])]);
                 return Some(Arc::new(Expr::pow_from_arcs(
                     Arc::new(csc_expr),
-                    exp.clone(),
+                    Arc::clone(exp),
                 )));
             }
         }
@@ -343,7 +391,7 @@ rule_arc!(
         {
             return Some(Arc::new(Expr::func_multi_from_arcs_symbol(
                 get_symbol(&TAN),
-                vec![num_args[0].clone()],
+                vec![Arc::clone(&num_args[0])],
             )));
         }
         None
@@ -374,7 +422,7 @@ rule_arc!(
         {
             return Some(Arc::new(Expr::func_multi_from_arcs_symbol(
                 get_symbol(&COT),
-                vec![num_args[0].clone()],
+                vec![Arc::clone(&num_args[0])],
             )));
         }
         None

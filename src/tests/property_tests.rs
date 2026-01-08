@@ -1,9 +1,3 @@
-//! Property-Based and Fuzz Testing
-//!
-//! Uses quickcheck for property-based testing of:
-//! - Parser robustness (fuzz testing)
-//! - Algebraic identities preservation
-
 use quickcheck::{Arbitrary, Gen, QuickCheck, TestResult};
 use std::collections::HashSet;
 
@@ -83,7 +77,7 @@ mod parser_fuzz_tests {
             let fixed = HashSet::new();
             let custom = HashSet::new();
             // Parser should either succeed or return Err, never panic
-            let _ = parser::parse(&input, &fixed, &custom, None);
+            let _unused = parser::parse(&input, &fixed, &custom, None);
             TestResult::passed()
         }
         QuickCheck::new()
@@ -175,7 +169,7 @@ mod parser_fuzz_tests {
 
         for case in &edge_cases {
             // Should not panic - may succeed or fail with error
-            let _ = parser::parse(case, &fixed, &custom, None);
+            let _unused = parser::parse(case, &fixed, &custom, None);
         }
     }
 
@@ -638,7 +632,7 @@ mod simplification_oracle_tests {
         }
 
         QuickCheck::new()
-            .tests(100000) // Run 1000 random expressions
+            .tests(100_000) // Run 1000 random expressions
             .max_tests(2000)
             .quickcheck(prop_simplify_preserves_value as fn() -> TestResult);
     }

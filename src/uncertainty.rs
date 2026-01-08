@@ -88,7 +88,7 @@ impl CovarianceMatrix {
         }
         // Validate symmetry for numeric entries
         for (i, row_i) in entries.iter().enumerate() {
-            for (j, entry_ij) in row_i.iter().enumerate().skip(i + 1) {
+            for (j, entry_ij) in row_i.iter().enumerate().skip(i.saturating_add(1)) {
                 if let (CovEntry::Num(a), CovEntry::Num(b)) = (entry_ij, &entries[j][i])
                     && (a - b).abs() >= EPSILON
                 {
@@ -238,9 +238,7 @@ pub fn uncertainty_propagation(
             }
 
             let cov_entry = cov.get(i, j).ok_or_else(|| {
-                DiffError::UnsupportedOperation(
-                    "Covariance matrix access out of bounds".to_string(),
-                )
+                DiffError::UnsupportedOperation("Covariance matrix access out of bounds".to_owned())
             })?;
 
             // Skip zero covariance entries
@@ -310,7 +308,7 @@ mod tests {
         let y = symb("y");
         let expr = x + y;
 
-        let result = uncertainty_propagation(&expr, &["x", "y"], None).unwrap();
+        let result = uncertainty_propagation(&expr, &["x", "y"], None).expect("failed sum");
         let latex = result.to_latex();
 
         // Should contain both sigma_x and sigma_y terms
@@ -325,7 +323,7 @@ mod tests {
         let y = symb("y");
         let expr = x * y;
 
-        let result = uncertainty_propagation(&expr, &["x", "y"], None).unwrap();
+        let result = uncertainty_propagation(&expr, &["x", "y"], None).expect("failed product");
 
         // Result should be non-zero (it's a symbolic expression, not just 0.0)
         assert!(!result.is_zero_num());
@@ -344,7 +342,8 @@ mod tests {
             CovEntry::Num(4.0), // σ_y² = 4
         ]);
 
-        let result = uncertainty_propagation(&expr, &["x", "y"], Some(&cov)).unwrap();
+        let result = uncertainty_propagation(&expr, &["x", "y"], Some(&cov))
+            .expect("Uncertainty propagation failed");
 
         // For x + y: σ_f = sqrt(1 + 4) = sqrt(5) ≈ 2.236
         if let Some(n) = result.as_number() {
@@ -364,10 +363,11 @@ mod tests {
         let x = symb("test_unc_x");
         let expr = x.pow(2.0);
 
-        let result = uncertainty_propagation(&expr, &["test_unc_x"], None).unwrap();
+        let result = uncertainty_propagation(&expr, &["test_unc_x"], None)
+            .expect("Uncertainty propagation failed");
 
         // Should contain x and sigma terms
-        let display = format!("{}", result);
+        let display = format!("{result}");
         assert!(!display.is_empty());
     }
 }

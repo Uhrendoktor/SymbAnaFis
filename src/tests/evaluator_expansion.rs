@@ -46,7 +46,7 @@ mod tests {
         let eval = CompiledEvaluator::compile_auto(&expr, None).unwrap();
         let result = eval.evaluate(&[]);
 
-        let expected = (2.0f64).exp();
+        let expected = (2.0_f64).exp();
         assert!((result - expected).abs() < 1e-10);
     }
     #[test]

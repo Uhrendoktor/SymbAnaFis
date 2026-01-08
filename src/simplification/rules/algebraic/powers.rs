@@ -25,10 +25,13 @@ rule_arc!(
     Algebraic,
     &[ExprKind::Pow],
     |expr: &Expr, _context: &RuleContext| {
-        if let AstKind::Pow(u, v) = &expr.kind
-            && matches!(v.kind, AstKind::Number(n) if n == 1.0)
-        {
-            return Some(u.clone());
+        if let AstKind::Pow(u, v) = &expr.kind {
+            // Exact check for exponent == 1.0
+            #[allow(clippy::float_cmp)] // Comparing against exact constant 1.0
+            let is_one = matches!(v.kind, AstKind::Number(n) if n == 1.0);
+            if is_one {
+                return Some(Arc::clone(u));
+            }
         }
         None
     }
@@ -46,6 +49,9 @@ rule!(
         {
             // Check for special case: (x^even)^(1/even) where result would be x^1
             if let AstKind::Number(inner_n) = &exp_inner.kind {
+                // Exact comparison for integer check, cast for modulo
+                #[allow(clippy::float_cmp, clippy::cast_possible_truncation)]
+                // Exact check for integer, cast for modulo
                 let inner_is_even =
                     *inner_n > 0.0 && inner_n.fract() == 0.0 && (*inner_n as i64) % 2 == 0;
 
@@ -53,24 +59,29 @@ rule!(
                     if let AstKind::Div(num, den) = &v.kind
                         && let (AstKind::Number(num_val), AstKind::Number(den_val)) =
                             (&num.kind, &den.kind)
-                        && *num_val == 1.0
+                        && {
+                            // Exact check for 1.0 numerator in exponent fraction
+                            #[allow(clippy::float_cmp)] // Comparing against exact constant 1.0
+                            let is_one = *num_val == 1.0;
+                            is_one
+                        }
                         && (*den_val - *inner_n).abs() < 1e-10
                     {
-                        return Some(Expr::func_multi_from_arcs("abs", vec![base.clone()]));
+                        return Some(Expr::func_multi_from_arcs("abs", vec![Arc::clone(base)]));
                     }
                     if let AstKind::Number(outer_n) = &v.kind {
                         let product = inner_n * outer_n;
                         if (product - 1.0).abs() < 1e-10 {
-                            return Some(Expr::func_multi_from_arcs("abs", vec![base.clone()]));
+                            return Some(Expr::func_multi_from_arcs("abs", vec![Arc::clone(base)]));
                         }
                     }
                 }
             }
 
             // Create new exponent: exp_inner * v using Product
-            let new_exp = Expr::product_from_arcs(vec![exp_inner.clone(), v.clone()]);
+            let new_exp = Expr::product_from_arcs(vec![Arc::clone(exp_inner), Arc::clone(v)]);
 
-            return Some(Expr::pow_from_arcs(base.clone(), Arc::new(new_exp)));
+            return Some(Expr::pow_from_arcs(Arc::clone(base), Arc::new(new_exp)));
         }
         None
     }
@@ -97,12 +108,15 @@ rule_arc!(
                             .iter()
                             .enumerate()
                             .filter(|(k, _)| *k != i && *k != j)
-                            .map(|(_, f)| f.clone())
+                            .map(|(_, f)| Arc::clone(f))
                             .collect();
                         new_factors.push(Arc::new(combined));
 
                         if new_factors.len() == 1 {
-                            let arc = new_factors.into_iter().next().unwrap();
+                            let arc = new_factors
+                                .into_iter()
+                                .next()
+                                .expect("New factors guaranteed to have one element");
                             Some(arc)
                         } else {
                             Some(Arc::new(Expr::product_from_arcs(new_factors)))
@@ -115,8 +129,9 @@ rule_arc!(
                         && base_1 == base_2
                     {
                         // Combine: x^a * x^b = x^(a+b)
-                        let new_exp = Expr::sum_from_arcs(vec![exp_1.clone(), exp_2.clone()]);
-                        let combined = Expr::pow_from_arcs(base_1.clone(), Arc::new(new_exp));
+                        let new_exp =
+                            Expr::sum_from_arcs(vec![Arc::clone(exp_1), Arc::clone(exp_2)]);
+                        let combined = Expr::pow_from_arcs(Arc::clone(base_1), Arc::new(new_exp));
                         return build_result(combined);
                     }
 
@@ -124,18 +139,22 @@ rule_arc!(
                     if let AstKind::Pow(base_1, exp_1) = &f1.kind
                         && **base_1 == **f2
                     {
-                        let new_exp =
-                            Expr::sum_from_arcs(vec![exp_1.clone(), Arc::new(Expr::number(1.0))]);
-                        let combined = Expr::pow_from_arcs(base_1.clone(), Arc::new(new_exp));
+                        let new_exp = Expr::sum_from_arcs(vec![
+                            Arc::clone(exp_1),
+                            Arc::new(Expr::number(1.0)),
+                        ]);
+                        let combined = Expr::pow_from_arcs(Arc::clone(base_1), Arc::new(new_exp));
                         return build_result(combined);
                     }
 
                     if let AstKind::Pow(base_2, exp_2) = &f2.kind
                         && **base_2 == **f1
                     {
-                        let new_exp =
-                            Expr::sum_from_arcs(vec![Arc::new(Expr::number(1.0)), exp_2.clone()]);
-                        let combined = Expr::pow_from_arcs(base_2.clone(), Arc::new(new_exp));
+                        let new_exp = Expr::sum_from_arcs(vec![
+                            Arc::new(Expr::number(1.0)),
+                            Arc::clone(exp_2),
+                        ]);
+                        let combined = Expr::pow_from_arcs(Arc::clone(base_2), Arc::new(new_exp));
                         return build_result(combined);
                     }
                 }
@@ -159,27 +178,30 @@ rule!(
             {
                 // x^a / x^b = x^(a-b) = x^(a + (-1)*b)
                 let neg_exp_v =
-                    Expr::product_from_arcs(vec![Arc::new(Expr::number(-1.0)), exp_v.clone()]);
-                let new_exp = Expr::sum_from_arcs(vec![exp_u.clone(), Arc::new(neg_exp_v)]);
-                return Some(Expr::pow_from_arcs(base_u.clone(), Arc::new(new_exp)));
+                    Expr::product_from_arcs(vec![Arc::new(Expr::number(-1.0)), Arc::clone(exp_v)]);
+                let new_exp = Expr::sum_from_arcs(vec![Arc::clone(exp_u), Arc::new(neg_exp_v)]);
+                return Some(Expr::pow_from_arcs(Arc::clone(base_u), Arc::new(new_exp)));
             }
             // Check if numerator is a power and denominator is the same base
             if let AstKind::Pow(base_u, exp_u) = &u.kind
                 && base_u == v
             {
                 let new_exp =
-                    Expr::sum_from_arcs(vec![exp_u.clone(), Arc::new(Expr::number(-1.0))]);
-                return Some(Expr::pow_from_arcs(base_u.clone(), Arc::new(new_exp)));
+                    Expr::sum_from_arcs(vec![Arc::clone(exp_u), Arc::new(Expr::number(-1.0))]);
+                return Some(Expr::pow_from_arcs(Arc::clone(base_u), Arc::new(new_exp)));
             }
             // Check if denominator is a power and numerator is the same base
             if let AstKind::Pow(base_v, exp_v) = &v.kind
                 && base_v == u
             {
                 let neg_exp =
-                    Expr::product_from_arcs(vec![Arc::new(Expr::number(-1.0)), exp_v.clone()]);
+                    Expr::product_from_arcs(vec![Arc::new(Expr::number(-1.0)), Arc::clone(exp_v)]);
                 let combined_exp =
                     Expr::sum_from_arcs(vec![Arc::new(Expr::number(1.0)), Arc::new(neg_exp)]);
-                return Some(Expr::pow_from_arcs(base_v.clone(), Arc::new(combined_exp)));
+                return Some(Expr::pow_from_arcs(
+                    Arc::clone(base_v),
+                    Arc::new(combined_exp),
+                ));
             }
         }
         None
@@ -201,13 +223,13 @@ rule_arc!(
             for factor in factors {
                 if let AstKind::Pow(base, exp) = &factor.kind {
                     base_to_exponents
-                        .entry(base.clone())
+                        .entry(Arc::clone(base))
                         .or_default()
-                        .push(exp.clone());
+                        .push(Arc::clone(exp));
                 } else {
                     // Non-power factor, treat as base^1
                     base_to_exponents
-                        .entry(factor.clone())
+                        .entry(Arc::clone(factor))
                         .or_default()
                         .push(Arc::new(Expr::number(1.0)));
                 }
@@ -223,13 +245,16 @@ rule_arc!(
             let mut result_factors = Vec::new();
             for (base, exponents) in base_to_exponents {
                 if exponents.len() == 1 {
-                    if let AstKind::Number(n) = exponents[0].kind
-                        && n == 1.0
-                    {
+                    // Exact check for exponent == 1.0
+                    #[allow(clippy::float_cmp)] // Comparing against exact constant 1.0
+                    let is_one_exp = matches!(exponents[0].kind, AstKind::Number(n) if n == 1.0);
+                    if is_one_exp {
                         result_factors.push(base);
                     } else {
-                        result_factors
-                            .push(Arc::new(Expr::pow_from_arcs(base, exponents[0].clone())));
+                        result_factors.push(Arc::new(Expr::pow_from_arcs(
+                            base,
+                            Arc::clone(&exponents[0]),
+                        )));
                     }
                 } else {
                     // Sum all exponents using n-ary Sum
@@ -240,7 +265,12 @@ rule_arc!(
 
             // Rebuild the expression
             if result_factors.len() == 1 {
-                Some(result_factors.into_iter().next().unwrap())
+                Some(
+                    result_factors
+                        .into_iter()
+                        .next()
+                        .expect("Result factors guaranteed to have one element"),
+                )
             } else {
                 Some(Arc::new(Expr::product_from_arcs(result_factors)))
             }
@@ -272,8 +302,8 @@ rule!(
                 }
             }
 
-            let inner = Expr::div_from_arcs(base_num.clone(), base_den.clone());
-            return Some(Expr::pow_from_arcs(Arc::new(inner), exp_num.clone()));
+            let inner = Expr::div_from_arcs(Arc::clone(base_num), Arc::clone(base_den));
+            return Some(Expr::pow_from_arcs(Arc::new(inner), Arc::clone(exp_num)));
         }
         None
     }
@@ -331,19 +361,25 @@ rule_arc!(
 
                         // Combine: x^a * y^a = (x*y)^a
                         let combined_base =
-                            Expr::product_from_arcs(vec![base_1.clone(), base_2.clone()]);
-                        let combined = Expr::pow_from_arcs(Arc::new(combined_base), exp_1.clone());
+                            Expr::product_from_arcs(vec![Arc::clone(base_1), Arc::clone(base_2)]);
+                        let combined =
+                            Expr::pow_from_arcs(Arc::new(combined_base), Arc::clone(exp_1));
 
                         let mut new_factors: Vec<Arc<Expr>> = factors
                             .iter()
                             .enumerate()
                             .filter(|(k, _)| *k != i && *k != j)
-                            .map(|(_, f)| f.clone())
+                            .map(|(_, f)| Arc::clone(f))
                             .collect();
                         new_factors.push(Arc::new(combined));
 
                         if new_factors.len() == 1 {
-                            return Some(new_factors.into_iter().next().unwrap());
+                            return Some(
+                                new_factors
+                                    .into_iter()
+                                    .next()
+                                    .expect("new_factors has exactly one element"),
+                            );
                         }
                         return Some(Arc::new(Expr::product_from_arcs(new_factors)));
                     }
@@ -367,7 +403,7 @@ rule!(
                 && n < 0.0
             {
                 let positive_exp = Arc::new(Expr::number(-n));
-                let denominator = Expr::pow_from_arcs(base.clone(), positive_exp);
+                let denominator = Expr::pow_from_arcs(Arc::clone(base), positive_exp);
                 return Some(Expr::div_expr(Expr::number(1.0), denominator));
             }
             // Handle negative fraction exponent: x^(-a/b) -> 1/x^(a/b)
@@ -376,8 +412,8 @@ rule!(
                 && n < 0.0
             {
                 let positive_num = Expr::number(-n);
-                let positive_exp = Expr::div_from_arcs(Arc::new(positive_num), den.clone());
-                let denominator = Expr::pow_from_arcs(base.clone(), Arc::new(positive_exp));
+                let positive_exp = Expr::div_from_arcs(Arc::new(positive_num), Arc::clone(den));
+                let denominator = Expr::pow_from_arcs(Arc::clone(base), Arc::new(positive_exp));
                 return Some(Expr::div_expr(Expr::number(1.0), denominator));
             }
             // Handle Product with leading -1: x^(-1 * a * b * ...) -> 1/x^(a*b*...)
@@ -385,17 +421,21 @@ rule!(
             if let AstKind::Product(factors) = &exp.kind
                 && !factors.is_empty()
                 && let AstKind::Number(n) = &factors[0].kind
-                && *n == -1.0
             {
-                // Create a new exponent with the remaining factors (excluding -1)
-                let remaining_factors: Vec<Arc<Expr>> = factors[1..].to_vec();
-                let positive_exp = if remaining_factors.len() == 1 {
-                    remaining_factors[0].clone()
-                } else {
-                    Arc::new(Expr::product_from_arcs(remaining_factors))
-                };
-                let denominator = Expr::pow_from_arcs(base.clone(), positive_exp);
-                return Some(Expr::div_expr(Expr::number(1.0), denominator));
+                // Exact check for -1.0 coefficient
+                #[allow(clippy::float_cmp)] // Comparing against exact constant -1.0
+                let is_neg_one = *n == -1.0;
+                if is_neg_one {
+                    // Create a new exponent with the remaining factors (excluding -1)
+                    let remaining_factors: Vec<Arc<Expr>> = factors[1..].to_vec();
+                    let positive_exp = if remaining_factors.len() == 1 {
+                        Arc::clone(&remaining_factors[0])
+                    } else {
+                        Arc::new(Expr::product_from_arcs(remaining_factors))
+                    };
+                    let denominator = Expr::pow_from_arcs(Arc::clone(base), positive_exp);
+                    return Some(Expr::div_expr(Expr::number(1.0), denominator));
+                }
             }
         }
         None
@@ -414,8 +454,12 @@ rule!(
         {
             let is_root_exponent = match &exp.kind {
                 AstKind::Div(n, d) => {
-                    matches!((&n.kind, &d.kind), (AstKind::Number(num_val), AstKind::Number(den_val))
-                    if *num_val == 1.0 && *den_val >= 2.0)
+                    // Exact check for 1/n root exponent
+                    #[allow(clippy::float_cmp)]
+                    // Comparing against exact constants for root exponent
+                    let res = matches!((&n.kind, &d.kind), (AstKind::Number(num_val), AstKind::Number(den_val))
+                        if *num_val == 1.0 && *den_val >= 2.0);
+                    res
                 }
                 AstKind::Number(n) => *n > 0.0 && *n < 1.0,
                 _ => false,
@@ -429,7 +473,11 @@ rule!(
                         if let (AstKind::Number(one_val), AstKind::Number(n_val)) =
                             (&one.kind, &n_rc.kind)
                         {
-                            *one_val == 1.0 && (m / n_val).fract().abs() < 1e-10
+                            // Exact check for 1/n exponent form
+                            #[allow(clippy::float_cmp)]
+                            // Comparing against exact constants for 1/n exponent
+                            let matches = *one_val == 1.0 && (m / n_val).fract().abs() < 1e-10;
+                            matches
                         } else {
                             false
                         }
@@ -446,8 +494,8 @@ rule!(
             };
 
             if is_root_exponent || den_would_simplify {
-                let num_pow = Expr::pow_from_arcs(num.clone(), exp.clone());
-                let den_pow = Expr::pow_from_arcs(den.clone(), exp.clone());
+                let num_pow = Expr::pow_from_arcs(Arc::clone(num), Arc::clone(exp));
+                let den_pow = Expr::pow_from_arcs(Arc::clone(den), Arc::clone(exp));
                 return Some(Expr::div_expr(num_pow, den_pow));
             }
         }

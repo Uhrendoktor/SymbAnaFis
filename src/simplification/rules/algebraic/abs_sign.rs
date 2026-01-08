@@ -38,7 +38,7 @@ rule_arc!(
             && inner_name.id() == *ABS
             && inner_args.len() == 1
         {
-            return Some(args[0].clone());
+            return Some(Arc::clone(&args[0]));
         }
         None
     }
@@ -60,7 +60,12 @@ rule_arc!(
                 && factors.len() >= 2
                 && let Some(first) = factors.first()
                 && let AstKind::Number(n) = &first.kind
-                && *n == -1.0
+                // Exact check for -1.0 to identify negative argument
+                && {
+                    #[allow(clippy::float_cmp)] // Comparing against exact constant -1.0
+                    let is_neg_one = *n == -1.0;
+                    is_neg_one
+                }
             {
                 // Get the rest of the factors
                 let rest: Vec<Arc<Expr>> = factors.iter().skip(1).cloned().collect();
@@ -88,8 +93,14 @@ rule_arc!(
                 && let AstKind::Number(n) = &exp.kind
             {
                 // Check if exponent is a positive even integer
-                if *n > 0.0 && n.fract() == 0.0 && (*n as i64) % 2 == 0 {
-                    return Some(args[0].clone());
+                if *n > 0.0 && n.fract() == 0.0 {
+                    // Checked fract() == 0.0, so cast is safe
+                    // Split logic to avoid experimental attribute on boolean expression
+                    #[allow(clippy::cast_possible_truncation)]
+                    // Checked fract()==0.0, so cast is safe
+                    if (*n as i64) % 2 == 0 {
+                        return Some(Arc::clone(&args[0]));
+                    }
                 }
             }
         }
@@ -112,8 +123,15 @@ rule_arc!(
             && let AstKind::Number(n) = &exp.kind
         {
             // Check if exponent is a positive even integer
-            if *n > 0.0 && n.fract() == 0.0 && (*n as i64) % 2 == 0 {
-                return Some(Arc::new(Expr::pow_from_arcs(args[0].clone(), exp.clone())));
+            if *n > 0.0 && n.fract() == 0.0 {
+                // Checked fract() == 0.0, so cast is safe
+                #[allow(clippy::cast_possible_truncation)] // Checked fract()==0.0, so cast is safe
+                if (*n as i64) % 2 == 0 {
+                    return Some(Arc::new(Expr::pow_from_arcs(
+                        Arc::clone(&args[0]),
+                        Arc::clone(exp),
+                    )));
+                }
             }
         }
         None
@@ -158,7 +176,7 @@ rule_arc!(
             } = &args[0].kind
             && (inner_name.id() == *SIGN || inner_name.id() == *SGN)
         {
-            return Some(args[0].clone());
+            return Some(Arc::clone(&args[0]));
         }
         None
     }
@@ -225,11 +243,16 @@ rule_arc!(
                                 .iter()
                                 .enumerate()
                                 .filter(|(k, _)| *k != i && *k != j)
-                                .map(|(_, f)| f.clone())
+                                .map(|(_, f)| Arc::clone(f))
                                 .collect();
-                            new_factors.push(args1[0].clone());
+                            new_factors.push(Arc::clone(&args1[0]));
                             if new_factors.len() == 1 {
-                                return Some(new_factors.into_iter().next().unwrap());
+                                return Some(
+                                    new_factors
+                                        .into_iter()
+                                        .next()
+                                        .expect("New factors guaranteed to have one element"),
+                                );
                             }
                             return Some(Arc::new(Expr::product_from_arcs(new_factors)));
                         }

@@ -244,7 +244,8 @@ impl DiffError {
 }
 
 impl fmt::Display for DiffError {
-    #[allow(clippy::too_many_lines)]
+    // Complex error display logic with many variants
+    #[allow(clippy::too_many_lines)] // Complex error display logic with many variants
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::EmptyFormula => write!(f, "Formula cannot be empty"),
@@ -377,6 +378,15 @@ impl fmt::Display for DiffError {
 impl std::error::Error for DiffError {}
 
 #[cfg(test)]
+// Standard test relaxations: unwrap/panic for assertions, precision loss for math
+#[allow(
+    clippy::unwrap_used,
+    clippy::panic,
+    clippy::cast_precision_loss,
+    clippy::items_after_statements,
+    clippy::let_underscore_must_use,
+    clippy::no_effect_underscore_binding
+)]
 mod tests {
     use super::*;
 
@@ -427,20 +437,20 @@ mod tests {
     #[test]
     fn test_diff_error_display() {
         let err = DiffError::EmptyFormula;
-        assert_eq!(format!("{}", err), "Formula cannot be empty");
+        assert_eq!(format!("{err}"), "Formula cannot be empty");
 
         let err = DiffError::invalid_syntax("test message");
-        assert_eq!(format!("{}", err), "Invalid syntax: test message");
+        assert_eq!(format!("{err}"), "Invalid syntax: test message");
 
         let err = DiffError::invalid_syntax_at("spanned message", Span::new(1, 3));
         assert_eq!(
-            format!("{}", err),
+            format!("{err}"),
             "Invalid syntax: spanned message at positions 2-3"
         );
 
         let err = DiffError::MaxDepthExceeded;
         assert_eq!(
-            format!("{}", err),
+            format!("{err}"),
             "Expression nesting depth exceeds maximum limit"
         );
     }

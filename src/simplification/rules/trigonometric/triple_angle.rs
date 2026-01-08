@@ -79,11 +79,16 @@ fn check_cos_triple(u: &Expr, v: &Expr, eps: f64) -> Option<Expr> {
         && (*n - 4.0).abs() < eps
         && let AstKind::Pow(base, exp) = &factors[1].kind
         && let AstKind::Number(e) = &exp.kind
-        && *e == 3.0
         && let AstKind::FunctionCall { name, args } = &base.kind
         && name.id() == *COS
         && args.len() == 1
     {
+        // Exact check for cube exponent
+        #[allow(clippy::float_cmp)] // Comparing against exact constant 3.0
+        let is_cube = *e == 3.0;
+        if !is_cube {
+            return None;
+        }
         let x = &args[0];
         if let Some((coeff, _is_neg)) = extract_cos(v, x, eps)
             && (coeff - 3.0).abs() < eps
@@ -105,11 +110,16 @@ fn check_cos_triple_add(u: &Expr, v: &Expr, eps: f64) -> Option<Expr> {
         && (*n - 4.0).abs() < eps
         && let AstKind::Pow(base, exp) = &factors[1].kind
         && let AstKind::Number(e) = &exp.kind
-        && *e == 3.0
         && let AstKind::FunctionCall { name, args } = &base.kind
         && name.id() == *COS
         && args.len() == 1
     {
+        // Exact check for cube exponent
+        #[allow(clippy::float_cmp)] // Comparing against exact constant 3.0
+        let is_cube = *e == 3.0;
+        if !is_cube {
+            return None;
+        }
         let x = &args[0];
         if let Some((coeff, is_neg)) = extract_cos(v, x, eps)
             && is_neg
@@ -128,11 +138,16 @@ fn check_cos_triple_add(u: &Expr, v: &Expr, eps: f64) -> Option<Expr> {
         && (*n - 4.0).abs() < eps
         && let AstKind::Pow(base, exp) = &factors[1].kind
         && let AstKind::Number(e) = &exp.kind
-        && *e == 3.0
         && let AstKind::FunctionCall { name, args } = &base.kind
         && name.id() == *COS
         && args.len() == 1
     {
+        // Exact check for cube exponent
+        #[allow(clippy::float_cmp)] // Comparing against exact constant 3.0
+        let is_cube = *e == 3.0;
+        if !is_cube {
+            return None;
+        }
         let x = &args[0];
         if let Some((coeff, is_neg)) = extract_cos(u, x, eps)
             && is_neg
@@ -154,13 +169,17 @@ fn extract_sin_cubed(expr: &Expr, x: &std::sync::Arc<Expr>, _eps: f64) -> Option
         && let AstKind::Number(n) = &factors[0].kind
         && let AstKind::Pow(base, exp) = &factors[1].kind
         && let AstKind::Number(e) = &exp.kind
-        && *e == 3.0
         && let AstKind::FunctionCall { name, args } = &base.kind
         && name.id() == *SIN
         && args.len() == 1
         && &args[0] == x
     {
-        return Some((n.abs(), *n < 0.0));
+        // Exact check for cube exponent
+        #[allow(clippy::float_cmp)] // Comparing against exact constant 3.0
+        let is_cube = *e == 3.0;
+        if is_cube {
+            return Some((n.abs(), *n < 0.0));
+        }
     }
     None
 }
@@ -262,7 +281,8 @@ rule!(
                     let remaining: Vec<Expr> =
                         factors.iter().skip(1).map(|f| (**f).clone()).collect();
                     if remaining.len() == 1 {
-                        return Some(remaining.into_iter().next().unwrap());
+                        // SAFETY: We just checked that remaining.len() == 1
+                        return remaining.into_iter().next();
                     }
                     return Some(Expr::product(remaining));
                 }

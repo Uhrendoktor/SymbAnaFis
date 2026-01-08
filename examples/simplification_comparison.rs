@@ -1,3 +1,13 @@
+// Comparison script: unwrap for setup, stdout/stderr for logs, debug for output
+#![allow(
+    clippy::unwrap_used,
+    clippy::print_stdout,
+    clippy::print_stderr,
+    clippy::use_debug
+)]
+//! Simplification comparison: `SymbAnaFis` vs Symbolica.
+//!
+//! Run with: cargo run --example `simplification_comparison`
 use std::convert::TryInto;
 use std::env;
 use symb_anafis::Diff;
@@ -81,13 +91,13 @@ fn main() {
                 Ok(atom) => match Atom::parse(wrap_input!(var), ParseSettings::default()) {
                     Ok(var_atom) => {
                         let var_indet: Result<Indeterminate, _> = var_atom.try_into();
-                        match var_indet {
-                            Ok(indet) => {
+                        var_indet.map_or_else(
+                            |_| format!("'{var}' is not an indeterminate"),
+                            |indet| {
                                 let diff_atom = atom.derivative(indet);
                                 diff_atom.to_string()
-                            }
-                            Err(_) => format!("'{var}' is not an indeterminate"),
-                        }
+                            },
+                        )
                     }
                     Err(e) => format!("Var Parse Error: {e}"),
                 },

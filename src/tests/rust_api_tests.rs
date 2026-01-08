@@ -55,7 +55,7 @@ fn test_recursion_limits() {
 
     // Should pass with default/high limits
     let diff = Diff::new();
-    let _ = diff
+    let _unused = diff
         .differentiate(&deeply_nested, &x)
         .expect("Should pass within default limits");
 

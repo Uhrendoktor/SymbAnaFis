@@ -1,8 +1,3 @@
-//! Regression tests for expression equality via simplification.
-//!
-//! These tests verify that mathematically equivalent expressions simplify
-//! to the same canonical form, enabling equality checking via string comparison.
-
 use crate::simplify;
 
 /// Helper to check if two expressions simplify to the same form.

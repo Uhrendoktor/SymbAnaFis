@@ -15,9 +15,14 @@ rule!(
         if let AstKind::FunctionCall { name, args } = &expr.kind
             && name.id() == *SINH
             && args.len() == 1
-            && matches!(args[0].kind, AstKind::Number(n) if n == 0.0)
+            && {
+                // Exact check for constant 0.0
+                #[allow(clippy::float_cmp)] // Comparing against exact constant 0.0
+                let is_zero = matches!(args[0].kind, AstKind::Number(n) if n == 0.0);
+                is_zero
+            }
         {
-            return Some(Expr::number(0.0));
+            return Some(Expr::number(0.0_f64));
         }
         None
     }
@@ -34,7 +39,12 @@ rule!(
         if let AstKind::FunctionCall { name, args } = &expr.kind
             && name.id() == *COSH
             && args.len() == 1
-            && matches!(args[0].kind, AstKind::Number(n) if n == 0.0)
+            && {
+                // Exact check for constant 0.0
+                #[allow(clippy::float_cmp)] // Comparing against exact constant 0.0
+                let is_zero = matches!(args[0].kind, AstKind::Number(n) if n == 0.0_f64);
+                is_zero
+            }
         {
             return Some(Expr::number(1.0));
         }
@@ -56,16 +66,18 @@ rule!(
             && let AstKind::Product(factors) = &args[0].kind
             && factors.len() == 2
         {
-            if let AstKind::Number(n) = &factors[0].kind
-                && *n == -1.0
+            #[allow(clippy::float_cmp)] // Comparing against exact constant -1.0
+            let is_neg_one = matches!(&factors[0].kind, AstKind::Number(n) if *n == -1.0);
+            if is_neg_one
             {
                 return Some(Expr::product(vec![
                     Expr::number(-1.0),
                     Expr::func_symbol(get_symbol(&SINH), (*factors[1]).clone()),
                 ]));
             }
-            if let AstKind::Number(n) = &factors[1].kind
-                && *n == -1.0
+            #[allow(clippy::float_cmp)] // Comparing against exact constant -1.0
+            let is_neg_one = matches!(&factors[1].kind, AstKind::Number(n) if *n == -1.0);
+            if is_neg_one
             {
                 return Some(Expr::product(vec![
                     Expr::number(-1.0),
@@ -91,13 +103,15 @@ rule!(
             && let AstKind::Product(factors) = &args[0].kind
             && factors.len() == 2
         {
-            if let AstKind::Number(n) = &factors[0].kind
-                && *n == -1.0
+            #[allow(clippy::float_cmp)] // Comparing against exact constant -1.0
+            let is_neg_one = matches!(&factors[0].kind, AstKind::Number(n) if *n == -1.0);
+            if is_neg_one
             {
                 return Some(Expr::func_symbol(get_symbol(&COSH), (*factors[1]).clone()));
             }
-            if let AstKind::Number(n) = &factors[1].kind
-                && *n == -1.0
+            #[allow(clippy::float_cmp)] // Comparing against exact constant -1.0
+            let is_neg_one = matches!(&factors[1].kind, AstKind::Number(n) if *n == -1.0);
+            if is_neg_one
             {
                 return Some(Expr::func_symbol(get_symbol(&COSH), (*factors[0]).clone()));
             }
@@ -120,16 +134,18 @@ rule!(
             && let AstKind::Product(factors) = &args[0].kind
             && factors.len() == 2
         {
-            if let AstKind::Number(n) = &factors[0].kind
-                && *n == -1.0
+            #[allow(clippy::float_cmp)] // Comparing against exact constant -1.0
+            let is_neg_one = matches!(&factors[0].kind, AstKind::Number(n) if *n == -1.0);
+            if is_neg_one
             {
                 return Some(Expr::product(vec![
                     Expr::number(-1.0),
                     Expr::func_symbol(get_symbol(&TANH), (*factors[1]).clone()),
                 ]));
             }
-            if let AstKind::Number(n) = &factors[1].kind
-                && *n == -1.0
+            #[allow(clippy::float_cmp)] // Comparing against exact constant -1.0
+            let is_neg_one = matches!(&factors[1].kind, AstKind::Number(n) if *n == -1.0);
+            if is_neg_one
             {
                 return Some(Expr::product(vec![
                     Expr::number(-1.0),
@@ -252,9 +268,12 @@ rule!(
             }
 
             // 1 + (-tanh^2(x)) = sech^2(x)
-            if let AstKind::Number(n) = &u.kind
-                && *n == 1.0
-                && let Some(negated) = extract_negated(v)
+            if {
+                // Exact check for constant 1.0
+                #[allow(clippy::float_cmp)] // Comparing against exact constant 1.0
+                let is_one = matches!(&u.kind, AstKind::Number(n) if *n == 1.0);
+                is_one
+            } && let Some(negated) = extract_negated(v)
                 && let Some((name, arg)) = get_hyperbolic_power(&negated, 2.0)
                 && name.id() == *TANH
             {
@@ -316,7 +335,12 @@ fn get_hyperbolic_power(
 ) -> Option<(crate::core::symbol::InternedSymbol, Expr)> {
     if let AstKind::Pow(base, exp) = &expr.kind
         && let AstKind::Number(p) = &exp.kind
-        && *p == power
+        && {
+            // Exact check for power (e.g. 2.0)
+            #[allow(clippy::float_cmp)] // Comparing against exact constant power
+            let is_match = *p == power;
+            is_match
+        }
         && let AstKind::FunctionCall { name, args } = &base.kind
         && args.len() == 1
         && (name.id() == *SINH || name.id() == *COSH || name.id() == *TANH || name.id() == *COTH)
@@ -335,8 +359,12 @@ fn is_cosh_minus_sinh_term(expr: &Expr) -> Option<Expr> {
         && a1.len() == 1
         && let AstKind::Product(factors) = &terms[1].kind
         && factors.len() == 2
-        && let AstKind::Number(n) = &factors[0].kind
-        && *n == -1.0
+        && {
+            // Exact check for constant -1.0
+            #[allow(clippy::float_cmp)] // Comparing against exact constant -1.0
+            let is_neg_one = matches!(&factors[0].kind, AstKind::Number(n) if *n == -1.0);
+            is_neg_one
+        }
         && let AstKind::FunctionCall { name: n2, args: a2 } = &factors[1].kind
         && n2.id() == *SINH
         && a2.len() == 1
@@ -371,7 +399,7 @@ rule!(
     Hyperbolic,
     &[ExprKind::Sum, ExprKind::Poly],
     |expr: &Expr, _context: &RuleContext| {
-        let eps = 1e-10;
+        let eps = 1e-10_f64;
 
         // Handle Poly form: Poly(sinh(x), [(1, 3.0), (3, 4.0)]) -> sinh(3x)
         if let AstKind::Poly(poly) = &expr.kind {
@@ -442,13 +470,29 @@ rule!(
                 parse_fn_term(u, &get_symbol(&SINH)),
                 parse_fn_term(v, &get_symbol(&SINH)),
             ) && arg1 == arg2
-                && ((c1 - 4.0).abs() < eps && p1 == 3.0 && c2 == 3.0 && p2 == 1.0
-                    || (c2 - 4.0).abs() < eps && p2 == 3.0 && c1 == 3.0 && p1 == 1.0)
             {
-                return Some(Expr::func_symbol(
-                    get_symbol(&SINH),
-                    Expr::product(vec![Expr::number(3.0), arg1]),
-                ));
+                // Constants in triple angle identity
+                #[allow(clippy::float_cmp)] // Comparing against exact constant 3.0
+                let is_pow1_cubed = p1 == 3.0;
+                #[allow(clippy::float_cmp)] // Comparing against exact constant 3.0
+                let is_coef2_three = c2 == 3.0;
+                #[allow(clippy::float_cmp)] // Comparing against exact constant 1.0
+                let is_pow2_one = p2 == 1.0;
+                #[allow(clippy::float_cmp)] // Comparing against exact constant 3.0
+                let is_pow2_cubed = p2 == 3.0;
+                #[allow(clippy::float_cmp)] // Comparing against exact constant 3.0
+                let is_coef1_three = c1 == 3.0;
+                #[allow(clippy::float_cmp)] // Comparing against exact constant 1.0
+                let is_pow1_one = p1 == 1.0;
+
+                if (c1 - 4.0).abs() < eps && is_pow1_cubed && is_coef2_three && is_pow2_one
+                    || (c2 - 4.0).abs() < eps && is_pow2_cubed && is_coef1_three && is_pow1_one
+                {
+                    return Some(Expr::func_symbol(
+                        get_symbol(&SINH),
+                        Expr::product(vec![Expr::number(3.0), arg1]),
+                    ));
+                }
             }
 
             // 4*cosh(x)^3 + (-3*cosh(x)) -> cosh(3x) (subtraction represented as sum with negated term)
@@ -457,7 +501,14 @@ rule!(
                 && arg1 == arg2
             {
                 // 4*cosh^3(x) - 3*cosh(x) -> cosh(3x)
-                if (c1 - 4.0).abs() < eps && p1 == 3.0 && c2 == -3.0 && p2 == 1.0 {
+                #[allow(clippy::float_cmp)] // Comparing against exact constant 3.0
+                let is_p1_3 = p1 == 3.0;
+                #[allow(clippy::float_cmp)] // Comparing against exact constant -3.0
+                let is_c2_neg3 = c2 == -3.0;
+                #[allow(clippy::float_cmp)] // Comparing against exact constant 1.0
+                let is_p2_1 = p2 == 1.0;
+
+                if (c1 - 4.0).abs() < eps && is_p1_3 && is_c2_neg3 && is_p2_1 {
                     return Some(Expr::func_symbol(
                         get_symbol(&COSH),
                         Expr::product(vec![Expr::number(3.0), arg1]),

@@ -117,6 +117,7 @@ fn eval_single_expr_chunked<V: ToParamName>(
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::cast_precision_loss)] // Standard test relaxations
 mod tests {
     use super::*;
     use std::collections::HashSet;
@@ -140,11 +141,11 @@ mod tests {
     #[test]
     fn test_eval_f64_trig() {
         let expr = parse_expr("sin(x) * cos(x)");
-        let x_data: Vec<f64> = (0..100).map(|i| i as f64 * 0.01).collect();
+        let x_data: Vec<f64> = (0..100).map(|i| f64::from(i) * 0.01).collect();
         let result = eval_f64(&[&expr], &[&["x"]], &[&[&x_data[..]]]).unwrap();
         for (i, &res) in result[0].iter().enumerate() {
             let x = i as f64 * 0.01;
-            assert!((res - x.sin() * x.cos()).abs() < 1e-10);
+            assert!(x.sin().mul_add(-x.cos(), res).abs() < 1e-10);
         }
     }
 
@@ -167,7 +168,7 @@ mod tests {
     #[test]
     fn test_eval_f64_large() {
         let expr = parse_expr("sin(x) + cos(x)");
-        let x_data: Vec<f64> = (0..100_000).map(|i| i as f64 * 0.0001).collect();
+        let x_data: Vec<f64> = (0..100_000).map(|i| f64::from(i) * 0.0001).collect();
         let result = eval_f64(&[&expr], &[&["x"]], &[&[&x_data[..]]]).unwrap();
         assert_eq!(result[0].len(), 100_000);
         // Spot check

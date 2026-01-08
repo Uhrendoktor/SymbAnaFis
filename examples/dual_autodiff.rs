@@ -1,4 +1,11 @@
+// AD Example: unwrap for logic, stdout for results, items after statements for modular demo
+#![allow(
+    clippy::unwrap_used,
+    clippy::print_stdout,
+    clippy::items_after_statements
+)]
 //! Dual Numbers for Automatic Differentiation
+
 //!
 //! This example demonstrates using `SymbAnaFis`'s Dual number implementation
 //! for automatic differentiation. Dual numbers enable exact derivative computation
@@ -14,7 +21,7 @@ use symb_anafis::Dual;
 
 /// Evaluate f(x) = x² + 3x + 1 and its derivative at x = 2
 fn quadratic_example() {
-    println!("=== Quadratic Function: f(x) = x² + 3x + 1 ===");
+    println!("=== Quadratic Function: f(x) = x\u{b2} + 3x + 1 ===");
 
     // Create dual number: x = 2 + 1ε (value 2, derivative 1)
     let x = Dual::new(2.0, 1.0);
@@ -60,7 +67,7 @@ fn higher_order_example() {
     let x1 = Dual::new(2.0, 1.0);
     let fx1 = x1 * x1 * x1; // x³
 
-    println!("f(x) = x³ at x = 2:");
+    println!("f(x) = x\u{b3} at x = 2:");
     println!("f(2) = {}", fx1.val); // 8
     println!("f'(2) = {}", fx1.eps); // 3*2² = 12
 
@@ -78,7 +85,7 @@ fn higher_order_example() {
 
 /// Chain rule example: f(x) = sin(x² + 1)
 fn chain_rule_example() {
-    println!("=== Chain Rule: f(x) = sin(x² + 1) ===");
+    println!("=== Chain Rule: f(x) = sin(x\u{b2} + 1) ===");
 
     let x = Dual::new(1.5, 1.0);
 
@@ -109,8 +116,8 @@ fn compare_with_symbolic() {
 
     // Symbolic derivative
     let symbolic_deriv = Diff::new().differentiate(&expr, &x).unwrap();
-    println!("Symbolic: d/dx(x³ + 2x² + x + 1) = {symbolic_deriv}");
-    println!("         (Note: {symbolic_deriv} is mathematically equivalent to 3x² + 4x + 1)");
+    println!("Symbolic: d/dx(x\u{b3} + 2x\u{b2} + x + 1) = {symbolic_deriv}");
+    println!("         (Note: {symbolic_deriv} is mathematically equivalent to 3x\u{b2} + 4x + 1)");
 
     // Evaluate symbolic derivative at x=2
     let vars = std::collections::HashMap::from([("x", 2.0)]);
@@ -140,9 +147,9 @@ fn main() {
     compare_with_symbolic();
 
     println!("Key Benefits of Dual Numbers:");
-    println!("• Exact derivatives (no numerical approximation)");
-    println!("• Handles complex expressions automatically");
-    println!("• Chain rule applied algebraically");
-    println!("• Higher-order derivatives possible");
-    println!("• Composable with other numeric operations");
+    println!("\u{2022} Exact derivatives (no numerical approximation)");
+    println!("\u{2022} Handles complex expressions automatically");
+    println!("\u{2022} Chain rule applied algebraically");
+    println!("\u{2022} Higher-order derivatives possible");
+    println!("\u{2022} Composable with other numeric operations");
 }

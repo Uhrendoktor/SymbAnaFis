@@ -14,27 +14,26 @@ rule!(
     &[ExprKind::Div],
     |expr: &Expr, _context: &RuleContext| {
         if let AstKind::Div(numerator, denominator) = &expr.kind {
-            if let AstKind::Number(d) = &denominator.kind
-                && *d == 2.0
-            {
-                // Check for Sum pattern: e^x + (-e^(-x)) or e^x + Product([-1, e^(-x)])
-                if let AstKind::Sum(terms) = &numerator.kind
-                    && terms.len() == 2
-                {
-                    let u = &terms[0];
-                    let v = &terms[1];
+            #[allow(clippy::float_cmp)] // Comparing against exact constant 2.0
+            let is_two = matches!(&denominator.kind, AstKind::Number(d) if *d == 2.0);
 
-                    // Check if v is negated
-                    if let Some(neg_inner) = extract_negated_term(v)
-                        && let Some(x) = match_sinh_pattern_sub(u, &neg_inner)
-                    {
-                        return Some(Expr::func("sinh", x));
-                    }
-                    if let Some(neg_inner) = extract_negated_term(u)
-                        && let Some(x) = match_sinh_pattern_sub(v, &neg_inner)
-                    {
-                        return Some(Expr::func("sinh", x));
-                    }
+            if is_two
+                && let AstKind::Sum(terms) = &numerator.kind
+                && terms.len() == 2
+            {
+                let u = &terms[0];
+                let v = &terms[1];
+
+                // Check if v is negated
+                if let Some(neg_inner) = extract_negated_term(v)
+                    && let Some(x) = match_sinh_pattern_sub(u, &neg_inner)
+                {
+                    return Some(Expr::func("sinh", x));
+                }
+                if let Some(neg_inner) = extract_negated_term(u)
+                    && let Some(x) = match_sinh_pattern_sub(v, &neg_inner)
+                {
+                    return Some(Expr::func("sinh", x));
                 }
             }
 
@@ -54,8 +53,10 @@ rule!(
     &[ExprKind::Div],
     |expr: &Expr, _context: &RuleContext| {
         if let AstKind::Div(numerator, denominator) = &expr.kind {
-            if let AstKind::Number(d) = &denominator.kind
-                && *d == 2.0
+            #[allow(clippy::float_cmp)] // Comparing against exact constant 2.0
+            let is_two = matches!(&denominator.kind, AstKind::Number(d) if *d == 2.0);
+
+            if is_two
                 && let AstKind::Sum(terms) = &numerator.kind
                 && terms.len() == 2
                 && let Some(x) = match_cosh_pattern(&terms[0], &terms[1])
@@ -133,8 +134,10 @@ rule!(
     &[ExprKind::Div],
     |expr: &Expr, _context: &RuleContext| {
         if let AstKind::Div(numerator, denominator) = &expr.kind {
-            if let AstKind::Number(n) = &numerator.kind
-                && *n == 2.0
+            #[allow(clippy::float_cmp)] // Comparing against exact constant 2.0
+            let is_two = matches!(&numerator.kind, AstKind::Number(n) if *n == 2.0);
+
+            if is_two
                 && let AstKind::Sum(terms) = &denominator.kind
                 && terms.len() == 2
                 && let Some(x) = match_cosh_pattern(&terms[0], &terms[1])
@@ -158,9 +161,10 @@ rule!(
     &[ExprKind::Div],
     |expr: &Expr, _context: &RuleContext| {
         if let AstKind::Div(numerator, denominator) = &expr.kind {
-            if let AstKind::Number(n) = &numerator.kind
-                && *n == 2.0
-            {
+            // Exact check for numerator 2.0 (csch definition)
+            #[allow(clippy::float_cmp)] // Comparing against exact constant 2.0
+            let is_two = matches!(&numerator.kind, AstKind::Number(n) if *n == 2.0);
+            if is_two {
                 // Check for Sum([u, Product([-1, v])]) pattern representing subtraction
                 if let AstKind::Sum(terms) = &denominator.kind
                     && terms.len() == 2
@@ -182,19 +186,29 @@ rule!(
                     return None;
                 };
 
-                if coeff == 2.0
+                // Exact check for coefficient 2.0
+                #[allow(clippy::float_cmp)] // Comparing against exact constant 2.0
+                let is_two = coeff == 2.0;
+
+                if is_two
                     && let Some(x) = ExpTerm::get_direct_exp_arg(exp_term)
                     && let AstKind::Sum(terms) = &denominator.kind
                     && terms.len() == 2
                 {
                     let (minus_one, exp_term_denom) = if let AstKind::Number(n) = &terms[0].kind {
-                        if *n == -1.0 {
+                        // Exact check for constant -1.0
+                        #[allow(clippy::float_cmp)] // Comparing against exact constant -1.0
+                        let is_neg_one = *n == -1.0;
+                        if is_neg_one {
                             (Some(&terms[0]), &terms[1])
                         } else {
                             (None, &terms[0]) // Fallback, though we expect -1
                         }
                     } else if let AstKind::Number(n) = &terms[1].kind {
-                        if *n == -1.0 {
+                        // Exact check for constant -1.0
+                        #[allow(clippy::float_cmp)] // Comparing against exact constant -1.0
+                        let is_neg_one = *n == -1.0;
+                        if is_neg_one {
                             (Some(&terms[1]), &terms[0])
                         } else {
                             (None, &terms[1])

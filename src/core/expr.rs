@@ -331,7 +331,7 @@ impl Expr {
     /// Get the structural hash of the expression
     #[inline]
     #[must_use]
-    pub const fn hash(&self) -> u64 {
+    pub const fn structural_hash(&self) -> u64 {
         self.hash
     }
 
@@ -495,7 +495,10 @@ impl Expr {
             return Self::number(0.0);
         }
         if terms.len() == 1 {
-            return terms.into_iter().next().unwrap();
+            return terms
+                .into_iter()
+                .next()
+                .expect("Vec must have at least one element");
         }
 
         let mut flat: Vec<Arc<Self>> = Vec::with_capacity(terms.len());
@@ -530,8 +533,12 @@ impl Expr {
             return Self::number(0.0);
         }
         if flat.len() == 1 {
-            return Arc::try_unwrap(flat.into_iter().next().unwrap())
-                .unwrap_or_else(|arc| (*arc).clone());
+            return Arc::try_unwrap(
+                flat.into_iter()
+                    .next()
+                    .expect("flat must have exactly one element"),
+            )
+            .unwrap_or_else(|arc| (*arc).clone());
         }
 
         // Streaming incremental Poly building: if term has same base as last, combine into Poly
@@ -545,7 +552,7 @@ impl Expr {
 
                 if current_base.is_some() && current_base == last_base && !result.is_empty() {
                     // Same base as last term - try to merge
-                    let last_arc = result.pop().unwrap();
+                    let last_arc = result.pop().expect("result cannot be empty here");
 
                     // Unwrap locally to get ownership (or clone if shared)
                     let mut last_expr = Arc::try_unwrap(last_arc).unwrap_or_else(|a| (*a).clone());
@@ -583,7 +590,10 @@ impl Expr {
             }
 
             if result.len() == 1 {
-                return Arc::try_unwrap(result.pop().unwrap()).unwrap_or_else(|arc| (*arc).clone());
+                return Arc::try_unwrap(
+                    result.pop().expect("result must have exactly one element"),
+                )
+                .unwrap_or_else(|arc| (*arc).clone());
             }
             return Self::new(ExprKind::Sum(result));
         }
@@ -601,8 +611,13 @@ impl Expr {
             return Self::number(0.0);
         }
         if terms.len() == 1 {
-            return Arc::try_unwrap(terms.into_iter().next().unwrap())
-                .unwrap_or_else(|arc| (*arc).clone());
+            return Arc::try_unwrap(
+                terms
+                    .into_iter()
+                    .next()
+                    .expect("Vec must have exactly one element"),
+            )
+            .unwrap_or_else(|arc| (*arc).clone());
         }
 
         // Flatten nested sums and combine numbers
@@ -653,8 +668,12 @@ impl Expr {
             return Self::number(0.0);
         }
         if flat.len() == 1 {
-            return Arc::try_unwrap(flat.into_iter().next().unwrap())
-                .unwrap_or_else(|arc| (*arc).clone());
+            return Arc::try_unwrap(
+                flat.into_iter()
+                    .next()
+                    .expect("flat must have exactly one element"),
+            )
+            .unwrap_or_else(|arc| (*arc).clone());
         }
 
         Self::new(ExprKind::Sum(flat))
@@ -675,7 +694,10 @@ impl Expr {
             return Self::number(1.0);
         }
         if factors.len() == 1 {
-            return factors.into_iter().next().unwrap();
+            return factors
+                .into_iter()
+                .next()
+                .expect("Vec must have exactly one element");
         }
 
         let mut flat: Vec<Arc<Self>> = Vec::with_capacity(factors.len());
@@ -709,8 +731,12 @@ impl Expr {
             return Self::number(1.0);
         }
         if flat.len() == 1 {
-            return Arc::try_unwrap(flat.into_iter().next().unwrap())
-                .unwrap_or_else(|arc| (*arc).clone());
+            return Arc::try_unwrap(
+                flat.into_iter()
+                    .next()
+                    .expect("flat must have exactly one element"),
+            )
+            .unwrap_or_else(|arc| (*arc).clone());
         }
 
         Self::new(ExprKind::Product(flat))
@@ -726,8 +752,13 @@ impl Expr {
             return Self::number(1.0);
         }
         if factors.len() == 1 {
-            return Arc::try_unwrap(factors.into_iter().next().unwrap())
-                .unwrap_or_else(|arc| (*arc).clone());
+            return Arc::try_unwrap(
+                factors
+                    .into_iter()
+                    .next()
+                    .expect("Vec must have exactly one element"),
+            )
+            .unwrap_or_else(|arc| (*arc).clone());
         }
 
         // Flatten nested products
@@ -740,7 +771,8 @@ impl Expr {
         }
 
         if flat.len() == 1 {
-            return Arc::try_unwrap(flat.pop().unwrap()).unwrap_or_else(|arc| (*arc).clone());
+            return Arc::try_unwrap(flat.pop().expect("Vec must have exactly one element"))
+                .unwrap_or_else(|arc| (*arc).clone());
         }
 
         // Sort for canonical form
@@ -1002,7 +1034,7 @@ impl Expr {
                 args.iter().any(|arg| arg.has_free_variables(excluded))
             }
             ExprKind::Derivative { inner, var, .. } => {
-                let var_str = var.as_str().to_string();
+                let var_str = var.as_str().to_owned();
                 !excluded.contains(&var_str) || inner.has_free_variables(excluded)
             }
             ExprKind::Poly(poly) => poly.base().has_free_variables(excluded),
@@ -1021,7 +1053,7 @@ impl Expr {
         match &self.kind {
             ExprKind::Symbol(s) => {
                 if let Some(name) = s.name() {
-                    vars.insert(name.to_string());
+                    vars.insert(name.to_owned());
                 }
             }
             ExprKind::FunctionCall { args, .. } => {
@@ -1044,7 +1076,7 @@ impl Expr {
                 r.collect_variables(vars);
             }
             ExprKind::Derivative { inner, var, .. } => {
-                vars.insert(var.as_str().to_string());
+                vars.insert(var.as_str().to_owned());
                 inner.collect_variables(vars);
             }
             ExprKind::Number(_) => {}
@@ -1123,8 +1155,8 @@ impl Expr {
     /// ```
     /// use symb_anafis::{Expr, parse};
     /// use std::collections::HashSet;
-    /// let expr = parse("x^2 + 2*x", &HashSet::new(), &HashSet::new(), None).unwrap();
-    /// let evaluator = expr.compile().unwrap();
+    /// let expr = parse("x^2 + 2*x", &HashSet::new(), &HashSet::new(), None).expect("Should parse");
+    /// let evaluator = expr.compile().expect("Should compile");
     ///
     /// // Fast evaluation at multiple points
     /// let result_at_3 = evaluator.evaluate(&[3.0]); // 3^2 + 2*3 = 15
@@ -1150,10 +1182,10 @@ impl Expr {
     /// let expr = x.pow(2.0) + y;
     ///
     /// // Using strings
-    /// let compiled = expr.compile_with_params(&["x", "y"]).unwrap();
+    /// let compiled = expr.compile_with_params(&["x", "y"]).expect("Should compile");
     ///
     /// // Using symbols
-    /// let compiled = expr.compile_with_params(&[&x, &y]).unwrap();
+    /// let compiled = expr.compile_with_params(&[&x, &y]).expect("Should compile");
     /// ```
     ///
     /// # Errors
@@ -1270,7 +1302,7 @@ impl Expr {
     /// ```
     #[must_use]
     // Expression evaluation handles many expression kinds, length is justified
-    #[allow(clippy::too_many_lines)]
+    #[allow(clippy::too_many_lines)] // Expression evaluation handles many expression kinds
     pub fn evaluate(
         &self,
         vars: &std::collections::HashMap<&str, f64>,
@@ -1343,7 +1375,7 @@ impl Expr {
                             v.push(Self::number(num_sum));
                         }
                         if v.len() == 1 {
-                            v.pop().unwrap()
+                            v.pop().expect("v must have exactly one element")
                         } else {
                             Self::sum(v)
                         }
@@ -1371,11 +1403,16 @@ impl Expr {
                 others.map_or_else(
                     || Self::number(num_prod),
                     |mut v| {
-                        if num_prod != 1.0 {
+                        let num_is_one = {
+                            #[allow(clippy::float_cmp)] // Comparing against exact constant 1.0
+                            let res = num_prod != 1.0;
+                            res
+                        };
+                        if num_is_one {
                             v.insert(0, Self::number(num_prod));
                         }
                         if v.len() == 1 {
-                            v.pop().unwrap()
+                            v.pop().expect("v must have exactly one element")
                         } else {
                             Self::product(v)
                         }
@@ -1411,6 +1448,7 @@ impl Expr {
                         {
                             // u32->i32: polynomial powers are small positive integers
                             #[allow(clippy::cast_possible_wrap)]
+                            // Polynomial powers are small positive integers
                             {
                                 total += coeff * base_val.powi(pow as i32);
                             }
@@ -1647,6 +1685,14 @@ impl std::hash::Hash for ExprKind {
 // =============================================================================
 
 #[cfg(test)]
+#[allow(
+    clippy::unwrap_used,
+    clippy::panic,
+    clippy::cast_precision_loss,
+    clippy::items_after_statements,
+    clippy::let_underscore_must_use,
+    clippy::no_effect_underscore_binding
+)]
 mod tests {
     use super::*;
 
@@ -1657,8 +1703,8 @@ mod tests {
         let z = Expr::symbol("z");
 
         // (x + y) + z should flatten to Sum or Poly (3+ terms may become Poly)
-        let inner = Expr::sum(vec![x.clone(), y.clone()]);
-        let outer = Expr::sum(vec![inner, z.clone()]);
+        let inner = Expr::sum(vec![x, y]);
+        let outer = Expr::sum(vec![inner, z]);
 
         match &outer.kind {
             ExprKind::Sum(terms) => assert_eq!(terms.len(), 3),
@@ -1674,8 +1720,8 @@ mod tests {
         let c = Expr::symbol("c");
 
         // (a * b) * c should flatten to Product([a, b, c])
-        let inner = Expr::product(vec![a.clone(), b.clone()]);
-        let outer = Expr::product(vec![inner, c.clone()]);
+        let inner = Expr::product(vec![a, b]);
+        let outer = Expr::product(vec![inner, c]);
 
         match &outer.kind {
             ExprKind::Product(factors) => assert_eq!(factors.len(), 3),
@@ -1689,7 +1735,7 @@ mod tests {
         let y = Expr::symbol("y");
 
         // x - y = Sum([x, Product([-1, y])])
-        let result = Expr::sub_expr(x.clone(), y.clone());
+        let result = Expr::sub_expr(x, y);
 
         match &result.kind {
             ExprKind::Sum(terms) => {

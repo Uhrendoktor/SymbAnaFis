@@ -181,7 +181,7 @@ fn test_compile_raw_derivatives() {
 
         // Some expressions may have unsupported functions (like besselj)
         // We just check it doesn't panic
-        let _ = result;
+        let _unused = result;
     }
 }
 
@@ -198,7 +198,7 @@ fn test_compile_simplified_derivatives() {
             if let Ok(ref expr) = parsed {
                 let compiled = CompiledEvaluator::compile_auto(expr, None);
                 // Check it compiles (or fails gracefully for unsupported funcs)
-                let _ = compiled;
+                let _unused = compiled;
             }
         }
     }
@@ -397,12 +397,12 @@ fn test_all_benchmarks_produce_valid_results() {
         }
         let diff_str = diff_result.unwrap();
 
-        let parsed = parse(&diff_str, &empty, &empty, None);
-        if parsed.is_err() {
-            failed.push(format!("{}: parse failed - {:?}", name, parsed.err()));
+        let parsed_expr = parse(&diff_str, &empty, &empty, None);
+        if parsed_expr.is_err() {
+            failed.push(format!("{}: parse failed - {:?}", name, parsed_expr.err()));
             continue;
         }
-        let expr = parsed.unwrap();
+        let expr = parsed_expr.unwrap();
 
         let compiled = CompiledEvaluator::compile_auto(&expr, None);
         if compiled.is_err() {

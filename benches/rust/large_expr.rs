@@ -1,4 +1,13 @@
+// Benchmark: unwrap for setup, stdout for results, similar names for variables, unreachable for exhaustive patterns
+#![allow(
+    clippy::unwrap_used,
+    clippy::print_stdout,
+    clippy::similar_names,
+    clippy::unreachable,
+    clippy::too_many_lines
+)]
 //! Large Expression Benchmark
+
 //!
 //! Benchmarks for expressions with many mixed terms (N >= 300).
 //! Compares `SymbAnaFis` vs Symbolica across: Parse, Diff, Compile, Eval.
@@ -11,7 +20,7 @@ use symb_anafis::{CompiledEvaluator, Diff};
 
 // Load .env file for SYMBOLICA_LICENSE
 fn init() {
-    let _ = dotenvy::dotenv();
+    let _unused = dotenvy::dotenv();
 }
 
 use symbolica::{atom::AtomCore, parse, symbol};

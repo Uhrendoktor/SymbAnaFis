@@ -1,4 +1,13 @@
+// Parallel bench: unwrap for setup, stdout/stderr for logs, similar names for math, precision loss in timers
+#![allow(
+    clippy::unwrap_used,
+    clippy::print_stdout,
+    clippy::print_stderr,
+    clippy::similar_names,
+    clippy::cast_precision_loss
+)]
 //! Parallel Evaluation Benchmarks
+
 //!
 //! Compares evaluation methods in the `parallel` feature:
 //! - `eval_f64` (high-perf batch, columnar data)
@@ -138,7 +147,7 @@ fn bench_eval_scaling(c: &mut Criterion) {
     let diff_expr = parse(&diff_str, &empty, &empty, None).unwrap();
     let evaluator = CompiledEvaluator::compile(&diff_expr, &[var], None).unwrap();
 
-    let point_counts = [100, 1000, 10000, 100000];
+    let point_counts = [100, 1000, 10_000, 100_000];
 
     for n in point_counts {
         // Keep v values in valid range (|v| < 1)
@@ -213,7 +222,7 @@ fn bench_multi_expr(c: &mut Criterion) {
             let data: Vec<f64> = if *var == "v" {
                 // Lorentz: |v| < 1
                 (0..n_points)
-                    .map(|i| 0.98f64.mul_add(i as f64 / n_points as f64, 0.01))
+                    .map(|i| 0.98_f64.mul_add(i as f64 / n_points as f64, 0.01))
                     .collect()
             } else {
                 // General: 0.1 to 10.1
@@ -295,7 +304,7 @@ fn bench_eval_apis(c: &mut Criterion) {
     // Generate 10000 test points in valid domain
     let n_points = 10000;
     let test_points: Vec<f64> = (0..n_points)
-        .map(|i| 0.98f64.mul_add(f64::from(i) / f64::from(n_points), 0.01))
+        .map(|i| 0.98_f64.mul_add(f64::from(i) / f64::from(n_points), 0.01))
         .collect();
 
     // ---------------------------------------------------------------------

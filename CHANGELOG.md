@@ -14,6 +14,15 @@ All notable changes to SymbAnaFis will be documented in this file.
   - Added `#[allow(clippy::cast_possible_wrap)]` to `__hash__` functions (Python requires isize)
   - Added `#[allow(clippy::too_many_lines)]` to large dispatch functions in display, evaluator, and simplification
   - Refactored closures in `user_fn` and `with_function` to use idiomatic `let...else` and `map_or_else` patterns
+- **Clippy float_cmp and similar_names**: Resolved remaining strict lint warnings:
+  - Added justification comments to all `#[allow(clippy::float_cmp)]` attributes for exact constant comparisons
+  - Refactored `matches!` macro usage in `LnERule` to if-let chains (attributes on `matches!` are ignored by rustc)
+  - Renamed tuple-destructured variables in `HyperbolicTripleAngleRule` to avoid `similar_names` lint
+- **Allow Attribute Audit**: Added inline justification comments to all ~200 `#[allow(clippy::...)]` attributes across 78 files:
+  - `float_cmp` (~40): Exact math constant comparisons (1.0, -1.0, PI)
+  - `cast_possible_truncation` (~50): Bessel/Legendre orders, verified `fract()==0.0`
+  - `needless_pass_by_value` (~20): PyO3 requires owned types from Python
+  - `panic` (5): Explicit unwrap APIs and unreachable code guards
 
 ### Performance
 - **Polynomial operations**: Added `Arc::ptr_eq` short-circuit optimization to all base comparisons (`try_add_assign`, `add`, `mul`, `gcd`, `try_mul`). Provides O(1) pointer comparison (~1 CPU cycle) before falling back to O(N) deep equality, benefiting:

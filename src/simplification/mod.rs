@@ -8,6 +8,7 @@ use crate::Expr;
 use crate::core::unified_context::{BodyFn, Context};
 
 use std::collections::{HashMap, HashSet};
+use std::sync::Arc;
 
 /// Type alias for custom body function map (symbolic expansion)
 pub type CustomBodyMap = HashMap<String, BodyFn>;
@@ -37,7 +38,7 @@ pub fn simplify_expr(
         // But we still merge function bodies
         for name in ctx.function_names() {
             if let Some(body) = ctx.get_body(&name) {
-                custom_bodies.insert(name, body.clone());
+                custom_bodies.insert(name, Arc::clone(body));
             }
         }
     }

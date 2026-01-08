@@ -124,36 +124,36 @@ const fn needs_parens_in_sum(expr: &Expr) -> bool {
 /// Covers lowercase Greek alphabet commonly used in mathematics and physics
 static GREEK_LETTERS: &[(&str, &str, &str)] = &[
     // Common mathematical symbols
-    ("pi", r"\pi", "π"),
-    ("alpha", r"\alpha", "α"),
-    ("beta", r"\beta", "β"),
-    ("gamma", r"\gamma", "γ"),
-    ("delta", r"\delta", "δ"),
-    ("epsilon", r"\epsilon", "ε"),
-    ("zeta", r"\zeta", "ζ"),
-    ("eta", r"\eta", "η"),
-    ("theta", r"\theta", "θ"),
-    ("iota", r"\iota", "ι"),
-    ("kappa", r"\kappa", "κ"),
-    ("lambda", r"\lambda", "λ"),
-    ("mu", r"\mu", "μ"),
-    ("nu", r"\nu", "ν"),
-    ("xi", r"\xi", "ξ"),
-    ("omicron", r"\omicron", "ο"),
-    ("rho", r"\rho", "ρ"),
-    ("sigma", r"\sigma", "σ"),
-    ("tau", r"\tau", "τ"),
-    ("upsilon", r"\upsilon", "υ"),
-    ("phi", r"\phi", "φ"),
-    ("chi", r"\chi", "χ"),
-    ("psi", r"\psi", "ψ"),
-    ("omega", r"\omega", "ω"),
+    ("pi", r"\pi", "\u{3c0}"),
+    ("alpha", r"\alpha", "\u{3b1}"),
+    ("beta", r"\beta", "\u{3b2}"),
+    ("gamma", r"\gamma", "\u{3b3}"),
+    ("delta", r"\delta", "\u{3b4}"),
+    ("epsilon", r"\epsilon", "\u{3b5}"),
+    ("zeta", r"\zeta", "\u{3b6}"),
+    ("eta", r"\eta", "\u{3b7}"),
+    ("theta", r"\theta", "\u{3b8}"),
+    ("iota", r"\iota", "\u{3b9}"),
+    ("kappa", r"\kappa", "\u{3ba}"),
+    ("lambda", r"\lambda", "\u{3bb}"),
+    ("mu", r"\mu", "\u{3bc}"),
+    ("nu", r"\nu", "\u{3bd}"),
+    ("xi", r"\xi", "\u{3be}"),
+    ("omicron", r"\omicron", "\u{3bf}"),
+    ("rho", r"\rho", "\u{3c1}"),
+    ("sigma", r"\sigma", "\u{3c3}"),
+    ("tau", r"\tau", "\u{3c4}"),
+    ("upsilon", r"\upsilon", "\u{3c5}"),
+    ("phi", r"\phi", "\u{3c6}"),
+    ("chi", r"\chi", "\u{3c7}"),
+    ("psi", r"\psi", "\u{3c8}"),
+    ("omega", r"\omega", "\u{3c9}"),
     // Alternative forms
-    ("varepsilon", r"\varepsilon", "ε"),
-    ("vartheta", r"\vartheta", "ϑ"),
-    ("varphi", r"\varphi", "φ"),
-    ("varrho", r"\varrho", "ρ"),
-    ("varsigma", r"\varsigma", "ς"),
+    ("varepsilon", r"\varepsilon", "\u{3b5}"),
+    ("vartheta", r"\vartheta", "\u{3d1}"),
+    ("varphi", r"\varphi", "\u{3c6}"),
+    ("varrho", r"\varrho", "\u{3c1}"),
+    ("varsigma", r"\varsigma", "\u{3c2}"),
 ];
 
 /// Map symbol name to Greek letter (LaTeX format)
@@ -177,7 +177,8 @@ fn greek_to_unicode(name: &str) -> Option<&'static str> {
 // =============================================================================
 
 impl fmt::Display for Expr {
-    #[allow(clippy::too_many_lines)]
+    // Large match blocks for different expression kinds
+    #[allow(clippy::too_many_lines)] // Large match block for different expression kinds
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match &self.kind {
             ExprKind::Number(n) => {
@@ -189,8 +190,15 @@ impl fmt::Display for Expr {
                     } else {
                         write!(f, "-Infinity")
                     }
-                } else if n.trunc() == *n && n.abs() < 1e10 {
-                    write!(f, "{}", *n as i64)
+                } else if {
+                    #[allow(clippy::float_cmp)]
+                    let is_int = n.trunc() == *n;
+                    is_int
+                } && n.abs() < 1e10
+                {
+                    #[allow(clippy::cast_possible_truncation)] // Checked is_int above
+                    let n_int = *n as i64;
+                    write!(f, "{n_int}")
                 } else {
                     write!(f, "{n}")
                 }
@@ -318,7 +326,7 @@ impl fmt::Display for Expr {
             }
 
             ExprKind::Derivative { inner, var, order } => {
-                write!(f, "∂^{order}_{inner}/∂_{var}^{order}")
+                write!(f, "\u{2202}^{order}_{inner}/\u{2202}_{var}^{order}")
             }
 
             // Poly: display inline using Polynomial's Display
@@ -333,7 +341,7 @@ impl fmt::Display for Expr {
 // LATEX FORMATTER
 // =============================================================================
 
-pub struct LatexFormatter<'a>(pub(crate) &'a Expr);
+pub struct LatexFormatter<'expr>(pub(crate) &'expr Expr);
 
 impl fmt::Display for LatexFormatter<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -342,7 +350,7 @@ impl fmt::Display for LatexFormatter<'_> {
 }
 
 // Display format functions are naturally lengthy due to many expression kinds
-#[allow(clippy::too_many_lines)]
+#[allow(clippy::too_many_lines)] // Display format naturally lengthy due to many expr kinds
 fn format_latex(expr: &Expr, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match &expr.kind {
         ExprKind::Number(n) => {
@@ -354,8 +362,15 @@ fn format_latex(expr: &Expr, f: &mut fmt::Formatter<'_>) -> fmt::Result {
                 } else {
                     write!(f, r"-\infty")
                 }
-            } else if n.trunc() == *n && n.abs() < 1e10 {
-                write!(f, "{}", *n as i64)
+            } else if {
+                #[allow(clippy::float_cmp)] // Checking for exact integer via trunc
+                let is_int = n.trunc() == *n;
+                is_int
+            } && n.abs() < 1e10
+            {
+                #[allow(clippy::cast_possible_truncation)] // Checked is_int above
+                let n_int = *n as i64;
+                write!(f, "{n_int}")
             } else {
                 write!(f, "{n}")
             }
@@ -530,29 +545,29 @@ fn format_latex(expr: &Expr, f: &mut fmt::Formatter<'_>) -> fmt::Result {
                 // Trigonometric
                 "sin" | "cos" | "tan" | "cot" | "sec" | "csc" | "sinh" | "cosh" | "tanh"
                 | "coth" => format!(r"\{name}"),
-                "sech" => r"\operatorname{sech}".to_string(),
-                "csch" => r"\operatorname{csch}".to_string(),
+                "sech" => r"\operatorname{sech}".to_owned(),
+                "csch" => r"\operatorname{csch}".to_owned(),
                 // Inverse hyperbolic
-                "asinh" => r"\operatorname{arsinh}".to_string(),
-                "acosh" => r"\operatorname{arcosh}".to_string(),
-                "atanh" => r"\operatorname{artanh}".to_string(),
-                "acoth" => r"\operatorname{arcoth}".to_string(),
-                "asech" => r"\operatorname{arsech}".to_string(),
-                "acsch" => r"\operatorname{arcsch}".to_string(),
+                "asinh" => r"\operatorname{arsinh}".to_owned(),
+                "acosh" => r"\operatorname{arcosh}".to_owned(),
+                "atanh" => r"\operatorname{artanh}".to_owned(),
+                "acoth" => r"\operatorname{arcoth}".to_owned(),
+                "asech" => r"\operatorname{arsech}".to_owned(),
+                "acsch" => r"\operatorname{arcsch}".to_owned(),
                 // Logarithms
-                "ln" => r"\ln".to_string(),
-                "log" | "log10" => r"\log".to_string(),
-                "log2" => r"\log_2".to_string(),
+                "ln" => r"\ln".to_owned(),
+                "log" | "log10" => r"\log".to_owned(),
+                "log2" => r"\log_2".to_owned(),
                 // Exponential
-                "exp" => r"\exp".to_string(),
-                "exp_polar" => r"\operatorname{exp\_polar}".to_string(),
+                "exp" => r"\exp".to_owned(),
+                "exp_polar" => r"\operatorname{exp\_polar}".to_owned(),
                 // Special functions
-                "gamma" => r"\Gamma".to_string(),
-                "erf" => r"\operatorname{erf}".to_string(),
-                "erfc" => r"\operatorname{erfc}".to_string(),
-                "signum" => r"\operatorname{sgn}".to_string(),
-                "sinc" => r"\operatorname{sinc}".to_string(),
-                "round" => r"\operatorname{round}".to_string(),
+                "gamma" => r"\Gamma".to_owned(),
+                "erf" => r"\operatorname{erf}".to_owned(),
+                "erfc" => r"\operatorname{erfc}".to_owned(),
+                "signum" => r"\operatorname{sgn}".to_owned(),
+                "sinc" => r"\operatorname{sinc}".to_owned(),
+                "round" => r"\operatorname{round}".to_owned(),
                 // Default: wrap in \text{}
                 _ => format!(r"\text{{{name}}}"),
             };
@@ -683,7 +698,7 @@ fn latex_factor(expr: &Expr) -> String {
 // UNICODE FORMATTER
 // =============================================================================
 
-pub struct UnicodeFormatter<'a>(pub(crate) &'a Expr);
+pub struct UnicodeFormatter<'expr>(pub(crate) &'expr Expr);
 
 impl fmt::Display for UnicodeFormatter<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -694,47 +709,58 @@ impl fmt::Display for UnicodeFormatter<'_> {
 #[inline]
 const fn to_superscript(c: char) -> char {
     match c {
-        '0' => '⁰',
-        '1' => '¹',
-        '2' => '²',
-        '3' => '³',
-        '4' => '⁴',
-        '5' => '⁵',
-        '6' => '⁶',
-        '7' => '⁷',
-        '8' => '⁸',
-        '9' => '⁹',
-        '-' => '⁻',
-        '+' => '⁺',
-        '(' => '⁽',
-        ')' => '⁾',
+        '0' => '\u{2070}',
+        '1' => '\u{b9}',
+        '2' => '\u{b2}',
+        '3' => '\u{b3}',
+        '4' => '\u{2074}',
+        '5' => '\u{2075}',
+        '6' => '\u{2076}',
+        '7' => '\u{2077}',
+        '8' => '\u{2078}',
+        '9' => '\u{2079}',
+        '-' => '\u{207b}',
+        '+' => '\u{207a}',
+        '(' => '\u{207d}',
+        ')' => '\u{207e}',
         _ => c,
     }
 }
 
 #[inline]
 fn num_to_superscript(n: f64) -> String {
-    if n.trunc() == n && n.abs() < 1000.0 {
-        format!("{}", n as i64)
-            .chars()
-            .map(to_superscript)
-            .collect()
+    if {
+        #[allow(clippy::float_cmp)] // Checking for exact integer via trunc
+        let is_int = n.trunc() == n;
+        is_int
+    } && n.abs() < 1000.0
+    {
+        #[allow(clippy::cast_possible_truncation)] // Checked is_int above
+        let n_int = n as i64;
+        format!("{n_int}").chars().map(to_superscript).collect()
     } else {
         format!("^{n}")
     }
 }
 
 // Display format functions are naturally lengthy due to many expression kinds
-#[allow(clippy::too_many_lines)]
+#[allow(clippy::too_many_lines)] // Display format naturally lengthy due to many expr kinds
 fn format_unicode(expr: &Expr, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match &expr.kind {
         ExprKind::Number(n) => {
             if n.is_nan() {
                 write!(f, "NaN")
             } else if n.is_infinite() {
-                write!(f, "{}", if *n > 0.0 { "∞" } else { "-∞" })
-            } else if n.trunc() == *n && n.abs() < 1e10 {
-                write!(f, "{}", *n as i64)
+                write!(f, "{}", if *n > 0.0 { "\u{221e}" } else { "-\u{221e}" })
+            } else if {
+                #[allow(clippy::float_cmp)] // Checking for exact integer via trunc
+                let is_int = n.trunc() == *n;
+                is_int
+            } && n.abs() < 1e10
+            {
+                #[allow(clippy::cast_possible_truncation)] // Checked is_int above
+                let n_int = *n as i64;
+                write!(f, "{n_int}")
             } else {
                 write!(f, "{n}")
             }
@@ -769,13 +795,13 @@ fn format_unicode(expr: &Expr, f: &mut fmt::Formatter<'_>) -> fmt::Result {
             for term in terms {
                 if first {
                     if let Some(positive) = extract_negative(term) {
-                        write!(f, "−{}", unicode_factor(&positive))?;
+                        write!(f, "\u{2212}{}", unicode_factor(&positive))?;
                     } else {
                         write!(f, "{}", unicode_factor(term))?;
                     }
                     first = false;
                 } else if let Some(positive) = extract_negative(term) {
-                    write!(f, " − {}", unicode_factor(&positive))?;
+                    write!(f, " \u{2212} {}", unicode_factor(&positive))?;
                 } else {
                     write!(f, " + {}", unicode_factor(term))?;
                 }
@@ -792,17 +818,17 @@ fn format_unicode(expr: &Expr, f: &mut fmt::Formatter<'_>) -> fmt::Result {
                 && (*n + 1.0).abs() < EPSILON
             {
                 if factors.len() == 1 {
-                    return write!(f, "−1");
+                    return write!(f, "\u{2212}1");
                 }
                 let remaining: Vec<Arc<Expr>> = factors[1..].to_vec();
                 let rest = Expr::product_from_arcs(remaining);
-                return write!(f, "−{}", unicode_factor(&rest));
+                return write!(f, "\u{2212}{}", unicode_factor(&rest));
             }
             // Write factors with · separator directly
             let mut first = true;
             for fac in factors {
                 if !first {
-                    write!(f, "·")?;
+                    write!(f, "\u{b7}")?;
                 }
                 write!(f, "{}", unicode_factor(fac))?;
                 first = false;
@@ -848,7 +874,14 @@ fn format_unicode(expr: &Expr, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 
         ExprKind::Derivative { inner, var, order } => {
             let sup = num_to_superscript(f64::from(*order));
-            write!(f, "∂{}({})/∂{}{}", sup, UnicodeFormatter(inner), var, sup)
+            write!(
+                f,
+                "\u{2202}{}({})/\u{2202}{}{}",
+                sup,
+                UnicodeFormatter(inner),
+                var,
+                sup
+            )
         }
 
         // Poly: display inline in unicode
@@ -891,12 +924,21 @@ impl Expr {
 // =============================================================================
 
 #[cfg(test)]
+// Standard test relaxations: unwrap/panic for assertions, precision loss for math
+#[allow(
+    clippy::unwrap_used,
+    clippy::panic,
+    clippy::cast_precision_loss,
+    clippy::items_after_statements,
+    clippy::let_underscore_must_use,
+    clippy::no_effect_underscore_binding
+)]
 mod tests {
     use super::*;
     use std::collections::HashMap;
 
     #[test]
-    #[allow(clippy::approx_constant)]
+    #[allow(clippy::approx_constant)] // Testing exact float display, not mathematical approximation
     fn test_display_number() {
         assert_eq!(format!("{}", Expr::number(3.0)), "3");
         assert!(format!("{}", Expr::number(3.141)).starts_with("3.141"));
@@ -920,31 +962,30 @@ mod tests {
             None,
             false,
         );
-        assert_eq!(format!("{}", expr), "1 + x"); // Sorted after simplify: numbers before symbols
+        assert_eq!(format!("{expr}"), "1 + x"); // Sorted after simplify: numbers before symbols
     }
 
     #[test]
     fn test_display_product() {
         let prod = Expr::product(vec![Expr::number(2.0), Expr::symbol("x")]);
-        assert_eq!(format!("{}", prod), "2*x");
+        assert_eq!(format!("{prod}"), "2*x");
     }
 
     #[test]
     fn test_display_negation() {
         let expr = Expr::product(vec![Expr::number(-1.0), Expr::symbol("x")]);
-        assert_eq!(format!("{}", expr), "-x");
+        assert_eq!(format!("{expr}"), "-x");
     }
 
     #[test]
     fn test_display_subtraction() {
         // x - y = Sum([x, Product([-1, y])])
         let expr = Expr::sub_expr(Expr::symbol("x"), Expr::symbol("y"));
-        let display = format!("{}", expr);
+        let display = format!("{expr}");
         // Should display as subtraction
         assert!(
-            display.contains("-"),
-            "Expected subtraction, got: {}",
-            display
+            display.contains('-'),
+            "Expected subtraction, got: {display}"
         );
     }
 
@@ -953,7 +994,7 @@ mod tests {
         // Test: x + (y + z) should display with parentheses
         let inner_sum = Expr::sum(vec![Expr::symbol("y"), Expr::symbol("z")]);
         let expr = Expr::sum(vec![Expr::symbol("x"), inner_sum]);
-        let display = format!("{}", expr);
+        let display = format!("{expr}");
         // Should display as "x + (y + z)" to preserve structure
         assert_eq!(display, "x + y + z");
     }

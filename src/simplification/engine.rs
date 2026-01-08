@@ -17,7 +17,10 @@ macro_rules! warn_once {
     ($($arg:tt)*) => {
         // Silent by default in library mode - use SYMB_TRACE for debug output
         if trace_enabled() {
-            eprintln!($($arg)*);
+            #[allow(clippy::print_stderr)]
+            {
+                eprintln!($($arg)*);
+            }
         }
     };
 }
@@ -141,11 +144,14 @@ impl Simplifier {
                 break;
             }
 
-            let original = current.clone();
+            let original = Arc::clone(&current);
             current = self.apply_rules_bottom_up(current, 0);
 
             if trace_enabled() {
-                eprintln!("[DEBUG] Iteration {iterations}: {original} -> {current}");
+                #[allow(clippy::print_stderr)]
+                {
+                    eprintln!("[DEBUG] Iteration {iterations}: {original} -> {current}");
+                }
             }
 
             // Use structural equality to check if expression changed
@@ -161,7 +167,10 @@ impl Simplifier {
                 // Canonicalization rules run last (low priority), so the latest iteration
                 // has the most canonical form (e.g., sorted products).
                 if trace_enabled() {
-                    eprintln!("[DEBUG] Cycle detected, returning last (most canonical) form");
+                    #[allow(clippy::print_stderr)]
+                    {
+                        eprintln!("[DEBUG] Cycle detected, returning last (most canonical) form");
+                    }
                 }
                 return Arc::try_unwrap(current).unwrap_or_else(|rc| (*rc).clone());
             }
@@ -186,7 +195,7 @@ impl Simplifier {
         let map_lazy = |items: &[Arc<Expr>], simplifier: &mut Self| -> Option<Vec<Arc<Expr>>> {
             let mut result: Option<Vec<Arc<Expr>>> = None;
             for (i, item) in items.iter().enumerate() {
-                let simplified = simplifier.apply_rules_bottom_up(item.clone(), depth + 1);
+                let simplified = simplifier.apply_rules_bottom_up(Arc::clone(item), depth + 1);
                 if !Arc::ptr_eq(&simplified, item) && result.is_none() {
                     let mut v = Vec::with_capacity(items.len());
                     v.extend(items[..i].iter().cloned());
@@ -221,8 +230,8 @@ impl Simplifier {
             }
 
             AstKind::Div(u, v) => {
-                let u_simplified = self.apply_rules_bottom_up(u.clone(), depth + 1);
-                let v_simplified = self.apply_rules_bottom_up(v.clone(), depth + 1);
+                let u_simplified = self.apply_rules_bottom_up(Arc::clone(u), depth + 1);
+                let v_simplified = self.apply_rules_bottom_up(Arc::clone(v), depth + 1);
 
                 if Arc::ptr_eq(&u_simplified, u) && Arc::ptr_eq(&v_simplified, v) {
                     self.apply_rules_to_node(expr, depth)
@@ -232,8 +241,8 @@ impl Simplifier {
                 }
             }
             AstKind::Pow(u, v) => {
-                let u_simplified = self.apply_rules_bottom_up(u.clone(), depth + 1);
-                let v_simplified = self.apply_rules_bottom_up(v.clone(), depth + 1);
+                let u_simplified = self.apply_rules_bottom_up(Arc::clone(u), depth + 1);
+                let v_simplified = self.apply_rules_bottom_up(Arc::clone(v), depth + 1);
 
                 if Arc::ptr_eq(&u_simplified, u) && Arc::ptr_eq(&v_simplified, v) {
                     self.apply_rules_to_node(expr, depth)

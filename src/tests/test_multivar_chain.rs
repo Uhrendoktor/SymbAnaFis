@@ -1,8 +1,3 @@
-//! Test multi-variable chain rule for functions with multiple continuous parameters
-//!
-//! Verifies that when both theta(t) and phi(t) vary with t, the derivative
-//! correctly computes: d/dt Y(theta(t), phi(t)) = (∂Y/∂θ)·θ' + (∂Y/∂φ)·φ'
-
 use crate::diff;
 
 #[test]

@@ -57,3 +57,109 @@ name = "benchmark_parallel"
 harness = false
 path = "benches/rust/benchmark_parallel.rs"
 required-features = ["parallel"]
+
+# ============================================================================
+# Lints Configuration (applies to lib, tests, examples, benches)
+# ============================================================================
+[lints.rust]
+# SAFETY & DOCUMENTATION
+unsafe_code = "deny"
+missing_docs = "deny"
+let_underscore_drop = "deny"
+
+
+[lints.rustdoc]
+broken_intra_doc_links = "deny"
+
+[lints.clippy]
+# Base: Ativa todos os avisos standard
+all = "deny"
+
+# =============================================================================
+# QUALITY & STYLE (PEDANTIC)
+# =============================================================================
+pedantic = { level = "warn", priority = -1 }
+
+# =============================================================================
+# NURSERY (EXPERIMENTAL BUT VALUABLE)
+# =============================================================================
+nursery = { level = "warn", priority = -1 }
+
+# =============================================================================
+# RESTRICTION (MAXIMUM STRICTNESS)
+# =============================================================================
+# Code Quality
+clone_on_ref_ptr = "warn"               # Avoid double indirection performance hit
+create_dir = "warn"                     # Force error handling for filesystem ops
+dbg_macro = "deny"                      # No debug artifacts in production (upgraded)
+empty_drop = "warn"                     # Detect accidentally empty Drop implementations
+empty_structs_with_brackets = "warn"    # Consistent struct syntax
+exit = "warn"                           # No hard exits in library code
+filetype_is_file = "warn"               # More robust file type checking
+fn_to_numeric_cast = "warn"             # Prevent function pointer casting bugs
+format_push_string = "warn"             # Performance: use write! instead of format!
+get_unwrap = "warn"                     # Use [] indexing instead of get().unwrap()
+if_then_some_else_none = "warn"         # Use bool::then_some for clarity
+inline_asm_x86_att_syntax = "warn"      # Consistent ASM syntax if used
+inline_asm_x86_intel_syntax = "warn"
+integer_division = "warn"               # Force explicit float division
+large_include_file = "warn"             # No embedding huge files
+let_underscore_must_use = "warn"        # Don't ignore important return values
+lossy_float_literal = "deny"            # Stricter float precision (upgraded)
+map_err_ignore = "warn"                 # Don't lose error context
+mem_forget = "warn"                     # No memory leaks
+mixed_read_write_in_expression = "warn" # Avoid subtle bugs
+mutex_atomic = "deny"                   # Performance critical (upgraded)
+non_ascii_literal = "warn"              # Keep code portable
+panic_in_result_fn = "deny"             # No panics in Result-returning functions
+partial_pub_fields = "warn"             # Consistent field visibility
+print_stderr = "warn"                   # No side effects to stderr
+print_stdout = "deny"                   # No side effects to stdout (upgraded)
+pub_without_shorthand = "warn"          # Consistent pub syntax
+rc_buffer = "deny"                      # Memory efficiency (upgraded)
+rc_mutex = "warn"                       # Performance: prefer Arc<Mutex<T>>
+
+# =============================================================================
+# MATHEMATICAL CODE ALLOWANCES 
+# =============================================================================
+# These lints are disabled because they're too noisy for mathematical/scientific code
+redundant_type_annotations = "warn"      # Clean up unnecessary annotations
+rest_pat_in_fully_bound_structs = "warn" # Explicit field handling
+same_name_method = "warn"                # Avoid confusing method names
+self_named_module_files = "warn"         # Consistent module naming
+semicolon_inside_block = "warn"          # Consistent semicolon style
+single_char_lifetime_names = "warn"      # Descriptive lifetime names
+str_to_string = "warn"                   # Performance: avoid unnecessary allocations
+string_add = "warn"                      # Performance: use format! or push_str
+string_slice = "warn"                    # Performance: consider &str instead
+suspicious_xor_used_as_pow = "warn"      # Catch common XOR/pow confusion
+todo = "deny"                            # No unfinished code (upgraded)
+try_err = "warn"                         # Use ? operator consistently
+undocumented_unsafe_blocks = "deny"      # All unsafe must be documented
+unimplemented = "deny"                   # No unfinished implementations
+unnecessary_self_imports = "warn"        # Clean imports
+unneeded_field_pattern = "warn"          # Clean pattern matching
+unseparated_literal_suffix = "warn"      # Readable numeric literals
+use_debug = "warn"                       # No Debug in production formatting
+verbose_file_reads = "warn"              # Use fs::read_to_string when appropriate
+
+# =============================================================================
+# PERFORMANCE (HPC FOCUSED) 
+# =============================================================================
+perf = "deny"
+suboptimal_flops = "deny"   # Mathematical precision is critical (upgraded)
+large_stack_arrays = "deny" # Prevent stack overflows (upgraded)
+
+# =============================================================================
+# ROBUSTNESS (NO SURPRISES)
+# =============================================================================
+unwrap_used = "deny"                # No unwraps - use expect with context
+panic = "deny"                      # No panics in library code
+unreachable = "deny"                # All code paths must be explicitly handled
+missing_panics_doc = "warn"         # Document when functions can panic
+debug_assert_with_mut_call = "warn" # Side effects in debug asserts
+
+# =============================================================================
+# MATH PRECISION & CORRECTNESS
+# =============================================================================
+imprecise_flops = "deny" # Mathematical precision critical (upgraded)

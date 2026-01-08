@@ -26,13 +26,13 @@ impl Token {
             Self::Number(n) => format!("number '{n}'"),
             Self::Identifier(s) => format!("variable '{s}'"),
             Self::Operator(op) => format!("operator '{}'", op.to_name()),
-            Self::LeftParen => "'('".to_string(),
-            Self::RightParen => "')'".to_string(),
-            Self::Comma => "','".to_string(),
+            Self::LeftParen => "'('".to_owned(),
+            Self::RightParen => "')'".to_owned(),
+            Self::Comma => "','".to_owned(),
             Self::Derivative {
                 func, var, order, ..
             } => {
-                format!("derivative ∂^{order}{func}({var}) / ∂{var}^{order}")
+                format!("derivative \u{2202}^{order}{func}({var}) / \u{2202}{var}^{order}")
             }
         }
     }
@@ -408,6 +408,14 @@ impl std::str::FromStr for Operator {
 }
 
 #[cfg(test)]
+#[allow(
+    clippy::unwrap_used,
+    clippy::panic,
+    clippy::cast_precision_loss,
+    clippy::items_after_statements,
+    clippy::let_underscore_must_use,
+    clippy::no_effect_underscore_binding
+)]
 mod tests {
     use super::*;
 

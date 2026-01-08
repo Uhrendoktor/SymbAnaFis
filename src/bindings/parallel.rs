@@ -58,7 +58,7 @@ impl From<&Expr> for ExprInput {
 
 impl From<&str> for ExprInput {
     fn from(s: &str) -> Self {
-        Self::String(s.to_string())
+        Self::String(s.to_owned())
     }
 }
 
@@ -162,7 +162,7 @@ impl From<i32> for Value {
 impl From<i64> for Value {
     fn from(n: i64) -> Self {
         // i64->f64: Python integers map naturally to floats
-        #[allow(clippy::cast_precision_loss)]
+        #[allow(clippy::cast_precision_loss)] // i64→f64: Python integers map naturally to floats
         Self::Num(n as f64)
     }
 }
@@ -226,7 +226,14 @@ impl EvalResult {
     pub fn unwrap_string(self) -> String {
         match self {
             Self::String(s) => s,
-            Self::Expr(_) => panic!("Expected String, got Expr"),
+            Self::Expr(_) => {
+                // Clippy: Panic is justified here as this is an explicit 'unwrap' API that should only be called when sure of the variant
+                #[allow(clippy::panic)]
+                // Explicit unwrap API, should only be called when sure of variant
+                {
+                    panic!("Expected String, got Expr");
+                }
+            }
         }
     }
 
@@ -238,7 +245,14 @@ impl EvalResult {
     pub fn unwrap_expr(self) -> Expr {
         match self {
             Self::Expr(e) => e,
-            Self::String(_) => panic!("Expected Expr, got String"),
+            Self::String(_) => {
+                // Clippy: Panic is justified here as this is an explicit 'unwrap' API that should only be called when sure of the variant
+                #[allow(clippy::panic)]
+                // Explicit unwrap API, should only be called when sure of variant
+                {
+                    panic!("Expected Expr, got String");
+                }
+            }
         }
     }
 }
@@ -299,7 +313,7 @@ pub fn evaluate_parallel(
 /// # Returns
 /// For each expression, a Vec of `EvalResult` at each point.
 // Parallel evaluation handles complex dispatch logic, length is justified
-#[allow(clippy::too_many_lines, clippy::needless_pass_by_value)]
+#[allow(clippy::too_many_lines, clippy::needless_pass_by_value)] // Complex dispatch logic, Vec needed for multi-value per-expression
 #[inline]
 pub(crate) fn evaluate_parallel_with_hint(
     exprs: Vec<ExprInput>,
@@ -310,7 +324,7 @@ pub(crate) fn evaluate_parallel_with_hint(
     let n_exprs = exprs.len();
     if var_names.len() != n_exprs || values.len() != n_exprs {
         return Err(DiffError::UnsupportedOperation(
-            "Mismatched dimensions in evaluate_parallel".to_string(),
+            "Mismatched dimensions in evaluate_parallel".to_owned(),
         ));
     }
 
@@ -336,19 +350,18 @@ pub(crate) fn evaluate_parallel_with_hint(
 
             // Validate dimensions
             if vars.len() != expr_values.len() {
-                return vec![];
+                return Ok(vec![]);
             }
 
             let n_vars = vars.len();
             if n_vars == 0 {
                 let result = expr.evaluate(&HashMap::new(), &HashMap::new());
-                return vec![if *was_string {
+                return Ok(vec![if *was_string {
                     EvalResult::String(result.to_string())
                 } else {
                     EvalResult::Expr(result)
-                }];
+                }]);
             }
-
             // Find max points across all variables
             let n_points = expr_values
                 .iter()
@@ -356,7 +369,7 @@ pub(crate) fn evaluate_parallel_with_hint(
                 .max()
                 .unwrap_or(0);
             if n_points == 0 {
-                return vec![];
+                return Ok(vec![]);
             }
 
             // =========================================================
@@ -404,7 +417,9 @@ pub(crate) fn evaluate_parallel_with_hint(
                                         let val = if i < var_vals.len() {
                                             &var_vals[i]
                                         } else {
-                                            var_vals.last().unwrap()
+                                            var_vals.last().expect(
+                                                "Variable values cannot be empty if n_points > 0",
+                                            )
                                         };
 
                                         if let Value::Num(n) = val {
@@ -440,12 +455,12 @@ pub(crate) fn evaluate_parallel_with_hint(
                         )
                         .collect();
 
-                    return chunks.into_iter().flatten().collect();
+                    return Ok(chunks.into_iter().flatten().collect());
                 }
 
                 // FAST / HYBRID PATH: Use compiled evaluator where possible
                 // Use map_init to allocate buffers once per thread/chunk
-                (0..n_points)
+                Ok((0..n_points)
                     .into_par_iter()
                     .map_init(
                         || {
@@ -487,50 +502,56 @@ pub(crate) fn evaluate_parallel_with_hint(
                                     let val = if point_idx < var_vals.len() {
                                         &var_vals[point_idx]
                                     } else {
-                                        var_vals.last().unwrap()
+                                        var_vals.last().expect(
+                                            "var_vals cannot be empty if point_idx is valid",
+                                        )
                                     };
 
-                                    // We know it's Num from check above
                                     if let Value::Num(n) = val {
                                         params.push(*n);
                                     } else {
-                                        unreachable!("Value must be Num after all_numeric check")
+                                        return Err(
+                                            crate::bindings::parallel::DiffError::UnsupportedOperation(
+                                                "Value must be Num after all_numeric check".to_owned(),
+                                            ),
+                                        );
                                     }
                                 }
 
                                 // Reuse stack buffer
                                 let result = evaluator.evaluate_with_stack(params, stack);
 
-                                if *was_string {
+                                Ok(if *was_string {
                                     EvalResult::String(format_float(result))
                                 } else {
                                     EvalResult::Expr(crate::Expr::number(result))
-                                }
+                                })
                             } else {
                                 // SLOW PATH: Fallback for this point (symbolic inputs/skips)
-                                evaluate_slow_point(
+                                Ok(evaluate_slow_point(
                                     expr,
                                     &vars,
                                     expr_values,
                                     point_idx,
                                     *was_string,
-                                )
+                                ))
                             }
                         },
                     )
-                    .collect()
+                    .collect::<Result<Vec<_>, _>>()?)
             } else {
                 // SLOW PATH: Compilation failed (unsupported function, etc.)
                 // Evaluate entirely using substitution
-                (0..n_points)
+                let pts: Vec<EvalResult> = (0..n_points)
                     .into_par_iter()
                     .map(|point_idx| {
                         evaluate_slow_point(expr, &vars, expr_values, point_idx, *was_string)
                     })
-                    .collect()
+                    .collect();
+                Ok(pts)
             }
         })
-        .collect();
+        .collect::<Result<Vec<Vec<_>>, _>>()?;
 
     Ok(results)
 }
@@ -555,7 +576,7 @@ fn evaluate_slow_point(
                 Some(v) => v,
                 None => {
                     return if was_string {
-                        EvalResult::String("NaN".to_string())
+                        EvalResult::String("NaN".to_owned())
                     } else {
                         EvalResult::Expr(Expr::number(f64::NAN))
                     };
@@ -597,7 +618,9 @@ fn evaluate_slow_point(
 fn format_float(n: f64) -> String {
     if n.fract() == 0.0 && n.abs() < 1e15 {
         // Format as integer if it's a whole number
-        format!("{}", n as i64)
+        #[allow(clippy::cast_possible_truncation)] // Checked fract()==0.0, so cast is safe
+        let n_int = n as i64;
+        format!("{n_int}")
     } else {
         // Use default float formatting
         format!("{n}")
@@ -650,7 +673,7 @@ macro_rules! __parse_values_inner {
 ///         [[1.0, 2.0], [3.0, 4.0]],
 ///         [[1.0, 2.0, SKIP]]
 ///     ]
-/// ).unwrap();
+/// ).expect("Should pass");
 ///
 /// // results[0] is Vec<EvalResult::String>
 /// // results[1] is Vec<EvalResult::Expr>
@@ -693,7 +716,7 @@ mod tests {
             vars: [["x"]],
             values: [[[1.0, 2.0, 3.0]]]
         )
-        .unwrap();
+        .expect("Should pass");
 
         assert_eq!(results.len(), 1);
         assert_eq!(results[0].len(), 3);
@@ -713,7 +736,7 @@ mod tests {
             vars: [["x"]],
             values: [[[1.0, 2.0, 3.0]]]
         )
-        .unwrap();
+        .expect("Should pass");
 
         assert_eq!(results.len(), 1);
         assert_eq!(results[0].len(), 3);
@@ -736,7 +759,7 @@ mod tests {
                 [[10.0, 20.0]]
             ]
         )
-        .unwrap();
+        .expect("Should pass");
 
         assert_eq!(results.len(), 2);
 
@@ -758,7 +781,7 @@ mod tests {
             vars: [["x", "y"]],
             values: [[[1.0, 2.0], [10.0, 20.0]]]
         )
-        .unwrap();
+        .expect("Should pass");
 
         assert_eq!(results.len(), 1);
         assert_eq!(results[0].len(), 2);
@@ -768,21 +791,21 @@ mod tests {
 
     #[test]
     fn test_skip_value() {
-        let results = eval_parallel!(
+        let eval_results = eval_parallel!(
             exprs: ["x * y"],
             vars: [["x", "y"]],
             values: [[[2.0, SKIP], [3.0, 5.0]]]
         )
-        .unwrap();
+        .expect("Should pass");
 
-        assert_eq!(results.len(), 1);
-        assert_eq!(results[0].len(), 2);
+        assert_eq!(eval_results.len(), 1);
+        assert_eq!(eval_results[0].len(), 2);
 
         // Point 0: x=2, y=3 → 6
-        assert_eq!(results[0][0].to_string(), "6");
+        assert_eq!(eval_results[0][0].to_string(), "6");
 
         // Point 1: x=skip, y=5 → symbolic
-        let result1 = results[0][1].to_string();
-        assert!(result1.contains("x") || result1.contains("5"));
+        let result_str = eval_results[0][1].to_string();
+        assert!(result_str.contains('x') || result_str.contains('5'));
     }
 }

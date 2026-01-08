@@ -83,7 +83,7 @@ impl<T: MathScalar> Dual<T> {
 
 impl<T: MathScalar> fmt::Display for Dual<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} + {}ε", self.val, self.eps)
+        write!(f, "{} + {}\u{3b5}", self.val, self.eps)
     }
 }
 
@@ -401,7 +401,7 @@ impl<T: MathScalar + Float> Float for Dual<T> {
     }
 
     fn powi(self, n: i32) -> Self {
-        let n_t = T::from(n).unwrap();
+        let n_t = T::from(n).expect("T::from conversion failed");
         let val_pow = self.val.powi(n);
         let val_pow_minus_1 = self.val.powi(n - 1);
         Self::new(val_pow, self.eps * n_t * val_pow_minus_1)
@@ -414,7 +414,10 @@ impl<T: MathScalar + Float> Float for Dual<T> {
 
     fn sqrt(self) -> Self {
         let sqrt_val = self.val.sqrt();
-        Self::new(sqrt_val, self.eps / (T::from(2.0).unwrap() * sqrt_val))
+        Self::new(
+            sqrt_val,
+            self.eps / (T::from(2.0).expect("T::from conversion failed") * sqrt_val),
+        )
     }
 
     fn exp(self) -> Self {
@@ -463,7 +466,7 @@ impl<T: MathScalar + Float> Float for Dual<T> {
 
     fn cbrt(self) -> Self {
         let val_cbrt = self.val.cbrt();
-        let three = T::from(3.0).unwrap();
+        let three = T::from(3.0).expect("T::from conversion failed");
         // d/dx x^(1/3) = 1/3 x^(-2/3) = 1/(3 * cbrt(x)^2)
         Self::new(val_cbrt, self.eps / (three * val_cbrt * val_cbrt))
     }
@@ -576,7 +579,7 @@ impl<T: MathScalar> Dual<T> {
     #[must_use]
     pub fn erf(self) -> Self {
         let val = crate::math::eval_erf(self.val);
-        let two = T::from(2.0).unwrap();
+        let two = T::from(2.0).expect("T::from conversion failed");
         let pi = T::PI();
         let deriv = two / pi.sqrt() * (-self.val * self.val).exp();
         Self::new(val, self.eps * deriv)
@@ -640,7 +643,7 @@ impl<T: MathScalar> Dual<T> {
         let w = crate::math::eval_lambert_w(self.val)?;
         // d/dx W(x) = W(x) / (x * (1 + W(x))) = 1 / (e^W(x) * (1 + W(x)))
         let one = T::one();
-        let deriv = if self.val.abs() < T::from(1e-15).unwrap() {
+        let deriv = if self.val.abs() < T::from(1e-15).expect("T::from conversion failed") {
             one // W'(0) = 1
         } else {
             w / (self.val * (one + w))
@@ -657,7 +660,7 @@ impl<T: MathScalar> Dual<T> {
         let val = crate::math::bessel_j(n, self.val)?;
         let jn_minus_1 = crate::math::bessel_j(n - 1, self.val)?;
         let jn_plus_1 = crate::math::bessel_j(n + 1, self.val)?;
-        let two = T::from(2.0).unwrap();
+        let two = T::from(2.0).expect("T::from conversion failed");
         let deriv = (jn_minus_1 - jn_plus_1) / two;
         Some(Self::new(val, self.eps * deriv))
     }
@@ -669,7 +672,7 @@ impl<T: MathScalar> Dual<T> {
     /// Panics only if internal invariants are violated (never in normal use with f64).
     #[must_use]
     pub fn sinc(self) -> Self {
-        let threshold = T::from(1e-10).unwrap();
+        let threshold = T::from(1e-10).expect("T::from conversion failed");
         if self.val.abs() < threshold {
             // sinc(0) = 1, sinc'(0) = 0
             Self::new(T::one(), T::zero())
@@ -697,10 +700,10 @@ impl<T: MathScalar> Dual<T> {
     pub fn elliptic_k(self) -> Option<Self> {
         let val = crate::math::eval_elliptic_k(self.val)?;
         // Numerical derivative via finite difference
-        let h = T::from(1e-8).unwrap();
+        let h = T::from(1e-8).expect("T::from conversion failed");
         let val_plus = crate::math::eval_elliptic_k(self.val + h)?;
         let val_minus = crate::math::eval_elliptic_k(self.val - h)?;
-        let two = T::from(2.0).unwrap();
+        let two = T::from(2.0).expect("T::from conversion failed");
         let deriv = (val_plus - val_minus) / (two * h);
         Some(Self::new(val, self.eps * deriv))
     }
@@ -713,10 +716,10 @@ impl<T: MathScalar> Dual<T> {
     pub fn elliptic_e(self) -> Option<Self> {
         let val = crate::math::eval_elliptic_e(self.val)?;
         // Numerical derivative via finite difference
-        let h = T::from(1e-8).unwrap();
+        let h = T::from(1e-8).expect("T::from conversion failed");
         let val_plus = crate::math::eval_elliptic_e(self.val + h)?;
         let val_minus = crate::math::eval_elliptic_e(self.val - h)?;
-        let two = T::from(2.0).unwrap();
+        let two = T::from(2.0).expect("T::from conversion failed");
         let deriv = (val_plus - val_minus) / (two * h);
         Some(Self::new(val, self.eps * deriv))
     }
@@ -917,7 +920,7 @@ mod tests {
     fn test_dual_gamma() {
         // Γ(1) = 1, Γ'(1) = -γ (Euler-Mascheroni constant, ≈ -0.5772)
         let x = Dual::new(2.0, 1.0);
-        let result = x.gamma().unwrap();
+        let result = x.gamma().expect("Should pass");
 
         assert!(approx_eq(result.val, 1.0)); // Γ(2) = 1! = 1
         // Γ'(2) = Γ(2) * ψ(2) = 1 * (1 - γ) ≈ 0.4228
@@ -943,7 +946,7 @@ mod tests {
     fn test_dual_lambert_w() {
         // W(0) = 0, W'(0) = 1
         let x = Dual::new(1.0, 1.0);
-        let result = x.lambert_w().unwrap();
+        let result = x.lambert_w().expect("Should pass");
 
         // W(1) ≈ 0.5671
         assert!(result.val > 0.5 && result.val < 0.6);

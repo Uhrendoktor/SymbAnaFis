@@ -16,11 +16,14 @@ rule!(
             && let AstKind::Pow(base, exp) = &args[0].kind
         {
             // Special case: sqrt(x^2) should always return abs(x)
-            if let AstKind::Number(n) = &exp.kind
-                && *n == 2.0
-            {
-                // sqrt(x^2) = |x|
-                return Some(Expr::func_symbol(get_symbol(&ABS), base.as_ref().clone()));
+            if let AstKind::Number(n) = &exp.kind {
+                // Exact check for power 2.0 (square)
+                #[allow(clippy::float_cmp)] // Comparing against exact constant 2.0
+                let is_square = *n == 2.0;
+                if is_square {
+                    // sqrt(x^2) = |x|
+                    return Some(Expr::func_symbol(get_symbol(&ABS), base.as_ref().clone()));
+                }
             }
 
             // Create new exponent: exp / 2
@@ -48,7 +51,9 @@ rule!(
             };
 
             // If exponent simplified to 1, return base directly
-            if matches!(&simplified_exp.kind, AstKind::Number(n) if *n == 1.0) {
+            #[allow(clippy::float_cmp)] // Comparing against exact constant 1.0
+            let is_match = matches!(&simplified_exp.kind, AstKind::Number(n) if *n == 1.0);
+            if is_match {
                 return Some(base.as_ref().clone());
             }
 
@@ -97,7 +102,9 @@ rule!(
             };
 
             // If exponent simplified to 1, return base directly
-            if matches!(&simplified_exp.kind, AstKind::Number(n) if *n == 1.0) {
+            #[allow(clippy::float_cmp)] // Comparing against exact constant 1.0
+            let is_one = matches!(&simplified_exp.kind, AstKind::Number(n) if *n == 1.0);
+            if is_one {
                 return Some(base.as_ref().clone());
             }
 
@@ -135,7 +142,8 @@ rule!(SqrtProductRule, "sqrt_product", 56, Root, &[ExprKind::Product], alters_do
                         new_factors.push(combined);
 
                         if new_factors.len() == 1 {
-                            return Some(new_factors.into_iter().next().unwrap());
+                            // SAFETY: We just checked that new_factors.len() == 1
+                            return new_factors.into_iter().next();
                         }
                         return Some(Expr::product(new_factors));
                     }
@@ -218,28 +226,32 @@ rule!(
             for (i, factor) in factors.iter().enumerate() {
                 if let AstKind::Pow(base, exp) = &factor.kind
                     && let AstKind::Number(n) = &exp.kind
-                    && *n == 2.0
                 {
-                    // Found x^2, extract |x|
-                    let abs_base = Expr::func_symbol(get_symbol(&ABS), (**base).clone());
+                    // Exact check for power 2.0 (square)
+                    #[allow(clippy::float_cmp)] // Comparing against exact constant 2.0
+                    let is_square = *n == 2.0;
+                    if is_square {
+                        // Found x^2, extract |x|
+                        let abs_base = Expr::func_symbol(get_symbol(&ABS), (**base).clone());
 
-                    // Build remaining product for sqrt
-                    let remaining: Vec<Arc<Expr>> = factors
-                        .iter()
-                        .enumerate()
-                        .filter(|(j, _)| *j != i)
-                        .map(|(_, f)| f.clone())
-                        .collect();
+                        // Build remaining product for sqrt
+                        let remaining: Vec<Arc<Expr>> = factors
+                            .iter()
+                            .enumerate()
+                            .filter(|(j, _)| *j != i)
+                            .map(|(_, f)| Arc::clone(f))
+                            .collect();
 
-                    let inner = Expr::product_from_arcs(remaining);
-                    let sqrt_remaining = if matches!(inner.kind, AstKind::Number(n) if (n - 1.0).abs() < 1e-10)
-                    {
-                        Expr::number(1.0)
-                    } else {
-                        Expr::func_symbol(get_symbol(&SQRT), inner)
-                    };
+                        let inner = Expr::product_from_arcs(remaining);
+                        let sqrt_remaining = if matches!(inner.kind, AstKind::Number(n) if (n - 1.0).abs() < 1e-10)
+                        {
+                            Expr::number(1.0)
+                        } else {
+                            Expr::func_symbol(get_symbol(&SQRT), inner)
+                        };
 
-                    return Some(Expr::product(vec![abs_base, sqrt_remaining]));
+                        return Some(Expr::product(vec![abs_base, sqrt_remaining]));
+                    }
                 }
             }
         }

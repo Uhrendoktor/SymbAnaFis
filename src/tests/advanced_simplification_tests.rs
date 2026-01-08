@@ -1,5 +1,4 @@
 // Advanced simplification tests - complex algebraic and trigonometric identities
-
 use crate::{parser, simplification::simplify_expr};
 use std::collections::{HashMap, HashSet};
 

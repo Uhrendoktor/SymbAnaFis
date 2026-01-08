@@ -276,7 +276,7 @@ let expr = symb("x") + symb("y");
 let id = expr.id();
 
 // Structural hash for fast equality checks
-let hash = expr.hash();
+let hash = expr.structural_hash();
 ```
 
 ---

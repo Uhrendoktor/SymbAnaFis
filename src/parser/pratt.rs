@@ -23,10 +23,10 @@ pub fn parse_expression(tokens: &[Token], context: Option<&Context>) -> Result<E
     parser.parse_expr(0)
 }
 
-struct Parser<'a> {
-    tokens: &'a [Token],
+struct Parser<'tokens> {
+    tokens: &'tokens [Token],
     pos: usize,
-    context: Option<&'a Context>,
+    context: Option<&'tokens Context>,
 }
 
 impl Parser<'_> {
@@ -100,7 +100,9 @@ impl Parser<'_> {
         }
 
         if terms.len() == 1 {
-            Ok(terms.pop().unwrap())
+            Ok(terms
+                .pop()
+                .expect("Terms vector guaranteed to have at least one element"))
         } else {
             Ok(Expr::sum(terms)) // Single call with all terms!
         }
@@ -125,7 +127,7 @@ impl Parser<'_> {
                 }
                 _ => {
                     return Err(DiffError::UnexpectedToken {
-                        expected: ", or )".to_string(),
+                        expected: ", or )".to_owned(),
                         got: format!("{:?}", self.current()),
                         span: None,
                     });
@@ -164,7 +166,7 @@ impl Parser<'_> {
                         self.advance(); // consume )
                     } else {
                         return Err(DiffError::UnexpectedToken {
-                            expected: ")".to_string(),
+                            expected: ")".to_owned(),
                             got: format!("{:?}", self.current()),
                             span: None,
                         });
@@ -190,7 +192,7 @@ impl Parser<'_> {
                         self.advance(); // consume )
                     } else {
                         return Err(DiffError::UnexpectedToken {
-                            expected: ")".to_string(),
+                            expected: ")".to_owned(),
                             got: format!("{:?}", self.current()),
                             span: None,
                         });
@@ -200,7 +202,7 @@ impl Parser<'_> {
                     let min_args = op.min_arity();
                     if args.len() < min_args {
                         return Err(DiffError::InvalidFunctionCall {
-                            name: op.to_name().to_string(),
+                            name: op.to_name().to_owned(),
                             expected: min_args,
                             got: args.len(),
                         });
@@ -212,7 +214,7 @@ impl Parser<'_> {
                     Ok(Expr::func_multi(func_name, args))
                 } else {
                     Err(DiffError::UnexpectedToken {
-                        expected: "(".to_string(),
+                        expected: "(".to_owned(),
                         got: format!("{:?}", self.current()),
                         span: None,
                     })
@@ -242,7 +244,7 @@ impl Parser<'_> {
                     Ok(expr)
                 } else {
                     Err(DiffError::UnexpectedToken {
-                        expected: ")".to_string(),
+                        expected: ")".to_owned(),
                         got: format!("{:?}", self.current()),
                         span: None,
                     })
@@ -288,7 +290,7 @@ impl Parser<'_> {
                                 // If not comma, we expect end of input (sub-parser exhausted)
                                 if sub_parser.current().is_some() {
                                     return Err(DiffError::UnexpectedToken {
-                                        expected: "comma or end of arguments".to_string(),
+                                        expected: "comma or end of arguments".to_owned(),
                                         got: format!("{:?}", sub_parser.current()), // sub_parser.current() is Option<&Token>
                                         span: None,
                                     });
@@ -350,6 +352,14 @@ impl Parser<'_> {
 }
 
 #[cfg(test)]
+#[allow(
+    clippy::unwrap_used,
+    clippy::panic,
+    clippy::cast_precision_loss,
+    clippy::items_after_statements,
+    clippy::let_underscore_must_use,
+    clippy::no_effect_underscore_binding
+)]
 mod tests {
     use super::*;
     use crate::core::expr::{Expr, ExprKind};
@@ -363,7 +373,7 @@ mod tests {
 
     #[test]
     fn test_parse_symbol() {
-        let tokens = vec![Token::Identifier("x".to_string())];
+        let tokens = vec![Token::Identifier("x".to_owned())];
         let ast = parse_expression(&tokens, None).unwrap();
         assert_eq!(ast, Expr::symbol("x"));
     }
@@ -383,7 +393,7 @@ mod tests {
     #[test]
     fn test_parse_multiplication() {
         let tokens = vec![
-            Token::Identifier("x".to_string()),
+            Token::Identifier("x".to_owned()),
             Token::Operator(Operator::Mul),
             Token::Number(2.0),
         ];
@@ -394,7 +404,7 @@ mod tests {
     #[test]
     fn test_parse_power() {
         let tokens = vec![
-            Token::Identifier("x".to_string()),
+            Token::Identifier("x".to_owned()),
             Token::Operator(Operator::Pow),
             Token::Number(2.0),
         ];
@@ -407,7 +417,7 @@ mod tests {
         let tokens = vec![
             Token::Operator(Operator::Sin),
             Token::LeftParen,
-            Token::Identifier("x".to_string()),
+            Token::Identifier("x".to_owned()),
             Token::RightParen,
         ];
         let ast = parse_expression(&tokens, None).unwrap();
@@ -418,7 +428,7 @@ mod tests {
     fn test_precedence() {
         // x + 2 * 3 should be x + 6 (2*3 evaluated, then combined with x)
         let tokens = vec![
-            Token::Identifier("x".to_string()),
+            Token::Identifier("x".to_owned()),
             Token::Operator(Operator::Add),
             Token::Number(2.0),
             Token::Operator(Operator::Mul),
@@ -447,7 +457,7 @@ mod tests {
         // (x + 1) * 2
         let tokens = vec![
             Token::LeftParen,
-            Token::Identifier("x".to_string()),
+            Token::Identifier("x".to_owned()),
             Token::Operator(Operator::Add),
             Token::Number(1.0),
             Token::RightParen,
@@ -461,11 +471,11 @@ mod tests {
             ExprKind::Product(factors) => {
                 assert_eq!(factors.len(), 2);
                 let has_sum = factors.iter().any(|f| matches!(f.kind, ExprKind::Sum(_)));
-                let has_num = factors
+                let contains_two = factors
                     .iter()
                     .any(|f| matches!(f.kind, ExprKind::Number(n) if (n - 2.0).abs() < 1e-10));
                 assert!(has_sum, "Expected a sum in product");
-                assert!(has_num, "Expected number 2 in product");
+                assert!(contains_two, "Expected number 2 in product");
             }
             _ => panic!("Expected Product at top level, got {:?}", ast.kind),
         }
@@ -478,8 +488,7 @@ mod tests {
         let result = parse_expression(&tokens, None);
         assert!(
             result.is_err(),
-            "Empty parentheses should fail to parse, but got: {:?}",
-            result
+            "Empty parentheses should fail to parse, but got: {result:?}"
         );
     }
 }

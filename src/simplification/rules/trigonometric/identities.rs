@@ -21,8 +21,18 @@ rule_arc!(
             // sin^2(x) + cos^2(x) = 1
             if let (AstKind::Pow(sin_base, sin_exp), AstKind::Pow(cos_base, cos_exp)) =
                 (&u.kind, &v.kind)
-                && matches!(&sin_exp.kind, AstKind::Number(n) if *n == 2.0)
-                && matches!(&cos_exp.kind, AstKind::Number(n) if *n == 2.0)
+                && {
+                    // Exact check for power 2.0 (square)
+                    #[allow(clippy::float_cmp)] // Comparing against exact constant 2.0
+                    let is_two = matches!(&sin_exp.kind, AstKind::Number(n) if *n == 2.0);
+                    is_two
+                }
+                && {
+                    // Exact check for power 2.0 (square)
+                    #[allow(clippy::float_cmp)] // Comparing against exact constant 2.0
+                    let is_two = matches!(&cos_exp.kind, AstKind::Number(n) if *n == 2.0);
+                    is_two
+                }
                 && let (
                     AstKind::FunctionCall {
                         name: sin_name,
@@ -45,8 +55,18 @@ rule_arc!(
             // cos^2(x) + sin^2(x) = 1
             if let (AstKind::Pow(cos_base, cos_exp), AstKind::Pow(sin_base, sin_exp)) =
                 (&u.kind, &v.kind)
-                && matches!(&cos_exp.kind, AstKind::Number(n) if *n == 2.0)
-                && matches!(&sin_exp.kind, AstKind::Number(n) if *n == 2.0)
+                && {
+                    // Exact check for power 2.0 (square)
+                    #[allow(clippy::float_cmp)] // Comparing against exact constant 2.0
+                    let is_two = matches!(&cos_exp.kind, AstKind::Number(n) if *n == 2.0);
+                    is_two
+                }
+                && {
+                    // Exact check for power 2.0 (square)
+                    #[allow(clippy::float_cmp)] // Comparing against exact constant 2.0
+                    let is_two = matches!(&sin_exp.kind, AstKind::Number(n) if *n == 2.0);
+                    is_two
+                }
                 && let (
                     AstKind::FunctionCall {
                         name: cos_name,
@@ -84,18 +104,23 @@ rule_with_helpers_arc!(
                 && let AstKind::Number(n) = &factors[0].kind
                 && (*n + 1.0).abs() < 1e-10
             {
-                return Some(factors[1].clone());
+                return Some(Arc::clone(&factors[1]));
             }
             None
         }
 
         fn get_fn_pow_symbol_arc(expr: &Expr, power: f64) -> Option<(InternedSymbol, Arc<Expr>)> {
             if let AstKind::Pow(base, exp) = &expr.kind
-                && matches!(exp.kind, AstKind::Number(n) if n == power)
+                && {
+                    // Exact check for power constant
+                    #[allow(clippy::float_cmp)] // Comparing against exact constant (power)
+                    let is_power = matches!(exp.kind, AstKind::Number(n) if n == power);
+                    is_power
+                }
                 && let AstKind::FunctionCall { name, args } = &base.kind
                 && args.len() == 1
             {
-                return Some((name.clone(), args[0].clone()));
+                return Some((name.clone(), Arc::clone(&args[0])));
             }
             None
         }
@@ -110,7 +135,12 @@ rule_with_helpers_arc!(
             let rhs = &terms[1];
 
             // 1 + (-cos^2(x)) = sin^2(x)
-            if matches!(&lhs.kind, AstKind::Number(n) if *n == 1.0)
+            if {
+                // Exact check for constant 1.0
+                #[allow(clippy::float_cmp)] // Comparing against exact constant 1.0
+                let is_one = matches!(&lhs.kind, AstKind::Number(n) if *n == 1.0);
+                is_one
+            }
                 && let Some(negated) = extract_negated(rhs)
             {
                 if let Some((name, arg)) = get_fn_pow_symbol_arc(&negated, 2.0)
@@ -132,7 +162,12 @@ rule_with_helpers_arc!(
             }
 
             // (-cos^2(x)) + 1 = sin^2(x)
-            if matches!(&rhs.kind, AstKind::Number(n) if *n == 1.0)
+            if {
+                // Exact check for constant 1.0
+                #[allow(clippy::float_cmp)] // Comparing against exact constant 1.0
+                let is_one = matches!(&rhs.kind, AstKind::Number(n) if *n == 1.0);
+                is_one
+            }
                 && let Some(negated) = extract_negated(lhs)
             {
                 if let Some((name, arg)) = get_fn_pow_symbol_arc(&negated, 2.0)
@@ -166,11 +201,16 @@ rule_with_helpers_arc!(
     helpers: {
         fn get_fn_pow_symbol_arc(expr: &Expr, power: f64) -> Option<(InternedSymbol, Arc<Expr>)> {
             if let AstKind::Pow(base, exp) = &expr.kind
-                && matches!(exp.kind, AstKind::Number(n) if n == power)
+                && {
+                    // Exact check for power constant
+                    #[allow(clippy::float_cmp)] // Comparing against exact constant (power)
+                    let is_power = matches!(exp.kind, AstKind::Number(n) if n == power);
+                    is_power
+                }
                 && let AstKind::FunctionCall { name, args } = &base.kind
                 && args.len() == 1
             {
-                return Some((name.clone(), args[0].clone()));
+                return Some((name.clone(), Arc::clone(&args[0])));
             }
             None
         }
@@ -189,7 +229,12 @@ rule_with_helpers_arc!(
             // tan^2(x) + 1 = sec^2(x)
             if let Some((name, arg)) = get_fn_pow_symbol_arc(lhs, 2.0)
                 && name.id() == *TAN
-                && matches!(&rhs.kind, AstKind::Number(n) if *n == 1.0)
+                && {
+                    // Exact check for constant 1.0
+                    #[allow(clippy::float_cmp)] // Comparing against exact constant 1.0
+                    let is_one = matches!(&rhs.kind, AstKind::Number(n) if *n == 1.0);
+                    is_one
+                }
             {
                 return Some(Arc::new(Expr::pow_static(
                     Expr::func_symbol(get_symbol(&SEC), arg.as_ref().clone()),
@@ -198,7 +243,12 @@ rule_with_helpers_arc!(
             }
 
             // 1 + tan^2(x) = sec^2(x)
-            if matches!(&lhs.kind, AstKind::Number(n) if *n == 1.0)
+            if {
+                // Exact check for constant 1.0
+                #[allow(clippy::float_cmp)] // Comparing against exact constant 1.0
+                let is_one = matches!(&lhs.kind, AstKind::Number(n) if *n == 1.0);
+                is_one
+            }
                 && let Some((name, arg)) = get_fn_pow_symbol_arc(rhs, 2.0)
                 && name.id() == *TAN
             {
@@ -211,7 +261,12 @@ rule_with_helpers_arc!(
             // cot^2(x) + 1 = csc^2(x)
             if let Some((name, arg)) = get_fn_pow_symbol_arc(lhs, 2.0)
                 && name.id() == *COT
-                && matches!(&rhs.kind, AstKind::Number(n) if *n == 1.0)
+                && {
+                    // Exact check for constant 1.0
+                    #[allow(clippy::float_cmp)] // Comparing against exact constant 1.0
+                    let is_one = matches!(&rhs.kind, AstKind::Number(n) if *n == 1.0);
+                    is_one
+                }
             {
                 return Some(Arc::new(Expr::pow_static(
                     Expr::func_symbol(get_symbol(&CSC), arg.as_ref().clone()),
@@ -220,7 +275,12 @@ rule_with_helpers_arc!(
             }
 
             // 1 + cot^2(x) = csc^2(x)
-            if matches!(&lhs.kind, AstKind::Number(n) if *n == 1.0)
+            if {
+                // Exact check for constant 1.0
+                #[allow(clippy::float_cmp)] // Comparing against exact constant 1.0
+                let is_one = matches!(&lhs.kind, AstKind::Number(n) if *n == 1.0);
+                is_one
+            }
                 && let Some((name, arg)) = get_fn_pow_symbol_arc(rhs, 2.0)
                 && name.id() == *COT
             {

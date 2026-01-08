@@ -1,8 +1,3 @@
-//! Stress tests for the expression system
-//!
-//! These tests try to break the evaluator, differentiator, simplifier,
-//! and custom function handling with extreme edge cases.
-
 use crate::parser::parse;
 use crate::simplification::simplify_expr;
 use crate::{Diff, Expr, ExprKind, diff, simplify};

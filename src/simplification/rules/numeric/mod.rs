@@ -25,7 +25,10 @@ rule!(
                 if non_zero.is_empty() {
                     return Some(Expr::number(0.0));
                 } else if non_zero.len() == 1 {
-                    let arc = non_zero.into_iter().next().unwrap();
+                    let arc = non_zero
+                        .into_iter()
+                        .next()
+                        .expect("Non-zero elements guaranteed to have one item");
                     return Some(match Arc::try_unwrap(arc) {
                         Ok(e) => e,
                         Err(a) => (*a).clone(),
@@ -71,7 +74,12 @@ rule!(
             // Filter out ones
             let non_one: Vec<Arc<Expr>> = factors
                 .iter()
-                .filter(|f| !matches!(&f.kind, AstKind::Number(n) if *n == 1.0))
+                .filter(|f| {
+                    // Exact check for 1.0 to filter identity element
+                    #[allow(clippy::float_cmp)]
+                    // Comparing against exact constant 1.0 to filter identity element
+                    !matches!(&f.kind, AstKind::Number(n) if *n == 1.0)
+                })
                 .cloned()
                 .collect();
 
@@ -80,7 +88,10 @@ rule!(
                 if non_one.is_empty() {
                     return Some(Expr::number(1.0));
                 } else if non_one.len() == 1 {
-                    let arc = non_one.into_iter().next().unwrap();
+                    let arc = non_one
+                        .into_iter()
+                        .next()
+                        .expect("Non-one elements guaranteed to have one item");
                     return Some(match Arc::try_unwrap(arc) {
                         Ok(e) => e,
                         Err(a) => (*a).clone(),
@@ -102,10 +113,12 @@ rule!(
     Numeric,
     &[ExprKind::Div],
     |expr: &Expr, _context: &RuleContext| {
-        if let AstKind::Div(u, v) = &expr.kind
-            && matches!(&v.kind, AstKind::Number(n) if *n == 1.0)
-        {
-            return Some((**u).clone());
+        if let AstKind::Div(u, v) = &expr.kind {
+            // Exact check for 1.0 to simplify division
+            #[allow(clippy::float_cmp)] // Comparing against exact constant 1.0
+            if matches!(&v.kind, AstKind::Number(n) if *n == 1.0) {
+                return Some((**u).clone());
+            }
         }
         None
     }
@@ -152,10 +165,12 @@ rule!(
     Numeric,
     &[ExprKind::Pow],
     |expr: &Expr, _context: &RuleContext| {
-        if let AstKind::Pow(u, v) = &expr.kind
-            && matches!(&v.kind, AstKind::Number(n) if *n == 1.0)
-        {
-            return Some((**u).clone());
+        if let AstKind::Pow(u, v) = &expr.kind {
+            // Exact check for 1.0 exponent
+            #[allow(clippy::float_cmp)] // Comparing against exact constant 1.0
+            if matches!(&v.kind, AstKind::Number(n) if *n == 1.0) {
+                return Some((**u).clone());
+            }
         }
         None
     }
@@ -186,10 +201,12 @@ rule!(
     Numeric,
     &[ExprKind::Pow],
     |expr: &Expr, _context: &RuleContext| {
-        if let AstKind::Pow(u, _v) = &expr.kind
-            && matches!(&u.kind, AstKind::Number(n) if *n == 1.0)
-        {
-            return Some(Expr::number(1.0));
+        if let AstKind::Pow(u, _v) = &expr.kind {
+            // Exact check for 1.0 base
+            #[allow(clippy::float_cmp)] // Comparing against exact constant 1.0
+            if matches!(&u.kind, AstKind::Number(n) if *n == 1.0) {
+                return Some(Expr::number(1.0));
+            }
         }
         None
     }
@@ -219,15 +236,18 @@ rule!(
             // Check if denominator is a Product with -1 as first factor
             if let AstKind::Product(factors) = &den.kind
                 && let Some(first) = factors.first()
-                && matches!(&first.kind, AstKind::Number(n) if *n == -1.0)
             {
-                // x / (-1 * y) -> -x / y
-                let rest: Vec<Arc<Expr>> = factors.iter().skip(1).cloned().collect();
-                let new_den = Expr::product_from_arcs(rest);
-                return Some(Expr::div_expr(
-                    Expr::product(vec![Expr::number(-1.0), num.as_ref().clone()]),
-                    new_den,
-                ));
+                // Exact check for -1.0 coefficient
+                #[allow(clippy::float_cmp)] // Comparing against exact constant -1.0
+                if matches!(&first.kind, AstKind::Number(n) if *n == -1.0) {
+                    // x / (-1 * y) -> -x / y
+                    let rest: Vec<Arc<Expr>> = factors.iter().skip(1).cloned().collect();
+                    let new_den = Expr::product_from_arcs(rest);
+                    return Some(Expr::div_expr(
+                        Expr::product(vec![Expr::number(-1.0), num.as_ref().clone()]),
+                        new_den,
+                    ));
+                }
             }
         }
         None
@@ -254,7 +274,7 @@ rule!(
                     num_sum += n;
                     has_numeric = true;
                 } else {
-                    non_numeric.push(term.clone());
+                    non_numeric.push(Arc::clone(term));
                 }
             }
 
@@ -273,11 +293,16 @@ rule!(
                 } else if non_numeric.len() < terms.len() {
                     // Numbers summed to zero, return non-numeric only
                     if non_numeric.len() == 1 {
-                        let arc = non_numeric.into_iter().next().unwrap();
-                        return Some(match Arc::try_unwrap(arc) {
-                            Ok(e) => e,
-                            Err(a) => (*a).clone(),
-                        });
+                        if let Some(arc) = non_numeric.into_iter().next() {
+                            return Some(match Arc::try_unwrap(arc) {
+                                Ok(e) => e,
+                                Err(a) => (*a).clone(),
+                            });
+                        }
+                        #[allow(clippy::panic)] // Unreachable: len checked above
+                        {
+                            panic!("non_numeric should have exactly one element");
+                        }
                     }
                     return Some(Expr::sum_from_arcs(non_numeric));
                 }
@@ -305,7 +330,7 @@ rule!(
                     num_product *= n;
                     num_count += 1;
                 } else {
-                    non_numeric.push(factor.clone());
+                    non_numeric.push(Arc::clone(factor));
                 }
             }
 
@@ -318,17 +343,25 @@ rule!(
                     }
                 } else if num_product == 0.0 {
                     return Some(Expr::number(0.0));
-                } else if num_product == 1.0 {
-                    // Combined to 1, return non-numeric only
-                    if non_numeric.len() == 1 {
-                        let arc = non_numeric.into_iter().next().unwrap();
-                        return Some(match Arc::try_unwrap(arc) {
-                            Ok(e) => e,
-                            Err(a) => (*a).clone(),
-                        });
-                    }
-                    return Some(Expr::product_from_arcs(non_numeric));
                 } else {
+                    // Exact check for 1.0 product
+                    #[allow(clippy::float_cmp)] // Comparing against exact constant 1.0
+                    if num_product == 1.0 {
+                        // Combined to 1, return non-numeric only
+                        if non_numeric.len() == 1 {
+                            if let Some(arc) = non_numeric.into_iter().next() {
+                                return Some(match Arc::try_unwrap(arc) {
+                                    Ok(e) => e,
+                                    Err(a) => (*a).clone(),
+                                });
+                            }
+                            #[allow(clippy::panic)] // Unreachable: len checked above
+                            {
+                                panic!("non_numeric should have exactly one element");
+                            }
+                        }
+                        return Some(Expr::product_from_arcs(non_numeric));
+                    }
                     // Mix - add the combined number
                     let mut result_factors = vec![Arc::new(Expr::number(num_product))];
                     result_factors.extend(non_numeric);
@@ -393,9 +426,9 @@ rule_with_helpers!(FractionSimplifyRule, "fraction_simplify", 80, Numeric, &[Exp
     |expr: &Expr, _context: &RuleContext| {
         // Check bounds before casting to i64 to prevent overflow
         // i64::MAX/MIN->f64: intentional for boundary checking
-        #[allow(clippy::cast_precision_loss)]
+        #[allow(clippy::cast_precision_loss)] // i64::MAX→f64 for boundary checking
         const MAX_SAFE: f64 = i64::MAX as f64;
-        #[allow(clippy::cast_precision_loss)]
+        #[allow(clippy::cast_precision_loss)] // i64::MIN→f64 for boundary checking
         const MIN_SAFE: f64 = i64::MIN as f64;
 
         if let AstKind::Div(u, v) = &expr.kind
@@ -414,15 +447,20 @@ rule_with_helpers!(FractionSimplifyRule, "fraction_simplify", 80, Numeric, &[Exp
                     return None;  // Too large for integer GCD
                 }
 
-                let a_int = *a as i64;
-                let b_int = *b as i64;
+                let (a_int, b_int) = {
+                    // Checked fract() == 0.0 and bounds, so cast is safe
+                    #[allow(clippy::cast_possible_truncation)] // Checked fract()==0.0 and bounds
+                    (*a as i64, *b as i64)
+                };
                 let common = gcd(a_int.abs(), b_int.abs());
 
                 if common > 1 {
                     // i64->f64: GCD results are small integers from fraction simplification
-                    #[allow(clippy::cast_precision_loss)]
+                    #[allow(clippy::cast_precision_loss)] // GCD results are small integers
                     return Some(Expr::div_expr(
+                        #[allow(clippy::integer_division)] // GCD division is exact
                         Expr::number((a_int / common) as f64),
+                        #[allow(clippy::integer_division)] // GCD division is exact
                         Expr::number((b_int / common) as f64),
                     ));
                 }

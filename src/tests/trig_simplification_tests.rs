@@ -1,6 +1,7 @@
 use crate::simplification::simplify_expr;
 use crate::{Expr, ExprKind};
 use std::collections::{HashMap, HashSet};
+
 #[test]
 fn test_trig_symmetry_extended() {
     // tan(-x) = -tan(x)
@@ -494,7 +495,7 @@ fn test_trig_exact_values_extended() {
         false,
     );
     if let ExprKind::Number(n) = simplified.kind {
-        assert!((n - (2.0f64.sqrt() / 2.0)).abs() < 1e-10);
+        assert!((n - (2.0_f64.sqrt() / 2.0)).abs() < 1e-10);
     } else {
         panic!("Expected number");
     }

@@ -192,7 +192,7 @@ impl ExprVisitor for VariableCollector {
     }
 
     fn visit_symbol(&mut self, name: &str) -> bool {
-        self.variables.insert(name.to_string());
+        self.variables.insert(name.to_owned());
         true
     }
 
@@ -205,12 +205,20 @@ impl ExprVisitor for VariableCollector {
     }
 
     fn visit_derivative(&mut self, _inner: &Expr, var: &str, _order: u32) -> bool {
-        self.variables.insert(var.to_string());
+        self.variables.insert(var.to_owned());
         true
     }
 }
 
 #[cfg(test)]
+#[allow(
+    clippy::unwrap_used,
+    clippy::panic,
+    clippy::cast_precision_loss,
+    clippy::items_after_statements,
+    clippy::let_underscore_must_use,
+    clippy::no_effect_underscore_binding
+)]
 mod tests {
     use super::*;
     use crate::symb;

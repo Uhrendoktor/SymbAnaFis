@@ -172,11 +172,11 @@ mod api_tests {
         let x = symb("x");
 
         // Test function methods
-        let _ = x.clone().sin();
-        let _ = x.clone().cos();
-        let _ = x.clone().exp();
-        let _ = x.clone().ln();
-        let _ = x.clone().sqrt();
+        let _unused = x.clone().sin();
+        let _unused = x.clone().cos();
+        let _unused = x.clone().exp();
+        let _unused = x.clone().ln();
+        let _unused = x.clone().sqrt();
         // All should work without panicking
     }
 
@@ -608,12 +608,12 @@ mod function_accuracy_tests {
         // Known values
         assert!(approx_eq(
             eval("sinh(1)").unwrap(),
-            1.1752011936438014,
+            1.175_201_193_643_801_4,
             EPSILON
         ));
         assert!(approx_eq(
             eval("cosh(1)").unwrap(),
-            1.5430806348152437,
+            1.543_080_634_815_243_7,
             EPSILON
         ));
     }
@@ -626,7 +626,7 @@ mod function_accuracy_tests {
         assert!(approx_eq(eval("atanh(0)").unwrap(), 0.0, EPSILON));
         assert!(approx_eq(
             eval("acoth(2)").unwrap(),
-            0.5493061443340549,
+            0.549_306_144_334_054_9,
             EPSILON
         ));
         // acoth(0.5) = NaN
@@ -681,12 +681,12 @@ mod function_accuracy_tests {
     #[test]
     fn test_erf() {
         assert!(approx_eq(eval("erf(0)").unwrap(), 0.0, EPSILON));
-        let erf1 = eval("erf(1)").unwrap();
-        assert!(approx_eq(erf1, 0.8427007929497149, LOOSE_EPSILON));
+        let erf_val = eval("erf(1)").unwrap();
+        assert!(approx_eq(erf_val, 0.842_700_792_949_714_9, LOOSE_EPSILON));
         assert!(approx_eq(eval("erfc(0)").unwrap(), 1.0, EPSILON));
         // erf(x) + erfc(x) = 1
-        let erfc1 = eval("erfc(1)").unwrap();
-        assert!(approx_eq(erf1 + erfc1, 1.0, LOOSE_EPSILON));
+        let erfc_res = eval("erfc(1)").unwrap();
+        assert!(approx_eq(erf_val + erfc_res, 1.0, LOOSE_EPSILON));
     }
 
     // === Gamma and Related ===
@@ -710,7 +710,7 @@ mod function_accuracy_tests {
     fn test_digamma_trigamma() {
         // ψ(1) = -γ ≈ -0.5772
         let psi1 = eval("digamma(1)").unwrap();
-        assert!(approx_eq(psi1, -0.5772156649015329, 0.01));
+        assert!(approx_eq(psi1, -0.577_215_664_901_532_9, 0.01));
         // ψ₁(1) = π²/6
         let trigamma1 = eval("trigamma(1)").unwrap();
         assert!(approx_eq(trigamma1, PI * PI / 6.0, 0.01));
@@ -920,7 +920,7 @@ mod function_accuracy_tests {
         // Test s = -2.0 (Reflection formula active)
         // ζ'(-2) = -ζ(3)/(4π²) ≈ -0.0304482576
         let z_prime_minus2 = eval_zeta_deriv(1, -2.0_f64).unwrap();
-        let expected = -1.202056903159594 / (4.0 * PI * PI);
+        let expected = -1.202_056_903_159_594 / (4.0 * PI * PI);
         assert!(
             approx_eq(z_prime_minus2, expected, LOOSE_EPSILON),
             "ζ'(-2) = {}, expected {}",
@@ -981,7 +981,7 @@ mod function_accuracy_tests {
         assert!(approx_eq(eval("exp_polar(0)").unwrap(), 1.0, EPSILON));
 
         // exp(1.5) approx 4.481689
-        let expected = (1.5f64).exp();
+        let expected = (1.5_f64).exp();
         assert!(approx_eq(
             eval("exp_polar(1.5)").unwrap(),
             expected,

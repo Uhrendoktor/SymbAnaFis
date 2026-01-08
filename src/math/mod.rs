@@ -48,7 +48,7 @@ pub fn eval_erf<T: MathScalar>(x: T) -> T {
     // PI is available via FloatConst implementation on T
     let pi = T::PI();
     let sqrt_pi = pi.sqrt();
-    let two = T::from(2.0).unwrap();
+    let two = T::from_f64(2.0).expect("Failed to convert mathematical constant 2.0");
     let coeff = two / sqrt_pi;
 
     let mut sum = T::zero();
@@ -57,7 +57,8 @@ pub fn eval_erf<T: MathScalar>(x: T) -> T {
     let mut power = x;
 
     for n in 0..30 {
-        let two_n_plus_one = T::from(2 * n + 1).unwrap();
+        let two_n_plus_one =
+            T::from_usize(2 * n + 1).expect("Failed to convert small integer to float");
 
         let term = power / (factorial * two_n_plus_one);
 
@@ -73,7 +74,7 @@ pub fn eval_erf<T: MathScalar>(x: T) -> T {
         compensation = (t - sum) - y;
         sum = t;
 
-        let n_plus_one = T::from(n + 1).unwrap();
+        let n_plus_one = T::from_usize(n + 1).expect("Failed to convert loop counter to float");
         factorial *= n_plus_one;
         power *= x * x;
 
@@ -95,14 +96,16 @@ pub fn eval_erf<T: MathScalar>(x: T) -> T {
 /// See also: DLMF §5.10 <https://dlmf.nist.gov/5.10>
 pub fn eval_gamma<T: MathScalar>(x: T) -> Option<T> {
     // Add special handling for x near negative integers
-    if x < T::zero() && (x.fract().abs() < T::from(1e-10).unwrap()) {
+    if x < T::zero()
+        && (x.fract().abs() < T::from_f64(1e-10).expect("Failed to convert epsilon 1e-10"))
+    {
         return None; // Exactly at negative integer pole
     }
 
     if x <= T::zero() && x.fract() == T::zero() {
         return None;
     }
-    let g = T::from(7.0).unwrap();
+    let g = T::from_f64(7.0).expect("Failed to convert mathematical constant 7.0");
     let c = [
         0.999_999_999_999_809_9,
         676.520_368_121_885_1,
@@ -114,13 +117,13 @@ pub fn eval_gamma<T: MathScalar>(x: T) -> Option<T> {
         9.984_369_578_019_572e-6,
         1.505_632_735_149_311_6e-7,
     ];
-    let half = T::from(0.5).unwrap();
+    let half = T::from_f64(0.5).expect("Failed to convert mathematical constant 0.5");
     let one = T::one();
     let pi = T::PI();
 
     if x < half {
         // Consider adding Stirling's series for large negative x
-        if x < T::from(-10.0).unwrap() {
+        if x < T::from_f64(-10.0).expect("Failed to convert constant -10.0") {
             // Use reflection + Gamma(1-x)
             // For large negative x, 1-x is large positive, so Lanczos works well.
             // We return directly to avoid stack depth
@@ -130,12 +133,13 @@ pub fn eval_gamma<T: MathScalar>(x: T) -> Option<T> {
         Some(pi / ((pi * x).sin() * eval_gamma(one - x)?))
     } else {
         let x = x - one;
-        let mut ag = T::from(c[0]).unwrap();
+        let mut ag = T::from_f64(c[0]).expect("Failed to convert gamma series coefficient");
         for (i, &coeff) in c.iter().enumerate().skip(1) {
-            ag += T::from(coeff).unwrap() / (x + T::from(i).unwrap());
+            ag += T::from_f64(coeff).expect("Failed to convert gamma coefficient")
+                / (x + T::from_usize(i).expect("Failed to convert array index"));
         }
         let t = x + g + half;
-        let two_pi_sqrt = (T::from(2.0).unwrap() * pi).sqrt();
+        let two_pi_sqrt = (T::from_f64(2.0).expect("Failed to convert constant 2.0") * pi).sqrt();
         Some(two_pi_sqrt * t.powf(x + half) * (-t).exp() * ag)
     }
 }
@@ -151,7 +155,7 @@ pub fn eval_digamma<T: MathScalar>(x: T) -> Option<T> {
     if x <= T::zero() && x.fract() == T::zero() {
         return None;
     }
-    let half = T::from(0.5).unwrap();
+    let half = T::from_f64(0.5).expect("Failed to convert constant 0.5");
     let one = T::one();
     let pi = T::PI();
 
@@ -160,7 +164,7 @@ pub fn eval_digamma<T: MathScalar>(x: T) -> Option<T> {
     }
     let mut xv = x;
     let mut result = T::zero();
-    let six = T::from(6.0).unwrap();
+    let six = T::from_f64(6.0).expect("Failed to convert constant 6.0");
     while xv < six {
         result -= one / xv;
         xv += one;
@@ -168,9 +172,9 @@ pub fn eval_digamma<T: MathScalar>(x: T) -> Option<T> {
     result += xv.ln() - half / xv;
     let x2 = xv * xv;
 
-    let t1 = one / (T::from(12.0).unwrap() * x2);
-    let t2 = one / (T::from(120.0).unwrap() * x2 * x2);
-    let t3 = one / (T::from(252.0).unwrap() * x2 * x2 * x2);
+    let t1 = one / (T::from_f64(12.0).expect("Failed to convert constant 12.0") * x2);
+    let t2 = one / (T::from_f64(120.0).expect("Failed to convert constant 120.0") * x2 * x2);
+    let t3 = one / (T::from_f64(252.0).expect("Failed to convert constant 252.0") * x2 * x2 * x2);
 
     Some(result - t1 + t2 - t3)
 }
@@ -187,7 +191,7 @@ pub fn eval_trigamma<T: MathScalar>(x: T) -> Option<T> {
     }
     let mut xv = x;
     let mut r = T::zero();
-    let six = T::from(6.0).unwrap();
+    let six = T::from_f64(6.0).expect("Failed to convert constant 6.0");
     let one = T::one();
 
     while xv < six {
@@ -195,12 +199,13 @@ pub fn eval_trigamma<T: MathScalar>(x: T) -> Option<T> {
         xv += one;
     }
     let x2 = xv * xv;
-    let half = T::from(0.5).unwrap();
+    let half = T::from_f64(0.5).expect("Failed to convert constant 0.5");
 
     Some(
         r + one / xv + half / x2 + one / (six * x2 * xv)
-            - one / (T::from(30.0).unwrap() * x2 * x2 * xv)
-            + one / (T::from(42.0).unwrap() * x2 * x2 * x2 * xv),
+            - one / (T::from_f64(30.0).expect("Failed to convert constant 30.0") * x2 * x2 * xv)
+            + one
+                / (T::from_f64(42.0).expect("Failed to convert constant 42.0") * x2 * x2 * x2 * xv),
     )
 }
 
@@ -215,9 +220,9 @@ pub fn eval_tetragamma<T: MathScalar>(x: T) -> Option<T> {
     }
     let mut xv = x;
     let mut r = T::zero();
-    let six = T::from(6.0).unwrap();
+    let six = T::from(6.0).expect("Failed to convert mathematical constant");
     let one = T::one();
-    let two = T::from(2.0).unwrap();
+    let two = T::from(2.0).expect("Failed to convert mathematical constant");
 
     while xv < six {
         r -= two / (xv * xv * xv);
@@ -239,7 +244,7 @@ pub fn eval_tetragamma<T: MathScalar>(x: T) -> Option<T> {
 /// Reference: DLMF §25.2, Borwein et al. (2000)
 pub fn eval_zeta<T: MathScalar>(x: T) -> Option<T> {
     let one = T::one();
-    let threshold = T::from(1e-10).unwrap();
+    let threshold = T::from(1e-10).expect("Failed to convert mathematical constant");
 
     // Pole at s = 1
     if (x - one).abs() < threshold {
@@ -249,7 +254,7 @@ pub fn eval_zeta<T: MathScalar>(x: T) -> Option<T> {
     // Use reflection for s < 0 to ensure fast convergence for negative values
     if x < T::zero() {
         let pi = T::PI();
-        let two = T::from(2.0).unwrap();
+        let two = T::from(2.0).expect("Failed to convert mathematical constant");
         let gs = eval_gamma(one - x)?;
         let z = eval_zeta(one - x)?;
         let term1 = two.powf(x);
@@ -260,14 +265,14 @@ pub fn eval_zeta<T: MathScalar>(x: T) -> Option<T> {
 
     // For s >= 0 (and s != 1):
     // Use Enhanced Euler-Maclaurin for 1 < s <= 1.5 where series converges slowly
-    let one_point_five = T::from(1.5).unwrap();
+    let one_point_five = T::from(1.5).expect("Failed to convert mathematical constant");
     if x > one && x <= one_point_five {
         let n_terms = 100;
         let mut sum = T::zero();
         let mut compensation = T::zero(); // Kahan summation
 
         for k in 1..=n_terms {
-            let k_t = T::from(k).unwrap();
+            let k_t = T::from(k).expect("Failed to convert mathematical constant");
             let term = one / k_t.powf(x);
 
             // Kahan summation algorithm
@@ -278,7 +283,7 @@ pub fn eval_zeta<T: MathScalar>(x: T) -> Option<T> {
         }
 
         // Enhanced Euler-Maclaurin correction with Bernoulli numbers
-        let n = T::from(f64::from(n_terms)).unwrap();
+        let n = T::from(f64::from(n_terms)).expect("Failed to convert mathematical constant");
         let n_pow_x = n.powf(x);
         let n_pow_1_minus_x = n.powf(one - x);
 
@@ -286,17 +291,19 @@ pub fn eval_zeta<T: MathScalar>(x: T) -> Option<T> {
         let em_integral = n_pow_1_minus_x / (x - one);
 
         // Boundary correction: 1/(2N^s)
-        let em_boundary = T::from(0.5).unwrap() / n_pow_x;
+        let em_boundary = T::from(0.5).expect("Failed to convert mathematical constant") / n_pow_x;
 
         // Bernoulli corrections (improving convergence)
         // B_2 = 1/6: correction term s/(12 N^(s+1))
-        let b2_correction = x / (T::from(12.0).unwrap() * n.powf(x + one));
+        let b2_correction =
+            x / (T::from(12.0).expect("Failed to convert mathematical constant") * n.powf(x + one));
 
         // B_4 = -1/30: correction term s(s+1)(s+2)/(720 N^(s+3))
         let s_plus_1 = x + one;
-        let s_plus_2 = x + T::from(2.0).unwrap();
+        let s_plus_2 = x + T::from(2.0).expect("Failed to convert mathematical constant");
         let b4_correction = -x * s_plus_1 * s_plus_2
-            / (T::from(720.0).unwrap() * n.powf(x + T::from(3.0).unwrap()));
+            / (T::from(720.0).expect("Failed to convert mathematical constant")
+                * n.powf(x + T::from(3.0).expect("Failed to convert mathematical constant")));
 
         Some(sum + em_integral + em_boundary + b2_correction + b4_correction)
     } else {
@@ -323,20 +330,20 @@ pub fn eval_zeta<T: MathScalar>(x: T) -> Option<T> {
 /// Reference: Borwein (1991) "An Efficient Algorithm for the Riemann Zeta Function"
 fn eval_zeta_borwein<T: MathScalar>(s: T) -> Option<T> {
     let one = T::one();
-    let two = T::from(2.0).unwrap();
-    let four = T::from(4.0).unwrap();
+    let two = T::from(2.0).expect("Failed to convert mathematical constant");
+    let four = T::from(4.0).expect("Failed to convert mathematical constant");
     let n = 14; // Optimal for double precision (~18 digits)
 
     // Compute denominator: 1 - 2^(1-s)
     let denom = one - two.powf(one - s);
-    if denom.abs() < T::from(1e-15).unwrap() {
+    if denom.abs() < T::from(1e-15).expect("Failed to convert mathematical constant") {
         return None; // Too close to s=1
     }
 
     // Compute d_k coefficients
     // d_k = n · Σ_{i=0}^{k} [(n+i-1)! · 4^i] / [(n-i)! · (2i)!]
     let mut d_coeffs = vec![T::zero(); n + 1];
-    let n_t = T::from(n).unwrap();
+    let n_t = T::from(n).expect("Failed to convert mathematical constant");
 
     // For k=0: d_0 = n * (1/n) = 1
     let mut term = one / n_t; // For i=0: (n-1)!/(n!·0!) = 1/n
@@ -345,9 +352,9 @@ fn eval_zeta_borwein<T: MathScalar>(s: T) -> Option<T> {
 
     for (idx, d_coeff) in d_coeffs.iter_mut().enumerate().skip(1) {
         let k = idx;
-        let i = T::from(k - 1).unwrap();
-        let two_i_plus_1 = T::from(2 * k - 1).unwrap();
-        let two_i_plus_2 = T::from(2 * k).unwrap();
+        let i = T::from(k - 1).expect("Failed to convert mathematical constant");
+        let two_i_plus_1 = T::from(2 * k - 1).expect("Failed to convert mathematical constant");
+        let two_i_plus_2 = T::from(2 * k).expect("Failed to convert mathematical constant");
         let n_minus_i = n_t - i;
         let n_plus_i = n_t + i;
 
@@ -365,7 +372,7 @@ fn eval_zeta_borwein<T: MathScalar>(s: T) -> Option<T> {
     let mut compensation = T::zero(); // Kahan summation
 
     for (k, d_coeff_k) in d_coeffs.iter().enumerate().take(n) {
-        let k_plus_1 = T::from(k + 1).unwrap();
+        let k_plus_1 = T::from(k + 1).expect("Failed to convert mathematical constant");
         let sign = if k % 2 == 0 { one } else { -one };
         let term = sign * (*d_coeff_k - d_n) / k_plus_1.powf(s);
 
@@ -407,7 +414,7 @@ pub fn eval_zeta_deriv<T: MathScalar>(n: i32, x: T) -> Option<T> {
     }
 
     let one = T::one();
-    let epsilon = T::from(1e-10).unwrap();
+    let epsilon = T::from(1e-10).expect("Failed to convert mathematical constant");
 
     // Check for pole at s=1
     if (x - one).abs() < epsilon {
@@ -422,7 +429,7 @@ pub fn eval_zeta_deriv<T: MathScalar>(n: i32, x: T) -> Option<T> {
         let max_terms = 200;
 
         for k in 1..=max_terms {
-            let k_t = T::from(k).unwrap();
+            let k_t = T::from(k).expect("Failed to convert mathematical constant");
             let ln_k = k_t.ln();
 
             // Calculate [ln(k)]^n using faster exponentiation for large n
@@ -435,7 +442,7 @@ pub fn eval_zeta_deriv<T: MathScalar>(n: i32, x: T) -> Option<T> {
                 result
             } else {
                 // Use powf for large n (faster)
-                ln_k.powf(T::from(n).unwrap())
+                ln_k.powf(T::from(n).expect("Failed to convert mathematical constant"))
             };
 
             // Calculate term: [ln(k)]^n / k^x
@@ -448,7 +455,10 @@ pub fn eval_zeta_deriv<T: MathScalar>(n: i32, x: T) -> Option<T> {
             sum = t;
 
             // Enhanced convergence check
-            if k > 50 && term.abs() < epsilon * T::from(0.01).unwrap() {
+            if k > 50
+                && term.abs()
+                    < epsilon * T::from_f64(0.01).expect("Failed to convert constant 0.01")
+            {
                 break;
             }
         }
@@ -477,11 +487,11 @@ pub fn eval_zeta_deriv<T: MathScalar>(n: i32, x: T) -> Option<T> {
 /// This is simpler and more stable than the full Leibniz expansion.
 fn eval_zeta_deriv_reflection<T: MathScalar>(n: i32, s: T) -> Option<T> {
     let one = T::one();
-    let two = T::from(2.0).unwrap();
-    let four = T::from(4.0).unwrap();
+    let two = T::from_f64(2.0).expect("Failed to convert constant 2.0");
+    let four = T::from_f64(4.0).expect("Failed to convert constant 4.0");
 
     // Finite difference step - small enough for accuracy but not too small
-    let h = T::from(1e-7).unwrap();
+    let h = T::from_f64(1e-7).expect("Failed to convert epsilon 1e-7");
 
     if n == 1 {
         // First derivative: centered difference
@@ -513,8 +523,8 @@ fn eval_zeta_deriv_reflection<T: MathScalar>(n: i32, s: T) -> Option<T> {
 /// where ζ(1-s) is computed via exact analytical series
 fn eval_zeta_reflection_base<T: MathScalar>(s: T) -> Option<T> {
     let pi = T::PI();
-    let two = T::from(2.0).unwrap();
-    let half = T::from(0.5).unwrap();
+    let two = T::from(2.0).expect("Failed to convert mathematical constant");
+    let half = T::from(0.5).expect("Failed to convert mathematical constant");
     let one = T::one();
     let one_minus_s = one - s;
 
@@ -534,8 +544,8 @@ fn eval_zeta_reflection_base<T: MathScalar>(s: T) -> Option<T> {
 ///
 /// Uses an n+1 point stencil for the n-th derivative
 fn centered_finite_diff<T: MathScalar>(n: i32, s: T, h: T) -> Option<T> {
-    let two = T::from(2.0).unwrap();
-    let four = T::from(4.0).unwrap();
+    let two = T::from(2.0).expect("Failed to convert mathematical constant");
+    let four = T::from(4.0).expect("Failed to convert mathematical constant");
 
     if n == 1 {
         let zeta_plus = eval_zeta_reflection_base(s + h)?;
@@ -573,7 +583,7 @@ fn centered_finite_diff<T: MathScalar>(n: i32, s: T, h: T) -> Option<T> {
 
     if n == 4 {
         // d⁴f/dx⁴ ≈ (f(x+2h) - 4f(x+h) + 6f(x) - 4f(x-h) + f(x-2h)) / h⁴
-        let six = T::from(6.0).unwrap();
+        let six = T::from_f64(6.0).expect("Failed to convert constant 6.0");
         return Some(
             (zeta_plus2 - four * zeta_plus1 + six * zeta_center - four * zeta_minus1 + zeta_minus2)
                 / (h * h * h * h),
@@ -608,31 +618,31 @@ pub fn eval_lambert_w<T: MathScalar>(x: T) -> Option<T> {
     if x == T::zero() {
         return Some(T::zero());
     }
-    let threshold = T::from(1e-12).unwrap();
+    let threshold = T::from_f64(1e-12).expect("Failed to convert threshold 1e-12");
     if (x + e_inv).abs() < threshold {
         return Some(-one);
     }
 
     // Initial guess
-    let point_three_neg = T::from(-0.3).unwrap();
+    let point_three_neg = T::from_f64(-0.3).expect("Failed to convert constant -0.3");
     let mut w = if x < point_three_neg {
-        let two = T::from(2.0).unwrap();
+        let two = T::from(2.0).expect("Failed to convert mathematical constant");
         // Fix: clamp to 0 to avoid NaN from floating point noise when x is close to -1/e
         let arg = (two * (e * x + one)).max(T::zero());
         let p = arg.sqrt();
         // -1 + p - p^2/3 + 11/72 p^3
-        let third = T::from(3.0).unwrap();
-        let c1 = T::from(11.0 / 72.0).unwrap();
+        let third = T::from(3.0).expect("Failed to convert mathematical constant");
+        let c1 = T::from(11.0 / 72.0).expect("Failed to convert mathematical constant");
         -one + p - p * p / third + c1 * p * p * p
     } else if x < T::zero() {
-        let two = T::from(2.0).unwrap();
+        let two = T::from(2.0).expect("Failed to convert mathematical constant");
         let p = (two * (e * x + one)).sqrt();
         -one + p
     } else if x < one {
         // x * (1 - x * (1 - x * 1.5))
-        let one_point_five = T::from(1.5).unwrap();
+        let one_point_five = T::from(1.5).expect("Failed to convert mathematical constant");
         x * (one - x * (one - x * one_point_five))
-    } else if x < T::from(3.0).unwrap() {
+    } else if x < T::from_f64(3.0).expect("Failed to convert constant 3.0") {
         let l = x.ln();
         let l_ln = l.ln();
         // l.ln() might be generic, ensuring generic max?
@@ -647,14 +657,14 @@ pub fn eval_lambert_w<T: MathScalar>(x: T) -> Option<T> {
         l1 - l2 + l2 / l1
     };
 
-    let tolerance = T::from(1e-15).unwrap();
+    let tolerance = T::from_f64(1e-15).expect("Failed to convert tolerance 1e-15");
     let neg_one = -one;
-    let two = T::from(2.0).unwrap();
-    let half = T::from(0.5).unwrap();
+    let two = T::from_f64(2.0).expect("Failed to convert constant 2.0");
+    let half = T::from_f64(0.5).expect("Failed to convert constant 0.5");
 
     for _ in 0..50 {
         if w <= neg_one {
-            w = T::from(-0.99).unwrap();
+            w = T::from_f64(-0.99).expect("Failed to convert constant -0.99");
         }
         let ew = w.exp();
         let wew = w * ew;
@@ -707,10 +717,10 @@ pub fn eval_polygamma<T: MathScalar>(n: i32, x: T) -> Option<T> {
             // Factorial up to n
             let mut factorial = T::one();
             for i in 1..=n {
-                factorial *= T::from(i).unwrap();
+                factorial *= T::from_i32(i).expect("Failed to convert factorial counter");
             }
 
-            let fifteen = T::from(15.0).unwrap();
+            let fifteen = T::from_f64(15.0).expect("Failed to convert constant 15.0");
             let one = T::one();
             let n_plus_one = n + 1;
 
@@ -735,31 +745,35 @@ pub fn eval_polygamma<T: MathScalar>(n: i32, x: T) -> Option<T> {
             let mut n_minus_1_fact = T::one();
             if n > 1 {
                 for i in 1..n {
-                    n_minus_1_fact *= T::from(i).unwrap();
+                    n_minus_1_fact *= T::from_i32(i).expect("Failed to convert factorial counter");
                 }
             }
 
             // term 1: (n-1)! / xv^n
             let mut sum = n_minus_1_fact / xv.powi(n);
             // term 2: n! / (2 xv^(n+1))
-            let two = T::from(2.0).unwrap();
+            let two = T::from(2.0).expect("Failed to convert mathematical constant");
             sum += factorial / (two * xv.powi(n_plus_one));
 
             let mut xpow = xv.powi(n + 2);
-            let mut fact_ratio = factorial * T::from(n + 1).unwrap();
+            let mut fact_ratio =
+                factorial * T::from(n + 1).expect("Failed to convert mathematical constant");
 
             let mut prev_term_abs = T::max_value();
 
             for (k, &(b_num, b_den)) in bernoulli_pairs.iter().enumerate() {
                 #[allow(clippy::cast_possible_wrap)]
-                let two_k: i32 = 2 * ((k + 1) as i32);
+                #[allow(clippy::cast_possible_truncation)]
+                let k_plus_1 = (k + 1) as i32;
+                let two_k: i32 = 2 * k_plus_1;
                 // (2k)!
                 let mut factorial_2k = T::one();
                 for i in 1..=two_k {
-                    factorial_2k *= T::from(i).unwrap();
+                    factorial_2k *= T::from(i).expect("Failed to convert mathematical constant");
                 }
 
-                let val_bk = T::from(b_num).unwrap() / T::from(b_den).unwrap();
+                let val_bk = T::from_f64(b_num).expect("Failed to convert Bernoulli numerator")
+                    / T::from_f64(b_den).expect("Failed to convert Bernoulli denominator");
                 let term = val_bk * fact_ratio / (factorial_2k * xpow);
 
                 if term.abs() > prev_term_abs {
@@ -769,8 +783,10 @@ pub fn eval_polygamma<T: MathScalar>(n: i32, x: T) -> Option<T> {
                 sum += term;
 
                 xpow *= xv * xv;
-                let next_factor1 = T::from(n + two_k).unwrap();
-                let next_factor2 = T::from(n + two_k + 1).unwrap();
+                let next_factor1 =
+                    T::from(n + two_k).expect("Failed to convert mathematical constant");
+                let next_factor2 =
+                    T::from(n + two_k + 1).expect("Failed to convert mathematical constant");
                 fact_ratio *= next_factor1 * next_factor2;
             }
 
@@ -792,14 +808,14 @@ pub fn eval_hermite<T: MathScalar>(n: i32, x: T) -> Option<T> {
     if n == 0 {
         return Some(T::one());
     }
-    let two = T::from(2.0).unwrap();
+    let two = T::from(2.0).expect("Failed to convert mathematical constant");
     let term1 = two * x;
     if n == 1 {
         return Some(term1);
     }
     let (mut h0, mut h1) = (T::one(), term1);
     for k in 1..n {
-        let f_k = T::from(k).unwrap();
+        let f_k = T::from(k).expect("Failed to convert mathematical constant");
         // h2 = 2x * h1 - 2k * h0
         let h2 = (two * x * h1) - (two * f_k * h0);
         h0 = h1;
@@ -827,7 +843,7 @@ pub fn eval_assoc_legendre<T: MathScalar>(l: i32, m: i32, x: T) -> Option<T> {
     if m_abs > 0 {
         let sqx = (one - x * x).sqrt();
         let mut fact = T::one();
-        let two = T::from(2.0).unwrap();
+        let two = T::from(2.0).expect("Failed to convert mathematical constant");
         for _ in 1..=m_abs {
             pmm = pmm * (-fact) * sqx;
             fact += two;
@@ -837,7 +853,7 @@ pub fn eval_assoc_legendre<T: MathScalar>(l: i32, m: i32, x: T) -> Option<T> {
         return Some(pmm);
     }
 
-    let two_m_plus_1 = T::from(2 * m_abs + 1).unwrap();
+    let two_m_plus_1 = T::from(2 * m_abs + 1).expect("Failed to convert mathematical constant");
     let pmmp1 = x * two_m_plus_1 * pmm;
 
     if l == m_abs + 1 {
@@ -848,11 +864,11 @@ pub fn eval_assoc_legendre<T: MathScalar>(l: i32, m: i32, x: T) -> Option<T> {
     let mut pmm_curr = pmmp1;
 
     for ll in (m_abs + 2)..=l {
-        let f_ll = T::from(ll).unwrap();
-        let f_m_abs = T::from(m_abs).unwrap();
+        let f_ll = T::from(ll).expect("Failed to convert mathematical constant");
+        let f_m_abs = T::from(m_abs).expect("Failed to convert mathematical constant");
 
-        let term1_fact = T::from(2 * ll - 1).unwrap();
-        let term2_fact = T::from(ll + m_abs - 1).unwrap();
+        let term1_fact = T::from(2 * ll - 1).expect("Failed to convert mathematical constant");
+        let term2_fact = T::from(ll + m_abs - 1).expect("Failed to convert mathematical constant");
         let denom = f_ll - f_m_abs;
 
         pll = (x * term1_fact * pmm_curr - term2_fact * pmm_prev) / denom;
@@ -879,22 +895,22 @@ pub fn eval_spherical_harmonic<T: MathScalar>(l: i32, m: i32, theta: T, phi: T) 
     // Factorials
     let mut fact_lm = T::one();
     for i in 1..=(l - m_abs) {
-        fact_lm *= T::from(i).unwrap();
+        fact_lm *= T::from(i).expect("Failed to convert mathematical constant");
     }
 
     let mut fact_lplusm = T::one();
     for i in 1..=(l + m_abs) {
-        fact_lplusm *= T::from(i).unwrap();
+        fact_lplusm *= T::from(i).expect("Failed to convert mathematical constant");
     }
 
-    let four = T::from(4.0).unwrap();
-    let two_l_plus_1 = T::from(2 * l + 1).unwrap();
+    let four = T::from(4.0).expect("Failed to convert mathematical constant");
+    let two_l_plus_1 = T::from(2 * l + 1).expect("Failed to convert mathematical constant");
     let pi = T::PI();
 
     let norm_sq = (two_l_plus_1 / (four * pi)) * (fact_lm / fact_lplusm);
     let norm = norm_sq.sqrt();
 
-    let m_phi = T::from(m).unwrap() * phi;
+    let m_phi = T::from(m).expect("Failed to convert mathematical constant") * phi;
     Some(norm * plm * m_phi.cos())
 }
 
@@ -913,8 +929,8 @@ pub fn eval_elliptic_k<T: MathScalar>(k: T) -> Option<T> {
     let mut a = one;
     let mut b = (one - k * k).sqrt();
 
-    let two = T::from(2.0).unwrap();
-    let tolerance = T::from(1e-15).unwrap();
+    let two = T::from(2.0).expect("Failed to convert mathematical constant");
+    let tolerance = T::from(1e-15).expect("Failed to convert mathematical constant");
 
     for _ in 0..25 {
         let an = (a + b) / two;
@@ -945,10 +961,10 @@ pub fn eval_elliptic_e<T: MathScalar>(k: T) -> Option<T> {
     let mut b = (one - k * k).sqrt();
 
     let k2 = k * k;
-    let mut sum = one - k2 / T::from(2.0).unwrap();
-    let mut pow2 = T::from(0.5).unwrap();
-    let two = T::from(2.0).unwrap();
-    let tolerance = T::from(1e-15).unwrap();
+    let mut sum = one - k2 / T::from(2.0).expect("Failed to convert mathematical constant");
+    let mut pow2 = T::from(0.5).expect("Failed to convert mathematical constant");
+    let two = T::from(2.0).expect("Failed to convert mathematical constant");
+    let tolerance = T::from(1e-15).expect("Failed to convert mathematical constant");
 
     for _ in 0..25 {
         let an = (a + b) / two;
@@ -991,13 +1007,13 @@ pub fn bessel_j<T: MathScalar>(n: i32, x: T) -> Option<T> {
     let ax = x.abs();
 
     // Special case: J_n(0)
-    let threshold = T::from(1e-10).unwrap();
+    let threshold = T::from(1e-10).expect("Failed to convert mathematical constant");
     if ax < threshold {
         return Some(if n_abs == 0 { T::one() } else { T::zero() });
     }
 
     // REGIME 1: Forward Recurrence is stable when n <= |x|
-    if T::from(n_abs).unwrap() <= ax {
+    if T::from_i32(n_abs).expect("Failed to convert integer argument") <= ax {
         return bessel_j_forward(n, x);
     }
 
@@ -1021,10 +1037,10 @@ fn bessel_j_forward<T: MathScalar>(n: i32, x: T) -> Option<T> {
     }
 
     let (mut jp, mut jc) = (j0, j1);
-    let two = T::from(2.0).unwrap();
+    let two = T::from(2.0).expect("Failed to convert mathematical constant");
 
     for k in 1..n_abs {
-        let k_t = T::from(k).unwrap();
+        let k_t = T::from(k).expect("Failed to convert mathematical constant");
         // J_{k+1} = (2k/x) J_k - J_{k-1}
         let jn = (two * k_t / x) * jc - jp;
         jp = jc;
@@ -1038,14 +1054,14 @@ fn bessel_j_forward<T: MathScalar>(n: i32, x: T) -> Option<T> {
 #[allow(clippy::unnecessary_wraps)]
 fn bessel_j_miller<T: MathScalar>(n: i32, x: T) -> Option<T> {
     let n_abs = n.abs();
-    let two = T::from(2.0).unwrap();
+    let two = T::from(2.0).expect("Failed to convert mathematical constant");
 
     // Choose starting N using a safe heuristic
     let n_start = compute_miller_start(n_abs);
 
     // Initialize recurrence
     let mut j_next = T::zero(); // J_{k+1}
-    let mut j_curr = T::from(1e-30).unwrap(); // J_k (small seed)
+    let mut j_curr = T::from_f64(1e-30).expect("Failed to convert seed value 1e-30"); // J_k (small seed)
 
     let mut result = T::zero();
     let mut sum = T::zero(); // For normalization: J_0 + 2*(J_2 + J_4 + ...)
@@ -1053,7 +1069,7 @@ fn bessel_j_miller<T: MathScalar>(n: i32, x: T) -> Option<T> {
 
     // Backward recurrence: J_{k-1} = (2k/x) J_k - J_{k+1}
     for k in (0..=n_start).rev() {
-        let k_t = T::from(k).unwrap();
+        let k_t = T::from(k).expect("Failed to convert mathematical constant");
         let j_prev = (two * k_t / x) * j_curr - j_next;
 
         // Store J_n when we reach it
@@ -1102,7 +1118,9 @@ fn compute_miller_start(n: i32) -> i32 {
     let c = 50.0; // Conservative for 15+ digit accuracy
     let m = 15; // Safety margin
 
-    n + (c * n_f).sqrt().round() as i32 + m
+    #[allow(clippy::cast_possible_truncation)]
+    let sqrt_round = (c * n_f).sqrt().round() as i32;
+    n + sqrt_round + m
 }
 
 /// Bessel function `J_0(x)` via rational approximation
@@ -1145,7 +1163,7 @@ pub fn bessel_j0<T: MathScalar>(x: T) -> T {
     ];
 
     let ax = x.abs();
-    let eight = T::from(8.0).unwrap();
+    let eight = T::from(8.0).expect("Failed to convert mathematical constant");
 
     if ax < eight {
         let y = x * x;
@@ -1153,7 +1171,7 @@ pub fn bessel_j0<T: MathScalar>(x: T) -> T {
     } else {
         let z = eight / ax;
         let y = z * z;
-        let shift = T::from(0.785_398_164).unwrap();
+        let shift = T::from_f64(0.785_398_164).expect("Failed to convert phase shift constant");
         let xx = ax - shift;
 
         let c_sqrt = T::FRAC_2_PI();
@@ -1208,7 +1226,7 @@ pub fn bessel_j1<T: MathScalar>(x: T) -> T {
     ];
 
     let ax = x.abs();
-    let eight = T::from(8.0).unwrap();
+    let eight = T::from(8.0).expect("Failed to convert mathematical constant");
 
     if ax < eight {
         let y = x * x;
@@ -1217,7 +1235,7 @@ pub fn bessel_j1<T: MathScalar>(x: T) -> T {
     } else {
         let z = eight / ax;
         let y = z * z;
-        let shift = T::from(2.356_194_491).unwrap();
+        let shift = T::from(2.356_194_491).expect("Failed to convert mathematical constant");
         let xx = ax - shift;
 
         let c_sqrt = T::FRAC_2_PI();
@@ -1252,10 +1270,10 @@ pub fn bessel_y<T: MathScalar>(n: i32, x: T) -> Option<T> {
         return Some(if n < 0 { -y1 } else { y1 });
     }
     let (mut yp, mut yc) = (y0, y1);
-    let two = T::from(2.0).unwrap();
+    let two = T::from(2.0).expect("Failed to convert mathematical constant");
 
     for k in 1..n_abs {
-        let k_t = T::from(k).unwrap();
+        let k_t = T::from(k).expect("Failed to convert mathematical constant");
         let yn = (two * k_t / x) * yc - yp;
         yp = yc;
         yc = yn;
@@ -1299,7 +1317,7 @@ pub fn bessel_y0<T: MathScalar>(x: T) -> T {
         0.934_935_152e-7,
     ];
 
-    let eight = T::from(8.0).unwrap();
+    let eight = T::from(8.0).expect("Failed to convert mathematical constant");
 
     if x < eight {
         let y = x * x;
@@ -1309,7 +1327,7 @@ pub fn bessel_y0<T: MathScalar>(x: T) -> T {
     } else {
         let z = eight / x;
         let y = z * z;
-        let shift = T::from(0.785_398_164).unwrap();
+        let shift = T::from(0.785_398_164).expect("Failed to convert mathematical constant");
         let xx = x - shift;
 
         let c_sqrt = T::FRAC_2_PI();
@@ -1359,7 +1377,7 @@ pub fn bessel_y1<T: MathScalar>(x: T) -> T {
         0.105_787_412e-6,
     ];
 
-    let eight = T::from(8.0).unwrap();
+    let eight = T::from(8.0).expect("Failed to convert mathematical constant");
 
     if x < eight {
         let y = x * x;
@@ -1370,7 +1388,7 @@ pub fn bessel_y1<T: MathScalar>(x: T) -> T {
     } else {
         let z = eight / x;
         let y = z * z;
-        let shift = T::from(2.356_194_491).unwrap();
+        let shift = T::from(2.356_194_491).expect("Failed to convert mathematical constant");
         let xx = x - shift;
 
         let c_sqrt = T::FRAC_2_PI();
@@ -1398,7 +1416,7 @@ pub fn bessel_i<T: MathScalar>(n: i32, x: T) -> T {
         return bessel_i1(x);
     }
 
-    let threshold = T::from(1e-10).unwrap();
+    let threshold = T::from(1e-10).expect("Failed to convert mathematical constant");
     if x.abs() < threshold {
         return T::zero();
     }
@@ -1408,7 +1426,7 @@ pub fn bessel_i<T: MathScalar>(n: i32, x: T) -> T {
     // Recur backward using: I_{k-1} = (2k/x) * I_k + I_{k+1}
     // Normalize using I_0(x) as reference
 
-    let two = T::from(2.0).unwrap();
+    let two = T::from(2.0).expect("Failed to convert mathematical constant");
 
     // Choose starting order N based on x and n
     // Empirical formula: N = n + sqrt(40*n) + 10 works well
@@ -1416,18 +1434,20 @@ pub fn bessel_i<T: MathScalar>(n: i32, x: T) -> T {
     // - Ensures backward recurrence converges before reaching target order
     // - Balances computational cost vs. accuracy (see NR §6.6)
     // - Tested empirically for x ∈ [0.1, 100], n ∈ [0, 100]
-    let n_start = n_abs + f64::from(40 * n_abs).sqrt() as i32 + 10;
+    #[allow(clippy::cast_possible_truncation)]
+    let sqrt_term = f64::from(40 * n_abs).sqrt() as i32;
+    let n_start = n_abs + sqrt_term + 10;
     let n_start = n_start.max(n_abs + 20);
 
     // Initialize backward recurrence
     let mut i_next = T::zero(); // I_{k+1}
-    let mut i_curr = T::from(1e-30).unwrap(); // I_k (small nonzero to avoid underflow)
+    let mut i_curr = T::from(1e-30).expect("Failed to convert mathematical constant"); // I_k (small nonzero to avoid underflow)
     let mut result = T::zero();
     let mut sum = T::zero(); // For normalization: sum = I_0 + 2*(I_2 + I_4 + ...)
 
     // Backward recurrence
     for k in (0..=n_start).rev() {
-        let k_t = T::from(k).unwrap();
+        let k_t = T::from(k).expect("Failed to convert mathematical constant");
         // I_{k-1} = (2k/x) * I_k + I_{k+1}
         let i_prev = (two * k_t / x) * i_curr + i_next;
 
@@ -1481,7 +1501,7 @@ pub fn bessel_i0<T: MathScalar>(x: T) -> T {
     ];
 
     let ax = x.abs();
-    let three_seven_five = T::from(3.75).unwrap();
+    let three_seven_five = T::from(3.75).expect("Failed to convert mathematical constant");
 
     if ax < three_seven_five {
         let y = (x / three_seven_five).powi(2);
@@ -1522,7 +1542,7 @@ pub fn bessel_i1<T: MathScalar>(x: T) -> T {
     ];
 
     let ax = x.abs();
-    let three_seven_five = T::from(3.75).unwrap();
+    let three_seven_five = T::from(3.75).expect("Failed to convert mathematical constant");
 
     let ans = if ax < three_seven_five {
         let y = (x / three_seven_five).powi(2);
@@ -1556,10 +1576,10 @@ pub fn bessel_k<T: MathScalar>(n: i32, x: T) -> Option<T> {
         return Some(k1);
     }
     let (mut kp, mut kc) = (k0, k1);
-    let two = T::from(2.0).unwrap();
+    let two = T::from(2.0).expect("Failed to convert mathematical constant");
 
     for k in 1..n_abs {
-        let k_t = T::from(k).unwrap();
+        let k_t = T::from(k).expect("Failed to convert mathematical constant");
         let kn = kp + (two * k_t / x) * kc;
         kp = kc;
         kc = kn;
@@ -1592,9 +1612,9 @@ pub fn bessel_k0<T: MathScalar>(x: T) -> T {
         -0.000_025_200,
     ];
 
-    let two = T::from(2.0).unwrap();
+    let two = T::from(2.0).expect("Failed to convert mathematical constant");
     if x <= two {
-        let four = T::from(4.0).unwrap();
+        let four = T::from(4.0).expect("Failed to convert mathematical constant");
         let y = x * x / four;
         let i0 = bessel_i0(x);
         let ln_term = -(x / two).ln() * i0;
@@ -1631,9 +1651,9 @@ pub fn bessel_k1<T: MathScalar>(x: T) -> T {
         0.000_031_6,
     ];
 
-    let two = T::from(2.0).unwrap();
+    let two = T::from(2.0).expect("Failed to convert mathematical constant");
     if x <= two {
-        let four = T::from(4.0).unwrap();
+        let four = T::from(4.0).expect("Failed to convert mathematical constant");
         let y = x * x / four;
 
         let term1 = x.ln() * bessel_i1(x);
@@ -1657,7 +1677,7 @@ fn eval_poly_horner<T: MathScalar>(x: T, coeffs: &[f64]) -> T {
     // Horner's method: c[0] + x(c[1] + x(c[2] + ...))
     // We iterate from highest power c[n] down to c[0]
     for &c in coeffs.iter().rev() {
-        sum = sum * x + T::from(c).unwrap();
+        sum = sum * x + T::from(c).expect("Failed to convert mathematical constant");
     }
     sum
 }

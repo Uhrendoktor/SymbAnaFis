@@ -1,4 +1,7 @@
+// Benchmark requirements: unwrap for setup, stdout for progress, similar names for math variables
+#![allow(clippy::unwrap_used, clippy::print_stdout, clippy::similar_names)]
 //! Comprehensive `SymbAnaFis` Benchmarks
+
 //!
 //! Tests the full pipeline: parse → diff → simplify → compile → evaluate
 //! Uses realistic medium-sized expressions from physics and ML.

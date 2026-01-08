@@ -1,3 +1,14 @@
+// Example app requirements: unwrap for logic, stdout for output, similar names for math, long main functions
+#![allow(
+    clippy::unwrap_used,
+    clippy::print_stdout,
+    clippy::similar_names,
+    clippy::too_many_lines
+)]
+//! Physics & Engineering Applications using `SymbAnaFis`.
+
+//!
+//! Run with: cargo run --example applications
 use symb_anafis::diff;
 
 fn main() {
@@ -45,9 +56,9 @@ fn main() {
     let probability_density = format!("({wave_function})^2");
     let prob_derivative = diff(&probability_density, "x", &["sigma"], None).unwrap();
 
-    println!("Wave function: ψ(x) = {wave_function}");
-    println!("Probability:   |ψ|² = {probability_density}");
-    println!("d|ψ|²/dx = {prob_derivative}");
+    println!("Wave function: \u{3c8}(x) = {wave_function}");
+    println!("Probability:   |\u{3c8}|\u{b2} = {probability_density}");
+    println!("d|\u{3c8}|\u{b2}/dx = {prob_derivative}");
 
     println!("\n5. FLUID DYNAMICS - Velocity Profile (Poiseuille Flow)");
     println!("----------------------------------------------------");
@@ -113,7 +124,7 @@ fn main() {
     let particle_velocity = diff(pressure, "x", &["p0", "k", "omega", "t"], None).unwrap();
 
     println!("Pressure:     p(x,t) = {pressure}");
-    println!("Velocity:     u(x,t) = (1/ρ) * dp/dx = (1/ρ) * {particle_velocity}");
+    println!("Velocity:     u(x,t) = (1/\u{3c1}) * dp/dx = (1/\u{3c1}) * {particle_velocity}");
 
     println!("\n11. CALCULUS - Related Rates");
     println!("---------------------------");
@@ -123,7 +134,7 @@ fn main() {
     let constraint = "x^2 + y^2";
     let rate_equation = diff(constraint, "t", &[], None).unwrap();
 
-    println!("Constraint: x² + y² = L²");
+    println!("Constraint: x\u{b2} + y\u{b2} = L\u{b2}");
     println!("Rate:      2x dx/dt + 2y dy/dt = {rate_equation}");
 
     println!("\n12. OPTIMIZATION - Maximum Volume");
@@ -134,7 +145,7 @@ fn main() {
     let volume_grad_x = diff(volume, "x", &["y", "z"], None).unwrap();
 
     println!("Volume: V = {volume}");
-    println!("∂V/∂x = {volume_grad_x}");
+    println!("\u{2202}V/\u{2202}x = {volume_grad_x}");
 
     println!("\n13. TAYLOR SERIES");
     println!("----------------");
@@ -188,7 +199,7 @@ fn main() {
     let induced_emf = symb_anafis::simplify(&negated_emf, &["B0", "tau"], None).unwrap();
 
     println!("Magnetic field: B(t) = {magnetic_field}");
-    println!("EMF:           ε = -dB/dt = {induced_emf}");
+    println!("EMF:           \u{3b5} = -dB/dt = {induced_emf}");
 
     println!("\n17. THERMODYNAMICS - Entropy");
     println!("---------------------------");
@@ -199,17 +210,17 @@ fn main() {
     let entropy_temp_deriv = diff(entropy, "T", &["Cv", "R", "V"], None).unwrap();
 
     println!("Entropy: S = {entropy}");
-    println!("∂S/∂T = {entropy_temp_deriv}");
+    println!("\u{2202}S/\u{2202}T = {entropy_temp_deriv}");
 
-    println!("\n18. QUANTUM PHYSICS - Schrödinger Equation");
+    println!("\n18. QUANTUM PHYSICS - Schr\u{f6}dinger Equation");
     println!("-----------------------------------------");
 
     // Time-dependent wave function: ψ(x,t) = ψ0(x)*exp(-iEt/ℏ)
     let wave_function = "psi0 * exp(-i * E * t / hbar)";
     let time_derivative = diff(wave_function, "t", &["psi0", "E", "hbar"], None).unwrap();
 
-    println!("Wave function: ψ(x,t) = {wave_function}");
-    println!("∂ψ/∂t = {time_derivative}");
+    println!("Wave function: \u{3c8}(x,t) = {wave_function}");
+    println!("\u{2202}\u{3c8}/\u{2202}t = {time_derivative}");
 
     println!("\n19. RELATIVITY - Time Dilation");
     println!("-----------------------------");
@@ -218,8 +229,8 @@ fn main() {
     let proper_time = "t * sqrt(1 - v^2 / c^2)";
     let time_dilation_deriv = diff(proper_time, "v", &["t", "c"], None).unwrap();
 
-    println!("Proper time: τ = {proper_time}");
-    println!("dτ/dv = {time_dilation_deriv}");
+    println!("Proper time: \u{3c4} = {proper_time}");
+    println!("d\u{3c4}/dv = {time_dilation_deriv}");
 
     println!("\n20. ASTROPHYSICS - Orbital Mechanics");
     println!("-----------------------------------");
@@ -229,6 +240,6 @@ fn main() {
     let radius = "a * (1 - ecc^2) / (1 + ecc * cos(theta))";
     let angular_momentum = diff(radius, "theta", &["a", "ecc"], None).unwrap();
 
-    println!("Orbital radius: r(θ) = {radius}");
-    println!("dr/dθ = {angular_momentum}");
+    println!("Orbital radius: r(\u{3b8}) = {radius}");
+    println!("dr/d\u{3b8} = {angular_momentum}");
 }

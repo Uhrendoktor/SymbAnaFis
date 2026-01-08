@@ -13,8 +13,8 @@
 //! use symb_anafis::parse;
 //! use std::collections::HashSet;
 //!
-//! let expr = parse("sin(x) * cos(x) + x^2", &HashSet::new(), &HashSet::new(), None).unwrap();
-//! let evaluator = expr.compile().unwrap();
+//! let expr = parse("sin(x) * cos(x) + x^2", &HashSet::new(), &HashSet::new(), None).expect("Should parse");
+//! let evaluator = expr.compile().expect("Should compile");
 //!
 //! // Evaluate at x = 0.5
 //! let result = evaluator.evaluate(&[0.5]);
@@ -42,15 +42,15 @@ use wide::f64x4;
 /// use symb_anafis::{symb, parse, CompiledEvaluator};
 /// use std::collections::HashSet;
 ///
-/// let expr = parse("x + y", &HashSet::new(), &HashSet::new(), None).unwrap();
+/// let expr = parse("x + y", &HashSet::new(), &HashSet::new(), None).expect("Should parse");
 /// let x = symb("x");
 /// let y = symb("y");
 ///
 /// // Using strings
-/// let c1 = CompiledEvaluator::compile(&expr, &["x", "y"], None).unwrap();
+/// let c1 = CompiledEvaluator::compile(&expr, &["x", "y"], None).expect("Should compile");
 ///
 /// // Using symbols
-/// let c2 = CompiledEvaluator::compile(&expr, &[&x, &y], None).unwrap();
+/// let c2 = CompiledEvaluator::compile(&expr, &[&x, &y], None).expect("Should compile");
 /// ```
 pub trait ToParamName {
     /// Get the parameter as a symbol ID (for fast lookup) and name (for storage/error messages)
@@ -62,7 +62,7 @@ impl<T: AsRef<str>> ToParamName for T {
     fn to_param_id_and_name(&self) -> (u64, String) {
         let s = self.as_ref();
         let sym = crate::symb(s);
-        (sym.id(), s.to_string())
+        (sym.id(), s.to_owned())
     }
 }
 
@@ -193,6 +193,7 @@ macro_rules! stack_top_mut {
     ($stack:expr) => {{
         debug_assert!(!$stack.is_empty(), "Stack empty - compiler bug");
         let len = $stack.len();
+        // SAFETY: The compiler ensures stack capacity and indices are validated by debug_assert
         unsafe { $stack.get_unchecked_mut(len - 1) }
     }};
 }
@@ -202,6 +203,7 @@ macro_rules! stack_top_mut {
 macro_rules! stack_binop {
     ($stack:expr, $op:tt) => {{
         debug_assert!($stack.len() >= 2, "Stack underflow - compiler bug");
+        // SAFETY: Stack depth is validated by the compiler and debug_assert
         unsafe {
             let len = $stack.len();
             let b = *$stack.get_unchecked(len - 1);
@@ -215,6 +217,7 @@ macro_rules! stack_binop {
 macro_rules! stack_binop_fn {
     ($stack:expr, $f:expr) => {{
         debug_assert!($stack.len() >= 2, "Stack underflow - compiler bug");
+        // SAFETY: Stack depth is validated by the compiler and debug_assert
         unsafe {
             let len = $stack.len();
             let b = *$stack.get_unchecked(len - 1);
@@ -421,96 +424,119 @@ macro_rules! process_instruction {
             // domain handling, error conditions, and the .unwrap() overhead
             // is negligible compared to the function computation itself
             Instruction::Erf => {
-                *$stack.last_mut().unwrap() = crate::math::eval_erf(*$stack.last().unwrap())
+                *$stack.last_mut().expect("Stack must not be empty") = crate::math::eval_erf(*$stack.last().expect("Stack must not be empty"))
             }
             Instruction::Erfc => {
-                *$stack.last_mut().unwrap() = 1.0 - crate::math::eval_erf(*$stack.last().unwrap())
+                *$stack.last_mut().expect("Stack must not be empty") = 1.0 - crate::math::eval_erf(*$stack.last().expect("Stack must not be empty"))
             }
             Instruction::Gamma => {
-                *$stack.last_mut().unwrap() =
-                    crate::math::eval_gamma(*$stack.last().unwrap()).unwrap_or(f64::NAN)
+                *$stack.last_mut().expect("Stack must not be empty") =
+                    crate::math::eval_gamma(*$stack.last().expect("Stack must not be empty")).unwrap_or(f64::NAN)
             }
             Instruction::Digamma => {
-                *$stack.last_mut().unwrap() =
-                    crate::math::eval_digamma(*$stack.last().unwrap()).unwrap_or(f64::NAN)
+                *$stack.last_mut().expect("Stack must not be empty") =
+                    crate::math::eval_digamma(*$stack.last().expect("Stack must not be empty")).unwrap_or(f64::NAN)
             }
             Instruction::Trigamma => {
-                *$stack.last_mut().unwrap() =
-                    crate::math::eval_trigamma(*$stack.last().unwrap()).unwrap_or(f64::NAN)
+                *$stack.last_mut().expect("Stack must not be empty") =
+                    crate::math::eval_trigamma(*$stack.last().expect("Stack must not be empty")).unwrap_or(f64::NAN)
             }
             Instruction::Tetragamma => {
                 // Tetragamma is polygamma(3, x) - the 4th derivative of ln(Gamma(x))
-                *$stack.last_mut().unwrap() =
-                    crate::math::eval_polygamma(3, *$stack.last().unwrap()).unwrap_or(f64::NAN)
+                *$stack.last_mut().expect("Stack must not be empty") =
+                    crate::math::eval_polygamma(3, *$stack.last().expect("Stack must not be empty")).unwrap_or(f64::NAN)
             }
             Instruction::Sinc => {
-                let x = *$stack.last().unwrap();
-                *$stack.last_mut().unwrap() = if x.abs() < EPSILON { 1.0 } else { x.sin() / x };
+                let x = *$stack.last().expect("Stack must not be empty");
+                *$stack.last_mut().expect("Stack must not be empty") = if x.abs() < EPSILON { 1.0 } else { x.sin() / x };
             }
             Instruction::LambertW => {
-                *$stack.last_mut().unwrap() =
-                    crate::math::eval_lambert_w(*$stack.last().unwrap()).unwrap_or(f64::NAN)
+                *$stack.last_mut().expect("Stack must not be empty") =
+                    crate::math::eval_lambert_w(*$stack.last().expect("Stack must not be empty")).unwrap_or(f64::NAN)
             }
             Instruction::EllipticK => {
-                *$stack.last_mut().unwrap() =
-                    crate::math::eval_elliptic_k(*$stack.last().unwrap()).unwrap_or(f64::NAN)
+                *$stack.last_mut().expect("Stack must not be empty") =
+                    crate::math::eval_elliptic_k(*$stack.last().expect("Stack must not be empty")).unwrap_or(f64::NAN)
             }
             Instruction::EllipticE => {
-                *$stack.last_mut().unwrap() =
-                    crate::math::eval_elliptic_e(*$stack.last().unwrap()).unwrap_or(f64::NAN)
+                *$stack.last_mut().expect("Stack must not be empty") =
+                    crate::math::eval_elliptic_e(*$stack.last().expect("Stack must not be empty")).unwrap_or(f64::NAN)
             }
             Instruction::Zeta => {
-                *$stack.last_mut().unwrap() =
-                    crate::math::eval_zeta(*$stack.last().unwrap()).unwrap_or(f64::NAN)
+                *$stack.last_mut().expect("Stack must not be empty") =
+                    crate::math::eval_zeta(*$stack.last().expect("Stack must not be empty")).unwrap_or(f64::NAN)
             }
             Instruction::ExpPolar => {
-                *$stack.last_mut().unwrap() = crate::math::eval_exp_polar(*$stack.last().unwrap())
+                *$stack.last_mut().expect("Stack must not be empty") = crate::math::eval_exp_polar(*$stack.last().expect("Stack must not be empty"))
             }
 
             // Two-argument functions
             Instruction::Log => {
                 // log(base, x) = ln(x) / ln(base)
-                let x = $stack.pop().unwrap();
-                let base = $stack.last_mut().unwrap();
-                *base = if *base <= 0.0 || *base == 1.0 || x <= 0.0 {
+                let x = $stack.pop().expect("Stack must not be empty");
+                let base = $stack.last_mut().expect("Stack must not be empty");
+                // Exact comparison for base == 1.0 is mathematically intentional
+                #[allow(clippy::float_cmp)] // Exact comparison: base == 1.0 is mathematically intentional
+                let invalid_base = *base <= 0.0 || *base == 1.0 || x <= 0.0;
+                *base = if invalid_base {
                     f64::NAN
                 } else {
                     x.log(*base)
                 };
             }
             Instruction::Atan2 => {
-                let x = $stack.pop().unwrap();
-                let y = $stack.last_mut().unwrap();
+                let x = $stack.pop().expect("Stack must not be empty");
+                let y = $stack.last_mut().expect("Stack must not be empty");
                 *y = y.atan2(x);
             }
             Instruction::BesselJ => {
-                let x = $stack.pop().unwrap();
-                let n = $stack.last_mut().unwrap();
-                *n = crate::math::bessel_j((*n).round() as i32, x).unwrap_or(f64::NAN);
+                let x = $stack.pop().expect("Stack must not be empty");
+                let n = $stack.last_mut().expect("Stack must not be empty");
+                // Order n is always a small integer in Bessel functions
+                // Mathematical functions often take i32 arguments (e.g., bessel order)
+                #[allow(clippy::cast_possible_truncation)] // Bessel order is always a small integer
+                let order = (*n).round() as i32;
+                *n = crate::math::bessel_j(order, x).unwrap_or(f64::NAN);
             }
             Instruction::BesselY => {
-                let x = $stack.pop().unwrap();
-                let n = $stack.last_mut().unwrap();
-                *n = crate::math::bessel_y((*n).round() as i32, x).unwrap_or(f64::NAN);
+                let x = $stack.pop().expect("Stack must not be empty");
+                let n = $stack.last_mut().expect("Stack must not be empty");
+                // Order n is always a small integer in Bessel functions
+                // Mathematical functions often take i32 arguments (e.g., bessel order)
+                #[allow(clippy::cast_possible_truncation)] // Bessel order is always a small integer
+                let order = (*n).round() as i32;
+                *n = crate::math::bessel_y(order, x).unwrap_or(f64::NAN);
             }
             Instruction::BesselI => {
-                let x = $stack.pop().unwrap();
-                let n = $stack.last_mut().unwrap();
-                *n = crate::math::bessel_i((*n).round() as i32, x);
+                let x = $stack.pop().expect("Stack must not be empty");
+                let n = $stack.last_mut().expect("Stack must not be empty");
+                // Order n is always a small integer in Bessel functions
+                // Mathematical functions often take i32 arguments (e.g., bessel order)
+                #[allow(clippy::cast_possible_truncation)] // Bessel order is always a small integer
+                let order = (*n).round() as i32;
+                *n = crate::math::bessel_i(order, x);
             }
             Instruction::BesselK => {
-                let x = $stack.pop().unwrap();
-                let n = $stack.last_mut().unwrap();
-                *n = crate::math::bessel_k((*n).round() as i32, x).unwrap_or(f64::NAN);
+                let x = $stack.pop().expect("Stack must not be empty");
+                let n = $stack.last_mut().expect("Stack must not be empty");
+                // Order n is always a small integer in Bessel functions
+                // Mathematical functions often take i32 arguments (e.g., bessel order)
+                #[allow(clippy::cast_possible_truncation)] // Bessel order is always a small integer
+                let order = (*n).round() as i32;
+                *n = crate::math::bessel_k(order, x).unwrap_or(f64::NAN);
             }
             Instruction::Polygamma => {
-                let x = $stack.pop().unwrap();
-                let n = $stack.last_mut().unwrap();
-                *n = crate::math::eval_polygamma((*n).round() as i32, x).unwrap_or(f64::NAN);
+                let x = $stack.pop().expect("Stack must not be empty");
+                let n = $stack.last_mut().expect("Stack must not be empty");
+                // Polygamma order n is always a small non-negative integer
+                // Mathematical functions often take i32 arguments (e.g., bessel order)
+                #[allow(clippy::cast_possible_truncation)] // Polygamma order is always a small integer
+                let order = (*n).round() as i32;
+                *n = crate::math::eval_polygamma(order, x).unwrap_or(f64::NAN);
             }
             Instruction::Beta => {
-                let b = $stack.pop().unwrap();
-                let a = $stack.last_mut().unwrap();
+                let b = $stack.pop().expect("Stack must not be empty");
+                let a = $stack.last_mut().expect("Stack must not be empty");
                 let ga = crate::math::eval_gamma(*a);
                 let gb = crate::math::eval_gamma(b);
                 let gab = crate::math::eval_gamma(*a + b);
@@ -520,38 +546,54 @@ macro_rules! process_instruction {
                 };
             }
             Instruction::ZetaDeriv => {
-                let s = $stack.pop().unwrap();
-                let n = $stack.last_mut().unwrap();
-                *n = crate::math::eval_zeta_deriv((*n).round() as i32, s).unwrap_or(f64::NAN);
+                let s = $stack.pop().expect("Stack must not be empty");
+                let n = $stack.last_mut().expect("Stack must not be empty");
+                // Derivative order is always a small non-negative integer
+                // Mathematical functions often take i32 arguments (e.g., bessel order)
+                #[allow(clippy::cast_possible_truncation)] // Derivative order is always a small integer
+                let order = (*n).round() as i32;
+                *n = crate::math::eval_zeta_deriv(order, s).unwrap_or(f64::NAN);
             }
             Instruction::Hermite => {
-                let x = $stack.pop().unwrap();
-                let n = $stack.last_mut().unwrap();
-                *n = crate::math::eval_hermite((*n).round() as i32, x).unwrap_or(f64::NAN);
+                let x = $stack.pop().expect("Stack must not be empty");
+                let n = $stack.last_mut().expect("Stack must not be empty");
+                // Hermite polynomial degree is always a small non-negative integer
+                // Mathematical functions often take i32 arguments (e.g., bessel order)
+                #[allow(clippy::cast_possible_truncation)] // Hermite polynomial degree is always a small integer
+                let degree = (*n).round() as i32;
+                *n = crate::math::eval_hermite(degree, x).unwrap_or(f64::NAN);
             }
 
             // Three-argument functions
             Instruction::AssocLegendre => {
-                let x = $stack.pop().unwrap();
-                let m = $stack.pop().unwrap();
-                let l = $stack.last_mut().unwrap();
-                *l = crate::math::eval_assoc_legendre((*l).round() as i32, m.round() as i32, x)
-                    .unwrap_or(f64::NAN);
+                let x = $stack.pop().expect("Stack must not be empty");
+                let m = $stack.pop().expect("Stack must not be empty");
+                let l = $stack.last_mut().expect("Stack must not be empty");
+                // Legendre l,m are always small integers (angular momentum quantum numbers)
+                // Mathematical functions often take i32 arguments (e.g., bessel order)
+                #[allow(clippy::cast_possible_truncation)] // Legendre l is always a small integer
+                let l_int = (*l).round() as i32;
+                // Mathematical functions often take i32 arguments (e.g., bessel order)
+                #[allow(clippy::cast_possible_truncation)] // Legendre m is always a small integer
+                let m_int = m.round() as i32;
+                *l = crate::math::eval_assoc_legendre(l_int, m_int, x).unwrap_or(f64::NAN);
             }
 
             // Four-argument functions
             Instruction::SphericalHarmonic => {
-                let phi = $stack.pop().unwrap();
-                let theta = $stack.pop().unwrap();
-                let m = $stack.pop().unwrap();
-                let l = $stack.last_mut().unwrap();
-                *l = crate::math::eval_spherical_harmonic(
-                    (*l).round() as i32,
-                    m.round() as i32,
-                    theta,
-                    phi,
-                )
-                .unwrap_or(f64::NAN);
+                let phi = $stack.pop().expect("Stack must not be empty");
+                let theta = $stack.pop().expect("Stack must not be empty");
+                let m = $stack.pop().expect("Stack must not be empty");
+                let l = $stack.last_mut().expect("Stack must not be empty");
+                // Spherical harmonic l,m are always small integers (angular momentum quantum numbers)
+                // Mathematical functions often take i32 arguments (e.g., bessel order)
+                #[allow(clippy::cast_possible_truncation)] // Spherical harmonic l is always a small integer
+                let l_int = (*l).round() as i32;
+                // Mathematical functions often take i32 arguments (e.g., bessel order)
+                #[allow(clippy::cast_possible_truncation)] // Spherical harmonic m is always a small integer
+                let m_int = m.round() as i32;
+                *l = crate::math::eval_spherical_harmonic(l_int, m_int, theta, phi)
+                    .unwrap_or(f64::NAN);
             }
         }
     };
@@ -568,66 +610,66 @@ macro_rules! single_fast_path {
             Instruction::LoadConst(c) => $stack.push(c),
             Instruction::LoadParam(p) => $stack.push($params[p]),
             Instruction::Add => {
-                let b = $stack.pop().unwrap();
-                *$stack.last_mut().unwrap() += b;
+                let b = $stack.pop().expect("Stack must not be empty");
+                *$stack.last_mut().expect("Stack must not be empty") += b;
             }
             Instruction::Mul => {
-                let b = $stack.pop().unwrap();
-                *$stack.last_mut().unwrap() *= b;
+                let b = $stack.pop().expect("Stack must not be empty");
+                *$stack.last_mut().expect("Stack must not be empty") *= b;
             }
             Instruction::Div => {
-                let b = $stack.pop().unwrap();
-                *$stack.last_mut().unwrap() /= b;
+                let b = $stack.pop().expect("Stack must not be empty");
+                *$stack.last_mut().expect("Stack must not be empty") /= b;
             }
             Instruction::Pow => {
-                let exp = $stack.pop().unwrap();
-                let base = $stack.last_mut().unwrap();
+                let exp = $stack.pop().expect("Stack must not be empty");
+                let base = $stack.last_mut().expect("Stack must not be empty");
                 *base = base.powf(exp);
             }
             Instruction::Neg => {
-                let top = $stack.last_mut().unwrap();
+                let top = $stack.last_mut().expect("Stack must not be empty");
                 *top = -*top;
             }
             Instruction::Sin => {
-                let top = $stack.last_mut().unwrap();
+                let top = $stack.last_mut().expect("Stack must not be empty");
                 *top = top.sin();
             }
             Instruction::Cos => {
-                let top = $stack.last_mut().unwrap();
+                let top = $stack.last_mut().expect("Stack must not be empty");
                 *top = top.cos();
             }
             Instruction::Sqrt => {
-                let top = $stack.last_mut().unwrap();
+                let top = $stack.last_mut().expect("Stack must not be empty");
                 *top = top.sqrt();
             }
             Instruction::Exp => {
-                let top = $stack.last_mut().unwrap();
+                let top = $stack.last_mut().expect("Stack must not be empty");
                 *top = top.exp();
             }
             Instruction::Ln => {
-                let top = $stack.last_mut().unwrap();
+                let top = $stack.last_mut().expect("Stack must not be empty");
                 *top = top.ln();
             }
             Instruction::Tan => {
-                let top = $stack.last_mut().unwrap();
+                let top = $stack.last_mut().expect("Stack must not be empty");
                 *top = top.tan();
             }
             Instruction::Abs => {
-                let top = $stack.last_mut().unwrap();
+                let top = $stack.last_mut().expect("Stack must not be empty");
                 *top = top.abs();
             }
             // Fused operations
             Instruction::Square => {
-                let top = $stack.last_mut().unwrap();
+                let top = $stack.last_mut().expect("Stack must not be empty");
                 *top = *top * *top;
             }
             Instruction::Cube => {
-                let top = $stack.last_mut().unwrap();
+                let top = $stack.last_mut().expect("Stack must not be empty");
                 let x = *top;
                 *top = x * x * x;
             }
             Instruction::Recip => {
-                let top = $stack.last_mut().unwrap();
+                let top = $stack.last_mut().expect("Stack must not be empty");
                 *top = 1.0 / *top;
             }
             _ => Self::exec_slow_instruction_single($instr, &mut *$stack, $params),
@@ -647,66 +689,66 @@ macro_rules! batch_fast_path {
             Instruction::LoadConst(c) => $stack.push(c),
             Instruction::LoadParam(p) => $stack.push($columns[p][$point_idx]),
             Instruction::Add => {
-                let b = $stack.pop().unwrap();
-                *$stack.last_mut().unwrap() += b;
+                let b = $stack.pop().expect("Stack must not be empty");
+                *$stack.last_mut().expect("Stack must not be empty") += b;
             }
             Instruction::Mul => {
-                let b = $stack.pop().unwrap();
-                *$stack.last_mut().unwrap() *= b;
+                let b = $stack.pop().expect("Stack must not be empty");
+                *$stack.last_mut().expect("Stack must not be empty") *= b;
             }
             Instruction::Div => {
-                let b = $stack.pop().unwrap();
-                *$stack.last_mut().unwrap() /= b;
+                let b = $stack.pop().expect("Stack must not be empty");
+                *$stack.last_mut().expect("Stack must not be empty") /= b;
             }
             Instruction::Pow => {
-                let exp = $stack.pop().unwrap();
-                let base = $stack.last_mut().unwrap();
+                let exp = $stack.pop().expect("Stack must not be empty");
+                let base = $stack.last_mut().expect("Stack must not be empty");
                 *base = base.powf(exp);
             }
             Instruction::Neg => {
-                let top = $stack.last_mut().unwrap();
+                let top = $stack.last_mut().expect("Stack must not be empty");
                 *top = -*top;
             }
             Instruction::Sin => {
-                let top = $stack.last_mut().unwrap();
+                let top = $stack.last_mut().expect("Stack must not be empty");
                 *top = top.sin();
             }
             Instruction::Cos => {
-                let top = $stack.last_mut().unwrap();
+                let top = $stack.last_mut().expect("Stack must not be empty");
                 *top = top.cos();
             }
             Instruction::Sqrt => {
-                let top = $stack.last_mut().unwrap();
+                let top = $stack.last_mut().expect("Stack must not be empty");
                 *top = top.sqrt();
             }
             Instruction::Exp => {
-                let top = $stack.last_mut().unwrap();
+                let top = $stack.last_mut().expect("Stack must not be empty");
                 *top = top.exp();
             }
             Instruction::Ln => {
-                let top = $stack.last_mut().unwrap();
+                let top = $stack.last_mut().expect("Stack must not be empty");
                 *top = top.ln();
             }
             Instruction::Tan => {
-                let top = $stack.last_mut().unwrap();
+                let top = $stack.last_mut().expect("Stack must not be empty");
                 *top = top.tan();
             }
             Instruction::Abs => {
-                let top = $stack.last_mut().unwrap();
+                let top = $stack.last_mut().expect("Stack must not be empty");
                 *top = top.abs();
             }
             // Fused operations
             Instruction::Square => {
-                let top = $stack.last_mut().unwrap();
+                let top = $stack.last_mut().expect("Stack must not be empty");
                 *top = *top * *top;
             }
             Instruction::Cube => {
-                let top = $stack.last_mut().unwrap();
+                let top = $stack.last_mut().expect("Stack must not be empty");
                 let x = *top;
                 *top = x * x * x;
             }
             Instruction::Recip => {
-                let top = $stack.last_mut().unwrap();
+                let top = $stack.last_mut().expect("Stack must not be empty");
                 *top = 1.0 / *top;
             }
             _ => Self::exec_slow_instruction($instr, &mut $stack),
@@ -735,66 +777,66 @@ macro_rules! simd_batch_fast_path {
                 ]));
             }
             Instruction::Add => {
-                let b = $stack.pop().unwrap();
-                *$stack.last_mut().unwrap() += b;
+                let b = $stack.pop().expect("Stack must not be empty");
+                *$stack.last_mut().expect("Stack must not be empty") += b;
             }
             Instruction::Mul => {
-                let b = $stack.pop().unwrap();
-                *$stack.last_mut().unwrap() *= b;
+                let b = $stack.pop().expect("Stack must not be empty");
+                *$stack.last_mut().expect("Stack must not be empty") *= b;
             }
             Instruction::Div => {
-                let b = $stack.pop().unwrap();
-                *$stack.last_mut().unwrap() /= b;
+                let b = $stack.pop().expect("Stack must not be empty");
+                *$stack.last_mut().expect("Stack must not be empty") /= b;
             }
             Instruction::Pow => {
-                let exp = $stack.pop().unwrap();
-                let base = $stack.last_mut().unwrap();
+                let exp = $stack.pop().expect("Stack must not be empty");
+                let base = $stack.last_mut().expect("Stack must not be empty");
                 *base = base.pow_f64x4(exp);
             }
             Instruction::Neg => {
-                let top = $stack.last_mut().unwrap();
+                let top = $stack.last_mut().expect("Stack must not be empty");
                 *top = -*top;
             }
             Instruction::Sin => {
-                let top = $stack.last_mut().unwrap();
+                let top = $stack.last_mut().expect("Stack must not be empty");
                 *top = top.sin();
             }
             Instruction::Cos => {
-                let top = $stack.last_mut().unwrap();
+                let top = $stack.last_mut().expect("Stack must not be empty");
                 *top = top.cos();
             }
             Instruction::Sqrt => {
-                let top = $stack.last_mut().unwrap();
+                let top = $stack.last_mut().expect("Stack must not be empty");
                 *top = top.sqrt();
             }
             Instruction::Exp => {
-                let top = $stack.last_mut().unwrap();
+                let top = $stack.last_mut().expect("Stack must not be empty");
                 *top = top.exp();
             }
             Instruction::Ln => {
-                let top = $stack.last_mut().unwrap();
+                let top = $stack.last_mut().expect("Stack must not be empty");
                 *top = top.ln();
             }
             Instruction::Tan => {
-                let top = $stack.last_mut().unwrap();
+                let top = $stack.last_mut().expect("Stack must not be empty");
                 *top = top.tan();
             }
             Instruction::Abs => {
-                let top = $stack.last_mut().unwrap();
+                let top = $stack.last_mut().expect("Stack must not be empty");
                 *top = top.abs();
             }
             // Fused operations (SIMD)
             Instruction::Square => {
-                let top = $stack.last_mut().unwrap();
+                let top = $stack.last_mut().expect("Stack must not be empty");
                 *top = *top * *top;
             }
             Instruction::Cube => {
-                let top = $stack.last_mut().unwrap();
+                let top = $stack.last_mut().expect("Stack must not be empty");
                 let x = *top;
                 *top = x * x * x;
             }
             Instruction::Recip => {
-                let top = $stack.last_mut().unwrap();
+                let top = $stack.last_mut().expect("Stack must not be empty");
                 *top = f64x4::splat(1.0) / *top;
             }
             _ => Self::exec_simd_slow_instruction($instr, &mut $stack),
@@ -833,10 +875,10 @@ impl CompiledEvaluator {
     /// let expr = x.pow(2.0) + y;
     ///
     /// // Using strings
-    /// let compiled = CompiledEvaluator::compile(&expr, &["x", "y"], None).unwrap();
+    /// let compiled = CompiledEvaluator::compile(&expr, &["x", "y"], None).expect("Should compile");
     ///
     /// // Using symbols
-    /// let compiled = CompiledEvaluator::compile(&expr, &[&x, &y], None).unwrap();
+    /// let compiled = CompiledEvaluator::compile(&expr, &[&x, &y], None).expect("Should compile");
     /// ```
     ///
     /// # Errors
@@ -931,7 +973,7 @@ impl CompiledEvaluator {
                     .map(|a| Self::expand_user_functions(a, ctx, expanding, depth + 1))
                     .collect();
 
-                let fn_name = name.as_str().to_string();
+                let fn_name = name.as_str().to_owned();
 
                 // Check for recursion and if this is a user function with a body
                 // Check for recursion and if this is a user function with a body
@@ -982,7 +1024,7 @@ impl CompiledEvaluator {
     /// let expr = x.pow(2.0) + x.sin();
     ///
     /// // Auto-detect variables
-    /// let compiled = CompiledEvaluator::compile_auto(&expr, None).unwrap();
+    /// let compiled = CompiledEvaluator::compile_auto(&expr, None).expect("Should compile");
     /// let result = compiled.evaluate(&[2.0]);
     /// ```
     ///
@@ -1022,7 +1064,7 @@ impl CompiledEvaluator {
         if self.stack_size <= INLINE_STACK_SIZE {
             // Use a fixed-size array on the stack - zero allocation
             let mut inline_stack = [0.0_f64; INLINE_STACK_SIZE];
-            let mut len = 0usize;
+            let mut len = 0_usize;
 
             for instr in self.instructions.iter() {
                 // Inline the fast path operations directly to avoid Vec overhead
@@ -1193,12 +1235,15 @@ impl CompiledEvaluator {
         }
 
         // Process in chunks of 4 using SIMD
+        // Clippy: integer_division is intentional here for chunking
+        #[allow(clippy::integer_division)] // Intentional integer division for SIMD chunking
         let full_chunks = n_points / 4;
 
         // Use provided buffer or create local one
         let mut local_stack;
         // Using match is clearer here than map_or_else due to mutable reference handling
         #[allow(clippy::option_if_let_else, clippy::single_match_else)]
+        // Match is clearer for mutable reference handling
         let mut simd_stack: &mut Vec<f64x4> = match simd_buffer {
             Some(buf) => buf,
             None => {
@@ -1243,9 +1288,13 @@ impl CompiledEvaluator {
     #[inline(never)]
     #[cold]
     fn exec_slow_instruction(instr: &Instruction, stack: &mut Vec<f64>) {
-        process_instruction!(instr, stack, |_| unreachable!(
-            "LoadParam should be handled in fast path"
-        ));
+        process_instruction!(instr, stack, |_| {
+            // Clippy: Panic is used here to catch compiler/bytecode internal bugs that should never reach production
+            #[allow(clippy::panic)] // Panic for unreachable bytecode internal bugs
+            {
+                panic!("LoadParam should be handled in fast path");
+            }
+        });
     }
 
     #[inline(never)]
@@ -1257,7 +1306,7 @@ impl CompiledEvaluator {
     /// SIMD slow path for handling less common instructions
     /// Falls back to scalar computation for each of the 4 lanes
     // This function handles many instruction variants, length is justified
-    #[allow(clippy::too_many_lines)]
+    #[allow(clippy::too_many_lines)] // Handles many instruction variants, length is justified
     #[inline(never)]
     #[cold] // Vec is needed for potential push/pop in slow path
     fn exec_simd_slow_instruction(instr: &Instruction, stack: &mut Vec<f64x4>) {
@@ -1269,22 +1318,28 @@ impl CompiledEvaluator {
         match *instr {
             // Inverse trig (compute per-lane)
             Instruction::Asin => {
-                let top = stack.last_mut().unwrap();
+                let top = stack
+                    .last_mut()
+                    .expect("Stack underflow: missing operand for asin operation");
                 let arr = top.to_array();
                 *top = f64x4::new([arr[0].asin(), arr[1].asin(), arr[2].asin(), arr[3].asin()]);
             }
             Instruction::Acos => {
-                let top = stack.last_mut().unwrap();
+                let top = stack
+                    .last_mut()
+                    .expect("Stack underflow: missing operand for acos operation");
                 let arr = top.to_array();
                 *top = f64x4::new([arr[0].acos(), arr[1].acos(), arr[2].acos(), arr[3].acos()]);
             }
             Instruction::Atan => {
-                let top = stack.last_mut().unwrap();
+                let top = stack
+                    .last_mut()
+                    .expect("Stack underflow: missing operand for atan operation");
                 let arr = top.to_array();
                 *top = f64x4::new([arr[0].atan(), arr[1].atan(), arr[2].atan(), arr[3].atan()]);
             }
             Instruction::Acot => {
-                let top = stack.last_mut().unwrap();
+                let top = stack.last_mut().expect("Stack must not be empty");
                 let arr = top.to_array();
                 let acot = |x: f64| -> f64 {
                     if x.abs() < EPSILON {
@@ -1298,7 +1353,7 @@ impl CompiledEvaluator {
                 *top = f64x4::new([acot(arr[0]), acot(arr[1]), acot(arr[2]), acot(arr[3])]);
             }
             Instruction::Asec => {
-                let top = stack.last_mut().unwrap();
+                let top = stack.last_mut().expect("Stack must not be empty");
                 let arr = top.to_array();
                 *top = f64x4::new([
                     (1.0 / arr[0]).acos(),
@@ -1308,7 +1363,7 @@ impl CompiledEvaluator {
                 ]);
             }
             Instruction::Acsc => {
-                let top = stack.last_mut().unwrap();
+                let top = stack.last_mut().expect("Stack must not be empty");
                 let arr = top.to_array();
                 *top = f64x4::new([
                     (1.0 / arr[0]).asin(),
@@ -1318,35 +1373,35 @@ impl CompiledEvaluator {
                 ]);
             }
             Instruction::Cot => {
-                let top = stack.last_mut().unwrap();
+                let top = stack.last_mut().expect("Stack must not be empty");
                 *top = f64x4::ONE / top.tan();
             }
             Instruction::Sec => {
-                let top = stack.last_mut().unwrap();
+                let top = stack.last_mut().expect("Stack must not be empty");
                 *top = f64x4::ONE / top.cos();
             }
             Instruction::Csc => {
-                let top = stack.last_mut().unwrap();
+                let top = stack.last_mut().expect("Stack must not be empty");
                 *top = f64x4::ONE / top.sin();
             }
             // Hyperbolic (compute per-lane)
             Instruction::Sinh => {
-                let top = stack.last_mut().unwrap();
+                let top = stack.last_mut().expect("Stack must not be empty");
                 let arr = top.to_array();
                 *top = f64x4::new([arr[0].sinh(), arr[1].sinh(), arr[2].sinh(), arr[3].sinh()]);
             }
             Instruction::Cosh => {
-                let top = stack.last_mut().unwrap();
+                let top = stack.last_mut().expect("Stack must not be empty");
                 let arr = top.to_array();
                 *top = f64x4::new([arr[0].cosh(), arr[1].cosh(), arr[2].cosh(), arr[3].cosh()]);
             }
             Instruction::Tanh => {
-                let top = stack.last_mut().unwrap();
+                let top = stack.last_mut().expect("Stack must not be empty");
                 let arr = top.to_array();
                 *top = f64x4::new([arr[0].tanh(), arr[1].tanh(), arr[2].tanh(), arr[3].tanh()]);
             }
             Instruction::Asinh => {
-                let top = stack.last_mut().unwrap();
+                let top = stack.last_mut().expect("Stack must not be empty");
                 let arr = top.to_array();
                 *top = f64x4::new([
                     arr[0].asinh(),
@@ -1356,7 +1411,7 @@ impl CompiledEvaluator {
                 ]);
             }
             Instruction::Acosh => {
-                let top = stack.last_mut().unwrap();
+                let top = stack.last_mut().expect("Stack must not be empty");
                 let arr = top.to_array();
                 *top = f64x4::new([
                     arr[0].acosh(),
@@ -1366,7 +1421,7 @@ impl CompiledEvaluator {
                 ]);
             }
             Instruction::Atanh => {
-                let top = stack.last_mut().unwrap();
+                let top = stack.last_mut().expect("Stack must not be empty");
                 let arr = top.to_array();
                 *top = f64x4::new([
                     arr[0].atanh(),
@@ -1376,7 +1431,7 @@ impl CompiledEvaluator {
                 ]);
             }
             Instruction::Coth => {
-                let top = stack.last_mut().unwrap();
+                let top = stack.last_mut().expect("Stack must not be empty");
                 let arr = top.to_array();
                 *top = f64x4::new([
                     1.0 / arr[0].tanh(),
@@ -1386,7 +1441,7 @@ impl CompiledEvaluator {
                 ]);
             }
             Instruction::Sech => {
-                let top = stack.last_mut().unwrap();
+                let top = stack.last_mut().expect("Stack must not be empty");
                 let arr = top.to_array();
                 *top = f64x4::new([
                     1.0 / arr[0].cosh(),
@@ -1396,7 +1451,7 @@ impl CompiledEvaluator {
                 ]);
             }
             Instruction::Csch => {
-                let top = stack.last_mut().unwrap();
+                let top = stack.last_mut().expect("Stack must not be empty");
                 let arr = top.to_array();
                 *top = f64x4::new([
                     1.0 / arr[0].sinh(),
@@ -1406,13 +1461,13 @@ impl CompiledEvaluator {
                 ]);
             }
             Instruction::Acoth => {
-                let top = stack.last_mut().unwrap();
+                let top = stack.last_mut().expect("Stack must not be empty");
                 let arr = top.to_array();
                 let acoth = |x: f64| 0.5 * ((x + 1.0) / (x - 1.0)).ln();
                 *top = f64x4::new([acoth(arr[0]), acoth(arr[1]), acoth(arr[2]), acoth(arr[3])]);
             }
             Instruction::Asech => {
-                let top = stack.last_mut().unwrap();
+                let top = stack.last_mut().expect("Stack must not be empty");
                 let arr = top.to_array();
                 *top = f64x4::new([
                     (1.0 / arr[0]).acosh(),
@@ -1422,7 +1477,7 @@ impl CompiledEvaluator {
                 ]);
             }
             Instruction::Acsch => {
-                let top = stack.last_mut().unwrap();
+                let top = stack.last_mut().expect("Stack must not be empty");
                 let arr = top.to_array();
                 *top = f64x4::new([
                     (1.0 / arr[0]).asinh(),
@@ -1433,32 +1488,32 @@ impl CompiledEvaluator {
             }
             // Log functions
             Instruction::Log10 => {
-                let top = stack.last_mut().unwrap();
+                let top = stack.last_mut().expect("Stack must not be empty");
                 *top = top.log10();
             }
             Instruction::Log2 => {
-                let top = stack.last_mut().unwrap();
+                let top = stack.last_mut().expect("Stack must not be empty");
                 *top = top.log2();
             }
             Instruction::Cbrt => {
-                let top = stack.last_mut().unwrap();
+                let top = stack.last_mut().expect("Stack must not be empty");
                 *top = top.pow_f64x4(f64x4::splat(1.0 / 3.0));
             }
             // Rounding
             Instruction::Floor => {
-                let top = stack.last_mut().unwrap();
+                let top = stack.last_mut().expect("Stack must not be empty");
                 *top = top.floor();
             }
             Instruction::Ceil => {
-                let top = stack.last_mut().unwrap();
+                let top = stack.last_mut().expect("Stack must not be empty");
                 *top = top.ceil();
             }
             Instruction::Round => {
-                let top = stack.last_mut().unwrap();
+                let top = stack.last_mut().expect("Stack must not be empty");
                 *top = top.round();
             }
             Instruction::Signum => {
-                let top = stack.last_mut().unwrap();
+                let top = stack.last_mut().expect("Stack must not be empty");
                 let arr = top.to_array();
                 *top = f64x4::new([
                     arr[0].signum(),
@@ -1469,7 +1524,7 @@ impl CompiledEvaluator {
             }
             // Special functions (unary) - compute per-lane using scalar implementations
             Instruction::Erf => {
-                let top = stack.last_mut().unwrap();
+                let top = stack.last_mut().expect("Stack must not be empty");
                 let arr = top.to_array();
                 *top = f64x4::new([
                     crate::math::eval_erf(arr[0]),
@@ -1479,7 +1534,7 @@ impl CompiledEvaluator {
                 ]);
             }
             Instruction::Erfc => {
-                let top = stack.last_mut().unwrap();
+                let top = stack.last_mut().expect("Stack must not be empty");
                 let arr = top.to_array();
                 *top = f64x4::new([
                     1.0 - crate::math::eval_erf(arr[0]),
@@ -1489,7 +1544,7 @@ impl CompiledEvaluator {
                 ]);
             }
             Instruction::Gamma => {
-                let top = stack.last_mut().unwrap();
+                let top = stack.last_mut().expect("Stack must not be empty");
                 let arr = top.to_array();
                 *top = f64x4::new([
                     crate::math::eval_gamma(arr[0]).unwrap_or(f64::NAN),
@@ -1499,7 +1554,7 @@ impl CompiledEvaluator {
                 ]);
             }
             Instruction::Digamma => {
-                let top = stack.last_mut().unwrap();
+                let top = stack.last_mut().expect("Stack must not be empty");
                 let arr = top.to_array();
                 *top = f64x4::new([
                     crate::math::eval_digamma(arr[0]).unwrap_or(f64::NAN),
@@ -1509,7 +1564,7 @@ impl CompiledEvaluator {
                 ]);
             }
             Instruction::Trigamma => {
-                let top = stack.last_mut().unwrap();
+                let top = stack.last_mut().expect("Stack must not be empty");
                 let arr = top.to_array();
                 *top = f64x4::new([
                     crate::math::eval_trigamma(arr[0]).unwrap_or(f64::NAN),
@@ -1519,7 +1574,7 @@ impl CompiledEvaluator {
                 ]);
             }
             Instruction::Tetragamma => {
-                let top = stack.last_mut().unwrap();
+                let top = stack.last_mut().expect("Stack must not be empty");
                 let arr = top.to_array();
                 *top = f64x4::new([
                     crate::math::eval_polygamma(3, arr[0]).unwrap_or(f64::NAN),
@@ -1529,13 +1584,13 @@ impl CompiledEvaluator {
                 ]);
             }
             Instruction::Sinc => {
-                let top = stack.last_mut().unwrap();
+                let top = stack.last_mut().expect("Stack must not be empty");
                 let arr = top.to_array();
                 let sinc = |x: f64| if x.abs() < EPSILON { 1.0 } else { x.sin() / x };
                 *top = f64x4::new([sinc(arr[0]), sinc(arr[1]), sinc(arr[2]), sinc(arr[3])]);
             }
             Instruction::LambertW => {
-                let top = stack.last_mut().unwrap();
+                let top = stack.last_mut().expect("Stack must not be empty");
                 let arr = top.to_array();
                 *top = f64x4::new([
                     crate::math::eval_lambert_w(arr[0]).unwrap_or(f64::NAN),
@@ -1545,7 +1600,7 @@ impl CompiledEvaluator {
                 ]);
             }
             Instruction::EllipticK => {
-                let top = stack.last_mut().unwrap();
+                let top = stack.last_mut().expect("Stack must not be empty");
                 let arr = top.to_array();
                 *top = f64x4::new([
                     crate::math::eval_elliptic_k(arr[0]).unwrap_or(f64::NAN),
@@ -1555,7 +1610,7 @@ impl CompiledEvaluator {
                 ]);
             }
             Instruction::EllipticE => {
-                let top = stack.last_mut().unwrap();
+                let top = stack.last_mut().expect("Stack must not be empty");
                 let arr = top.to_array();
                 *top = f64x4::new([
                     crate::math::eval_elliptic_e(arr[0]).unwrap_or(f64::NAN),
@@ -1565,7 +1620,7 @@ impl CompiledEvaluator {
                 ]);
             }
             Instruction::Zeta => {
-                let top = stack.last_mut().unwrap();
+                let top = stack.last_mut().expect("Stack must not be empty");
                 let arr = top.to_array();
                 *top = f64x4::new([
                     crate::math::eval_zeta(arr[0]).unwrap_or(f64::NAN),
@@ -1575,7 +1630,7 @@ impl CompiledEvaluator {
                 ]);
             }
             Instruction::ExpPolar => {
-                let top = stack.last_mut().unwrap();
+                let top = stack.last_mut().expect("Stack must not be empty");
                 let arr = top.to_array();
                 *top = f64x4::new([
                     crate::math::eval_exp_polar(arr[0]),
@@ -1587,11 +1642,13 @@ impl CompiledEvaluator {
             // Two-argument functions (pop second operand, compute per-lane)
             Instruction::Log => {
                 // log(base, x) = ln(x) / ln(base)
-                let x = stack.pop().unwrap();
-                let base = stack.last_mut().unwrap();
+                let x = stack.pop().expect("Stack must not be empty");
+                let base = stack.last_mut().expect("Stack must not be empty");
                 let x_arr = x.to_array();
                 let base_arr = base.to_array();
                 let log_fn = |b: f64, v: f64| -> f64 {
+                    // Exact comparison with 1.0/0.0 is needed for boundary checks in log
+                    #[allow(clippy::float_cmp)] // Exact comparison for log boundary checks
                     if b <= 0.0 || b == 1.0 || v <= 0.0 {
                         f64::NAN
                     } else {
@@ -1606,8 +1663,8 @@ impl CompiledEvaluator {
                 ]);
             }
             Instruction::Atan2 => {
-                let x = stack.pop().unwrap();
-                let y = stack.last_mut().unwrap();
+                let x = stack.pop().expect("Stack must not be empty");
+                let y = stack.last_mut().expect("Stack must not be empty");
                 let x_arr = x.to_array();
                 let y_arr = y.to_array();
                 *y = f64x4::new([
@@ -1618,72 +1675,109 @@ impl CompiledEvaluator {
                 ]);
             }
             Instruction::BesselJ => {
-                let x = stack.pop().unwrap();
-                let n = stack.last_mut().unwrap();
+                let x = stack.pop().expect("Stack must not be empty");
+                let n = stack.last_mut().expect("Stack must not be empty");
                 let x_arr = x.to_array();
                 let n_arr = n.to_array();
-                *n = f64x4::new([
-                    crate::math::bessel_j(n_arr[0].round() as i32, x_arr[0]).unwrap_or(f64::NAN),
-                    crate::math::bessel_j(n_arr[1].round() as i32, x_arr[1]).unwrap_or(f64::NAN),
-                    crate::math::bessel_j(n_arr[2].round() as i32, x_arr[2]).unwrap_or(f64::NAN),
-                    crate::math::bessel_j(n_arr[3].round() as i32, x_arr[3]).unwrap_or(f64::NAN),
-                ]);
+                // Bessel orders are small integers, rounded before cast
+                #[allow(clippy::cast_possible_truncation)]
+                // Bessel orders are small integers, rounded before cast
+                {
+                    *n = f64x4::new([
+                        crate::math::bessel_j(n_arr[0].round() as i32, x_arr[0])
+                            .unwrap_or(f64::NAN),
+                        crate::math::bessel_j(n_arr[1].round() as i32, x_arr[1])
+                            .unwrap_or(f64::NAN),
+                        crate::math::bessel_j(n_arr[2].round() as i32, x_arr[2])
+                            .unwrap_or(f64::NAN),
+                        crate::math::bessel_j(n_arr[3].round() as i32, x_arr[3])
+                            .unwrap_or(f64::NAN),
+                    ]);
+                }
             }
             Instruction::BesselY => {
-                let x = stack.pop().unwrap();
-                let n = stack.last_mut().unwrap();
+                let x = stack.pop().expect("Stack must not be empty");
+                let n = stack.last_mut().expect("Stack must not be empty");
                 let x_arr = x.to_array();
                 let n_arr = n.to_array();
-                *n = f64x4::new([
-                    crate::math::bessel_y(n_arr[0].round() as i32, x_arr[0]).unwrap_or(f64::NAN),
-                    crate::math::bessel_y(n_arr[1].round() as i32, x_arr[1]).unwrap_or(f64::NAN),
-                    crate::math::bessel_y(n_arr[2].round() as i32, x_arr[2]).unwrap_or(f64::NAN),
-                    crate::math::bessel_y(n_arr[3].round() as i32, x_arr[3]).unwrap_or(f64::NAN),
-                ]);
+                // Bessel orders are small integers, rounded before cast
+                #[allow(clippy::cast_possible_truncation)]
+                // Bessel orders are small integers, rounded before cast
+                {
+                    *n = f64x4::new([
+                        crate::math::bessel_y(n_arr[0].round() as i32, x_arr[0])
+                            .unwrap_or(f64::NAN),
+                        crate::math::bessel_y(n_arr[1].round() as i32, x_arr[1])
+                            .unwrap_or(f64::NAN),
+                        crate::math::bessel_y(n_arr[2].round() as i32, x_arr[2])
+                            .unwrap_or(f64::NAN),
+                        crate::math::bessel_y(n_arr[3].round() as i32, x_arr[3])
+                            .unwrap_or(f64::NAN),
+                    ]);
+                }
             }
             Instruction::BesselI => {
-                let x = stack.pop().unwrap();
-                let n = stack.last_mut().unwrap();
+                let x = stack.pop().expect("Stack must not be empty");
+                let n = stack.last_mut().expect("Stack must not be empty");
                 let x_arr = x.to_array();
                 let n_arr = n.to_array();
-                *n = f64x4::new([
-                    crate::math::bessel_i(n_arr[0].round() as i32, x_arr[0]),
-                    crate::math::bessel_i(n_arr[1].round() as i32, x_arr[1]),
-                    crate::math::bessel_i(n_arr[2].round() as i32, x_arr[2]),
-                    crate::math::bessel_i(n_arr[3].round() as i32, x_arr[3]),
-                ]);
+                // Bessel orders are small integers, rounded before cast
+                #[allow(clippy::cast_possible_truncation)]
+                // Bessel orders are small integers, rounded before cast
+                {
+                    *n = f64x4::new([
+                        crate::math::bessel_i(n_arr[0].round() as i32, x_arr[0]),
+                        crate::math::bessel_i(n_arr[1].round() as i32, x_arr[1]),
+                        crate::math::bessel_i(n_arr[2].round() as i32, x_arr[2]),
+                        crate::math::bessel_i(n_arr[3].round() as i32, x_arr[3]),
+                    ]);
+                }
             }
             Instruction::BesselK => {
-                let x = stack.pop().unwrap();
-                let n = stack.last_mut().unwrap();
+                let x = stack.pop().expect("Stack must not be empty");
+                let n = stack.last_mut().expect("Stack must not be empty");
                 let x_arr = x.to_array();
                 let n_arr = n.to_array();
-                *n = f64x4::new([
-                    crate::math::bessel_k(n_arr[0].round() as i32, x_arr[0]).unwrap_or(f64::NAN),
-                    crate::math::bessel_k(n_arr[1].round() as i32, x_arr[1]).unwrap_or(f64::NAN),
-                    crate::math::bessel_k(n_arr[2].round() as i32, x_arr[2]).unwrap_or(f64::NAN),
-                    crate::math::bessel_k(n_arr[3].round() as i32, x_arr[3]).unwrap_or(f64::NAN),
-                ]);
+                // Bessel orders are small integers, rounded before cast
+                #[allow(clippy::cast_possible_truncation)]
+                // Bessel orders are small integers, rounded before cast
+                {
+                    *n = f64x4::new([
+                        crate::math::bessel_k(n_arr[0].round() as i32, x_arr[0])
+                            .unwrap_or(f64::NAN),
+                        crate::math::bessel_k(n_arr[1].round() as i32, x_arr[1])
+                            .unwrap_or(f64::NAN),
+                        crate::math::bessel_k(n_arr[2].round() as i32, x_arr[2])
+                            .unwrap_or(f64::NAN),
+                        crate::math::bessel_k(n_arr[3].round() as i32, x_arr[3])
+                            .unwrap_or(f64::NAN),
+                    ]);
+                }
             }
             Instruction::Polygamma => {
-                let x = stack.pop().unwrap();
-                let n = stack.last_mut().unwrap();
+                let x = stack.pop().expect("Stack must not be empty");
+                let n = stack.last_mut().expect("Stack must not be empty");
                 let x_arr = x.to_array();
                 let n_arr = n.to_array();
-                *n = f64x4::new([
-                    crate::math::eval_polygamma(n_arr[0].round() as i32, x_arr[0])
-                        .unwrap_or(f64::NAN),
-                    crate::math::eval_polygamma(n_arr[1].round() as i32, x_arr[1])
-                        .unwrap_or(f64::NAN),
-                    crate::math::eval_polygamma(n_arr[2].round() as i32, x_arr[2])
-                        .unwrap_or(f64::NAN),
-                    crate::math::eval_polygamma(n_arr[3].round() as i32, x_arr[3])
-                        .unwrap_or(f64::NAN),
-                ]);
+                // Polygamma order is a small integer, rounded before cast
+                #[allow(clippy::cast_possible_truncation)]
+                // Polygamma order is always a small integer
+                {
+                    *n = f64x4::new([
+                        crate::math::eval_polygamma(n_arr[0].round() as i32, x_arr[0])
+                            .unwrap_or(f64::NAN),
+                        crate::math::eval_polygamma(n_arr[1].round() as i32, x_arr[1])
+                            .unwrap_or(f64::NAN),
+                        crate::math::eval_polygamma(n_arr[2].round() as i32, x_arr[2])
+                            .unwrap_or(f64::NAN),
+                        crate::math::eval_polygamma(n_arr[3].round() as i32, x_arr[3])
+                            .unwrap_or(f64::NAN),
+                    ]);
+                }
             }
             Instruction::Beta => {
-                let b = stack.pop().unwrap();
-                let a = stack.last_mut().unwrap();
+                let b = stack.pop().expect("Stack must not be empty");
+                let a = stack.last_mut().expect("Stack must not be empty");
                 let a_arr = a.to_array();
                 let b_arr = b.to_array();
                 let beta = |a: f64, b: f64| -> f64 {
@@ -1704,112 +1798,131 @@ impl CompiledEvaluator {
                 ]);
             }
             Instruction::ZetaDeriv => {
-                let s = stack.pop().unwrap();
-                let n = stack.last_mut().unwrap();
+                let s = stack.pop().expect("Stack must not be empty");
+                let n = stack.last_mut().expect("Stack must not be empty");
                 let s_arr = s.to_array();
                 let n_arr = n.to_array();
-                *n = f64x4::new([
-                    crate::math::eval_zeta_deriv(n_arr[0].round() as i32, s_arr[0])
-                        .unwrap_or(f64::NAN),
-                    crate::math::eval_zeta_deriv(n_arr[1].round() as i32, s_arr[1])
-                        .unwrap_or(f64::NAN),
-                    crate::math::eval_zeta_deriv(n_arr[2].round() as i32, s_arr[2])
-                        .unwrap_or(f64::NAN),
-                    crate::math::eval_zeta_deriv(n_arr[3].round() as i32, s_arr[3])
-                        .unwrap_or(f64::NAN),
-                ]);
+                // Derivative order is a small integer, rounded before cast
+                #[allow(clippy::cast_possible_truncation)]
+                // ZetaDeriv order is always a small integer
+                {
+                    *n = f64x4::new([
+                        crate::math::eval_zeta_deriv(n_arr[0].round() as i32, s_arr[0])
+                            .unwrap_or(f64::NAN),
+                        crate::math::eval_zeta_deriv(n_arr[1].round() as i32, s_arr[1])
+                            .unwrap_or(f64::NAN),
+                        crate::math::eval_zeta_deriv(n_arr[2].round() as i32, s_arr[2])
+                            .unwrap_or(f64::NAN),
+                        crate::math::eval_zeta_deriv(n_arr[3].round() as i32, s_arr[3])
+                            .unwrap_or(f64::NAN),
+                    ]);
+                }
             }
             Instruction::Hermite => {
-                let x = stack.pop().unwrap();
-                let n = stack.last_mut().unwrap();
+                let x = stack.pop().expect("Stack must not be empty");
+                let n = stack.last_mut().expect("Stack must not be empty");
                 let x_arr = x.to_array();
                 let n_arr = n.to_array();
-                *n = f64x4::new([
-                    crate::math::eval_hermite(n_arr[0].round() as i32, x_arr[0])
-                        .unwrap_or(f64::NAN),
-                    crate::math::eval_hermite(n_arr[1].round() as i32, x_arr[1])
-                        .unwrap_or(f64::NAN),
-                    crate::math::eval_hermite(n_arr[2].round() as i32, x_arr[2])
-                        .unwrap_or(f64::NAN),
-                    crate::math::eval_hermite(n_arr[3].round() as i32, x_arr[3])
-                        .unwrap_or(f64::NAN),
-                ]);
+                // Hermite polynomial degree is a small integer, rounded before cast
+                #[allow(clippy::cast_possible_truncation)]
+                // Hermite polynomial degree is always a small integer
+                {
+                    *n = f64x4::new([
+                        crate::math::eval_hermite(n_arr[0].round() as i32, x_arr[0])
+                            .unwrap_or(f64::NAN),
+                        crate::math::eval_hermite(n_arr[1].round() as i32, x_arr[1])
+                            .unwrap_or(f64::NAN),
+                        crate::math::eval_hermite(n_arr[2].round() as i32, x_arr[2])
+                            .unwrap_or(f64::NAN),
+                        crate::math::eval_hermite(n_arr[3].round() as i32, x_arr[3])
+                            .unwrap_or(f64::NAN),
+                    ]);
+                }
             }
             // Three-argument functions
             Instruction::AssocLegendre => {
-                let x = stack.pop().unwrap();
-                let m = stack.pop().unwrap();
-                let l = stack.last_mut().unwrap();
+                let x = stack.pop().expect("Stack must not be empty");
+                let m = stack.pop().expect("Stack must not be empty");
+                let l = stack.last_mut().expect("Stack must not be empty");
                 let x_arr = x.to_array();
                 let m_arr = m.to_array();
                 let l_arr = l.to_array();
-                *l = f64x4::new([
-                    crate::math::eval_assoc_legendre(
-                        l_arr[0].round() as i32,
-                        m_arr[0].round() as i32,
-                        x_arr[0],
-                    )
-                    .unwrap_or(f64::NAN),
-                    crate::math::eval_assoc_legendre(
-                        l_arr[1].round() as i32,
-                        m_arr[1].round() as i32,
-                        x_arr[1],
-                    )
-                    .unwrap_or(f64::NAN),
-                    crate::math::eval_assoc_legendre(
-                        l_arr[2].round() as i32,
-                        m_arr[2].round() as i32,
-                        x_arr[2],
-                    )
-                    .unwrap_or(f64::NAN),
-                    crate::math::eval_assoc_legendre(
-                        l_arr[3].round() as i32,
-                        m_arr[3].round() as i32,
-                        x_arr[3],
-                    )
-                    .unwrap_or(f64::NAN),
-                ]);
+                // Legendre l,m are rounded to integers (quantum numbers)
+                #[allow(clippy::cast_possible_truncation)] // Legendre l,m are always small integers
+                {
+                    *l = f64x4::new([
+                        crate::math::eval_assoc_legendre(
+                            l_arr[0].round() as i32,
+                            m_arr[0].round() as i32,
+                            x_arr[0],
+                        )
+                        .unwrap_or(f64::NAN),
+                        crate::math::eval_assoc_legendre(
+                            l_arr[1].round() as i32,
+                            m_arr[1].round() as i32,
+                            x_arr[1],
+                        )
+                        .unwrap_or(f64::NAN),
+                        crate::math::eval_assoc_legendre(
+                            l_arr[2].round() as i32,
+                            m_arr[2].round() as i32,
+                            x_arr[2],
+                        )
+                        .unwrap_or(f64::NAN),
+                        crate::math::eval_assoc_legendre(
+                            l_arr[3].round() as i32,
+                            m_arr[3].round() as i32,
+                            x_arr[3],
+                        )
+                        .unwrap_or(f64::NAN),
+                    ]);
+                }
             }
             // Four-argument functions
             Instruction::SphericalHarmonic => {
-                let phi = stack.pop().unwrap();
-                let theta = stack.pop().unwrap();
-                let m = stack.pop().unwrap();
-                let l = stack.last_mut().unwrap();
+                let phi = stack.pop().expect("Stack must not be empty");
+                let theta = stack.pop().expect("Stack must not be empty");
+                let m = stack.pop().expect("Stack must not be empty");
+                let l = stack.last_mut().expect("Stack must not be empty");
                 let phi_arr = phi.to_array();
                 let theta_arr = theta.to_array();
                 let m_arr = m.to_array();
                 let l_arr = l.to_array();
-                *l = f64x4::new([
-                    crate::math::eval_spherical_harmonic(
-                        l_arr[0].round() as i32,
-                        m_arr[0].round() as i32,
-                        theta_arr[0],
-                        phi_arr[0],
-                    )
-                    .unwrap_or(f64::NAN),
-                    crate::math::eval_spherical_harmonic(
-                        l_arr[1].round() as i32,
-                        m_arr[1].round() as i32,
-                        theta_arr[1],
-                        phi_arr[1],
-                    )
-                    .unwrap_or(f64::NAN),
-                    crate::math::eval_spherical_harmonic(
-                        l_arr[2].round() as i32,
-                        m_arr[2].round() as i32,
-                        theta_arr[2],
-                        phi_arr[2],
-                    )
-                    .unwrap_or(f64::NAN),
-                    crate::math::eval_spherical_harmonic(
-                        l_arr[3].round() as i32,
-                        m_arr[3].round() as i32,
-                        theta_arr[3],
-                        phi_arr[3],
-                    )
-                    .unwrap_or(f64::NAN),
-                ]);
+                // Spherical harmonic l,m are rounded to integers
+                #[allow(clippy::cast_possible_truncation)]
+                // Spherical harmonic l,m are always small integers
+                {
+                    *l = f64x4::new([
+                        crate::math::eval_spherical_harmonic(
+                            l_arr[0].round() as i32,
+                            m_arr[0].round() as i32,
+                            theta_arr[0],
+                            phi_arr[0],
+                        )
+                        .unwrap_or(f64::NAN),
+                        crate::math::eval_spherical_harmonic(
+                            l_arr[1].round() as i32,
+                            m_arr[1].round() as i32,
+                            theta_arr[1],
+                            phi_arr[1],
+                        )
+                        .unwrap_or(f64::NAN),
+                        crate::math::eval_spherical_harmonic(
+                            l_arr[2].round() as i32,
+                            m_arr[2].round() as i32,
+                            theta_arr[2],
+                            phi_arr[2],
+                        )
+                        .unwrap_or(f64::NAN),
+                        crate::math::eval_spherical_harmonic(
+                            l_arr[3].round() as i32,
+                            m_arr[3].round() as i32,
+                            theta_arr[3],
+                            phi_arr[3],
+                        )
+                        .unwrap_or(f64::NAN),
+                    ]);
+                }
             }
             // Remaining cases that should be in fast path but might slip through
             _ => {
@@ -1818,8 +1931,12 @@ impl CompiledEvaluator {
                 // which are all handled in simd_batch_fast_path macro.
                 // If we get here, it's a bug - log a warning in debug builds
                 #[cfg(debug_assertions)]
-                eprintln!("Warning: Unhandled SIMD instruction {instr:?}, returning NaN");
-                let top = stack.last_mut().unwrap();
+                #[allow(clippy::print_stderr, clippy::use_debug)]
+                // Debug warning for unhandled SIMD instruction
+                {
+                    eprintln!("Warning: Unhandled SIMD instruction {instr:?}, returning NaN");
+                }
+                let top = stack.last_mut().expect("Stack must not be empty");
                 *top = f64x4::new([f64::NAN, f64::NAN, f64::NAN, f64::NAN]);
             }
         }
@@ -1866,7 +1983,7 @@ impl CompiledEvaluator {
 
         // For small point counts, fall back to sequential to avoid overhead
         // Const defined here for locality to parallel evaluation logic
-        #[allow(clippy::items_after_statements)]
+        #[allow(clippy::items_after_statements)] // Const defined here for locality to parallel logic
         const MIN_PARALLEL_SIZE: usize = 256;
         if n_points < MIN_PARALLEL_SIZE {
             let mut output = vec![0.0; n_points];
@@ -1907,16 +2024,16 @@ impl CompiledEvaluator {
 const MAX_STACK_DEPTH: usize = 1024;
 
 /// Internal compiler state
-struct Compiler<'a> {
+struct Compiler<'ctx> {
     instructions: Vec<Instruction>,
     param_map: HashMap<u64, usize>, // Symbol ID -> param index
     current_stack: usize,
     max_stack: usize,
-    function_context: Option<&'a Context>,
+    function_context: Option<&'ctx Context>,
 }
 
-impl<'a> Compiler<'a> {
-    fn new(param_ids: &[u64], context: Option<&'a Context>) -> Self {
+impl<'ctx> Compiler<'ctx> {
+    fn new(param_ids: &[u64], context: Option<&'ctx Context>) -> Self {
         let param_map: HashMap<u64, usize> = param_ids
             .iter()
             .enumerate()
@@ -2009,7 +2126,7 @@ impl<'a> Compiler<'a> {
     }
 
     // Compilation handles many expression kinds, length is justified
-    #[allow(clippy::too_many_lines)]
+    #[allow(clippy::too_many_lines)] // Compilation handles many expression kinds, length is justified
     fn compile_expr(&mut self, expr: &Expr) -> Result<(), DiffError> {
         // Try constant folding first - evaluate constant expressions at compile time
         if let Some(value) = Self::try_eval_const(expr) {
@@ -2036,7 +2153,7 @@ impl<'a> Compiler<'a> {
                     self.emit(Instruction::LoadParam(idx));
                     self.push()?;
                 } else {
-                    return Err(DiffError::UnboundVariable(name.to_string()));
+                    return Err(DiffError::UnboundVariable(name.to_owned()));
                 }
             }
 
@@ -2062,10 +2179,19 @@ impl<'a> Compiler<'a> {
                     self.push()?;
                 } else {
                     // Check for negation pattern: Product([-1, x]) = -x
-                    if factors.len() == 2
-                        && let ExprKind::Number(n) = &factors[0].kind
-                        && *n == -1.0
-                    {
+                    // Exact comparison for -1.0 is mathematically intentional
+                    #[allow(clippy::float_cmp)]
+                    // Exact comparison for -1.0 is mathematically intentional
+                    let is_neg_one = if factors.len() == 2 {
+                        if let ExprKind::Number(n) = &factors[0].kind {
+                            *n == -1.0
+                        } else {
+                            false
+                        }
+                    } else {
+                        false
+                    };
+                    if is_neg_one {
                         self.compile_expr(&factors[1])?;
                         self.emit(Instruction::Neg);
                         return Ok(());
@@ -2261,9 +2387,9 @@ impl<'a> Compiler<'a> {
                                     args.len()
                                 )));
                             }
-                            return Err(DiffError::UnsupportedFunction(func_name.to_string()));
+                            return Err(DiffError::UnsupportedFunction(func_name.to_owned()));
                         }
-                        return Err(DiffError::UnsupportedFunction(func_name.to_string()));
+                        return Err(DiffError::UnsupportedFunction(func_name.to_owned()));
                     }
                 };
 
@@ -2320,7 +2446,9 @@ impl<'a> Compiler<'a> {
 
                         // Add coefficient if this power exists
                         if term_iter.peek().is_some_and(|(p, _)| *p == pow) {
-                            let (_, coeff) = term_iter.next().unwrap();
+                            let (_, coeff) = term_iter
+                                .next()
+                                .expect("Polynomial term iterator exhausted prematurely");
                             self.emit(Instruction::LoadConst(*coeff));
                             self.push()?;
                             self.emit(Instruction::Add);
@@ -2401,7 +2529,7 @@ impl<'a> Compiler<'a> {
 
             ExprKind::Derivative { .. } => {
                 return Err(DiffError::UnsupportedExpression(
-                    "Derivatives cannot be numerically evaluated - simplify first".to_string(),
+                    "Derivatives cannot be numerically evaluated - simplify first".to_owned(),
                 ));
             }
         }
@@ -2411,33 +2539,41 @@ impl<'a> Compiler<'a> {
 }
 
 #[cfg(test)]
+#[allow(
+    clippy::unwrap_used,
+    clippy::panic,
+    clippy::cast_precision_loss,
+    clippy::items_after_statements,
+    clippy::let_underscore_must_use,
+    clippy::no_effect_underscore_binding
+)]
 mod tests {
     use super::*;
     use crate::parser;
     use std::collections::HashSet;
 
     fn parse_expr(s: &str) -> Expr {
-        parser::parse(s, &HashSet::new(), &HashSet::new(), None).unwrap()
+        parser::parse(s, &HashSet::new(), &HashSet::new(), None).expect("Should pass")
     }
 
     #[test]
     fn test_simple_arithmetic() {
         let expr = parse_expr("x + 2");
-        let eval = CompiledEvaluator::compile(&expr, &["x"], None).unwrap();
+        let eval = CompiledEvaluator::compile(&expr, &["x"], None).expect("Should pass");
         assert!((eval.evaluate(&[3.0]) - 5.0).abs() < 1e-10);
     }
 
     #[test]
     fn test_polynomial() {
         let expr = parse_expr("x^2 + 2*x + 1");
-        let eval = CompiledEvaluator::compile(&expr, &["x"], None).unwrap();
+        let eval = CompiledEvaluator::compile(&expr, &["x"], None).expect("Should pass");
         assert!((eval.evaluate(&[3.0]) - 16.0).abs() < 1e-10);
     }
 
     #[test]
     fn test_trig() {
         let expr = parse_expr("sin(x)^2 + cos(x)^2");
-        let eval = CompiledEvaluator::compile(&expr, &["x"], None).unwrap();
+        let eval = CompiledEvaluator::compile(&expr, &["x"], None).expect("Should pass");
         // Should always equal 1
         assert!((eval.evaluate(&[0.5]) - 1.0).abs() < 1e-10);
         assert!((eval.evaluate(&[1.23]) - 1.0).abs() < 1e-10);
@@ -2446,7 +2582,7 @@ mod tests {
     #[test]
     fn test_constants() {
         let expr = parse_expr("pi * e");
-        let eval = CompiledEvaluator::compile_auto(&expr, None).unwrap();
+        let eval = CompiledEvaluator::compile_auto(&expr, None).expect("Should pass");
         let expected = std::f64::consts::PI * std::f64::consts::E;
         assert!((eval.evaluate(&[]) - expected).abs() < 1e-10);
     }
@@ -2454,7 +2590,7 @@ mod tests {
     #[test]
     fn test_multi_var() {
         let expr = parse_expr("x * y + z");
-        let eval = CompiledEvaluator::compile(&expr, &["x", "y", "z"], None).unwrap();
+        let eval = CompiledEvaluator::compile(&expr, &["x", "y", "z"], None).expect("Should pass");
         assert!((eval.evaluate(&[2.0, 3.0, 4.0]) - 10.0).abs() < 1e-10);
     }
 
@@ -2468,7 +2604,7 @@ mod tests {
     #[test]
     fn test_compile_auto() {
         let expr = parse_expr("x^2 + y");
-        let eval = CompiledEvaluator::compile_auto(&expr, None).unwrap();
+        let eval = CompiledEvaluator::compile_auto(&expr, None).expect("Should pass");
         // Auto compilation sorts parameters alphabetically
         assert_eq!(eval.param_names(), &["x", "y"]);
     }
@@ -2479,14 +2615,15 @@ mod tests {
     fn test_eval_batch_simd_path() {
         // Tests the SIMD path (4+ points processed with f64x4)
         let expr = parse_expr("x^2 + 2*x + 1");
-        let eval = CompiledEvaluator::compile(&expr, &["x"], None).unwrap();
+        let eval = CompiledEvaluator::compile(&expr, &["x"], None).expect("Should pass");
 
         // 8 points to ensure full SIMD chunks
-        let x_vals: Vec<f64> = (0..8).map(|i| i as f64).collect();
+        let x_vals: Vec<f64> = (0..8).map(f64::from).collect();
         let columns: Vec<&[f64]> = vec![&x_vals];
         let mut output = vec![0.0; 8];
 
-        eval.eval_batch(&columns, &mut output, None).unwrap();
+        eval.eval_batch(&columns, &mut output, None)
+            .expect("Should pass");
 
         // Verify each result: (x+1)^2
         for (i, &result) in output.iter().enumerate() {
@@ -2494,10 +2631,7 @@ mod tests {
             let expected = (x + 1.0).powi(2);
             assert!(
                 (result - expected).abs() < 1e-10,
-                "Mismatch at i={}: got {}, expected {}",
-                i,
-                result,
-                expected
+                "Mismatch at i={i}: got {result}, expected {expected}"
             );
         }
     }
@@ -2506,24 +2640,22 @@ mod tests {
     fn test_eval_batch_remainder_path() {
         // Tests the scalar remainder path (points not divisible by 4)
         let expr = parse_expr("sin(x) + cos(x)");
-        let eval = CompiledEvaluator::compile(&expr, &["x"], None).unwrap();
+        let eval = CompiledEvaluator::compile(&expr, &["x"], None).expect("Should pass");
 
         // 6 points: 4 SIMD + 2 remainder
         let x_vals: Vec<f64> = vec![0.0, 0.5, 1.0, 1.5, 2.0, 2.5];
         let columns: Vec<&[f64]> = vec![&x_vals];
         let mut output = vec![0.0; 6];
 
-        eval.eval_batch(&columns, &mut output, None).unwrap();
+        eval.eval_batch(&columns, &mut output, None)
+            .expect("Should pass");
 
         for (i, &result) in output.iter().enumerate() {
             let x = x_vals[i];
             let expected = x.sin() + x.cos();
             assert!(
                 (result - expected).abs() < 1e-10,
-                "Mismatch at i={}: got {}, expected {}",
-                i,
-                result,
-                expected
+                "Mismatch at i={i}: got {result}, expected {expected}"
             );
         }
     }
@@ -2532,7 +2664,7 @@ mod tests {
     fn test_eval_batch_multi_var() {
         // Tests batch evaluation with multiple variables
         let expr = parse_expr("x * y + z");
-        let eval = CompiledEvaluator::compile(&expr, &["x", "y", "z"], None).unwrap();
+        let eval = CompiledEvaluator::compile(&expr, &["x", "y", "z"], None).expect("Should pass");
 
         let x_vals = vec![1.0, 2.0, 3.0, 4.0, 5.0];
         let y_vals = vec![2.0, 3.0, 4.0, 5.0, 6.0];
@@ -2540,10 +2672,11 @@ mod tests {
         let columns: Vec<&[f64]> = vec![&x_vals, &y_vals, &z_vals];
         let mut output = vec![0.0; 5];
 
-        eval.eval_batch(&columns, &mut output, None).unwrap();
+        eval.eval_batch(&columns, &mut output, None)
+            .expect("Should pass");
 
         for i in 0..5 {
-            let expected = x_vals[i] * y_vals[i] + z_vals[i];
+            let expected = x_vals[i].mul_add(y_vals[i], z_vals[i]);
             assert!(
                 (output[i] - expected).abs() < 1e-10,
                 "Mismatch at i={}: got {}, expected {}",
@@ -2558,23 +2691,21 @@ mod tests {
     fn test_eval_batch_special_functions() {
         // Tests SIMD slow path for special functions
         let expr = parse_expr("exp(x) + sqrt(x)");
-        let eval = CompiledEvaluator::compile(&expr, &["x"], None).unwrap();
+        let eval = CompiledEvaluator::compile(&expr, &["x"], None).expect("Should pass");
 
         let x_vals: Vec<f64> = vec![1.0, 2.0, 3.0, 4.0];
         let columns: Vec<&[f64]> = vec![&x_vals];
         let mut output = vec![0.0; 4];
 
-        eval.eval_batch(&columns, &mut output, None).unwrap();
+        eval.eval_batch(&columns, &mut output, None)
+            .expect("Should pass");
 
         for (i, &result) in output.iter().enumerate() {
             let x = x_vals[i];
             let expected = x.exp() + x.sqrt();
             assert!(
                 (result - expected).abs() < 1e-10,
-                "Mismatch at i={}: got {}, expected {}",
-                i,
-                result,
-                expected
+                "Mismatch at i={i}: got {result}, expected {expected}"
             );
         }
     }
@@ -2583,13 +2714,14 @@ mod tests {
     fn test_eval_batch_single_point() {
         // Edge case: single point (no SIMD, just remainder)
         let expr = parse_expr("x^2");
-        let eval = CompiledEvaluator::compile(&expr, &["x"], None).unwrap();
+        let eval = CompiledEvaluator::compile(&expr, &["x"], None).expect("Should pass");
 
         let x_vals = vec![3.0];
         let columns: Vec<&[f64]> = vec![&x_vals];
         let mut output = vec![0.0; 1];
 
-        eval.eval_batch(&columns, &mut output, None).unwrap();
+        eval.eval_batch(&columns, &mut output, None)
+            .expect("Should pass");
 
         assert!((output[0] - 9.0).abs() < 1e-10);
     }
@@ -2598,12 +2730,13 @@ mod tests {
     fn test_eval_batch_constant_expr() {
         // Edge case: expression with no variables
         let expr = parse_expr("pi * 2");
-        let eval = CompiledEvaluator::compile_auto(&expr, None).unwrap();
+        let eval = CompiledEvaluator::compile_auto(&expr, None).expect("Should pass");
 
         let columns: Vec<&[f64]> = vec![];
         let mut output = vec![0.0; 1];
 
-        eval.eval_batch(&columns, &mut output, None).unwrap();
+        eval.eval_batch(&columns, &mut output, None)
+            .expect("Should pass");
 
         let expected = std::f64::consts::PI * 2.0;
         assert!((output[0] - expected).abs() < 1e-10);
@@ -2613,14 +2746,15 @@ mod tests {
     fn test_eval_batch_vs_single() {
         // Verify batch and single evaluation produce identical results
         let expr = parse_expr("sin(x) * cos(y) + exp(x/y)");
-        let eval = CompiledEvaluator::compile(&expr, &["x", "y"], None).unwrap();
+        let eval = CompiledEvaluator::compile(&expr, &["x", "y"], None).expect("Should pass");
 
-        let x_vals: Vec<f64> = (1..=8).map(|i| i as f64 * 0.5).collect();
-        let y_vals: Vec<f64> = (1..=8).map(|i| i as f64 * 0.3 + 0.1).collect();
+        let x_vals: Vec<f64> = (1..=8).map(|i| f64::from(i) * 0.5).collect();
+        let y_vals: Vec<f64> = (1..=8).map(|i| f64::from(i).mul_add(0.3, 0.1)).collect();
         let columns: Vec<&[f64]> = vec![&x_vals, &y_vals];
         let mut batch_output = vec![0.0; 8];
 
-        eval.eval_batch(&columns, &mut batch_output, None).unwrap();
+        eval.eval_batch(&columns, &mut batch_output, None)
+            .expect("Should pass");
 
         // Compare with single evaluations
         for i in 0..8 {
@@ -2653,23 +2787,15 @@ mod tests {
         let expr = Expr::func("f", x.to_expr()) + 2.0;
 
         // Compile with context - user function should be expanded
-        let eval = CompiledEvaluator::compile(&expr, &["x"], Some(&ctx)).unwrap();
+        let eval = CompiledEvaluator::compile(&expr, &["x"], Some(&ctx)).expect("Should pass");
 
         // f(3) + 2 = (3^2 + 1) + 2 = 10 + 2 = 12
         let result = eval.evaluate(&[3.0]);
-        assert!(
-            (result - 12.0).abs() < 1e-10,
-            "Expected 12.0, got {}",
-            result
-        );
+        assert!((result - 12.0).abs() < 1e-10, "Expected 12.0, got {result}");
 
         // f(0) + 2 = (0^2 + 1) + 2 = 1 + 2 = 3
         let result2 = eval.evaluate(&[0.0]);
-        assert!(
-            (result2 - 3.0).abs() < 1e-10,
-            "Expected 3.0, got {}",
-            result2
-        );
+        assert!((result2 - 3.0).abs() < 1e-10, "Expected 3.0, got {result2}");
     }
 
     #[test]
@@ -2696,14 +2822,10 @@ mod tests {
         let expr = Expr::func("f", x.to_expr());
 
         // Compile with context - nested function calls should be expanded
-        let eval = CompiledEvaluator::compile(&expr, &["x"], Some(&ctx)).unwrap();
+        let eval = CompiledEvaluator::compile(&expr, &["x"], Some(&ctx)).expect("Should pass");
 
         // f(5) = g(5) + 1 = 2*5 + 1 = 11
         let result = eval.evaluate(&[5.0]);
-        assert!(
-            (result - 11.0).abs() < 1e-10,
-            "Expected 11.0, got {}",
-            result
-        );
+        assert!((result - 11.0).abs() < 1e-10, "Expected 11.0, got {result}");
     }
 }

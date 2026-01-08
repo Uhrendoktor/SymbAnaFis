@@ -67,7 +67,7 @@ enum DataInput<'py> {
 impl DataInput<'_> {
     fn as_slice(&self) -> PyResult<&[f64]> {
         match self {
-            DataInput::Array(arr) => arr.as_slice().map_err(|_| {
+            DataInput::Array(arr) => arr.as_slice().map_err(|_e| {
                 PyErr::new::<pyo3::exceptions::PyValueError, _>(
                     "All input arrays must be C-contiguous and f64",
                 )
@@ -151,7 +151,11 @@ fn is_legendre_l_domain_error(l: f64) -> bool {
 
 /// Check if |m| > l for Associated Legendre/Spherical Harmonic
 const fn is_legendre_m_domain_error(l: f64, m: f64) -> bool {
+    #[allow(clippy::cast_possible_truncation)]
+    // Legendre l is always a small integer after rounding
     let l_int = l.round() as i32;
+    #[allow(clippy::cast_possible_truncation)]
+    // Legendre m is always a small integer after rounding
     let m_int = m.round() as i32;
     m_int.abs() > l_int
 }
@@ -193,7 +197,7 @@ fn extract_to_expr(value: &Bound<'_, PyAny>) -> PyResult<RustExpr> {
     }
     if let Ok(n) = value.extract::<i64>() {
         // i64->f64 intentional: Python integers map naturally to floats
-        #[allow(clippy::cast_precision_loss)]
+        #[allow(clippy::cast_precision_loss)] // i64→f64: Python integers map naturally to floats
         return Ok(RustExpr::number(n as f64));
     }
     if let Ok(s) = value.extract::<String>() {
@@ -244,10 +248,14 @@ impl PyExpr {
         use std::hash::{Hash, Hasher};
         let mut s = DefaultHasher::new();
         self.0.to_string().hash(&mut s);
-        // u64->isize: Python __hash__ requires isize, wrap is expected
-        #[allow(clippy::cast_possible_wrap)]
+        #[allow(clippy::cast_possible_wrap)] // Python __hash__ requires isize, wrapping is expected
         {
-            s.finish() as isize
+            // u64->isize: Python __hash__ requires isize, allow truncation
+            let hash = s.finish();
+            #[allow(clippy::cast_possible_truncation)]
+            // Python __hash__ requires isize, truncation is expected
+            let res = hash as isize;
+            res
         }
     }
 
@@ -297,6 +305,7 @@ impl PyExpr {
         if let Ok(n) = other.extract::<i64>() {
             // i64->f64 intentional: Python integers map naturally to floats
             #[allow(clippy::cast_precision_loss)]
+            // i64→f64: Python integers map naturally to floats
             return Ok(Self(RustExpr::number(n as f64).pow(self.0.clone())));
         }
         Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
@@ -315,6 +324,7 @@ impl PyExpr {
         if let Ok(n) = other.extract::<i64>() {
             // i64->f64 intentional: Python integers map naturally to floats
             #[allow(clippy::cast_precision_loss)]
+            // i64→f64: Python integers map naturally to floats
             return Ok(Self(RustExpr::number(n as f64) + self.0.clone()));
         }
         Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
@@ -329,6 +339,7 @@ impl PyExpr {
         if let Ok(n) = other.extract::<i64>() {
             // i64->f64 intentional: Python integers map naturally to floats
             #[allow(clippy::cast_precision_loss)]
+            // i64→f64: Python integers map naturally to floats
             return Ok(Self(RustExpr::number(n as f64) - self.0.clone()));
         }
         Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
@@ -343,6 +354,7 @@ impl PyExpr {
         if let Ok(n) = other.extract::<i64>() {
             // i64->f64 intentional: Python integers map naturally to floats
             #[allow(clippy::cast_precision_loss)]
+            // i64→f64: Python integers map naturally to floats
             return Ok(Self(RustExpr::number(n as f64) * self.0.clone()));
         }
         Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
@@ -357,6 +369,7 @@ impl PyExpr {
         if let Ok(n) = other.extract::<i64>() {
             // i64->f64 intentional: Python integers map naturally to floats
             #[allow(clippy::cast_precision_loss)]
+            // i64→f64: Python integers map naturally to floats
             return Ok(Self(RustExpr::number(n as f64) / self.0.clone()));
         }
         Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
@@ -739,14 +752,14 @@ impl PyExpr {
         if let Some(l_val) = get_numeric_value(&l_expr) {
             if is_legendre_l_domain_error(l_val) {
                 return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
-                    "spherical_harmonic({l_val}, m, θ, φ) undefined: l must be non-negative integer"
+                    "spherical_harmonic({l_val}, m, \u{03b8}, \u{03c6}) undefined: l must be non-negative integer"
                 )));
             }
             if let Some(m_val) = get_numeric_value(&m_expr)
                 && is_legendre_m_domain_error(l_val, m_val)
             {
                 return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
-                    "spherical_harmonic({l_val}, {m_val}, θ, φ) undefined: |m| must be <= l"
+                    "spherical_harmonic({l_val}, {m_val}, \u{03b8}, \u{03c6}) undefined: |m| must be <= l"
                 )));
             }
         }
@@ -770,14 +783,14 @@ impl PyExpr {
         if let Some(l_val) = get_numeric_value(&l_expr) {
             if is_legendre_l_domain_error(l_val) {
                 return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
-                    "ynm({l_val}, m, θ, φ) undefined: l must be non-negative integer"
+                    "ynm({l_val}, m, \u{03b8}, \u{03c6}) undefined: l must be non-negative integer"
                 )));
             }
             if let Some(m_val) = get_numeric_value(&m_expr)
                 && is_legendre_m_domain_error(l_val, m_val)
             {
                 return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
-                    "ynm({l_val}, {m_val}, θ, φ) undefined: |m| must be <= l"
+                    "ynm({l_val}, {m_val}, \u{03b8}, \u{03c6}) undefined: |m| must be <= l"
                 )));
             }
         }
@@ -869,7 +882,7 @@ impl PyExpr {
     /// Returns:
     ///     Evaluated expression (may be a number or symbolic if variables remain)
     // PyO3 requires owned HashMap for Python dict arguments
-    #[allow(clippy::needless_pass_by_value)]
+    #[allow(clippy::needless_pass_by_value)] // PyO3 requires owned HashMap for Python dict arguments
     fn evaluate(&self, vars: std::collections::HashMap<String, f64>) -> Self {
         let var_map: std::collections::HashMap<&str, f64> =
             vars.iter().map(|(k, v)| (k.as_str(), *v)).collect();
@@ -1360,10 +1373,10 @@ impl PyDiff {
         self_
     }
 
-    fn fixed_var<'a>(
-        mut self_: PyRefMut<'a, Self>,
+    fn fixed_var<'py>(
+        mut self_: PyRefMut<'py, Self>,
         var: &Bound<'_, PyAny>,
-    ) -> PyResult<PyRefMut<'a, Self>> {
+    ) -> PyResult<PyRefMut<'py, Self>> {
         if let Ok(s) = var.extract::<String>() {
             self_.inner = self_.inner.clone().fixed_var(&s);
         } else if let Ok(sym) = var.extract::<PySymbol>() {
@@ -1376,10 +1389,10 @@ impl PyDiff {
         Ok(self_)
     }
 
-    fn fixed_vars<'a>(
-        mut self_: PyRefMut<'a, Self>,
+    fn fixed_vars<'py>(
+        mut self_: PyRefMut<'py, Self>,
         vars: Vec<Bound<'_, PyAny>>,
-    ) -> PyResult<PyRefMut<'a, Self>> {
+    ) -> PyResult<PyRefMut<'py, Self>> {
         for var in vars {
             if let Ok(s) = var.extract::<String>() {
                 self_.inner = self_.inner.clone().fixed_var(&s);
@@ -1404,10 +1417,10 @@ impl PyDiff {
         self_
     }
 
-    fn with_context<'a>(
-        mut self_: PyRefMut<'a, Self>,
-        context: &'a PyContext,
-    ) -> PyRefMut<'a, Self> {
+    fn with_context<'py>(
+        mut self_: PyRefMut<'py, Self>,
+        context: &'py PyContext,
+    ) -> PyRefMut<'py, Self> {
         self_.inner = self_.inner.clone().with_context(&context.inner);
         self_
     }
@@ -1548,10 +1561,10 @@ impl PySimplify {
         self_
     }
 
-    fn fixed_var<'a>(
-        mut self_: PyRefMut<'a, Self>,
+    fn fixed_var<'py>(
+        mut self_: PyRefMut<'py, Self>,
         var: &Bound<'_, PyAny>,
-    ) -> PyResult<PyRefMut<'a, Self>> {
+    ) -> PyResult<PyRefMut<'py, Self>> {
         if let Ok(s) = var.extract::<String>() {
             self_.inner = self_.inner.clone().fixed_var(&s);
         } else if let Ok(sym) = var.extract::<PySymbol>() {
@@ -1564,10 +1577,10 @@ impl PySimplify {
         Ok(self_)
     }
 
-    fn fixed_vars<'a>(
-        mut self_: PyRefMut<'a, Self>,
+    fn fixed_vars<'py>(
+        mut self_: PyRefMut<'py, Self>,
         vars: Vec<Bound<'_, PyAny>>,
-    ) -> PyResult<PyRefMut<'a, Self>> {
+    ) -> PyResult<PyRefMut<'py, Self>> {
         for var in vars {
             if let Ok(s) = var.extract::<String>() {
                 self_.inner = self_.inner.clone().fixed_var(&s);
@@ -1592,10 +1605,10 @@ impl PySimplify {
         self_
     }
 
-    fn with_context<'a>(
-        mut self_: PyRefMut<'a, Self>,
-        context: &'a PyContext,
-    ) -> PyRefMut<'a, Self> {
+    fn with_context<'py>(
+        mut self_: PyRefMut<'py, Self>,
+        context: &'py PyContext,
+    ) -> PyRefMut<'py, Self> {
         self_.inner = self_.inner.clone().with_context(&context.inner);
         self_
     }
@@ -1628,7 +1641,7 @@ impl PySimplify {
 ///
 /// For Expr input, use `Diff().differentiate()` instead.
 // PyO3 requires owned types for Python function arguments
-#[allow(clippy::needless_pass_by_value)]
+#[allow(clippy::needless_pass_by_value)] // PyO3 requires owned types for Python function arguments
 #[pyfunction]
 #[pyo3(signature = (formula, var, known_symbols=None, custom_functions=None))]
 fn diff(
@@ -1978,6 +1991,9 @@ fn relative_uncertainty_py(
 #[cfg(feature = "parallel")]
 #[pyfunction]
 #[pyo3(name = "evaluate_parallel")]
+/// Batch evaluate multiple expressions in parallel (Zero-Copy)
+// Clippy: PyO3 bridge function requires extensive setup and boilerplate
+#[allow(clippy::too_many_lines)] // PyO3 bridge function requires extensive setup and boilerplate
 fn evaluate_parallel_py(
     py: Python<'_>,
     expressions: Vec<Bound<'_, PyAny>>,
@@ -2033,7 +2049,7 @@ fn evaluate_parallel_py(
                             .into_iter()
                             .map(|v| {
                                 // Side-effect in else branch makes map_or_else unsuitable
-                                #[allow(clippy::option_if_let_else)]
+                                #[allow(clippy::option_if_let_else)] // Side-effect in else branch
                                 if let Some(n) = v {
                                     Value::Num(n)
                                 } else {
@@ -2070,24 +2086,42 @@ fn evaluate_parallel_py(
                             parallel::EvalResult::String(s) => {
                                 // Input was string; Result::map_or_else is better than this pattern
                                 #[allow(clippy::option_if_let_else)]
+                                // Result::map_or_else is harder to read here
                                 if let Ok(n) = s.parse::<f64>() {
                                     // Numeric result → float
-                                    n.into_pyobject(py).unwrap().into_any().unbind()
+                                    n.into_pyobject(py)
+                                        .expect("PyO3 object conversion failed")
+                                        .into_any()
+                                        .unbind()
                                 } else {
                                     // Symbolic result → str
-                                    s.into_pyobject(py).unwrap().into_any().unbind()
+                                    s.into_pyobject(py)
+                                        .expect("PyO3 object conversion failed")
+                                        .into_any()
+                                        .unbind()
                                 }
                             }
                             parallel::EvalResult::Expr(e) => {
                                 if let crate::ExprKind::Number(n) = &e.kind {
                                     // Numeric result → float
-                                    n.into_pyobject(py).unwrap().into_any().unbind()
+                                    n.into_pyobject(py)
+                                        .expect("PyO3 object conversion failed")
+                                        .into_any()
+                                        .unbind()
                                 } else if input_was_expr {
                                     // Symbolic result, input was Expr → Expr
-                                    PyExpr(e).into_pyobject(py).unwrap().into_any().unbind()
+                                    PyExpr(e)
+                                        .into_pyobject(py)
+                                        .expect("PyO3 object conversion failed")
+                                        .into_any()
+                                        .unbind()
                                 } else {
                                     // Symbolic result, input was str → str
-                                    e.to_string().into_pyobject(py).unwrap().into_any().unbind()
+                                    e.to_string()
+                                        .into_pyobject(py)
+                                        .expect("PyO3 object conversion failed")
+                                        .into_any()
+                                        .unbind()
                                 }
                             }
                         })
@@ -2130,7 +2164,7 @@ impl PySymbol {
     }
 
     // u64->isize: Python __hash__ requires isize, wrap is expected
-    #[allow(clippy::cast_possible_wrap)]
+    #[allow(clippy::cast_possible_wrap, clippy::cast_possible_truncation)] // Python __hash__ requires isize
     const fn __hash__(&self) -> isize {
         self.0.id() as isize
     }
@@ -2140,9 +2174,11 @@ impl PySymbol {
         self.0.name()
     }
 
-    /// Get the symbol's unique ID
-    const fn id(&self) -> u64 {
-        self.0.id()
+    /// Unique identifier for this symbol (pointer address based)
+    #[getter]
+    #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)] // Python ID requires isize
+    const fn id(&self) -> isize {
+        self.0.id() as isize
     }
 
     /// Convert to an expression
@@ -2634,7 +2670,11 @@ impl PyCompiledEvaluator {
             Ok(PyArray1::from_vec(py, output).into_any().unbind())
         } else {
             // Return standard Python list
-            Ok(output.into_pyobject(py).unwrap().into_any().unbind())
+            Ok(output
+                .into_pyobject(py)
+                .expect("PyO3 object conversion failed")
+                .into_any()
+                .unbind())
         }
     }
 
@@ -3008,7 +3048,11 @@ fn eval_f64_py<'py>(
         Ok(arr.into_any().unbind())
     } else {
         // Return standard Python list of lists
-        Ok(results.into_pyobject(py).unwrap().into_any().unbind())
+        Ok(results
+            .into_pyobject(py)
+            .expect("PyO3 object conversion failed")
+            .into_any()
+            .unbind())
     }
 }
 

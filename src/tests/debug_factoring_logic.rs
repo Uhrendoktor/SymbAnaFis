@@ -18,7 +18,7 @@ mod tests {
         println!("Expr: {}", expr);
 
         // Handle both Sum and Poly representations
-        let terms: Vec<Expr> = match &expr.kind {
+        let expr_terms: Vec<Expr> = match &expr.kind {
             ExprKind::Sum(ts) if ts.len() == 3 => ts.iter().map(|t| (**t).clone()).collect(),
             ExprKind::Sum(ts) if ts.len() == 2 => {
                 // Flatten Sum([constant, Poly]) → 3 terms
@@ -50,8 +50,8 @@ mod tests {
             _ => vec![expr.clone()],
         };
 
-        println!("Terms count: {}", terms.len());
-        for (i, term) in terms.iter().enumerate() {
+        println!("Terms count: {}", expr_terms.len());
+        for (i, term) in expr_terms.iter().enumerate() {
             println!("Term {}: {:?}", i, term);
 
             // Debug flattening product
@@ -68,7 +68,7 @@ mod tests {
         let mut linear_terms = Vec::new();
         let mut constants = Vec::new();
 
-        for term in &terms {
+        for term in &expr_terms {
             match &term.kind {
                 ExprKind::Pow(base, exp) => {
                     if let ExprKind::Number(n) = &exp.kind

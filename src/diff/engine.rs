@@ -34,7 +34,7 @@ impl Expr {
     ///
     /// let ctx = Context::new()
     ///     .with_function("f", UserFunction::new(1..=1)
-    ///         .partial(0, |args| Expr::number(2.0) * (*args[0]).clone()).unwrap());
+    ///         .partial(0, |args| Expr::number(2.0) * (*args[0]).clone()).expect("Should pass"));
     ///
     /// let x = symb("x");
     /// let expr = x.pow(2.0);
@@ -157,7 +157,10 @@ impl Expr {
                 if derivs.is_empty() {
                     Self::number(0.0)
                 } else if derivs.len() == 1 {
-                    derivs.into_iter().next().unwrap()
+                    derivs
+                        .into_iter()
+                        .next()
+                        .expect("derivs must have exactly one element")
                 } else {
                     Self::sum(derivs)
                 }
@@ -373,7 +376,7 @@ impl Expr {
                 } else {
                     Self::derivative(
                         Self::new(ExprKind::Derivative {
-                            inner: inner.clone(),
+                            inner: Arc::clone(inner),
                             var: deriv_var.clone(),
                             order: *order,
                         }),
@@ -405,6 +408,14 @@ impl Expr {
 }
 
 #[cfg(test)]
+#[allow(
+    clippy::unwrap_used,
+    clippy::panic,
+    clippy::cast_precision_loss,
+    clippy::items_after_statements,
+    clippy::let_underscore_must_use,
+    clippy::no_effect_underscore_binding
+)]
 mod tests {
     use super::*;
 
@@ -418,9 +429,9 @@ mod tests {
                 let has_cosh = factors.iter().any(
                     |f| matches!(&f.kind, ExprKind::FunctionCall { name, .. } if name.as_str() == "cosh"),
                 );
-                assert!(has_cosh, "Expected cosh in Product, got {:?}", factors);
+                assert!(has_cosh, "Expected cosh in Product, got {factors:?}");
             }
-            _ => panic!("Expected cosh or Product with cosh, got {:?}", result),
+            _ => panic!("Expected cosh or Product with cosh, got {result:?}"),
         }
     }
 
@@ -467,7 +478,7 @@ mod tests {
                 assert_eq!(order, 2);
                 assert_eq!(var.as_str(), "x");
             }
-            _ => panic!("Expected Derivative, got {:?}", result),
+            _ => panic!("Expected Derivative, got {result:?}"),
         }
     }
 
@@ -478,14 +489,14 @@ mod tests {
         let result = ninth_deriv.derive("x", None);
         match result.kind {
             ExprKind::Derivative { order, .. } => assert_eq!(order, 10),
-            _ => panic!("Expected Derivative, got {:?}", result),
+            _ => panic!("Expected Derivative, got {result:?}"),
         }
 
         let ninety_ninth_deriv = Expr::derivative(inner_func, "x", 99);
         let result = ninety_ninth_deriv.derive("x", None);
         match result.kind {
             ExprKind::Derivative { order, .. } => assert_eq!(order, 100),
-            _ => panic!("Expected Derivative, got {:?}", result),
+            _ => panic!("Expected Derivative, got {result:?}"),
         }
     }
 
@@ -516,10 +527,10 @@ mod tests {
                         assert_eq!(inner_var.as_str(), "x");
                         assert_eq!(*inner_order, 1);
                     }
-                    _ => panic!("Expected inner Derivative, got {:?}", inner),
+                    _ => panic!("Expected inner Derivative, got {inner:?}"),
                 }
             }
-            _ => panic!("Expected Derivative for mixed partial, got {:?}", result),
+            _ => panic!("Expected Derivative for mixed partial, got {result:?}"),
         }
     }
 
@@ -533,7 +544,7 @@ mod tests {
                 assert_eq!(order, 2);
                 assert_eq!(var.as_str(), "x");
             }
-            _ => panic!("Expected Derivative, got {:?}", result),
+            _ => panic!("Expected Derivative, got {result:?}"),
         }
     }
 
@@ -542,11 +553,10 @@ mod tests {
         let f = Expr::func_multi("f", vec![Expr::symbol("x"), Expr::symbol("y")]);
         let df_dx = Expr::derivative(f, "x", 1);
         let d2f_dxdy = df_dx.derive("y", None);
-        let display = format!("{}", d2f_dxdy);
+        let display = format!("{d2f_dxdy}");
         assert!(
-            display.contains("∂^"),
-            "Display should contain derivative notation, got: {}",
-            display
+            display.contains("\u{2202}^"),
+            "Display should contain derivative notation, got: {display}"
         );
     }
 
@@ -556,34 +566,31 @@ mod tests {
             "f",
             vec![Expr::symbol("x"), Expr::symbol("y"), Expr::symbol("z")],
         );
-        let df_dx = Expr::derivative(f_xyz.clone(), "x", 1);
-        let d2f_dxdy = df_dx.derive("y", None);
-        let d3f_dxdydz = d2f_dxdy.derive("z", None);
+        let deriv_x = Expr::derivative(f_xyz.clone(), "x", 1);
+        let deriv_xy = deriv_x.derive("y", None);
+        let deriv_xyz = deriv_xy.derive("z", None);
 
-        match &d3f_dxdydz.kind {
+        match &deriv_xyz.kind {
             ExprKind::Derivative { var, .. } => {
                 assert_eq!(var.as_str(), "z");
             }
-            _ => panic!(
-                "Expected Derivative for triple mixed partial, got {:?}",
-                d3f_dxdydz
-            ),
+            _ => panic!("Expected Derivative for triple mixed partial, got {deriv_xyz:?}"),
         }
 
-        let df_dw = f_xyz.derive("w", None);
-        assert_eq!(df_dw.as_number(), Some(0.0));
+        let deriv_w = f_xyz.derive("w", None);
+        assert_eq!(deriv_w.as_number(), Some(0.0));
 
-        let d2f_dxdw = df_dx.derive("w", None);
-        assert_eq!(d2f_dxdw.as_number(), Some(0.0));
+        let deriv_w_x = deriv_x.derive("w", None);
+        assert_eq!(deriv_w_x.as_number(), Some(0.0));
     }
 
     #[test]
     fn test_derive_erfc() {
         let expr = Expr::func("erfc", Expr::symbol("x"));
         let result = expr.derive("x", None);
-        let s = format!("{}", result);
-        assert!(s.contains("exp"), "Result should contain exp: {}", s);
-        assert!(s.contains("pi"), "Result should contain pi: {}", s);
-        assert!(s.contains("-2"), "Result should contain -2: {}", s);
+        let s = format!("{result}");
+        assert!(s.contains("exp"), "Result should contain exp: {s}");
+        assert!(s.contains("pi"), "Result should contain pi: {s}");
+        assert!(s.contains("-2"), "Result should contain -2: {s}");
     }
 }

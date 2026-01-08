@@ -29,8 +29,15 @@ pub struct Polynomial {
 
 /// Helper to format coefficient
 fn format_coeff(n: f64) -> String {
-    if n.trunc() == n && n.abs() < 1e10 {
-        format!("{}", n as i64)
+    if {
+        #[allow(clippy::float_cmp)] // Checking for exact integer via trunc
+        let is_int = n.trunc() == n;
+        is_int
+    } && n.abs() < 1e10
+    {
+        #[allow(clippy::cast_possible_truncation)] // Checked is_int above
+        let n_int = n as i64;
+        format!("{n_int}")
     } else {
         format!("{n}")
     }
@@ -260,7 +267,7 @@ impl Polynomial {
 
         // Pre-allocate with combined capacity
         let mut result = Self {
-            base: self.base.clone(),
+            base: Arc::clone(&self.base),
             terms: Vec::with_capacity(self.terms.len() + other.terms.len()),
         };
         result.terms.clone_from(&self.terms);
@@ -278,7 +285,7 @@ impl Polynomial {
     /// Negate polynomial
     pub fn negate(&self) -> Self {
         Self {
-            base: self.base.clone(),
+            base: Arc::clone(&self.base),
             terms: self.terms.iter().map(|&(p, c)| (p, -c)).collect(),
         }
     }
@@ -291,7 +298,7 @@ impl Polynomial {
         );
 
         if self.is_zero() || other.is_zero() {
-            return Self::zero(self.base.clone());
+            return Self::zero(Arc::clone(&self.base));
         }
 
         // Efficient multiplication: Collect all terms then sort and merge
@@ -328,7 +335,7 @@ impl Polynomial {
         }
 
         Self {
-            base: self.base.clone(),
+            base: Arc::clone(&self.base),
             terms: merged_terms,
         }
     }
@@ -336,10 +343,10 @@ impl Polynomial {
     /// Multiply by a scalar
     pub fn scale(&self, scalar: f64) -> Self {
         if scalar.abs() < EPSILON {
-            return Self::zero(self.base.clone());
+            return Self::zero(Arc::clone(&self.base));
         }
         Self {
-            base: self.base.clone(),
+            base: Arc::clone(&self.base),
             terms: self.terms.iter().map(|&(p, c)| (p, c * scalar)).collect(),
         }
     }
@@ -347,7 +354,7 @@ impl Polynomial {
     /// Differentiate polynomial: d/d(base)
     /// Each term c*base^n becomes n*c*base^(n-1)
     pub fn derivative(&self) -> Self {
-        let mut result = Self::zero(self.base.clone());
+        let mut result = Self::zero(Arc::clone(&self.base));
         for &(pow, coeff) in &self.terms {
             if pow > 0 {
                 result.add_term(pow - 1, coeff * f64::from(pow));
@@ -378,7 +385,7 @@ impl Polynomial {
         let div_deg = other.degree();
         let div_lc = other.leading_coeff();
 
-        let mut quotient = Self::zero(self.base.clone());
+        let mut quotient = Self::zero(Arc::clone(&self.base));
         let mut remainder = self.clone();
 
         loop {
@@ -485,7 +492,12 @@ impl Polynomial {
                     && *n >= 0.0
                     && n.fract().abs() < EPSILON
                 {
-                    #[allow(clippy::cast_sign_loss)]
+                    // Exponent n >= 0 is already validated
+                    #[allow(
+                        clippy::float_cmp,
+                        clippy::cast_possible_truncation,
+                        clippy::cast_sign_loss
+                    )]
                     let pow = *n as u32;
                     // Reuse existing Arc instead of deep cloning
                     return Some(Self {
@@ -623,7 +635,7 @@ impl Polynomial {
         let mut new_terms = self.terms.clone();
         new_terms[0].1 = -new_terms[0].1;
         Self {
-            base: self.base.clone(),
+            base: Arc::clone(&self.base),
             terms: new_terms,
         }
     }
@@ -640,6 +652,15 @@ impl Default for Polynomial {
 // =============================================================================
 
 #[cfg(test)]
+// Standard test relaxations: unwrap/panic for assertions, precision loss for math
+#[allow(
+    clippy::unwrap_used,
+    clippy::panic,
+    clippy::cast_precision_loss,
+    clippy::items_after_statements,
+    clippy::let_underscore_must_use,
+    clippy::no_effect_underscore_binding
+)]
 mod tests {
     use super::*;
 
@@ -663,8 +684,8 @@ mod tests {
     #[test]
     fn test_poly_add() {
         let x = Arc::new(Expr::symbol("x"));
-        let p1 = Polynomial::term(x.clone(), 2, 3.0); // 3x²
-        let p2 = Polynomial::term(x.clone(), 1, 2.0); // 2x
+        let p1 = Polynomial::term(Arc::clone(&x), 2, 3.0); // 3x²
+        let p2 = Polynomial::term(Arc::clone(&x), 1, 2.0); // 2x
         let sum = p1.add(&p2);
 
         assert_eq!(sum.term_count(), 2);
@@ -676,7 +697,7 @@ mod tests {
     fn test_poly_mul() {
         // (x + 1) * (x + 1) = x² + 2x + 1
         let x = Arc::new(Expr::symbol("x"));
-        let mut p = Polynomial::term(x.clone(), 1, 1.0);
+        let mut p = Polynomial::term(Arc::clone(&x), 1, 1.0);
         p.add_term(0, 1.0); // x + 1
 
         let result = p.mul(&p);
@@ -690,7 +711,7 @@ mod tests {
     fn test_poly_derivative() {
         // d/dx(3x² + 2x + 1) = 6x + 2
         let x = Arc::new(Expr::symbol("x"));
-        let mut p = Polynomial::zero(x.clone());
+        let mut p = Polynomial::zero(Arc::clone(&x));
         p.add_term(2, 3.0);
         p.add_term(1, 2.0);
         p.add_term(0, 1.0);
@@ -706,11 +727,11 @@ mod tests {
         // (x² - 1) / (x - 1) = (x + 1), remainder 0
         let x = Arc::new(Expr::symbol("x"));
 
-        let mut p1 = Polynomial::zero(x.clone());
+        let mut p1 = Polynomial::zero(Arc::clone(&x));
         p1.add_term(2, 1.0);
         p1.add_term(0, -1.0); // x² - 1
 
-        let mut p2 = Polynomial::zero(x.clone());
+        let mut p2 = Polynomial::zero(Arc::clone(&x));
         p2.add_term(1, 1.0);
         p2.add_term(0, -1.0); // x - 1
 
@@ -724,11 +745,11 @@ mod tests {
         // GCD of (x² - 1) and (x - 1) should be (x - 1)
         let x = Arc::new(Expr::symbol("x"));
 
-        let mut p1 = Polynomial::zero(x.clone());
+        let mut p1 = Polynomial::zero(Arc::clone(&x));
         p1.add_term(2, 1.0);
         p1.add_term(0, -1.0);
 
-        let mut p2 = Polynomial::zero(x.clone());
+        let mut p2 = Polynomial::zero(Arc::clone(&x));
         p2.add_term(1, 1.0);
         p2.add_term(0, -1.0);
 
@@ -742,7 +763,7 @@ mod tests {
         let sin_x = Expr::func("sin", Expr::symbol("x"));
         let base = Arc::new(sin_x);
 
-        let mut p = Polynomial::zero(base.clone());
+        let mut p = Polynomial::zero(Arc::clone(&base));
         p.add_term(2, 1.0);
         p.add_term(0, -1.0); // sin(x)² - 1
 
@@ -774,6 +795,6 @@ mod tests {
         p.add_term(0, 1.0);
 
         let s = p.to_string();
-        assert!(s.contains("3") && s.contains("x"));
+        assert!(s.contains('3') && s.contains('x'));
     }
 }

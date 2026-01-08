@@ -164,7 +164,7 @@ fn test_eval_inverse_hyperbolic_nan() {
 
     // acoth(2) ≈ 0.5493...
     let acoth2 = eval_expr("acoth(2)", &[]).unwrap();
-    assert!(approx_eq(acoth2, 0.5493061443340549));
+    assert!(approx_eq(acoth2, 0.549_306_144_334_054_9));
 
     // acoth(0.5) should be NaN (|x| <= 1)
     let acoth_half = eval_expr("acoth(0.5)", &[]).unwrap();
@@ -319,29 +319,21 @@ fn test_log_consistency_with_ln() {
 fn test_log10_log2_consistency() {
     // log(10, x) should equal log10(x)
     for x in [1.0, 10.0, 100.0, 1000.0] {
-        let log_10_x = eval_expr(&format!("log(10, {})", x), &[]).unwrap();
-        let log10_x = eval_expr(&format!("log10({})", x), &[]).unwrap();
+        let log_10_x = eval_expr(&format!("log(10, {x})"), &[]).unwrap();
+        let log10_res = eval_expr(&format!("log10({x})"), &[]).unwrap();
         assert!(
-            approx_eq(log_10_x, log10_x),
-            "log(10, {}) = {} should equal log10({}) = {}",
-            x,
-            log_10_x,
-            x,
-            log10_x
+            approx_eq(log_10_x, log10_res),
+            "log(10, {x}) = {log_10_x} should equal log10({x}) = {log10_res}"
         );
     }
 
     // log(2, x) should equal log2(x)
     for x in [1.0, 2.0, 4.0, 8.0, 16.0] {
-        let log_2_x = eval_expr(&format!("log(2, {})", x), &[]).unwrap();
-        let log2_x = eval_expr(&format!("log2({})", x), &[]).unwrap();
+        let log_2_x = eval_expr(&format!("log(2, {x})"), &[]).unwrap();
+        let log2_res = eval_expr(&format!("log2({x})"), &[]).unwrap();
         assert!(
-            approx_eq(log_2_x, log2_x),
-            "log(2, {}) = {} should equal log2({}) = {}",
-            x,
-            log_2_x,
-            x,
-            log2_x
+            approx_eq(log_2_x, log2_res),
+            "log(2, {x}) = {log_2_x} should equal log2({x}) = {log2_res}"
         );
     }
 }
@@ -465,9 +457,9 @@ fn test_eval_erf() {
     assert!(approx_eq(eval_expr("erfc(0)", &[]).unwrap(), 1.0));
 
     // erfc(x) + erf(x) = 1
-    let erf1 = eval_expr("erf(1)", &[]).unwrap();
-    let erfc1 = eval_expr("erfc(1)", &[]).unwrap();
-    assert!((erf1 + erfc1 - 1.0).abs() < 0.001);
+    let erf_val = eval_expr("erf(1)", &[]).unwrap();
+    let erfc_res = eval_expr("erfc(1)", &[]).unwrap();
+    assert!((erf_val + erfc_res - 1.0).abs() < 0.001);
 }
 
 // ===== Gamma function =====
@@ -489,7 +481,7 @@ fn test_eval_gamma() {
 fn test_eval_digamma() {
     // ψ(1) = -γ (Euler-Mascheroni constant ≈ -0.5772...)
     let psi1 = eval_expr("digamma(1)", &[]).unwrap();
-    assert!((psi1 - (-0.5772156649015329)).abs() < 0.01);
+    assert!((psi1 - (-0.577_215_664_901_532_9)).abs() < 0.01);
 }
 
 #[test]
