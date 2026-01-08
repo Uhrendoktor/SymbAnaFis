@@ -7,3 +7,7 @@ python/symb_anafis/symb_anafis.cpython-314-x86_64-linux-gnu.so
 *.pyc
 CLAUDE.md
 .vscode
+
+# Allow benchmark results
+!benches/bench_output.txt
+!benches/CI_BENCHMARK_RESULTS.md
