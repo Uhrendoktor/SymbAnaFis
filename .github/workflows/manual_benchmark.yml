@@ -28,8 +28,12 @@ jobs:
       - name: Rust Cache
         uses: swatinem/rust-cache@v2
 
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
       # Corre os benchmarks e escreve para ficheiro de texto simples (raw)
-      # Amanhã tratamos de formatar isto com calma!
       - name: Run Benchmarks
         run: |
           echo "Running benchmarks..."
@@ -45,10 +49,17 @@ jobs:
           
           echo "Benchmarks finished."
 
+      # Formata o output para markdown
+      - name: Format Benchmark Results
+        run: |
+          echo "Formatting benchmark results..."
+          python3 scripts/format_benchmarks.py < benches/bench_output.txt > benches/CI_Bench_Results.md
+          echo "Formatting complete."
+
       # Verifica se houve mudanças e faz commit
       - name: Commit and Push Results
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "chore: update benchmark raw output [skip ci]"
-          file_pattern: benches/bench_output.txt
+          commit_message: "chore: update benchmark results [skip ci]"
+          file_pattern: "benches/bench_output.txt benches/CI_Bench_Results.md"
           branch: ${{ github.ref }}
