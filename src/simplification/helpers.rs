@@ -7,7 +7,6 @@ use crate::core::known_symbols::{ABS, COSH, EXP, PI as PI_SYM, SQRT};
 
 use crate::core::traits::EPSILON;
 use crate::{Expr, ExprKind};
-use std::collections::HashSet;
 use std::sync::Arc;
 
 // Floating point approx equality used for numeric pattern matching
@@ -512,31 +511,32 @@ pub fn contains_factor(expr: &Expr, factor: &Expr) -> bool {
     }
 }
 
-/// Remove factors from an expression - O(n+m) using `HashSet`
-/// Uses zero-copy `flatten_mul_arcs` where possible
-/// Optimized to reuse Arcs and avoid deep clones
+/// Remove factors from an expression - removes exactly one occurrence per factor
+/// Uses Vec-based tracking to correctly handle repeated factors like x*x
+/// When removing 'x' from 'x*x', this should leave 'x' (not 1)
 pub fn remove_factors(expr: &Expr, factors_to_remove: &Expr) -> Expr {
     match &expr.kind {
         ExprKind::Product(expr_factors) => {
-            // Build HashSet of factors to remove - zero-copy storage of references
-            // We use &Expr keys which use structural equality/hashing
-            let remove_set: HashSet<&Expr> = flatten_mul_arcs(factors_to_remove).map_or_else(
-                || std::iter::once(factors_to_remove).collect(),
+            // Build a Vec of factors to remove (preserves duplicates)
+            let mut to_remove: Vec<&Expr> = flatten_mul_arcs(factors_to_remove).map_or_else(
+                || vec![factors_to_remove],
                 |factors| factors.iter().map(std::convert::AsRef::as_ref).collect(),
             );
 
-            // Filter factors - keep Arcs to avoid deep clones
-            let remaining_factors: Vec<Arc<Expr>> = expr_factors
-                .iter()
-                .filter(|f| !remove_set.contains(f.as_ref()))
-                .cloned() // Clone the Arc, ensuring shared ownership (O(1))
-                .collect();
+            // Filter factors - for each matching factor, only remove ONE occurrence
+            let mut remaining_factors: Vec<Arc<Expr>> = Vec::new();
+            for f in expr_factors {
+                // Try to find and remove this factor from to_remove
+                if let Some(pos) = to_remove.iter().position(|&r| r == f.as_ref()) {
+                    to_remove.remove(pos); // Remove only the first match
+                } else {
+                    remaining_factors.push(Arc::clone(f));
+                }
+            }
 
             match remaining_factors.len() {
                 0 => Expr::number(1.0),
-                // Must clone content if returning Expr (single item case)
                 1 => (*remaining_factors[0]).clone(),
-                // Zero-copy product creation
                 _ => Expr::product_from_arcs(remaining_factors),
             }
         }

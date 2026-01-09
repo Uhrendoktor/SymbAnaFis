@@ -1,54 +1,42 @@
 # SymbAnaFis Roadmap
 
-## v0.6.0 - The "Stability & Architecture" Update
+## v0.7.0 - The "Symbolic Solver" Update
 
-**Focus**: Solidifying the core architecture, handling breaking changes early
+**Focus**: Equation solving and domain analysis for complete singularity handling
 
-### ⚠ Breaking Changes
-- [x] **Zero-Copy NumPy Integration**: Update `eval_f64` and `CompiledEvaluator` to return `numpy.ndarray` instead of `list` (Python API).
-- [ ] **Result Type Standardization**: Ensure consistent error handling across all new FFI boundaries.
+### Symbolic Solver (Core)
+- [ ] **Linear Equation Solver**: Gaussian elimination on symbolic matrix.
+- [ ] **Polynomial Root Finding**: Analytical solutions for degrees ≤4.
+- [ ] **Variable Isolation**: Basic `solve(y = f(x), x)` functionality.
 
-### Core Architecture
-- [ ] **Expression Interning (Hash Consing)**: Implement global caching using Weak references to deduplicate common sub-expressions (e.g., `sin(x+y)` is stored once in memory).
-    - *Benefit*: O(1) equality checks and massive RAM savings.
-- [ ] **Removable Singularity Handling**: Implement compile-time detection for 0/0 cases (like `sinc(x)` or `sin(x)/x`).
-    - *Implementation*: Auto-generate conditional bytecode branches using Taylor Series expansion for small arguments (x→0).
+### Domain Analysis & Singularities
+- [ ] **Full Domain Analysis**: Detect where expressions are undefined at compile time.
+- [ ] **Conditional Bytecode**: Generate branches for singularity handling (L'Hôpital fallbacks).
+- [ ] **Series Expansion**: Taylor/Laurent series for limit computation (`series(sin(x)/x, x, 0)`).
 
-### Equation Solving & Algebra
-- [ ] Linear equation solver (Gaussian elimination on symbolic matrix).
-- [ ] Polynomial root finding (for degrees ≤4 analytically).
-- [ ] Basic Substitution and Variable Isolation (`solve(y = x + a, x)`).
+### JIT Compilation (Optional Feature)
+- [ ] **Cranelift Backend**: `features = ["jit"]` - translate `Expr` to native machine code (x86/ARM).
+    - *Goal*: Surpass Stack VM for expressions evaluated >1M times.
 
 ---
 
-## v0.7.0 - The "Speed Demon" Update (JIT & HPC)
+## v0.8.0 - The "Extended Capabilities" Update
 
-**Focus**: Bridging the gap between "Fast Scripting" and "Native Performance" for long-running simulations.
+**Focus**: Rounding out the symbolic manipulation toolkit
 
-### JIT Compilation (Optional Feature)
-- [ ] **Cranelift Backend**: Implement an optional JIT compiler that translates `Expr` directly to machine code (x86/ARM).
-    - *Goal*: Surpass the Stack VM performance for static expressions evaluated >1M times.
-
-### Extended Bytecode Support
-- [ ] **Special Functions in VM**: Add native OpCodes for:
+### Extended Bytecode
+- [ ] **Special Functions in VM**: Native OpCodes for:
     - [ ] Factorial, DoubleFactorial
     - [ ] Exponential integrals (Ei, Li)
     - [ ] Trigonometric integrals (Si, Ci)
 
----
+### Input/Output
+- [ ] **LaTeX Parsing**: Parse LaTeX strings into expressions (`parse(r"\frac{1}{2}x^2")`).
+- [ ] **Pretty Printing**: Improved display formatting options.
 
-## v0.8.0 - The "Symbolic AI" Update
-
-**Focus**: Providing the tooling required for Physics-Informed Machine Learning and Symbolic Regression.
-
-### Symbolic Regression Helpers
-- [ ] **Genetic Programming Utilities**:
-    - [ ] Mutation operators (e.g., `random_subtree_change`).
-    - [ ] Crossover operators (e.g., `swap_subtrees`).
-- [ ] **Loss Function Generators**: Auto-generate Mean Squared Error (MSE) expressions between symbolic formulas and data points.
-
-### Neural ODE Support
-- [ ] **Standalone Differentiable Physics**: Implement native backward-pass gradients to support Neural ODE training without external frameworks (like PyTorch/JAX).
+### Advanced (Stretch Goals)
+- [ ] **Indefinite Integration**: Heuristic approach for common patterns.
+- [ ] **Tensor/Matrix Expressions**: First-class Matrix * Vector symbolic operations.
 
 ---
 
@@ -60,18 +48,50 @@
     - [ ] "Discovering Physical Laws from Data" (Symbolic Regression demo).
     - [ ] "Neural ODE Training with SymbAnaFis".
     - [ ] "Solving Heat Equation via JIT Compilation".
-- [ ] **Automated Benchmarks**: Add a CI step that generates the comparison graphs (vs Symbolica/SymPy) automatically.
-- [ ] **Interactive Web Demo**: Compile the library to WASM and create a simple "Try it now" page.
+- [ ] **Interactive Web Demo**: WASM compilation for "Try it now" page.
 
 ---
 
 ## Ideas / Backlog (Long Term)
 
-- [ ] **Tensor/Matrix Expressions**: First-class support for Matrix * Vector symbolic operations (Symbolic Linear Algebra).
-- [ ] **Series Expansion**: Full Taylor/Laurent series generation (`series(sin(x), x, 0, 5)`).
 - [ ] **GPU Acceleration**: OpenCL/CUDA backends for `eval_batch` on massive datasets (>100M points).
-- [ ] **Integration**: Risch algorithm (or heuristic approach) for indefinite integration.
-- [ ] **LaTeX Parsing**: Ability to parse LaTeX strings into expressions (e.g., `parse(r"\frac{1}{2}x^2")`).
+- [ ] **Complex Number Support**: First-class complex arithmetic.
+- [ ] **Interval Arithmetic**: Rigorous bounds computation.
+
+---
+
+## AnaFis Ecosystem - Companion Crates
+
+**Focus**: Domain-specific libraries built on `symb_anafis` core.
+
+### `opt-anafis` - Optimization
+- [ ] Gradient descent (SGD, momentum, Adam)
+- [ ] Newton's method (using symbolic Hessian)
+- [ ] Line search utilities
+- [ ] L-BFGS for large-scale problems
+
+### `fit-anafis` - Fitting & Regression
+- [ ] Nonlinear Least Squares (Levenberg-Marquardt)
+- [ ] Orthogonal Distance Regression (ODR)
+- [ ] Weighted Least Squares
+- [ ] Model builders and residual generators
+
+### `ml-anafis` - Machine Learning
+- [ ] Symbolic KAN (Kolmogorov-Arnold Networks)
+- [ ] Symbolic Regression (genetic programming operators)
+- [ ] PINN templates (Physics-Informed Neural Networks)
+- [ ] Loss function builders
+
+### `phys-anafis` - Physics & Scientific
+- [ ] ODE integrators (RK4, adaptive step)
+- [ ] Lagrangian/Hamiltonian mechanics helpers
+- [ ] Equation of motion derivation
+- [ ] Sensitivity analysis utilities
+
+### `geo-anafis` - Geometry & Graphics
+- [ ] Implicit surface utilities (normals, ray-marching)
+- [ ] Parametric curve/surface tools
+- [ ] Curve fitting with symbolic gradients
 
 ---
 

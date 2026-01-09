@@ -1669,9 +1669,9 @@ pub fn bessel_k1<T: MathScalar>(x: T) -> T {
     }
 }
 
-/// Helper: Evaluate polynomial c[0] + x*c[1] + ... + x^n*c[n] using Horner's method
+/// Helper: Evaluate polynomial c\[0\] + x*c\[1\] + ... + x^n*c\[n\] using Horner's method
 ///
-/// Note: Coefficients should be ordered from constant term c[0] to highest power c[n].
+/// Note: Coefficients should be ordered from constant term c\[0\] to highest power c\[n\].
 fn eval_poly_horner<T: MathScalar>(x: T, coeffs: &[f64]) -> T {
     let mut sum = T::zero();
     // Horner's method: c[0] + x(c[1] + x(c[2] + ...))
@@ -1684,7 +1684,7 @@ fn eval_poly_horner<T: MathScalar>(x: T, coeffs: &[f64]) -> T {
 
 /// Helper: Evaluate rational function P(x)/Q(x)
 ///
-/// Computes (n[0] + x*n[1] + ...) / (d[0] + x*d[1] + ...)
+/// Computes (n\[0\] + x*n\[1\] + ...) / (d\[0\] + x*d\[1\] + ...)
 fn eval_rational_poly<T: MathScalar>(x: T, num: &[f64], den: &[f64]) -> T {
     let n = eval_poly_horner(x, num);
     let d = eval_poly_horner(x, den);

@@ -2209,6 +2209,31 @@ impl<'ctx> Compiler<'ctx> {
             }
 
             ExprKind::Div(num, den) => {
+                // =====================================================================
+                // Removable Singularity Detection (compile-time)
+                // =====================================================================
+                // Even if simplification was skipped, we detect common 0/0 patterns
+                // and emit safe instructions instead of producing NaN.
+
+                // Pattern 1: E/E → 1 (handles x/x, sin(x)/sin(x), etc.)
+                if num == den {
+                    self.emit(Instruction::LoadConst(1.0));
+                    self.push()?;
+                    return Ok(());
+                }
+
+                // Pattern 2: sin(E)/E → sinc(E) (already handles E=0 → 1)
+                if let ExprKind::FunctionCall { name, args } = &num.kind
+                    && name.as_str() == "sin"
+                    && args.len() == 1
+                    && *args[0] == **den
+                {
+                    self.compile_expr(den)?;
+                    self.emit(Instruction::Sinc);
+                    return Ok(());
+                }
+
+                // No pattern matched - compile normal division
                 self.compile_expr(num)?;
                 self.compile_expr(den)?;
                 self.emit(Instruction::Div);

@@ -58,6 +58,61 @@ use std::sync::Arc;
 /// Type alias for complex partial derivative function type to improve readability
 type PartialDerivativeFn = Arc<dyn Fn(&[Arc<RustExpr>]) -> RustExpr + Send + Sync>;
 
+// =============================================================================
+// Error Conversion: DiffError -> PyErr
+// =============================================================================
+// Maps Rust errors to appropriate Python exception types:
+// - ValueError: semantic/validation errors
+// - SyntaxError: parsing errors
+// - RuntimeError: compilation/evaluation errors
+
+use crate::DiffError;
+
+impl From<DiffError> for PyErr {
+    fn from(err: DiffError) -> Self {
+        match &err {
+            // Semantic/validation errors → ValueError
+            DiffError::EmptyFormula
+            | DiffError::InvalidSyntax { .. }
+            | DiffError::InvalidNumber { .. }
+            | DiffError::InvalidFunctionCall { .. }
+            | DiffError::VariableInBothFixedAndDiff { .. }
+            | DiffError::MaxDepthExceeded
+            | DiffError::MaxNodesExceeded
+            | DiffError::EvalColumnMismatch { .. }
+            | DiffError::EvalColumnLengthMismatch
+            | DiffError::EvalOutputTooSmall { .. }
+            | DiffError::InvalidPartialIndex { .. } => {
+                Self::new::<pyo3::exceptions::PyValueError, _>(err.to_string())
+            }
+            // Parse errors → SyntaxError
+            DiffError::InvalidToken { .. }
+            | DiffError::UnexpectedToken { .. }
+            | DiffError::UnexpectedEndOfInput
+            | DiffError::AmbiguousSequence { .. } => {
+                Self::new::<pyo3::exceptions::PySyntaxError, _>(err.to_string())
+            }
+            // Compile/runtime errors → RuntimeError
+            DiffError::UnsupportedOperation(_)
+            | DiffError::UnsupportedExpression(_)
+            | DiffError::UnsupportedFunction(_)
+            | DiffError::UnboundVariable(_)
+            | DiffError::StackOverflow { .. }
+            | DiffError::NameCollision { .. } => {
+                Self::new::<pyo3::exceptions::PyRuntimeError, _>(err.to_string())
+            }
+        }
+    }
+}
+
+use crate::SymbolError;
+
+impl From<SymbolError> for PyErr {
+    fn from(err: SymbolError) -> Self {
+        Self::new::<pyo3::exceptions::PyValueError, _>(err.to_string())
+    }
+}
+
 // Basic helper for hybrid NumPy/List support
 enum DataInput<'py> {
     Array(PyReadonlyArray1<'py, f64>),
@@ -78,9 +133,7 @@ impl DataInput<'_> {
 
     fn len(&self) -> PyResult<usize> {
         match self {
-            DataInput::Array(arr) => arr
-                .len()
-                .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("{e:?}"))), // Handle Result<usize>? Wait, len()? is ok.
+            DataInput::Array(arr) => arr.len(),
             DataInput::List(vec) => Ok(vec.len()),
         }
     }
@@ -895,7 +948,7 @@ impl PyExpr {
         crate::Diff::new()
             .differentiate(&self.0, &sym)
             .map(PyExpr)
-            .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("{e:?}")))
+            .map_err(Into::into)
     }
 
     /// Simplify this expression
@@ -903,7 +956,7 @@ impl PyExpr {
         crate::Simplify::new()
             .simplify(&self.0)
             .map(PyExpr)
-            .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("{e:?}")))
+            .map_err(Into::into)
     }
 }
 
@@ -1517,9 +1570,7 @@ impl PyDiff {
     }
 
     fn diff_str(&self, formula: &str, var: &str) -> PyResult<String> {
-        self.inner
-            .diff_str(formula, var, &[])
-            .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("{e:?}")))
+        self.inner.diff_str(formula, var, &[]).map_err(Into::into)
     }
 
     fn differentiate(&self, expr: &Bound<'_, PyAny>, var: &Bound<'_, PyAny>) -> PyResult<PyExpr> {
@@ -1537,7 +1588,7 @@ impl PyDiff {
         self.inner
             .differentiate(&rust_expr, &sym)
             .map(PyExpr)
-            .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("{e:?}")))
+            .map_err(Into::into)
     }
 }
 
@@ -1618,13 +1669,11 @@ impl PySimplify {
         self.inner
             .simplify(&rust_expr)
             .map(PyExpr)
-            .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("{e:?}")))
+            .map_err(Into::into)
     }
 
     fn simplify_str(&self, formula: &str) -> PyResult<String> {
-        self.inner
-            .simplify_str(formula, &[])
-            .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("{e:?}")))
+        self.inner.simplify_str(formula, &[]).map_err(Into::into)
     }
 }
 
@@ -1658,8 +1707,7 @@ fn diff(
         .as_ref()
         .map(|v| v.iter().map(std::string::String::as_str).collect());
 
-    crate::diff(formula, var, &known_strs, custom_strs.as_deref())
-        .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("{e:?}")))
+    crate::diff(formula, var, &known_strs, custom_strs.as_deref()).map_err(Into::into)
 }
 
 /// Simplify a mathematical expression string.
@@ -1690,8 +1738,7 @@ fn simplify(
         .as_ref()
         .map(|v| v.iter().map(std::string::String::as_str).collect());
 
-    crate::simplify(formula, &known_strs, custom_strs.as_deref())
-        .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("{e:?}")))
+    crate::simplify(formula, &known_strs, custom_strs.as_deref()).map_err(Into::into)
 }
 
 /// Parse a mathematical expression and return the expression object.
@@ -1711,7 +1758,7 @@ fn parse(
 
     crate::parser::parse(formula, &known, &custom, None)
         .map(PyExpr)
-        .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("{e:?}")))
+        .map_err(Into::into)
 }
 
 /// Compute the gradient of a scalar Expr.
@@ -1731,8 +1778,7 @@ fn gradient(expr: PyExpr, vars: Vec<String>) -> PyResult<Vec<PyExpr>> {
     let symbols: Vec<RustSymbol> = vars.iter().map(|s| crate::symb(s)).collect();
     let sym_refs: Vec<&RustSymbol> = symbols.iter().collect();
 
-    let res = crate::gradient(&expr.0, &sym_refs)
-        .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("{e:?}")))?;
+    let res = crate::gradient(&expr.0, &sym_refs).map_err(PyErr::from)?;
     Ok(res.into_iter().map(PyExpr).collect())
 }
 
@@ -1749,8 +1795,7 @@ fn gradient(expr: PyExpr, vars: Vec<String>) -> PyResult<Vec<PyExpr>> {
 #[pyfunction]
 fn gradient_str(formula: &str, vars: Vec<String>) -> PyResult<Vec<String>> {
     let var_strs: Vec<&str> = vars.iter().map(std::string::String::as_str).collect();
-    crate::gradient_str(formula, &var_strs)
-        .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("{e:?}")))
+    crate::gradient_str(formula, &var_strs).map_err(Into::into)
 }
 
 /// Compute the Hessian matrix of a scalar Expr.
@@ -1770,8 +1815,7 @@ fn hessian(expr: PyExpr, vars: Vec<String>) -> PyResult<Vec<Vec<PyExpr>>> {
     let symbols: Vec<RustSymbol> = vars.iter().map(|s| crate::symb(s)).collect();
     let sym_refs: Vec<&RustSymbol> = symbols.iter().collect();
 
-    let res = crate::hessian(&expr.0, &sym_refs)
-        .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("{e:?}")))?;
+    let res = crate::hessian(&expr.0, &sym_refs).map_err(PyErr::from)?;
     Ok(res
         .into_iter()
         .map(|row| row.into_iter().map(PyExpr).collect())
@@ -1791,8 +1835,7 @@ fn hessian(expr: PyExpr, vars: Vec<String>) -> PyResult<Vec<Vec<PyExpr>>> {
 #[pyfunction]
 fn hessian_str(formula: &str, vars: Vec<String>) -> PyResult<Vec<Vec<String>>> {
     let var_strs: Vec<&str> = vars.iter().map(std::string::String::as_str).collect();
-    crate::hessian_str(formula, &var_strs)
-        .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("{e:?}")))
+    crate::hessian_str(formula, &var_strs).map_err(Into::into)
 }
 
 /// Compute the Jacobian matrix of a vector of Expr objects.
@@ -1813,8 +1856,7 @@ fn jacobian(exprs: Vec<PyExpr>, vars: Vec<String>) -> PyResult<Vec<Vec<PyExpr>>>
     let symbols: Vec<RustSymbol> = vars.iter().map(|s| crate::symb(s)).collect();
     let sym_refs: Vec<&RustSymbol> = symbols.iter().collect();
 
-    let res = crate::jacobian(&rust_exprs, &sym_refs)
-        .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("{e:?}")))?;
+    let res = crate::jacobian(&rust_exprs, &sym_refs).map_err(PyErr::from)?;
     Ok(res
         .into_iter()
         .map(|row| row.into_iter().map(PyExpr).collect())
@@ -1835,8 +1877,7 @@ fn jacobian(exprs: Vec<PyExpr>, vars: Vec<String>) -> PyResult<Vec<Vec<PyExpr>>>
 fn jacobian_str(formulas: Vec<String>, vars: Vec<String>) -> PyResult<Vec<Vec<String>>> {
     let f_strs: Vec<&str> = formulas.iter().map(std::string::String::as_str).collect();
     let var_strs: Vec<&str> = vars.iter().map(std::string::String::as_str).collect();
-    crate::jacobian_str(&f_strs, &var_strs)
-        .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("{e:?}")))
+    crate::jacobian_str(&f_strs, &var_strs).map_err(Into::into)
 }
 
 /// Evaluate an Expr with given variable values.
@@ -1872,8 +1913,7 @@ fn evaluate(expr: PyExpr, vars: Vec<(String, f64)>) -> PyExpr {
 #[pyfunction]
 fn evaluate_str(formula: &str, vars: Vec<(String, f64)>) -> PyResult<String> {
     let var_tuples: Vec<(&str, f64)> = vars.iter().map(|(k, v)| (k.as_str(), *v)).collect();
-    crate::evaluate_str(formula, &var_tuples)
-        .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("{e:?}")))
+    crate::evaluate_str(formula, &var_tuples).map_err(Into::into)
 }
 
 /// Compute uncertainty propagation for an expression.
@@ -1903,8 +1943,7 @@ fn uncertainty_propagation_py(
 ) -> PyResult<String> {
     // 1. Get the Expr (either parsed from string or extracted directly)
     let expr = if let Ok(s) = formula.extract::<String>() {
-        crate::parser::parse(&s, &HashSet::new(), &HashSet::new(), None)
-            .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("{e:?}")))?
+        crate::parser::parse(&s, &HashSet::new(), &HashSet::new(), None).map_err(PyErr::from)?
     } else if let Ok(e) = formula.extract::<PyExpr>() {
         e.0
     } else {
@@ -1920,7 +1959,7 @@ fn uncertainty_propagation_py(
 
     crate::uncertainty_propagation(&expr, &var_strs, cov.as_ref())
         .map(|e| e.to_string())
-        .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("{e:?}")))
+        .map_err(Into::into)
 }
 
 /// Compute relative uncertainty for an expression.
@@ -1943,8 +1982,7 @@ fn relative_uncertainty_py(
 ) -> PyResult<String> {
     // 1. Get the Expr
     let expr = if let Ok(s) = formula.extract::<String>() {
-        crate::parser::parse(&s, &HashSet::new(), &HashSet::new(), None)
-            .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("{e:?}")))?
+        crate::parser::parse(&s, &HashSet::new(), &HashSet::new(), None).map_err(PyErr::from)?
     } else if let Ok(e) = formula.extract::<PyExpr>() {
         e.0
     } else {
@@ -1960,7 +1998,7 @@ fn relative_uncertainty_py(
 
     crate::relative_uncertainty(&expr, &var_strs, cov.as_ref())
         .map(|e| e.to_string())
-        .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("{e:?}")))
+        .map_err(Into::into)
 }
 
 /// Parallel evaluation of multiple expressions at multiple points.
@@ -2129,7 +2167,7 @@ fn evaluate_parallel_py(
                 })
                 .collect()
         })
-        .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("{e:?}")))
+        .map_err(Into::into)
 }
 
 // ============================================================================
@@ -2533,18 +2571,14 @@ fn py_symb(name: &str) -> PySymbol {
 #[pyfunction]
 #[pyo3(name = "symb_new")]
 fn py_symb_new(name: &str) -> PyResult<PySymbol> {
-    symb_new(name)
-        .map(PySymbol)
-        .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("{e:?}")))
+    symb_new(name).map(PySymbol).map_err(Into::into)
 }
 
 /// Get an existing symbol (fails if not found)
 #[pyfunction]
 #[pyo3(name = "symb_get")]
 fn py_symb_get(name: &str) -> PyResult<PySymbol> {
-    symb_get(name)
-        .map(PySymbol)
-        .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("{e:?}")))
+    symb_get(name).map(PySymbol).map_err(Into::into)
 }
 
 /// Check if a symbol exists
@@ -2614,9 +2648,7 @@ impl PyCompiledEvaluator {
             CompiledEvaluator::compile_auto(&expr.0, rust_context)
         };
 
-        evaluator
-            .map(|e| Self { evaluator: e })
-            .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("{e:?}")))
+        evaluator.map(|e| Self { evaluator: e }).map_err(Into::into)
     }
 
     /// Evaluate at a single point
@@ -2663,7 +2695,7 @@ impl PyCompiledEvaluator {
         let mut output = vec![0.0; n_points];
         self.evaluator
             .eval_batch(&col_refs, &mut output, None)
-            .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("{e:?}")))?;
+            .map_err(PyErr::from)?;
 
         if use_numpy {
             // Return NumPy array (this copies the result, but input was zero-copy)
@@ -3018,8 +3050,8 @@ fn eval_f64_py<'py>(
         .collect::<PyResult<Vec<_>>>()?;
     let data_slice_refs: Vec<&[&[f64]]> = data_refs.iter().map(std::vec::Vec::as_slice).collect();
 
-    let results = rust_eval_f64(&expr_refs, &var_slice_refs, &data_slice_refs)
-        .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("{e:?}")))?;
+    let results =
+        rust_eval_f64(&expr_refs, &var_slice_refs, &data_slice_refs).map_err(PyErr::from)?;
 
     if use_numpy {
         // Convert Vec<Vec<f64>> to 2D NumPy array

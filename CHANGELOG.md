@@ -2,10 +2,22 @@
 
 All notable changes to SymbAnaFis will be documented in this file.
 
-## [Unreleased]
+## [0.6.0] - 2026-01-9
+
+### Added
+- **Compile-Time Singularity Detection**: Compiler now detects removable singularities and emits safe bytecode:
+  - `E/E` pattern → `LoadConst(1.0)` (avoids NaN at x=0 even without simplification)
+  - `sin(E)/E` pattern → `Sinc` instruction (handles x=0 correctly)
+- **Numeric Literal Underscores**: Parser now supports underscores in numeric literals for improved readability (e.g., `1_000_000` instead of `1000000`)
+- **Comprehensive Property-Based Test Suite** (790 total lines):
+  - Rust: 595 lines (`src/tests/property_tests.rs`) - fuzz testing and property validation using quickcheck
+  - Python: 195 lines (`tests/python/test_property_based.py`) - algebraic invariant testing
+  - Coverage: Parser robustness (1000+ randomly generated expressions), derivative rules (chain, product, quotient), function combinations, algebraic identities
 
 ### Fixed
 - **Parser**: Fixed implicit multiplication between numbers and functions, e.g., `4 sin(x)` now correctly parses as `4 * sin(x)`.
+- **Simplification Bug**: Fixed `remove_factors` helper to only remove ONE occurrence per factor instead of ALL occurrences. This bug caused incorrect simplification: `y + y*y` → `2*y` (wrong) instead of `y*(1+y)` (correct).
+- **Python FFI Error Handling**: Added `impl From<DiffError> for PyErr` and `impl From<SymbolError> for PyErr` for cleaner error conversion across FFI boundaries. Replaced 27 verbose `PyErr::new` calls with `.map_err(Into::into)`.
 
 ### Code Quality
 - **Pedantic Clippy Compliance**: Fixed all pedantic clippy warnings with targeted `#[allow(...)]` attributes and code refactoring:
@@ -33,6 +45,11 @@ All notable changes to SymbAnaFis will be documented in this file.
 
 ### Changed
 - **Breaking**: `eval_f64_py` and `CompiledEvaluator.eval_batch` return `numpy.ndarray` instead of `list` when input contains NumPy arrays (Type-Preserving).
+- **Build Configuration - Strict Linting**:
+  - Added comprehensive lints configuration to Cargo.toml applying to all targets (lib, tests, examples, benches)
+  - 13 new "deny" level rules: `dbg_macro`, `lossy_float_literal`, `mutex_atomic`, `panic_in_result_fn`, `print_stdout`, `rc_buffer`, `todo`, `undocumented_unsafe_blocks`, `unimplemented`, `suboptimal_flops`, `large_stack_arrays`
+  - Additional pedantic, nursery, and restriction-level checks enabled for safety, performance, and mathematical correctness (HPC-focused)
+  - ⚠️ **Breaking**: May require downstream crates to adjust their lint levels when depending on symb_anafis
 
 ## [0.5.1] - 2025-12-31
 
