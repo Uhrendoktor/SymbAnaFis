@@ -14,6 +14,14 @@ keywords = [
     "derivatives",
 ]
 categories = ["mathematics", "science"]
+exclude = [
+    "videos/*",
+    "benches/bench_output.txt",
+    ".github/*",
+    ".agent/*",
+    "target/*",
+    "*.mp4",
+]
 
 [lib]
 name = "symb_anafis"
