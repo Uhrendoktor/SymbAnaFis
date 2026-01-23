@@ -1,5 +1,6 @@
 use crate::core::expr::{Expr, ExprKind as AstKind};
 use crate::core::known_symbols::{COSH, COTH, CSCH, SECH, SINH, TANH, get_symbol};
+use crate::core::traits::EPSILON;
 use crate::simplification::rules::{ExprKind, Rule, RuleCategory, RuleContext};
 
 rule!(
@@ -67,7 +68,7 @@ rule!(
     |expr: &Expr, _context: &RuleContext| {
         if let AstKind::Div(num, den) = &expr.kind
             && let AstKind::Number(n) = &num.kind
-            && (*n - 1.0).abs() < 1e-10_f64
+            && (*n - 1.0).abs() < EPSILON
             && let AstKind::FunctionCall { name, args } = &den.kind
             && name.id() == *COSH
             && args.len() == 1
@@ -90,7 +91,7 @@ rule!(
     |expr: &Expr, _context: &RuleContext| {
         if let AstKind::Div(num, den) = &expr.kind
             && let AstKind::Number(n) = &num.kind
-            && (*n - 1.0).abs() < 1e-10_f64
+            && (*n - 1.0).abs() < EPSILON
             && let AstKind::FunctionCall { name, args } = &den.kind
             && name.id() == *SINH
             && args.len() == 1
@@ -113,7 +114,7 @@ rule!(
     |expr: &Expr, _context: &RuleContext| {
         if let AstKind::Div(num, den) = &expr.kind
             && let AstKind::Number(n) = &num.kind
-            && (*n - 1.0).abs() < 1e-10_f64
+            && (*n - 1.0).abs() < EPSILON
             && let AstKind::FunctionCall { name, args } = &den.kind
             && name.id() == *TANH
             && args.len() == 1

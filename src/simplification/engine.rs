@@ -36,7 +36,7 @@ fn trace_enabled() -> bool {
 }
 
 /// Global rule registry singleton - built once, reused across all simplifications
-fn global_registry() -> &'static RuleRegistry {
+pub fn global_registry() -> &'static RuleRegistry {
     static REGISTRY: OnceLock<RuleRegistry> = OnceLock::new();
     REGISTRY.get_or_init(|| {
         let mut registry = RuleRegistry::new();
@@ -146,17 +146,21 @@ impl Simplifier {
 
             trace_log!("[DEBUG] Iteration {iterations}: {original} -> {current}");
 
-            // After a full pass of all rules, check if we've seen this structural hash before
-            // The hash field is a structural hash - same hash means structurally identical expression
+            // Cycle detection: Check if we've seen this exact structural hash before
+            //
+            // The `hash` field is a structural hash computed during construction.
+            // If we see the same hash twice, we're in a simplification cycle where
+            // rules are undoing each other's transformations (e.g., a/b ↔ a*(1/b)).
+            //
+            // When a cycle is detected, we return the CURRENT (most recent) expression
+            // because canonicalization rules (lowest priority) run last, making the
+            // latest iteration the most canonical form (e.g., sorted products/sums).
             let fingerprint = current.hash;
             if seen_hashes.contains(&fingerprint) {
-                // Cycle detected! Return the CURRENT (last) expression as it's the most canonicalized.
-                // Canonicalization rules run last (low priority), so the latest iteration
-                // has the most canonical form (e.g., sorted products).
                 trace_log!("[DEBUG] Cycle detected, returning last (most canonical) form");
                 return Arc::try_unwrap(current).unwrap_or_else(|rc| (*rc).clone());
             }
-            // Add AFTER checking, so first iteration's result doesn't trigger false positive
+            // Add AFTER checking to avoid false positive on first iteration
             seen_hashes.insert(fingerprint);
 
             iterations += 1;
@@ -167,13 +171,28 @@ impl Simplifier {
     }
 
     /// Apply rules bottom-up through the expression tree
+    ///
+    /// This method traverses the expression tree depth-first, simplifying children before parents.
+    /// For each node, it:
+    /// 1. Recursively simplifies all child expressions
+    /// 2. Rebuilds the node with simplified children (if any changed)
+    /// 3. Applies all applicable rules to the rebuilt node
+    ///
+    /// The bottom-up approach ensures that rules work on already-simplified sub-expressions,
+    /// reducing the need for complex pattern matching in individual rules.
     fn apply_rules_bottom_up(&mut self, expr: Arc<Expr>, depth: usize) -> Arc<Expr> {
         if depth > self.max_depth {
             return expr;
         }
 
-        // Helper: map over children lazily, only allocating if something changed
-        // Returns Some(new_vec) if any child changed, None otherwise
+        // Optimized helper: map over children lazily, only allocating if something changed.
+        //
+        // Performance Strategy:
+        // - Uses `Arc::ptr_eq` to detect if simplification changed a child (O(1) pointer comparison)
+        // - Defers allocation until first change detected (avoids Vec allocation for unchanged nodes)
+        // - When change detected: copies already-processed unchanged items, then continues with changed items
+        //
+        // Returns `Some(new_vec)` if any child changed, `None` if all children unchanged.
         let map_lazy = |items: &[Arc<Expr>], simplifier: &mut Self| -> Option<Vec<Arc<Expr>>> {
             let mut result: Option<Vec<Arc<Expr>>> = None;
             for (i, item) in items.iter().enumerate() {
@@ -254,10 +273,6 @@ impl Simplifier {
         let kind = ExprKind::of(current.as_ref());
 
         // Helper macro to apply a rule and update current if successful
-        // Returns true if a rule was applied (and we should continue/restart?)
-        // Actually, the original logic didn't restart on success immediately,
-        // it continued to next rule with new expression.
-        // So we just update `current`.
         macro_rules! try_apply {
             ($rule:expr) => {
                 if self.context.domain_safe && $rule.alters_domain() {

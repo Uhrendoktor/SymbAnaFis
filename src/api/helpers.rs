@@ -137,6 +137,10 @@ fn parse_formula(formula: &str) -> Result<Expr, DiffError> {
 
 /// Compute gradient from a formula string
 ///
+/// **Note**: This is a convenience function for simple cases. It does not support
+/// custom functions or contexts. For advanced usage (custom functions, fixed variables,
+/// domain-safe mode), use the `Diff` builder instead.
+///
 /// # Example
 /// ```
 /// use symb_anafis::gradient_str;
@@ -154,6 +158,9 @@ pub fn gradient_str(formula: &str, vars: &[&str]) -> Result<Vec<String>, DiffErr
 }
 
 /// Compute Hessian matrix from a formula string
+///
+/// **Note**: This is a convenience function for simple cases. It does not support
+/// custom functions or contexts. For advanced usage, use the `Diff` builder instead.
 ///
 /// # Example
 /// ```
@@ -185,6 +192,9 @@ fn parse_formulas(formulas: &[&str]) -> Result<Vec<Expr>, DiffError> {
 }
 
 /// Compute Jacobian matrix from formula strings
+///
+/// **Note**: This is a convenience function for simple cases. It does not support
+/// custom functions or contexts. For advanced usage, use the `Diff` builder instead.
 ///
 /// # Example
 /// ```

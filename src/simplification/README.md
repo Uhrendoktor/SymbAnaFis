@@ -171,9 +171,9 @@ These handle polynomial operations, factoring, absolute value, sign functions, a
   - Handles flat Sum correctly
 - **`fraction_cancellation`** (priority: 76) - Rule for cancelling common terms in fractions: `(a*b)/(a*c) -> b/c`
   - Handles Div sides correctly, extracts factors as Vec
-- **`perfect_square`** (priority: 100) - Rule for perfect square factoring: `a^2 + 2ab + b^2 -> (a+b)^2`
+- **`perfect_square_factoring`** (priority: 100) - Rule for perfect square factoring: `a^2 + 2ab + b^2 -> (a+b)^2`
   - Handles flat Sum with 3 terms correctly
-- **`perfect_cube`** (priority: 40) - Rule for sum/difference of cubes: `a^3 + b^3 = (a+b)(a²-ab+b²)` and `a^3 - b^3 = (a-b)(a²+ab+b²)`
+- **`perfect_cube_factoring`** (priority: 40) - Rule for sum/difference of cubes: `a^3 + b^3 = (a+b)(a²-ab+b²)` and `a^3 - b^3 = (a-b)(a²+ab+b²)`
   - Handles flat Sum and Poly correctly
 
 #### Canonicalization Phase (Priority 5-15)
@@ -487,7 +487,7 @@ diff("e*x", "x", Some(&["e"]), None)?;
 - All rules are applied recursively bottom-up through the expression tree
 - The system uses cycle detection to prevent infinite loops
 - Rules are applied in multiple passes until convergence
-- Numeric precision uses ε = 1e-10 for floating-point comparisons
+- Numeric precision uses ε = 1e-14 (EPSILON) for floating-point comparisons
 - The system preserves exact symbolic forms when possible
 - **Rule priority ordering**: Higher priority numbers run first (e.g., priority 95 runs before 40). Key priority tiers:
   - 85-95: Expansion rules (flatten, distribute, expand powers)

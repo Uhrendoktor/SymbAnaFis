@@ -1,5 +1,6 @@
 use crate::core::expr::{Expr, ExprKind as AstKind};
 use crate::core::known_symbols::{ABS, CBRT, SQRT, get_symbol};
+use crate::core::traits::EPSILON;
 use crate::simplification::rules::{ExprKind, Rule, RuleCategory, RuleContext};
 use std::sync::Arc;
 
@@ -37,7 +38,7 @@ rule!(
                             new_exp
                         } else {
                             let result = a / b;
-                            if (result - result.round()).abs() < 1e-10 {
+                            if (result - result.round()).abs() < EPSILON {
                                 Expr::number(result.round())
                             } else {
                                 new_exp
@@ -88,7 +89,7 @@ rule!(
                             new_exp
                         } else {
                             let result = a / b;
-                            if (result - result.round()).abs() < 1e-10 {
+                            if (result - result.round()).abs() < EPSILON {
                                 Expr::number(result.round())
                             } else {
                                 new_exp
@@ -243,7 +244,7 @@ rule!(
                             .collect();
 
                         let inner = Expr::product_from_arcs(remaining);
-                        let sqrt_remaining = if matches!(inner.kind, AstKind::Number(n) if (n - 1.0).abs() < 1e-10)
+                        let sqrt_remaining = if matches!(inner.kind, AstKind::Number(n) if (n - 1.0).abs() < EPSILON)
                         {
                             Expr::number(1.0)
                         } else {

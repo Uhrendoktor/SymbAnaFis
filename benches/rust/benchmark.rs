@@ -241,17 +241,22 @@ fn bench_full_pipeline(c: &mut Criterion) {
             expr_str,
             |b, expr| {
                 b.iter(|| {
-                    // Full pipeline
-                    let diff_str = symb_anafis::diff(black_box(expr), var, fixed, None).unwrap();
-                    let diff_expr = parse(&diff_str, &empty, &empty, None).unwrap();
+                    // Full pipeline using expr API
+                    let fixed_set: HashSet<String> =
+                        fixed.iter().copied().map(String::from).collect();
+                    let expr = parse(black_box(expr), &empty, &fixed_set, None).unwrap();
+                    let var_sym = symb(var);
+                    let diff_expr = Diff::new().differentiate(&expr, &var_sym).unwrap();
                     let compiled = CompiledEvaluator::compile_auto(&diff_expr, None).unwrap();
 
                     // Evaluate at 1000 points
                     let param_count = compiled.param_count();
+                    let param_names = compiled.param_names();
+                    let var_idx = param_names.iter().position(|p| p == var).unwrap_or(0);
                     let mut sum = 0.0;
                     for &x in &test_points {
                         let mut values = vec![1.0; param_count];
-                        values[0] = x;
+                        values[var_idx] = x;
                         sum += compiled.evaluate(&values);
                     }
                     sum

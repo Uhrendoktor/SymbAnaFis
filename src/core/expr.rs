@@ -1165,8 +1165,8 @@ impl Expr {
     ///
     /// # Errors
     /// Returns `DiffError` if the expression cannot be compiled.
-    pub fn compile(&self) -> Result<crate::core::evaluator::CompiledEvaluator, crate::DiffError> {
-        crate::core::evaluator::CompiledEvaluator::compile_auto(self, None)
+    pub fn compile(&self) -> Result<crate::evaluator::CompiledEvaluator, crate::DiffError> {
+        crate::evaluator::CompiledEvaluator::compile_auto(self, None)
     }
 
     /// Compile this expression with explicit parameter ordering
@@ -1190,11 +1190,11 @@ impl Expr {
     ///
     /// # Errors
     /// Returns `DiffError` if the expression cannot be compiled.
-    pub fn compile_with_params<P: crate::core::evaluator::ToParamName>(
+    pub fn compile_with_params<P: crate::evaluator::ToParamName>(
         &self,
         param_order: &[P],
-    ) -> Result<crate::core::evaluator::CompiledEvaluator, crate::DiffError> {
-        crate::core::evaluator::CompiledEvaluator::compile(self, param_order, None)
+    ) -> Result<crate::evaluator::CompiledEvaluator, crate::DiffError> {
+        crate::evaluator::CompiledEvaluator::compile(self, param_order, None)
     }
 
     /// Fold over the expression tree (pre-order)

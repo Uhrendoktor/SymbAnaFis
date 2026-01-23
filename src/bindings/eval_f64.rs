@@ -13,7 +13,7 @@
 
 use crate::DiffError;
 use crate::Expr;
-use crate::core::evaluator::{CompiledEvaluator, ToParamName};
+use crate::evaluator::{CompiledEvaluator, ToParamName};
 
 use rayon::prelude::*;
 

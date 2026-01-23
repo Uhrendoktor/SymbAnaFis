@@ -17,7 +17,7 @@ Example:
     (11.0, 7.0)
 """
 
-from .symb_anafis import (
+from .symb_anafis import (  # type: ignore[import-not-found]
     # Core functions (string API)
     diff,
     simplify,
@@ -61,10 +61,10 @@ from .symb_anafis import (
 
 # Try to import parallel evaluation (only available with parallel feature)
 try:
-    from .symb_anafis import evaluate_parallel, eval_f64
+    from .symb_anafis import evaluate_parallel, eval_f64  # type: ignore[import-not-found]
 except ImportError:
-    evaluate_parallel = None
-    eval_f64 = None
+    evaluate_parallel = None  # type: ignore[assignment]
+    eval_f64 = None  # type: ignore[assignment]
 
 __all__ = [
     # Core functions (string API)

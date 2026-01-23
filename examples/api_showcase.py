@@ -45,10 +45,10 @@ def main():
     if HAS_PARALLEL:
         section_parallel_evaluation()
     else:
-        print("━" * 66)
+        print("=" * 66)
         print("⚡ SECTION 11: PARALLEL EVALUATION")
         print("   (Requires 'parallel' feature - not available)")
-        print("━" * 66 + "\n")
+        print("=" * 66 + "\n")
     section_compilation_and_performance()
     section_builtin_functions()
     section_expression_syntax()
@@ -61,9 +61,9 @@ def main():
 # SECTION 1: QUICK START
 # =============================================================================
 def section_quick_start():
-    print("━" * 66)
+    print("=" * 66)
     print("1. QUICK START")
-    print("━" * 66 + "\n")
+    print("=" * 66 + "\n")
 
     print("  1.1 Differentiation")
     formula = "x^3 + sin(x)"
@@ -82,9 +82,9 @@ def section_quick_start():
 # SECTION 2: SYMBOL MANAGEMENT
 # =============================================================================
 def section_symbol_management():
-    print("━" * 66)
+    print("=" * 66)
     print("2. SYMBOL MANAGEMENT")
-    print("━" * 66 + "\n")
+    print("=" * 66 + "\n")
 
     print("  2.1 Creating Symbols with Expr()")
     x = Expr("x")
@@ -124,9 +124,9 @@ def section_symbol_management():
 # SECTION 3: CORE FUNCTIONS
 # =============================================================================
 def section_core_functions():
-    print("━" * 66)
+    print("=" * 66)
     print("3. CORE FUNCTIONS")
-    print("━" * 66 + "\n")
+    print("=" * 66 + "\n")
 
     print("  3.1 diff(formula, var)")
     print("      Differentiate x^2 + 2*x + 1 with respect to x")
@@ -155,9 +155,9 @@ def section_core_functions():
 # SECTION 4: BUILDER PATTERN API
 # =============================================================================
 def section_builder_pattern_api():
-    print("━" * 66)
+    print("=" * 66)
     print("4. BUILDER PATTERN API")
-    print("━" * 66 + "\n")
+    print("=" * 66 + "\n")
 
     print("  4.1 Diff Builder")
     print("      Diff().domain_safe(True).fixed_var(symb('a')).diff_str(...)")
@@ -201,9 +201,9 @@ def section_builder_pattern_api():
 # SECTION 5: EXPRESSION OUTPUT
 # =============================================================================
 def section_expression_output():
-    print("━" * 66)
+    print("=" * 66)
     print("5. EXPRESSION OUTPUT")
-    print("━" * 66 + "\n")
+    print("=" * 66 + "\n")
 
     x = Expr("x")
     y = Expr("y")
@@ -230,10 +230,10 @@ def section_expression_output():
 # SECTION 6: UNCERTAINTY PROPAGATION
 # =============================================================================
 def section_uncertainty_propagation():
-    print("━" * 66)
+    print("=" * 66)
     print("6. UNCERTAINTY PROPAGATION")
     print("   σ_f = √(Σᵢ Σⱼ (∂f/∂xᵢ)(∂f/∂xⱼ) Cov(xᵢ, xⱼ))")
-    print("━" * 66 + "\n")
+    print("=" * 66 + "\n")
 
     print("  6.1 Basic Uncertainty (symbolic)")
     result = uncertainty_propagation("x + y", ["x", "y"])
@@ -261,9 +261,9 @@ def section_uncertainty_propagation():
 # SECTION 7: CUSTOM FUNCTIONS
 # =============================================================================
 def section_custom_functions():
-    print("━" * 66)
+    print("=" * 66)
     print("7. CUSTOM FUNCTIONS")
-    print("━" * 66 + "\n")
+    print("=" * 66 + "\n")
 
     print("  7.1 Single-Argument Custom Derivatives")
     print("      Define: my_func(u) with derivative ∂f/∂u = 2u")
@@ -315,9 +315,9 @@ def section_custom_functions():
 # SECTION 8: EVALUATION
 # =============================================================================
 def section_evaluation():
-    print("━" * 66)
+    print("=" * 66)
     print("8. EVALUATION")
-    print("━" * 66 + "\n")
+    print("=" * 66 + "\n")
 
     print("  8.1 evaluate_str() from String (full evaluation)")
     result = evaluate_str("x * y + 1", [("x", 3.0), ("y", 2.0)])
@@ -340,9 +340,9 @@ def section_evaluation():
 # SECTION 9: VECTOR CALCULUS
 # =============================================================================
 def section_vector_calculus():
-    print("━" * 66)
+    print("=" * 66)
     print("9. VECTOR CALCULUS")
-    print("━" * 66 + "\n")
+    print("=" * 66 + "\n")
 
     print("  9.1 Gradient: ∇f = [∂f/∂x, ∂f/∂y, ...]")
     grad = gradient_str("x^2*y + y^3", ["x", "y"])
@@ -367,10 +367,10 @@ def section_vector_calculus():
 # SECTION 10: AUTOMATIC DIFFERENTIATION
 # =============================================================================
 def section_automatic_differentiation():
-    print("━" * 66)
+    print("=" * 66)
     print("10. AUTOMATIC DIFFERENTIATION")
     print("    Dual Numbers: a + bε where ε² = 0")
-    print("━" * 66 + "\n")
+    print("=" * 66 + "\n")
 
     print("  10.1 Basic Usage")
     print("      f(x) = x² + 3x + 1, find f(2) and f'(2)")
@@ -405,10 +405,10 @@ def section_automatic_differentiation():
 # SECTION 11: PARALLEL EVALUATION
 # =============================================================================
 def section_parallel_evaluation():
-    print("━" * 66)
+    print("=" * 66)
     print("11. PARALLEL EVALUATION")
     print("    Requires 'parallel' feature")
-    print("━" * 66 + "\n")
+    print("=" * 66 + "\n")
 
     print("  11.1 Basic Parallel Evaluation")
     print("      Evaluate x² at x = 1, 2, 3, 4, 5")
@@ -457,10 +457,10 @@ def section_parallel_evaluation():
 # SECTION 12: COMPILATION & PERFORMANCE
 # =============================================================================
 def section_compilation_and_performance():
-    print("━" * 66)
+    print("=" * 66)
     print("12. COMPILATION & PERFORMANCE")
     print("    CompiledEvaluator for high-performance repeated evaluation")
-    print("━" * 66 + "\n")
+    print("=" * 66 + "\n")
 
     print("  12.1 Compile Expression")
     x = Expr("x")
@@ -506,10 +506,10 @@ def section_compilation_and_performance():
 # SECTION 13: BUILT-IN FUNCTIONS
 # =============================================================================
 def section_builtin_functions():
-    print("━" * 66)
+    print("=" * 66)
     print("13. BUILT-IN FUNCTIONS")
     print("    60+ functions with symbolic differentiation and numeric eval")
-    print("━" * 66 + "\n")
+    print("=" * 66 + "\n")
 
     print("  TRIGONOMETRIC:")
     print("    sin, cos, tan, cot, sec, csc\n")
@@ -562,9 +562,9 @@ def section_builtin_functions():
 # SECTION 14: EXPRESSION SYNTAX
 # =============================================================================
 def section_expression_syntax():
-    print("━" * 66)
+    print("=" * 66)
     print("14. EXPRESSION SYNTAX")
-    print("━" * 66 + "\n")
+    print("=" * 66 + "\n")
 
     print("  Elements:")
     print("    Variables:      x, y, sigma, theta, phi")
@@ -601,9 +601,9 @@ def section_expression_syntax():
 # SECTION 15: ERROR HANDLING
 # =============================================================================
 def section_error_handling():
-    print("━" * 66)
+    print("=" * 66)
     print("15. ERROR HANDLING")
-    print("━" * 66 + "\n")
+    print("=" * 66 + "\n")
 
     print("  All functions return Result<T, DiffError>:")
     print()

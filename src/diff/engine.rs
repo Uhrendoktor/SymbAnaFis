@@ -65,6 +65,9 @@ impl Expr {
 
             // Function call - check Context for user-defined partials
             ExprKind::FunctionCall { name, args } => {
+                // Zero-argument functions don't exist in the registry (all functions have arity ≥ 1).
+                // This handles edge cases where an empty FunctionCall might be constructed.
+                // Treating as constant (derivative = 0) is the safest fallback.
                 if args.is_empty() {
                     return Self::number(0.0);
                 }
@@ -100,15 +103,9 @@ impl Expr {
                             continue;
                         }
 
-                        // Try to get partial from user function
+                        // Try to get partial from user function, or use symbolic fallback
                         let partial = user_fn.partials.get(&i).map_or_else(
-                            || {
-                                // No partial registered - symbolic
-                                let args_vec: Vec<Self> =
-                                    args.iter().map(|a| (**a).clone()).collect();
-                                let inner_func = Self::func_multi(name.clone(), args_vec);
-                                Self::derivative(inner_func, format!("arg{i}"), 1)
-                            },
+                            || Self::symbolic_partial(name, args, i),
                             |partial_fn| partial_fn(args),
                         );
 
@@ -131,9 +128,7 @@ impl Expr {
                     if arg_prime.is_zero_num() {
                         continue;
                     }
-                    let args_vec: Vec<Self> = args.iter().map(|a| (**a).clone()).collect();
-                    let inner_func = Self::func_multi(name.clone(), args_vec);
-                    let partial = Self::derivative(inner_func, format!("arg{i}"), 1);
+                    let partial = Self::symbolic_partial(name, args, i);
                     terms.push(Self::mul_expr(partial, arg_prime));
                 }
 
@@ -274,6 +269,11 @@ impl Expr {
             // 1. u^n (n constant): n * u^(n-1) * u'
             // 2. a^v (a constant): a^v * ln(a) * v'
             // 3. u^v (both variable): u^v * (v' * ln(u) + v * u'/u)
+            //
+            // Edge cases handled correctly:
+            // - 0^n: u_prime is 0, returns 0 ✓
+            // - 1^x: case 2, ln(1)=0 creates 0 term, simplifier handles ✓
+            // - x^0: n_minus_1 becomes -1, but final term is 0*u^(-1)*u'=0 via simplifier ✓
             ExprKind::Pow(u, v) => {
                 let u_contains_var = u.contains_var(var);
                 let v_contains_var = v.contains_var(var);
@@ -283,6 +283,12 @@ impl Expr {
                     Self::number(0.0)
                 } else if !v_contains_var {
                     // Case 1: u^n, n is constant
+
+                    // Fast-path: x^0 = 1, derivative is 0
+                    if v.as_number() == Some(0.0) {
+                        return Self::number(0.0);
+                    }
+
                     let u_prime = u.derive(var, Some(ctx));
 
                     if u_prime.is_zero_num() {
@@ -389,6 +395,21 @@ impl Expr {
             // Polynomial
             ExprKind::Poly(poly) => poly.derivative_expr(var),
         }
+    }
+
+    /// Create symbolic partial derivative for unknown function
+    ///
+    /// This helper creates: ∂f/∂argᵢ where f is the function and i is the argument index.
+    /// Used when no explicit partial derivative is registered for a user function.
+    #[inline]
+    fn symbolic_partial(
+        name: &crate::core::symbol::InternedSymbol,
+        args: &[Arc<Self>],
+        arg_index: usize,
+    ) -> Self {
+        let args_vec: Vec<Self> = args.iter().map(|a| (**a).clone()).collect();
+        let inner_func = Self::func_multi(name.clone(), args_vec);
+        Self::derivative(inner_func, format!("arg{arg_index}"), 1)
     }
 
     /// Raw differentiation without simplification (for benchmarks)
@@ -592,5 +613,44 @@ mod tests {
         assert!(s.contains("exp"), "Result should contain exp: {s}");
         assert!(s.contains("pi"), "Result should contain pi: {s}");
         assert!(s.contains("-2"), "Result should contain -2: {s}");
+    }
+
+    #[test]
+    fn test_empty_product_derivative() {
+        // Edge case: Product with no factors should return 0
+        use crate::core::expr::ExprKind as AstKind;
+        let empty_prod = Expr::new(AstKind::Product(vec![]));
+        let result = empty_prod.derive("x", None);
+        assert_eq!(result.as_number(), Some(0.0));
+    }
+
+    #[test]
+    fn test_empty_sum_derivative() {
+        // Edge case: Sum with no terms should return 0
+        use crate::core::expr::ExprKind as AstKind;
+        let empty_sum = Expr::new(AstKind::Sum(vec![]));
+        let result = empty_sum.derive("x", None);
+        assert_eq!(result.as_number(), Some(0.0));
+    }
+
+    #[test]
+    fn test_power_rule_edge_cases() {
+        // Test edge cases mentioned in power rule comments
+
+        // 0^2: should be 0
+        let zero_pow_two = Expr::pow_static(Expr::number(0.0), Expr::number(2.0));
+        let result = zero_pow_two.derive("x", None);
+        assert_eq!(result.as_number(), Some(0.0));
+
+        // x^0: should be 0 (derivative of 1)
+        let x_pow_zero = Expr::pow_static(Expr::symbol("x"), Expr::number(0.0));
+        let result = x_pow_zero.derive("x", None);
+        // Result might be 0*x^(-1) which simplifies to 0
+        let simplified = result.to_string();
+        // After simplification, should effectively be 0
+        assert!(
+            simplified.contains('0') || result.as_number() == Some(0.0),
+            "x^0 derivative should simplify to 0, got: {simplified}"
+        );
     }
 }

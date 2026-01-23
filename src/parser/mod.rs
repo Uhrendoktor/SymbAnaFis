@@ -12,6 +12,11 @@ use std::collections::HashSet;
 /// This function converts a mathematical expression string into a structured
 /// `Expr` AST that can be differentiated, simplified, or evaluated.
 ///
+/// # Performance
+/// - Uses O(N) additive chain optimization for large sums (e.g., `a+b+c+...`)
+/// - Pre-allocates token vectors with capacity heuristics
+/// - Static `BUILTINS_SET` via `OnceLock` for O(1) function lookup
+///
 /// # Arguments
 /// * `input` - The formula string to parse (e.g., "x^2 + sin(x)")
 /// * `known_symbols` - Set of known symbol names (for parsing multi-char variables)

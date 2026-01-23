@@ -1,3 +1,4 @@
+use crate::core::traits::EPSILON;
 use crate::simplification::rules::{ExprKind, Rule, RuleCategory, RuleContext};
 use crate::{Expr, ExprKind as AstKind};
 use std::sync::Arc;
@@ -82,7 +83,7 @@ rule!(
             // Look for multiple (-1) factors and simplify
             let minus_one_count = factors
                 .iter()
-                .filter(|f| matches!(&f.kind, AstKind::Number(n) if (*n + 1.0).abs() < 1e-10))
+                .filter(|f| matches!(&f.kind, AstKind::Number(n) if (*n + 1.0).abs() < EPSILON))
                 .count();
 
             if minus_one_count >= 2 {
@@ -90,7 +91,9 @@ rule!(
                 let remaining_minus_ones = minus_one_count % 2;
                 let other_factors: Vec<Arc<Expr>> = factors
                     .iter()
-                    .filter(|f| !matches!(&f.kind, AstKind::Number(n) if (*n + 1.0).abs() < 1e-10))
+                    .filter(
+                        |f| !matches!(&f.kind, AstKind::Number(n) if (*n + 1.0).abs() < EPSILON),
+                    )
                     .cloned()
                     .collect();
 

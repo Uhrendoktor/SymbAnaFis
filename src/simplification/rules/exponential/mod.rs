@@ -1,5 +1,6 @@
 use crate::core::expr::{Expr, ExprKind as AstKind};
 use crate::core::known_symbols::{CBRT, COSH, E, EXP, LN, LOG, LOG2, LOG10, SQRT, get_symbol};
+use crate::core::traits::EPSILON;
 use crate::simplification::rules::{ExprKind, Rule, RuleCategory, RuleContext};
 use std::sync::Arc;
 
@@ -349,7 +350,7 @@ rule_with_helpers!(LogCombinationRule, "log_combination", 85, Exponential, &[Exp
                 if let AstKind::Product(factors) = &v.kind
                     && factors.len() == 2
                         && let AstKind::Number(n) = &factors[0].kind
-                            && (*n + 1.0).abs() < 1e-10
+                            && (*n + 1.0).abs() < EPSILON
                                 && let (Some(arg1), Some(arg2)) = (get_ln_arg(u), get_ln_arg(&factors[1])) {
                                     return Some(Expr::func_symbol(
                                         get_symbol(&LN),

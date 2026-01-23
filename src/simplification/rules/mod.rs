@@ -395,7 +395,7 @@ pub trait Rule {
 
 /// Categories of simplification rules
 #[allow(dead_code)]
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Hash)]
 pub enum RuleCategory {
     Numeric,   // Constant folding, identities
     Algebraic, // General algebraic rules

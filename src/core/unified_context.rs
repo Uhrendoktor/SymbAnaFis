@@ -98,6 +98,21 @@ impl UserFunction {
         }
     }
 
+    /// Create a variadic function that accepts any number of arguments.
+    ///
+    /// This is useful when registering function names for parsing without
+    /// knowing the exact arity.
+    ///
+    /// # Example
+    /// ```
+    /// use symb_anafis::UserFunction;
+    /// let f = UserFunction::any_arity();  // Accepts 0, 1, 2, ... arguments
+    /// ```
+    #[must_use]
+    pub fn any_arity() -> Self {
+        Self::new(0..=usize::MAX)
+    }
+
     /// Set the symbolic body function.
     ///
     /// The body function receives argument expressions and returns an Expr.

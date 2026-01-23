@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod tests {
     use crate::Expr;
-    use crate::core::evaluator::CompiledEvaluator;
     use crate::core::known_symbols::get_symbol;
+    use crate::evaluator::CompiledEvaluator;
     use crate::parser;
     use std::collections::HashSet;
     use std::sync::Arc;

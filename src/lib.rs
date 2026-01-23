@@ -35,8 +35,9 @@
 // New module structure
 mod api; // User-facing builders: Diff, Simplify, helpers
 mod bindings; // External bindings (Python, parallel)
-mod core; // Core types: Expr, Symbol, Error, Display, Visitor, CompiledEvaluator
+mod core; // Core types: Expr, Symbol, Error, Display, Visitor
 mod diff; // Differentiation engine
+mod evaluator; // Compiled evaluator (promoted from core)
 
 mod functions;
 mod math;
@@ -62,8 +63,13 @@ mod tests;
 pub use core::{DiffError, Span, SymbolError};
 
 // --- Expression Types ---
-pub use core::CompiledEvaluator;
 pub use core::Expr;
+pub use evaluator::CompiledEvaluator;
+pub use evaluator::ToParamName;
+// ExprKind is NOT re-exported at the crate root to encourage use of Expr constructors
+// (Expr::sum, Expr::product, etc.) instead of direct ExprKind construction.
+// It IS still public via `use symb_anafis::core::ExprKind` for pattern matching.
+// This pub(crate) re-export is only for internal crate usage.
 pub(crate) use core::ExprKind;
 
 // --- Math Types ---
@@ -150,9 +156,9 @@ pub fn diff(
     let mut builder = Diff::new();
 
     if let Some(funcs) = custom_functions {
-        builder = funcs.iter().fold(builder, |b, f| {
-            b.user_fn(*f, UserFunction::new(0..=usize::MAX))
-        });
+        builder = funcs
+            .iter()
+            .fold(builder, |b, f| b.user_fn(*f, UserFunction::any_arity()));
     }
 
     builder
@@ -202,9 +208,9 @@ pub fn simplify(
     let mut builder = Simplify::new();
 
     if let Some(funcs) = custom_functions {
-        builder = funcs.iter().fold(builder, |b, f| {
-            b.user_fn(*f, UserFunction::new(0..=usize::MAX))
-        });
+        builder = funcs
+            .iter()
+            .fold(builder, |b, f| b.user_fn(*f, UserFunction::any_arity()));
     }
 
     builder

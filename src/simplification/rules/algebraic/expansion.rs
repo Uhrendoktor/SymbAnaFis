@@ -1,4 +1,5 @@
 use crate::core::known_symbols::{CBRT, SQRT};
+use crate::core::traits::EPSILON;
 use crate::simplification::rules::{ExprKind, Rule, RuleCategory, RuleContext};
 use crate::{Expr, ExprKind as AstKind};
 
@@ -82,11 +83,11 @@ rule!(
                 let has_simplifiable = base_factors.iter().any(|f| match &f.kind {
                     AstKind::Pow(_, inner_exp) => {
                         if let AstKind::Number(inner_n) = &inner_exp.kind {
-                            (inner_n * n).fract().abs() < 1e-10
+                            (inner_n * n).fract().abs() < EPSILON
                         } else if let AstKind::Div(num, den) = &inner_exp.kind {
                             if let (AstKind::Number(a), AstKind::Number(b)) = (&num.kind, &den.kind)
                             {
-                                ((a * n) / b).fract().abs() < 1e-10
+                                ((a * n) / b).fract().abs() < EPSILON
                             } else {
                                 false
                             }
@@ -128,12 +129,12 @@ rule!(
                     match &term.kind {
                         AstKind::Pow(_, inner_exp) => {
                             if let AstKind::Number(inner_n) = &inner_exp.kind {
-                                (inner_n * n).fract().abs() < 1e-10
+                                (inner_n * n).fract().abs() < EPSILON
                             } else if let AstKind::Div(num, den) = &inner_exp.kind {
                                 if let (AstKind::Number(a_val), AstKind::Number(b_val)) =
                                     (&num.kind, &den.kind)
                                 {
-                                    ((a_val * n) / b_val).fract().abs() < 1e-10
+                                    ((a_val * n) / b_val).fract().abs() < EPSILON
                                 } else {
                                     false
                                 }
@@ -152,7 +153,7 @@ rule!(
                             }
                             AstKind::Pow(_, inner_exp) => {
                                 if let AstKind::Number(inner_n) = &inner_exp.kind {
-                                    (inner_n * n).fract().abs() < 1e-10
+                                    (inner_n * n).fract().abs() < EPSILON
                                 } else {
                                     false
                                 }

@@ -2,6 +2,39 @@
 
 All notable changes to SymbAnaFis will be documented in this file.
 
+## [unreleased]
+
+### Added
+- **UserFunction API**: Added `UserFunction::any_arity()` helper for registering variadic custom functions (0..=usize::MAX).
+- **Rule Registry Tests**: Added comprehensive test suite `rule_registry_tests` ensuring:
+  - All rule categories are loaded
+  - Rules are correctly sorted by priority descending
+  - Rule names are unique
+  - Priorities fall within convention range (1-100)
+- **Builtins**: Added `spherical_harmonic` to lexer builtins.
+- **Differentiation**: Added `symbolic_partial` helper for robust fallback when differentiation user functions without registered partials.
+
+### Changed
+- **Refactoring - Evaluator Promotion**: Moved `core::evaluator` to top-level `src/evaluator`.
+  - Re-exported `CompiledEvaluator` and `Instruction` from `evaluator` module.
+  - Updated all internal crate references to use `crate::evaluator`.
+- **Simplification Tolerance**: Standardized floating-point comparisons across ALL simplification rules (Algebraic, Trigonometric, Hyperbolic, Exponential, Numeric) to use `EPSILON` (1e-14) instead of ad-hoc `1e-10`.
+  - Updated precision tests to reflect tighter tolerance (`3.0...01` vs `3.0...1`).
+- **Python Bindings**:
+  - `Expr.__eq__` and `Symbol.__eq__` now accept `object` matching Python data model.
+  - Clarified docstrings for `evaluate_parallel` and `eval_f64` regarding type-preserving behavior (NumPy->NumPy, Str->Str).
+- **Renames**: Renamed `perfect_square` -> `perfect_square_factoring` and `perfect_cube` -> `perfect_cube_factoring` rules.
+
+### Fixed
+- **Derivative Edge Cases**:
+  - `x^0` now correctly differentiates to 0 (fast-path).
+  - Empty argument lists in function calls are handled gracefully (derivative 0).
+- **Simplification Safety**:
+  - `simplify()` now explicitly checks `max_depth` and `max_nodes` limits.
+  - `simplify_str()` now validates against name collisions between custom functions and known symbols.
+- **Documentation**: Added warnings to `gradient_str`, `hessian_str`, `jacobian_str` helpers about lack of custom function support.
+- **Cosmetic**: Replaced Unicode box-drawing characters with ASCII in `api_showcase` examples for better compatibility.
+
 ## [0.7.0] - 2026-01-20
 
 ### Added

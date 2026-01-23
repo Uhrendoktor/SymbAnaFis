@@ -1,3 +1,4 @@
+use crate::core::traits::EPSILON;
 use crate::simplification::rules::{ExprKind, Rule, RuleCategory, RuleContext};
 use crate::{Expr, ExprKind as AstKind};
 use std::sync::Arc;
@@ -131,7 +132,7 @@ rule_arc!(
 
             // Case 2: a + b/c (v is the fraction)
             if let AstKind::Div(n, d) = &v.kind {
-                let u_times_d = if matches!(&u.kind, AstKind::Number(x) if (*x - 1.0).abs() < 1e-10)
+                let u_times_d = if matches!(&u.kind, AstKind::Number(x) if (*x - 1.0).abs() < EPSILON)
                 {
                     Arc::clone(d)
                 } else {
@@ -143,7 +144,7 @@ rule_arc!(
 
             // Case 3: a/b + c (u is the fraction)
             if let AstKind::Div(n, d) = &u.kind {
-                let v_times_d = if matches!(&v.kind, AstKind::Number(x) if (*x - 1.0).abs() < 1e-10)
+                let v_times_d = if matches!(&v.kind, AstKind::Number(x) if (*x - 1.0).abs() < EPSILON)
                 {
                     Arc::clone(d)
                 } else {
@@ -200,7 +201,7 @@ rule_with_helpers_arc!(FractionToEndRule, "fraction_to_end", 50, Algebraic, &[Ex
                 // Filter out 1s from numerators
                 let filtered_nums: Vec<Arc<Expr>> = numerators
                     .into_iter()
-                    .filter(|e| !matches!(e.kind, AstKind::Number(n) if (n - 1.0).abs() < 1e-10))
+                    .filter(|e| !matches!(e.kind, AstKind::Number(n) if (n - 1.0).abs() < EPSILON))
                     .collect();
 
                 let num_expr = if filtered_nums.is_empty() {
@@ -241,7 +242,7 @@ rule_with_helpers_arc!(FractionToEndRule, "fraction_to_end", 50, Algebraic, &[Ex
             // Filter out 1s from numerators
             let filtered_nums: Vec<Arc<Expr>> = numerators
                 .into_iter()
-                .filter(|e| !matches!(e.kind, AstKind::Number(n) if (n - 1.0).abs() < 1e-10))
+                .filter(|e| !matches!(e.kind, AstKind::Number(n) if (n - 1.0).abs() < EPSILON))
                 .collect();
 
             let num_expr = if filtered_nums.is_empty() {

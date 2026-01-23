@@ -63,8 +63,8 @@ mod stack;
 mod tests;
 
 // Re-exports for sibling modules within evaluator
-pub(super) use compiler::Compiler;
-pub(super) use instruction::Instruction;
+pub use compiler::Compiler;
+pub use instruction::Instruction;
 
 use crate::core::error::DiffError;
 use crate::core::unified_context::Context;

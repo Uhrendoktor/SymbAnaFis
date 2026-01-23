@@ -2,7 +2,7 @@
 pub mod engine;
 pub mod helpers;
 mod patterns;
-mod rules;
+pub mod rules;
 
 use crate::Expr;
 use crate::core::unified_context::{BodyFn, Context};

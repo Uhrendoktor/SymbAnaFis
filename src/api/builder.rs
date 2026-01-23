@@ -16,8 +16,8 @@
 //! assert!(!format!("{}", derivative).is_empty());
 //! ```
 
-use crate::core::evaluator::ToParamName;
 use crate::core::unified_context::{Context, UserFunction};
+use crate::evaluator::ToParamName;
 use crate::{DiffError, Expr, Symbol, parser, simplification};
 use std::collections::HashMap;
 use std::collections::HashSet;
@@ -351,8 +351,15 @@ impl Simplify {
     /// Simplify an expression
     ///
     /// # Errors
-    /// Returns `DiffError` if expression node count exceeds `max_nodes`.
+    /// Returns `DiffError` if:
+    /// - Expression depth exceeds `max_depth`
+    /// - Expression node count exceeds `max_nodes`
     pub fn simplify(&self, expr: &Expr) -> Result<Expr, DiffError> {
+        if let Some(max_d) = self.max_depth
+            && expr.max_depth() > max_d
+        {
+            return Err(DiffError::MaxDepthExceeded);
+        }
         if let Some(max_n) = self.max_nodes
             && expr.node_count() > max_n
         {
@@ -386,7 +393,9 @@ impl Simplify {
     /// ```
     ///
     /// # Errors
-    /// Returns `DiffError` if parsing or simplification fails.
+    /// Returns `DiffError` if:
+    /// - Parsing fails
+    /// - A name collision between symbols and functions is detected
     pub fn simplify_str(&self, formula: &str, known_symbols: &[&str]) -> Result<String, DiffError> {
         let mut symbols: HashSet<String> = known_symbols
             .iter()
@@ -394,12 +403,23 @@ impl Simplify {
             .collect();
         symbols.extend(self.known_symbols.clone());
 
-        let ast = parser::parse(
-            formula,
-            &symbols,
-            &self.custom_function_names(),
-            self.context.as_ref(),
-        )?;
+        let custom_functions = self.custom_function_names();
+
+        // Validate: no name should be both a symbol and a function
+        for func in &custom_functions {
+            if symbols.contains(func) {
+                return Err(DiffError::NameCollision { name: func.clone() });
+            }
+        }
+
+        // Check for conflicts between builder's known_symbols and custom functions
+        for func in &custom_functions {
+            if self.known_symbols.contains(func) {
+                return Err(DiffError::NameCollision { name: func.clone() });
+            }
+        }
+
+        let ast = parser::parse(formula, &symbols, &custom_functions, self.context.as_ref())?;
         let result = self.simplify(&ast)?;
         Ok(format!("{result}"))
     }

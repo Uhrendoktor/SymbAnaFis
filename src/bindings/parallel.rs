@@ -379,7 +379,7 @@ pub(crate) fn evaluate_parallel_with_hint(
             // We ignore all_values_numeric check here - we'll check per-point
             // We also rely on compile() to check that all variables are bound
             let evaluator =
-                crate::core::evaluator::CompiledEvaluator::compile(expr, &vars, None).ok();
+                crate::evaluator::CompiledEvaluator::compile(expr, &vars, None).ok();
 
             if let Some(evaluator) = evaluator {
                 // OPTIMIZATION: Use pre-computed hint if available, otherwise compute lazily

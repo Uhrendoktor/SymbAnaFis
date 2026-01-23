@@ -1,5 +1,6 @@
 // Algebraic combination operations on validated expressions
 
+use crate::core::traits::EPSILON;
 use crate::simplification::rules::{ExprKind, Rule, RuleCategory, RuleContext};
 use crate::{Expr, ExprKind as AstKind};
 use std::sync::Arc;
@@ -73,11 +74,11 @@ rule_arc!(
             for (base, coeff) in term_groups {
                 if coeff == 0.0 {
                     // Drop zero terms
-                } else if (coeff - 1.0).abs() < 1e-10 {
+                } else if (coeff - 1.0).abs() < EPSILON {
                     // 1*base = base
                     result.push(base);
                 } else if let AstKind::Number(n) = &base.kind {
-                    if (*n - 1.0).abs() < 1e-10 {
+                    if (*n - 1.0).abs() < EPSILON {
                         result.push(Arc::new(Expr::number(coeff)));
                     } else {
                         // number * number -> combined number
@@ -155,7 +156,7 @@ rule_arc!(
             for (base, exponents) in factor_groups {
                 if exponents.len() == 1 {
                     if let AstKind::Number(n) = &exponents[0].kind
-                        && (*n - 1.0).abs() < 1e-10
+                        && (*n - 1.0).abs() < EPSILON
                     {
                         combined_factors.push(base);
                     } else {
@@ -265,7 +266,7 @@ fn combine_var_parts(a: Expr, b: Expr) -> Expr {
         // If same base, combine exponents
         if base_a == base_b {
             let total_exp = exp_a + exp_b;
-            if (total_exp - 1.0).abs() < 1e-10 {
+            if (total_exp - 1.0).abs() < EPSILON {
                 return base_a;
             }
             return Expr::pow(base_a, Expr::number(total_exp));
@@ -305,7 +306,7 @@ fn distribute_factor(factor: &Expr, addends: &[Expr]) -> Vec<Expr> {
             };
 
             // Build canonical result (coefficient first)
-            if (total_coeff - 1.0).abs() < 1e-10 {
+            if (total_coeff - 1.0).abs() < EPSILON {
                 combined_var
             } else {
                 Expr::product(vec![Expr::number(total_coeff), combined_var])
@@ -412,13 +413,13 @@ rule_arc!(
                         }
                     }
 
-                    if (total_coeff - 0.0).abs() < 1e-10 {
+                    if (total_coeff - 0.0).abs() < EPSILON {
                         // Terms cancel out
                         continue;
                     }
 
                     let base_term = base_term.expect("Base term guaranteed to exist");
-                    if (total_coeff - 1.0).abs() < 1e-10 {
+                    if (total_coeff - 1.0).abs() < EPSILON {
                         combined_terms.push(base_term);
                     } else {
                         combined_terms.push(Arc::new(Expr::product_from_arcs(vec![

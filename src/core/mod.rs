@@ -11,7 +11,7 @@
 //! - [`Symbol`] - Lightweight, copyable symbol reference
 //!
 //! ## Evaluation
-//! - [`CompiledEvaluator`] - Fast bytecode-based numeric evaluation
+//! - `CompiledEvaluator` - Fast bytecode-based numeric evaluation (see `crate::evaluator`)
 //!
 //! ## Error Handling
 //! - [`DiffError`] - Error type for differentiation and parsing
@@ -32,7 +32,6 @@
 
 pub mod display; // Display implementations for Expr
 pub mod error; // Error types (DiffError, Span)
-pub mod evaluator; // Compiled evaluator for fast numeric evaluation
 pub mod expr; // Expression AST (Expr, ExprKind)
 pub mod known_symbols; // Well-known symbol IDs (pi, e, etc.)
 pub mod poly; // Polynomial representation (internal)
@@ -55,7 +54,6 @@ pub use error::{DiffError, Span};
 pub use symbol::SymbolError;
 
 // --- Expression Types ---
-pub use evaluator::CompiledEvaluator;
 pub use expr::{Expr, ExprKind};
 
 // --- Symbol Management ---

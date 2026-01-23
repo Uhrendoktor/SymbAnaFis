@@ -2,6 +2,7 @@ use crate::core::expr::{Expr, ExprKind as AstKind};
 use crate::core::known_symbols::{
     ACOSH, ASINH, ATANH, COSH, COTH, CSCH, SECH, SINH, TANH, get_symbol,
 };
+use crate::core::traits::EPSILON;
 use crate::simplification::rules::{ExprKind, Rule, RuleCategory, RuleContext};
 
 rule!(
@@ -246,7 +247,7 @@ rule!(
                 if let AstKind::Product(factors) = &term.kind
                     && factors.len() == 2
                     && let AstKind::Number(n) = &factors[0].kind
-                    && (*n + 1.0).abs() < 1e-10
+                    && (*n + 1.0).abs() < EPSILON
                 {
                     return Some((*factors[1]).clone());
                 }
@@ -286,7 +287,7 @@ rule!(
             // coth^2(x) - 1 = csch^2(x)
             if let (Some((n1, a1)), AstKind::Number(num)) = (get_hyperbolic_power(u, 2.0), &v.kind)
                 && n1.id() == *COTH
-                && (*num + 1.0).abs() < 1e-10
+                && (*num + 1.0).abs() < EPSILON
             {
                 return Some(Expr::pow_static(
                     Expr::func_symbol(get_symbol(&CSCH), a1),
@@ -295,7 +296,7 @@ rule!(
             }
             if let (AstKind::Number(num), Some((n2, a2))) = (&u.kind, get_hyperbolic_power(v, 2.0))
                 && n2.id() == *COTH
-                && (*num + 1.0).abs() < 1e-10
+                && (*num + 1.0).abs() < EPSILON
             {
                 return Some(Expr::pow_static(
                     Expr::func_symbol(get_symbol(&CSCH), a2),
@@ -399,7 +400,7 @@ rule!(
     Hyperbolic,
     &[ExprKind::Sum, ExprKind::Poly],
     |expr: &Expr, _context: &RuleContext| {
-        let eps = 1e-10_f64;
+        let eps = EPSILON; // Use reasonable floating point tolerance for triple angle identities
 
         // Handle Poly form: Poly(sinh(x), [(1, 3.0), (3, 4.0)]) -> sinh(3x)
         if let AstKind::Poly(poly) = &expr.kind {

@@ -1,3 +1,4 @@
+use crate::core::traits::EPSILON;
 use crate::simplification::rules::{ExprKind, Rule, RuleCategory, RuleContext};
 use crate::{Expr, ExprKind as AstKind};
 use std::sync::Arc;
@@ -65,13 +66,13 @@ rule!(
                             let is_one = *num_val == 1.0;
                             is_one
                         }
-                        && (*den_val - *inner_n).abs() < 1e-10
+                        && (*den_val - *inner_n).abs() < EPSILON
                     {
                         return Some(Expr::func_multi_from_arcs("abs", vec![Arc::clone(base)]));
                     }
                     if let AstKind::Number(outer_n) = &v.kind {
                         let product = inner_n * outer_n;
-                        if (product - 1.0).abs() < 1e-10 {
+                        if (product - 1.0).abs() < EPSILON {
                             return Some(Expr::func_multi_from_arcs("abs", vec![Arc::clone(base)]));
                         }
                     }
@@ -335,7 +336,7 @@ rule_arc!(
                                 (&base.kind, &exp.kind)
                             {
                                 let result = base_val.powf(*exp_val);
-                                result.is_finite() && (result - result.round()).abs() < 1e-10
+                                result.is_finite() && (result - result.round()).abs() < EPSILON
                             } else {
                                 false
                             }
@@ -476,7 +477,7 @@ rule!(
                             // Exact check for 1/n exponent form
                             #[allow(clippy::float_cmp)]
                             // Comparing against exact constants for 1/n exponent
-                            let matches = *one_val == 1.0 && (m / n_val).fract().abs() < 1e-10;
+                            let matches = *one_val == 1.0 && (m / n_val).fract().abs() < EPSILON;
                             matches
                         } else {
                             false
@@ -484,7 +485,7 @@ rule!(
                     } else if let (AstKind::Number(m), AstKind::Number(exp_val)) =
                         (&inner_exp.kind, &exp.kind)
                     {
-                        (m * exp_val).fract().abs() < 1e-10
+                        (m * exp_val).fract().abs() < EPSILON
                     } else {
                         false
                     }

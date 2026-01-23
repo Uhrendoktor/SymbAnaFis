@@ -1,5 +1,6 @@
 use crate::core::expr::{Expr, ExprKind as AstKind};
 use crate::core::known_symbols::{COS, SIN, get_symbol};
+use crate::core::traits::EPSILON;
 use crate::simplification::rules::{ExprKind, Rule, RuleCategory, RuleContext};
 
 fn check_sin_triple(u: &Expr, v: &Expr, eps: f64) -> Option<Expr> {
@@ -206,7 +207,7 @@ rule!(
     Trigonometric,
     &[ExprKind::Sum, ExprKind::Poly],
     |expr: &Expr, _context: &RuleContext| {
-        let eps = 1e-10;
+        let eps = EPSILON; // Use reasonable floating point tolerance for triple angle identities
 
         // Handle Poly form: Poly(sin(x), [(1, 3.0), (3, -4.0)]) -> sin(3x)
         if let AstKind::Poly(poly) = &expr.kind {
@@ -275,7 +276,7 @@ rule!(
                 if let AstKind::Product(factors) = &term.kind
                     && factors.len() >= 2
                     && let AstKind::Number(n) = &factors[0].kind
-                    && (*n + 1.0).abs() < 1e-10
+                    && (*n + 1.0).abs() < EPSILON
                 {
                     // Rebuild without the -1 factor
                     let remaining: Vec<Expr> =

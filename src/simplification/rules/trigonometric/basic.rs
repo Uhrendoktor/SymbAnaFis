@@ -1,5 +1,6 @@
 use crate::core::expr::{Expr, ExprKind as AstKind};
 use crate::core::known_symbols::{COS, COT, CSC, SEC, SIN, SQRT, TAN, get_symbol};
+use crate::core::traits::EPSILON;
 use crate::simplification::helpers;
 use crate::simplification::rules::{ExprKind, Rule, RuleCategory, RuleContext};
 use std::f64::consts::PI;
@@ -297,7 +298,7 @@ rule_arc!(
     |expr: &Expr, _context: &RuleContext| {
         if let AstKind::Div(num, den) = &expr.kind
             && let AstKind::Number(n) = &num.kind
-            && (*n - 1.0).abs() < 1e-10
+            && (*n - 1.0).abs() < EPSILON
         {
             // 1/cos(x) → sec(x)
             if let AstKind::FunctionCall { name, args } = &den.kind
@@ -337,7 +338,7 @@ rule_arc!(
     |expr: &Expr, _context: &RuleContext| {
         if let AstKind::Div(num, den) = &expr.kind
             && let AstKind::Number(n) = &num.kind
-            && (*n - 1.0).abs() < 1e-10
+            && (*n - 1.0).abs() < EPSILON
         {
             // 1/sin(x) → csc(x)
             if let AstKind::FunctionCall { name, args } = &den.kind

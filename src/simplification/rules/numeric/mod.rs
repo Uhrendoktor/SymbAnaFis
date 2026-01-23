@@ -1,6 +1,7 @@
 use crate::Expr;
 use crate::ExprKind as AstKind;
 use crate::core::known_symbols::{CBRT, SQRT};
+use crate::core::traits::EPSILON;
 use crate::simplification::rules::{ExprKind, Rule, RuleCategory, RuleContext};
 use std::sync::Arc;
 // ===== Identity Rules for Sum (Priority 100) =====
@@ -385,7 +386,7 @@ rule!(
             && *b != 0.0
         {
             let result = a / b;
-            if (result - result.round()).abs() < 1e-10 {
+            if (result - result.round()).abs() < EPSILON {
                 return Some(Expr::number(result.round()));
             }
         }
@@ -483,7 +484,7 @@ rule!(
             && let AstKind::Number(n) = &args[0].kind
         {
             let s = n.sqrt();
-            if (s - s.round()).abs() < 1e-10 {
+            if (s - s.round()).abs() < EPSILON {
                 return Some(Expr::number(s.round()));
             }
         }
@@ -504,7 +505,7 @@ rule!(
             && let AstKind::Number(n) = &args[0].kind
         {
             let c = n.cbrt();
-            if (c - c.round()).abs() < 1e-10 {
+            if (c - c.round()).abs() < EPSILON {
                 return Some(Expr::number(c.round()));
             }
         }
@@ -523,12 +524,12 @@ rule!(
             && factors.len() == 2
         {
             if let AstKind::Number(n) = &factors[0].kind
-                && (*n - 0.5).abs() < 1e-10
+                && (*n - 0.5).abs() < EPSILON
             {
                 return Some(Expr::div_expr((*factors[1]).clone(), Expr::number(2.0)));
             }
             if let AstKind::Number(n) = &factors[1].kind
-                && (*n - 0.5).abs() < 1e-10
+                && (*n - 0.5).abs() < EPSILON
             {
                 return Some(Expr::div_expr((*factors[0]).clone(), Expr::number(2.0)));
             }
@@ -571,7 +572,7 @@ rule!(
 
                 // Only evaluate if result is an integer
                 // This preserves symbolic forms like sqrt(2), ln(10), etc.
-                if (result - result.round()).abs() < 1e-10 {
+                if (result - result.round()).abs() < EPSILON {
                     return Some(Expr::number(result.round()));
                 }
 

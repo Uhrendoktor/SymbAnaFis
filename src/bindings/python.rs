@@ -39,9 +39,9 @@
 
 #[cfg(feature = "parallel")]
 use crate::bindings::eval_f64::eval_f64 as rust_eval_f64;
-use crate::core::evaluator::CompiledEvaluator;
 use crate::core::symbol::Symbol as RustSymbol;
 use crate::core::unified_context::{BodyFn, Context as RustContext};
+use crate::evaluator::CompiledEvaluator;
 #[cfg(feature = "parallel")]
 use crate::parallel::{self, ExprInput, Value, VarInput};
 use crate::uncertainty::{CovEntry, CovarianceMatrix};

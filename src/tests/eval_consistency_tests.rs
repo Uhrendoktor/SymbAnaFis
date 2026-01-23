@@ -212,7 +212,7 @@ fn test_consistency_second_derivative() {
 
 #[test]
 fn test_compiled_vs_tree_walking() {
-    use crate::core::evaluator::CompiledEvaluator;
+    use crate::evaluator::CompiledEvaluator;
 
     let expressions = [
         "x^2 + 2*x + 1",

@@ -1,5 +1,6 @@
 use crate::core::known_symbols::{CBRT, SQRT};
 use crate::core::poly::Polynomial;
+use crate::core::traits::EPSILON;
 use crate::simplification::rules::{ExprKind, Rule, RuleCategory, RuleContext};
 use crate::{Expr, ExprKind as AstKind};
 use std::sync::Arc;
@@ -82,7 +83,7 @@ impl Rule for FractionCancellationRule {
 
             fn is_safe_to_cancel(base: &Expr) -> bool {
                 match &base.kind {
-                    AstKind::Number(n) => n.abs() > 1e-10,
+                    AstKind::Number(n) => n.abs() > EPSILON,
                     _ => false,
                 }
             }
@@ -115,14 +116,14 @@ impl Rule for FractionCancellationRule {
 
             // Simplify coefficients
             let ratio = num_coeff / den_coeff;
-            if ratio.abs() < 1e-10 {
+            if ratio.abs() < EPSILON {
                 return Some(Arc::new(Expr::number(0.0)));
             }
 
-            if (ratio - ratio.round()).abs() < 1e-10 {
+            if (ratio - ratio.round()).abs() < EPSILON {
                 num_coeff = ratio.round();
                 den_coeff = 1.0;
-            } else if (1.0 / ratio - (1.0 / ratio).round()).abs() < 1e-10 {
+            } else if (1.0 / ratio - (1.0 / ratio).round()).abs() < EPSILON {
                 let inv = (1.0 / ratio).round();
                 if inv < 0.0 {
                     num_coeff = -1.0;
@@ -300,7 +301,7 @@ pub struct PerfectSquareRule;
 
 impl Rule for PerfectSquareRule {
     fn name(&self) -> &'static str {
-        "perfect_square"
+        "perfect_square_factoring"
     }
 
     fn priority(&self) -> i32 {
@@ -370,7 +371,7 @@ impl Rule for PerfectSquareRule {
                 match &term.kind {
                     AstKind::Pow(base, exp) => {
                         if let AstKind::Number(n) = &exp.kind
-                            && (*n - 2.0).abs() < 1e-10
+                            && (*n - 2.0).abs() < EPSILON
                         {
                             square_terms.push((1.0, Arc::clone(base)));
                             continue;
@@ -381,7 +382,7 @@ impl Rule for PerfectSquareRule {
                         // Check if number is a perfect square (positive)
                         if *n > 0.0 {
                             let sqrt_n = n.sqrt();
-                            if (sqrt_n - sqrt_n.round()).abs() < 1e-10 {
+                            if (sqrt_n - sqrt_n.round()).abs() < EPSILON {
                                 // It's a perfect square constant, treat as square term (coeff=1, base=sqrt(n))
                                 // We treat '9' as 1*3^2. So coeff=1.0, base=Number(3)
                                 square_terms.push((1.0, Arc::new(Expr::number(sqrt_n.round()))));
@@ -401,7 +402,7 @@ impl Rule for PerfectSquareRule {
                         if factors.len() == 1 {
                             if let AstKind::Pow(base, exp) = &factors[0].kind
                                 && let AstKind::Number(n) = &exp.kind
-                                && (*n - 2.0).abs() < 1e-10
+                                && (*n - 2.0).abs() < EPSILON
                             {
                                 square_terms.push((coeff, Arc::clone(base)));
                                 continue;
@@ -441,8 +442,8 @@ impl Rule for PerfectSquareRule {
                 let sqrt_c1 = c1.sqrt();
                 let sqrt_c2 = c2.sqrt();
 
-                if (sqrt_c1 - sqrt_c1.round()).abs() < 1e-10
-                    && (sqrt_c2 - sqrt_c2.round()).abs() < 1e-10
+                if (sqrt_c1 - sqrt_c1.round()).abs() < EPSILON
+                    && (sqrt_c2 - sqrt_c2.round()).abs() < EPSILON
                 {
                     let expected_cross_abs = (2.0 * sqrt_c1 * sqrt_c2).abs();
                     let cross_coeff_abs = cross_coeff.abs();
@@ -455,10 +456,10 @@ impl Rule for PerfectSquareRule {
                     // Also check if one of cross factors is 1 (implicit) and matches
                     // e.g. x^2 + 2x + 1. a=x, b=1. Linear term 2x -> cross_a=x, cross_b=1.
 
-                    if (expected_cross_abs - cross_coeff_abs).abs() < 1e-10 && match_direct {
+                    if (expected_cross_abs - cross_coeff_abs).abs() < EPSILON && match_direct {
                         let sign = cross_coeff.signum();
 
-                        let term_a = if (sqrt_c1 - 1.0).abs() < 1e-10 {
+                        let term_a = if (sqrt_c1 - 1.0).abs() < EPSILON {
                             Arc::clone(a)
                         } else {
                             Arc::new(Expr::product_from_arcs(vec![
@@ -467,7 +468,7 @@ impl Rule for PerfectSquareRule {
                             ]))
                         };
 
-                        let term_b = if (sqrt_c2 - 1.0).abs() < 1e-10 {
+                        let term_b = if (sqrt_c2 - 1.0).abs() < EPSILON {
                             Arc::clone(b)
                         } else {
                             Arc::new(Expr::product_from_arcs(vec![
@@ -510,7 +511,7 @@ rule_arc!(
         fn get_square_root_form(e: &Arc<Expr>) -> Option<Arc<Expr>> {
             if let AstKind::Pow(base, exp) = &e.kind {
                 if let AstKind::Number(n) = &exp.kind {
-                    if (*n - 2.0).abs() < 1e-10 {
+                    if (*n - 2.0).abs() < EPSILON {
                         return Some(Arc::clone(base));
                     } else if n.fract() == 0.0 && *n > 2.0 && (n / 2.0).fract() == 0.0 {
                         let half_exp = n / 2.0;
@@ -524,7 +525,7 @@ rule_arc!(
                 && *n > 0.0
             {
                 let sqrt_n = n.sqrt();
-                if (sqrt_n - sqrt_n.round()).abs() < 1e-10 {
+                if (sqrt_n - sqrt_n.round()).abs() < EPSILON {
                     return Some(Arc::new(Expr::number(sqrt_n.round())));
                 }
             }
@@ -537,7 +538,7 @@ rule_arc!(
             if let AstKind::Product(factors) = &term.kind {
                 if factors.len() == 2
                     && let AstKind::Number(n) = &factors[0].kind
-                    && (*n + 1.0).abs() < 1e-10
+                    && (*n + 1.0).abs() < EPSILON
                 {
                     // Note: rules passed to rule! get &Expr, but here we work with Arcs
                     // We need get_square_root_form to take &Arc<Expr>
@@ -548,7 +549,7 @@ rule_arc!(
             {
                 let pos_n = -n;
                 let sqrt_n = pos_n.sqrt();
-                if (sqrt_n - sqrt_n.round()).abs() < 1e-10 {
+                if (sqrt_n - sqrt_n.round()).abs() < EPSILON {
                     return Some(Arc::new(Expr::number(sqrt_n.round())));
                 }
             }
@@ -685,9 +686,9 @@ rule_arc!(
                 // i64->f64: GCD values in symbolic math are typically small integers
                 #[allow(clippy::cast_precision_loss)] // GCD values are typically small integers
                 let new_coeff = coeff / (gcd as f64);
-                if (new_coeff - 1.0).abs() < 1e-10 {
+                if (new_coeff - 1.0).abs() < EPSILON {
                     new_terms.push(term);
-                } else if (new_coeff - (-1.0)).abs() < 1e-10 {
+                } else if (new_coeff - (-1.0)).abs() < EPSILON {
                     new_terms.push(Arc::new(Expr::product_from_arcs(vec![
                         Arc::new(Expr::number(-1.0)),
                         term,
@@ -828,7 +829,7 @@ rule_arc!(
             // and creates less canonical form like -(a+b) instead of -a-b
             if common_factors.len() == 1
                 && let AstKind::Number(n) = &common_factors[0].kind
-                && (*n + 1.0).abs() < 1e-10
+                && (*n + 1.0).abs() < EPSILON
             {
                 return None;
             }
@@ -909,7 +910,7 @@ rule_arc!(
                     let exponents: Vec<f64> = exp_terms.iter().map(|(e, _)| *e).collect();
                     let min_exp = exponents.iter().copied().fold(f64::INFINITY, f64::min);
 
-                    if exponents.iter().all(|e| (*e - min_exp).abs() < 1e-10) {
+                    if exponents.iter().all(|e| (*e - min_exp).abs() < EPSILON) {
                         continue;
                     }
 
@@ -924,7 +925,7 @@ rule_arc!(
                             Arc::new(sample_base)
                         };
 
-                        let common_factor = if (min_exp - 1.0).abs() < 1e-10 {
+                        let common_factor = if (min_exp - 1.0).abs() < EPSILON {
                             Arc::clone(&base)
                         } else {
                             Arc::new(Expr::pow_from_arcs(
@@ -949,10 +950,10 @@ rule_arc!(
                                 1.0 - min_exp
                             };
 
-                            let remaining = if new_exp.abs() < 1e-10 {
+                            let remaining = if new_exp.abs() < EPSILON {
                                 Arc::new(Expr::number(coeff))
-                            } else if (new_exp - 1.0).abs() < 1e-10 {
-                                if (coeff - 1.0).abs() < 1e-10 {
+                            } else if (new_exp - 1.0).abs() < EPSILON {
+                                if (coeff - 1.0).abs() < EPSILON {
                                     Arc::clone(&base)
                                 } else {
                                     Arc::new(Expr::product_from_arcs(vec![
@@ -965,7 +966,7 @@ rule_arc!(
                                     Arc::clone(&base),
                                     Arc::new(Expr::number(new_exp)),
                                 ));
-                                if (coeff - 1.0).abs() < 1e-10 {
+                                if (coeff - 1.0).abs() < EPSILON {
                                     power
                                 } else {
                                     Arc::new(Expr::product_from_arcs(vec![
@@ -1001,7 +1002,7 @@ rule_arc!(
 
 rule_arc!(
     PerfectCubeRule,
-    "perfect_cube",
+    "perfect_cube_factoring",
     40,
     Algebraic,
     &[ExprKind::Sum, ExprKind::Poly],
@@ -1039,7 +1040,7 @@ rule_arc!(
                 if let AstKind::Product(factors) = &term.kind
                     && factors.len() == 2
                     && let AstKind::Number(n) = &factors[0].kind
-                    && (*n + 1.0).abs() < 1e-10
+                    && (*n + 1.0).abs() < EPSILON
                 {
                     return Some(Arc::clone(&factors[1]));
                 }

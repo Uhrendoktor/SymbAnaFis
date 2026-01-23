@@ -198,7 +198,7 @@ mod tests {
         let funcs = std::collections::HashSet::new();
         // small floating difference within tolerance should fold
         let ast = parser::parse(
-            "3.00000000001 * sin(x) - 4.0 * sin(x)^3",
+            "3.0000000000000001 * sin(x) - 4.0 * sin(x)^3",
             &fixed,
             &funcs,
             None,
@@ -214,7 +214,7 @@ mod tests {
 
         // same for cos triple angle
         let ast = parser::parse(
-            "4.00000000001 * cos(x)^3 - 3.0 * cos(x)",
+            "4.0000000000000001 * cos(x)^3 - 3.0 * cos(x)",
             &fixed,
             &funcs,
             None,
@@ -251,7 +251,7 @@ mod tests {
         let funcs = std::collections::HashSet::new();
         // sinh triple angle small difference
         let ast = parser::parse(
-            "4.00000000001 * sinh(x)^3 + 3.0 * sinh(x)",
+            "4.0000000000000001 * sinh(x)^3 + 3.0 * sinh(x)",
             &fixed,
             &funcs,
             None,

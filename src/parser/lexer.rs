@@ -87,6 +87,7 @@ const BUILTINS: &[&str] = &[
     "besselk",
     "lambertw",
     "ynm",
+    "spherical_harmonic",
     "assoc_legendre",
     "hermite",
     "elliptic_e",
@@ -897,5 +898,111 @@ mod tests {
             &custom_funcs,
         );
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_builtins_operator_sync() {
+        // Issue #1: Compile-time test to ensure BUILTINS array stays in sync with Operator enum
+        // This test verifies that every function name parseable by Operator::parse_str
+        // is also present in BUILTINS array (except arithmetic operators)
+
+        use crate::parser::tokens::Operator;
+
+        let builtin_set = get_builtins_set();
+
+        // Test a representative sample of functions from each category
+        let test_functions = vec![
+            // Trig
+            "sin",
+            "cos",
+            "tan",
+            "cot",
+            "sec",
+            "csc",
+            // Inverse trig
+            "asin",
+            "acos",
+            "atan",
+            "acot",
+            "asec",
+            "acsc",
+            // Hyperbolic
+            "sinh",
+            "cosh",
+            "tanh",
+            "coth",
+            "sech",
+            "csch",
+            // Inverse hyperbolic
+            "asinh",
+            "acosh",
+            "atanh",
+            "acoth",
+            "asech",
+            "acsch",
+            // Logarithmic
+            "ln",
+            "exp",
+            "log",
+            "log10",
+            "log2",
+            // Roots
+            "sqrt",
+            "cbrt",
+            // Special
+            "sinc",
+            "abs",
+            "signum",
+            "floor",
+            "ceil",
+            "round",
+            "erf",
+            "erfc",
+            "gamma",
+            "digamma",
+            "trigamma",
+            "tetragamma",
+            "polygamma",
+            "beta",
+            "zeta",
+            "zeta_deriv",
+            "besselj",
+            "bessely",
+            "besseli",
+            "besselk",
+            "lambertw",
+            "ynm",
+            "spherical_harmonic",
+            "assoc_legendre",
+            "hermite",
+            "elliptic_e",
+            "elliptic_k",
+            "exp_polar",
+            "atan2",
+        ];
+
+        for func_name in test_functions {
+            // Verify it parses to an Operator
+            let op = Operator::parse_str(func_name);
+            assert!(
+                op.is_some(),
+                "Operator::parse_str should recognize '{func_name}'"
+            );
+
+            // Verify it's in BUILTINS (unless it's an alias)
+            if func_name != "sen" && func_name != "sign" && func_name != "sgn" {
+                assert!(
+                    builtin_set.contains(func_name),
+                    "BUILTINS array missing function '{func_name}' - add it to the BUILTINS array in lexer.rs"
+                );
+            }
+        }
+
+        // Verify that arithmetic operators are NOT in BUILTINS
+        assert!(!builtin_set.contains("+"));
+        assert!(!builtin_set.contains("-"));
+        assert!(!builtin_set.contains("*"));
+        assert!(!builtin_set.contains("/"));
+        assert!(!builtin_set.contains("^"));
     }
 }

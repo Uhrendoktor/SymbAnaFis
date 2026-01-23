@@ -669,7 +669,7 @@ pub fn normalize_for_comparison(expr: &Expr) -> Expr {
                 return Expr::number(coeff);
             }
             // Build the normalized product: coeff * non_numeric_factors
-            if (coeff - 1.0).abs() < 1e-14 {
+            if (coeff - 1.0).abs() < EPSILON {
                 // Coefficient is 1, just return non-numeric factors
                 if non_numeric.len() == 1 {
                     return non_numeric.remove(0);

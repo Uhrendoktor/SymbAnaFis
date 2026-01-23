@@ -1,5 +1,6 @@
 use crate::core::expr::{Expr, ExprKind as AstKind};
 use crate::core::known_symbols::{COS, COT, CSC, SEC, SIN, TAN, get_symbol};
+use crate::core::traits::EPSILON;
 use crate::simplification::helpers;
 use crate::simplification::patterns::trigonometric::get_trig_function;
 use crate::simplification::rules::{ExprKind, Rule, RuleCategory, RuleContext};
@@ -16,7 +17,7 @@ rule!(
             if let AstKind::Product(factors) = &term.kind
                 && factors.len() == 2
                 && let AstKind::Number(n) = &factors[0].kind
-                && (*n + 1.0).abs() < 1e-10
+                && (*n + 1.0).abs() < EPSILON
             {
                 return Some((*factors[1]).clone());
             }
@@ -121,7 +122,7 @@ rule!(
             if let AstKind::Product(factors) = &term.kind
                 && factors.len() == 2
                 && let AstKind::Number(n) = &factors[0].kind
-                && (*n + 1.0).abs() < 1e-10
+                && (*n + 1.0).abs() < EPSILON
             {
                 return Some((*factors[1]).clone());
             }
@@ -194,7 +195,7 @@ rule!(
             if let AstKind::Product(factors) = &term.kind
                 && factors.len() == 2
                 && let AstKind::Number(n) = &factors[0].kind
-                && (*n + 1.0).abs() < 1e-10
+                && (*n + 1.0).abs() < EPSILON
             {
                 return Some((*factors[1]).clone());
             }

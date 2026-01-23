@@ -332,7 +332,14 @@ def evaluate_parallel(
     Returns:
         2D list of results: [expr_idx][point_idx]
         - Numeric results are always float
-        - Symbolic results: str if input was str, Expr if input was Expr
+        - Symbolic results preserve input type:
+          * str input → str output
+          * Expr input → Expr output
+
+    Note:
+        Return type depends on input expression type:
+        - If expressions are strings: returns List[List[float | str]]
+        - If expressions are Expr: returns List[List[float | Expr]]
 
     Example:
         >>> evaluate_parallel(
@@ -364,8 +371,13 @@ def eval_f64(
 
     Returns:
         2D results where result[expr_idx][point_idx] is the evaluation result:
-        - If input contains NumPy arrays: returns NDArray[np.float64] (2D)
-        - If input is all lists: returns List[List[float]]
+        - If any input contains NumPy arrays: returns NDArray[np.float64] (2D)
+        - If all inputs are Python lists: returns List[List[float]]
+    
+    Note:
+        Return type is determined by input type:
+        - NumPy input → NDArray[np.float64] output (zero-copy, fastest)
+        - List input → List[List[float]] output
     
     Example:
         >>> expr1 = parse("x^2 + y")
@@ -379,6 +391,17 @@ def eval_f64(
         ... )
         >>> # results[0] = [11.0, 24.0, 39.0]  (x^2 + y)
         >>> # results[1] = [10.0, 40.0, 90.0]  (x * y)
+        
+        Using NumPy arrays (zero-copy, faster):
+        >>> import numpy as np
+        >>> x_arr = np.array([1.0, 2.0, 3.0])
+        >>> y_arr = np.array([10.0, 20.0, 30.0])
+        >>> results = eval_f64(
+        ...     [expr1, expr2],
+        ...     [["x", "y"], ["x", "y"]],
+        ...     [[x_arr, y_arr], [x_arr, y_arr]]
+        ... )
+        >>> # returns 2D NumPy array of shape (2, 3)
     """
     ...
 
@@ -406,7 +429,7 @@ class Expr:
 
     def __str__(self) -> str: ...
     def __repr__(self) -> str: ...
-    def __eq__(self, other: "Expr | Symbol") -> bool: ...
+    def __eq__(self, other: object) -> bool: ...
     def __hash__(self) -> int: ...
     def __float__(self) -> float: ...
 
@@ -693,7 +716,7 @@ class Symbol:
 
     def __str__(self) -> str: ...
     def __repr__(self) -> str: ...
-    def __eq__(self, other: "Symbol") -> bool: ...
+    def __eq__(self, other: object) -> bool: ...
     def __hash__(self) -> int: ...
 
     def name(self) -> Optional[str]: ...

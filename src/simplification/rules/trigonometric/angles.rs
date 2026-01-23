@@ -1,7 +1,7 @@
 use crate::core::expr::{Expr, ExprKind as AstKind};
 use crate::core::known_symbols::{COS, SIN, get_symbol};
 use crate::core::symbol::InternedSymbol;
-
+use crate::core::traits::EPSILON;
 use crate::simplification::helpers::extract_coeff_arc;
 use crate::simplification::rules::{ExprKind, Rule, RuleCategory, RuleContext};
 use std::sync::Arc;
@@ -18,7 +18,7 @@ rule_with_helpers_arc!(
             if let AstKind::Product(factors) = &term.kind
                 && factors.len() == 2
                 && let AstKind::Number(n) = &factors[0].kind
-                && (*n + 1.0).abs() < 1e-10
+                && (*n + 1.0).abs() < EPSILON
             {
                 return Some(Arc::clone(&factors[1]));
             }
@@ -165,7 +165,7 @@ rule_with_helpers_arc!(
                 // Check logic for sin(x+y): needs sin(x)cos(y) + sin(y)cos(x)
                 if x1 == y2 && y1 == x2 {
                     // Found terms: sin(x)cos(y) and sin(y)cos(x) (aka cos(x)sin(y))
-                    if (c1 - c2).abs() < 1e-10 {
+                    if (c1 - c2).abs() < EPSILON {
                         // c1 == c2: k * sin(x+y)
                         return Some(Arc::new(Expr::product_from_arcs(vec![
                             Arc::new(Expr::number(c1)),
@@ -173,7 +173,7 @@ rule_with_helpers_arc!(
                                 Arc::new(Expr::sum_from_arcs(vec![x1, y1]))
                             ])),
                         ])));
-                    } else if (c1 + c2).abs() < 1e-10 {
+                    } else if (c1 + c2).abs() < EPSILON {
                         // c1 == -c2: k * sin(x-y)
                         // Result is k*sin(x-y)
                         return Some(Arc::new(Expr::product_from_arcs(vec![
@@ -206,7 +206,7 @@ fn is_cos_minus_sin(expr: &Expr) -> bool {
             && let AstKind::Product(factors) = &b.kind
             && factors.len() == 2
             && let AstKind::Number(n) = &factors[0].kind
-            && (*n + 1.0).abs() < 1e-10
+            && (*n + 1.0).abs() < EPSILON
         {
             return is_sin(&factors[1]);
         }
@@ -258,7 +258,7 @@ fn get_sin_arg_arc(expr: &Expr) -> Option<Arc<Expr>> {
             if let AstKind::Product(factors) = &second.kind
                 && factors.len() == 2
                 && let AstKind::Number(n) = &factors[0].kind
-                && (*n + 1.0).abs() < 1e-10
+                && (*n + 1.0).abs() < EPSILON
             {
                 return get_sin_arg_arc(&factors[1]);
             }
@@ -379,7 +379,7 @@ rule_arc!(
                 ));
 
                 let new_coeff = coeff / 2.0;
-                if (new_coeff - 1.0).abs() < 1e-10 {
+                if (new_coeff - 1.0).abs() < EPSILON {
                     // Coefficient is 1, just return sin(2x)
                     return Some(sin_2x);
                 }
