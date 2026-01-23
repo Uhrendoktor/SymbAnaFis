@@ -131,16 +131,21 @@ fn bench_compile(c: &mut Criterion) {
         let diff_simplified_str = symb_anafis::diff(expr_str, var, fixed, None).unwrap();
         let diff_simplified = parse(&diff_simplified_str, &empty, &empty, None).unwrap();
 
+        // Create sorted parameter list
+        let mut params = vec![var];
+        params.extend(fixed.iter());
+        params.sort();
+
         // Benchmark: compile raw
         group.bench_with_input(BenchmarkId::new("raw", name), &diff_raw, |b, expr| {
-            b.iter(|| CompiledEvaluator::compile_auto(black_box(expr), None));
+            b.iter(|| CompiledEvaluator::compile(black_box(expr), &params, None));
         });
 
         // Benchmark: compile simplified
         group.bench_with_input(
             BenchmarkId::new("simplified", name),
             &diff_simplified,
-            |b, expr| b.iter(|| CompiledEvaluator::compile_auto(black_box(expr), None)),
+            |b, expr| b.iter(|| CompiledEvaluator::compile(black_box(expr), &params, None)),
         );
     }
 
@@ -169,9 +174,14 @@ fn bench_eval(c: &mut Criterion) {
         let diff_simplified_str = symb_anafis::diff(expr_str, var, fixed, None).unwrap();
         let diff_simplified = parse(&diff_simplified_str, &empty, &empty, None).unwrap();
 
+        // Create sorted parameter list
+        let mut params = vec![var];
+        params.extend(fixed.iter());
+        params.sort();
+
         // Compile both versions
-        let compiled_raw = CompiledEvaluator::compile_auto(&diff_raw, None);
-        let compiled_simplified = CompiledEvaluator::compile_auto(&diff_simplified, None);
+        let compiled_raw = CompiledEvaluator::compile(&diff_raw, &params, None);
+        let compiled_simplified = CompiledEvaluator::compile(&diff_simplified, &params, None);
 
         // Benchmark: evaluate compiled (raw)
         if let Ok(ref evaluator) = compiled_raw {
@@ -240,22 +250,86 @@ fn bench_full_pipeline(c: &mut Criterion) {
             BenchmarkId::new("symb_anafis", name),
             expr_str,
             |b, expr| {
+                // Pre-compute fixed set to avoid allocation in loop
+                let fixed_set: HashSet<String> = fixed.iter().copied().map(String::from).collect();
+
                 b.iter(|| {
                     // Full pipeline using expr API
-                    let fixed_set: HashSet<String> =
-                        fixed.iter().copied().map(String::from).collect();
                     let expr = parse(black_box(expr), &empty, &fixed_set, None).unwrap();
                     let var_sym = symb(var);
                     let diff_expr = Diff::new().differentiate(&expr, &var_sym).unwrap();
-                    let compiled = CompiledEvaluator::compile_auto(&diff_expr, None).unwrap();
+
+                    // Create sorted parameter list
+                    let mut params = vec![var];
+                    params.extend(fixed.iter());
+                    params.sort();
+
+                    let compiled = CompiledEvaluator::compile(&diff_expr, &params, None).unwrap();
 
                     // Evaluate at 1000 points
                     let param_count = compiled.param_count();
                     let param_names = compiled.param_names();
                     let var_idx = param_names.iter().position(|p| p == var).unwrap_or(0);
                     let mut sum = 0.0;
+
+                    // Re-use buffer to avoid 1000 allocations
+                    let mut values = vec![1.0; param_count];
+
                     for &x in &test_points {
-                        let mut values = vec![1.0; param_count];
+                        values[var_idx] = x;
+                        sum += compiled.evaluate(&values);
+                    }
+                    sum
+                });
+            },
+        );
+    }
+
+    group.finish();
+}
+
+fn bench_full_pipeline_no_simp(c: &mut Criterion) {
+    let mut group = c.benchmark_group("8_full_pipeline_no_simp");
+
+    // Test: parse → diff(no_simp) → compile → eval 1000 points
+    let test_points: Vec<f64> = (0..1000).map(|i| f64::from(i).mul_add(0.01, 0.1)).collect();
+    let empty = HashSet::new();
+
+    for (name, expr_str, var, fixed) in ALL_EXPRESSIONS {
+        group.bench_with_input(
+            BenchmarkId::new("symb_anafis", name),
+            expr_str,
+            |b, expr| {
+                // Pre-compute fixed set to avoid allocation in loop
+                let fixed_set: HashSet<String> = fixed.iter().copied().map(String::from).collect();
+
+                b.iter(|| {
+                    // Full pipeline using expr API, but skipping simplification in diff
+                    let expr = parse(black_box(expr), &empty, &fixed_set, None).unwrap();
+                    let var_sym = symb(var);
+                    // SKIP SIMPLIFICATION HERE
+                    let diff_expr = Diff::new()
+                        .skip_simplification(true)
+                        .differentiate(&expr, &var_sym)
+                        .unwrap();
+
+                    // Create sorted parameter list
+                    let mut params = vec![var];
+                    params.extend(fixed.iter());
+                    params.sort();
+
+                    let compiled = CompiledEvaluator::compile(&diff_expr, &params, None).unwrap();
+
+                    // Evaluate at 1000 points
+                    let param_count = compiled.param_count();
+                    let param_names = compiled.param_names();
+                    let var_idx = param_names.iter().position(|p| p == var).unwrap_or(0);
+                    let mut sum = 0.0;
+
+                    // Re-use buffer to avoid 1000 allocations
+                    let mut values = vec![1.0; param_count];
+
+                    for &x in &test_points {
                         values[var_idx] = x;
                         sum += compiled.evaluate(&values);
                     }
@@ -281,6 +355,7 @@ criterion_group!(
     bench_compile,
     bench_eval,
     bench_full_pipeline,
+    bench_full_pipeline_no_simp,
 );
 
 criterion_main!(benches);

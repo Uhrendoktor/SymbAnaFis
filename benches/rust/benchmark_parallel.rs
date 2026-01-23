@@ -40,8 +40,13 @@ fn bench_eval_methods(c: &mut Criterion) {
         let diff_str = symb_anafis::diff(expr_str, var, fixed, None).unwrap();
         let diff_expr = parse(&diff_str, &empty, &empty, None).unwrap();
 
-        // Use compile_auto to include all variables
-        let evaluator = CompiledEvaluator::compile_auto(&diff_expr, None);
+        // Create sorted parameter list
+        let mut params = vec![var];
+        params.extend(fixed.iter());
+        params.sort();
+
+        // Use compile with explicit parameters
+        let evaluator = CompiledEvaluator::compile(&diff_expr, &params, None);
         if evaluator.is_err() {
             eprintln!("Skipping {name} - compile error");
             continue;

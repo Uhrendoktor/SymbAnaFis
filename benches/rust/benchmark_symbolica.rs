@@ -230,10 +230,7 @@ fn bench_full_pipeline(c: &mut Criterion) {
                     // The derivative might contain the differentiation variable and fixed vars
                     // plus potentially "y" for Gaussian 2D.
 
-                    let mut all_fixed_vars = fixed_vars.to_vec();
-                    if *name == "Gaussian 2D" {
-                        all_fixed_vars.push("y");
-                    }
+                    let all_fixed_vars = fixed_vars.to_vec();
 
                     // Re-parse var for params list (as Atom)
                     let var_param =
@@ -256,11 +253,19 @@ fn bench_full_pipeline(c: &mut Criterion) {
                     // 4. Evaluate (1000 points)
                     let fixed_vals: Vec<f64> = vec![1.0; all_fixed_vars.len()];
                     let mut sum = 0.0;
-                    // Allocation matched to benchmark.rs inner loop style
+
+                    // Re-use buffer to avoid 1000 allocations
+                    let mut input = Vec::with_capacity(1 + fixed_vals.len());
+                    // Initial setup (push placeholders or just use clear/extend approach)
+                    input.push(0.0);
+                    input.extend_from_slice(&fixed_vals);
+
                     for &x in &test_points {
-                        let mut input = Vec::with_capacity(1 + fixed_vals.len());
-                        input.push(x);
-                        input.extend_from_slice(&fixed_vals);
+                        // Update the variable part (assuming it's at index 0 because we pushed it first)
+                        // Note: Symbolica might expect params in specific order.
+                        // In "Compile" step above: params = vec![var_param]; params.push(fixed)...
+                        // So input matches: [var, fixed...]
+                        input[0] = x;
                         sum += evaluator.evaluate_single(&input);
                     }
                     sum

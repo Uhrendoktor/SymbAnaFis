@@ -146,11 +146,11 @@ fn bench_large_expressions(c: &mut Criterion) {
         let sy_deriv = sy_expr.derivative(x_sym);
 
         group.bench_function("3_compile/symb_anafis_raw", |b| {
-            b.iter(|| CompiledEvaluator::compile_auto(black_box(&sa_deriv_light), None));
+            b.iter(|| CompiledEvaluator::compile(black_box(&sa_deriv_light), &["x"], None));
         });
 
         group.bench_function("3_compile/symb_anafis_simplified", |b| {
-            b.iter(|| CompiledEvaluator::compile_auto(black_box(&sa_deriv_full), None));
+            b.iter(|| CompiledEvaluator::compile(black_box(&sa_deriv_full), &["x"], None));
         });
 
         let fn_map = symbolica::evaluate::FunctionMap::new();
@@ -173,8 +173,8 @@ fn bench_large_expressions(c: &mut Criterion) {
         let test_points: Vec<f64> = (0..1000).map(|i| f64::from(i).mul_add(0.01, 0.1)).collect();
 
         // SymbAnaFis compiled evaluators
-        let sa_eval_raw = CompiledEvaluator::compile_auto(&sa_deriv_light, None).unwrap();
-        let sa_eval_simp = CompiledEvaluator::compile_auto(&sa_deriv_full, None).unwrap();
+        let sa_eval_raw = CompiledEvaluator::compile(&sa_deriv_light, &["x"], None).unwrap();
+        let sa_eval_simp = CompiledEvaluator::compile(&sa_deriv_full, &["x"], None).unwrap();
 
         group.bench_with_input(
             BenchmarkId::new("4_eval_1000pts/symb_anafis_raw", ""),

@@ -12,7 +12,7 @@ pub const NORMAL_PDF_FIXED: &[&str] = &["mu", "sigma", "pi"];
 /// ~40 nodes, two variables
 pub const GAUSSIAN_2D: &str = "exp(-((x - x0)^2 + (y - y0)^2) / (2 * s^2)) / (2 * pi * s^2)";
 pub const GAUSSIAN_2D_VAR: &str = "x";
-pub const GAUSSIAN_2D_FIXED: &[&str] = &["x0", "y0", "s", "pi"];
+pub const GAUSSIAN_2D_FIXED: &[&str] = &["y", "x0", "y0", "s", "pi"];
 
 /// Maxwell-Boltzmann speed distribution
 /// ~50 nodes, complex physics expression

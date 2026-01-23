@@ -141,7 +141,12 @@ def main():
             val, unit = time_match.groups()
             time_us = parse_time(val, unit)
 
+            # Merge 8_full_pipeline_no_simp into 7_full_pipeline
             group, variant, expr = current_benchmark
+            if group == "8_full_pipeline_no_simp":
+                group = "7_full_pipeline"
+                variant = "symb_anafis_no_simp"
+            
             data[group][expr][variant] = time_us
 
     # Generate output
@@ -176,6 +181,7 @@ def main():
         "5_compile",
         "6_eval_1000pts",
         "7_full_pipeline",
+        # "8_full_pipeline_no_simp", # Merged into 7
         "eval_methods_1000pts",
         "eval_scaling",
         "multi_expr_batch",
@@ -192,6 +198,7 @@ def main():
         "5_compile": "5. Compilation",
         "6_eval_1000pts": "6. Evaluation (1000 points)",
         "7_full_pipeline": "7. Full Pipeline",
+        "8_full_pipeline_no_simp": "8. Full Pipeline (Skip Diff Simplification)",
         "eval_methods_1000pts": "Parallel: Evaluation Methods (1k pts)",
         "eval_scaling": "Parallel: Scaling (Points)",
         "multi_expr_batch": "Parallel: Multi-Expression Batch",
@@ -221,6 +228,7 @@ def main():
         "eval_f64_per_expr": "Eval F64 (per expr)",
         "symb_anafis_diff_only": "SA (Diff Only)",
         "symb_anafis_diff+simplify": "SA (Diff+Simp)",
+        "symb_anafis_no_simp": "SA (No Diff Simp)",
         "symb_anafis_raw": "SA (Raw)",
         "symb_anafis_simplified": "SA (Simplified)",
         # Trailing slash variants from large_expr benchmarks
@@ -236,7 +244,8 @@ def main():
         "2_diff": (["symb_anafis_light", "symbolica"], ("symbolica", "symb_anafis_light"), False),
         "5_compile": (["simplified", "symbolica"], ("symbolica", "simplified"), False),
         "6_eval_1000pts": (["compiled_simplified", "symbolica"], ("symbolica", "compiled_simplified"), False),
-        "7_full_pipeline": (["symb_anafis", "symbolica"], ("symbolica", "symb_anafis"), False),
+        "7_full_pipeline": (["symb_anafis", "symb_anafis_no_simp", "symbolica"], ("symbolica", "symb_anafis"), False),
+        # "8_full_pipeline_no_simp": (["symb_anafis"], (None, None), False), # Merged
         "eval_methods_1000pts": (["compiled_loop", "tree_walk_evaluate"], ("tree_walk_evaluate", "compiled_loop"), False),
         "eval_scaling": (["eval_batch", "loop_evaluate"], ("loop_evaluate", "eval_batch"), False),
         "large_expr_100": (
