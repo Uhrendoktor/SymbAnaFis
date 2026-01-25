@@ -4,6 +4,40 @@
 //! that the compiled evaluator can perform. Instructions are organized into
 //! logical categories for maintainability.
 //!
+//! # TODO: Planned Fused Instructions
+//!
+//! The following optimizations are planned to improve evaluation performance:
+//!
+//! ## High Priority (impact on benchmarks)
+//!
+//! - [ ] `Expm1`: `[x] → [e^x - 1]` - Detects `exp(x) - 1` pattern. Important for
+//!       Planck Blackbody (currently 0.56x vs Symbolica). Uses `f64::exp_m1()`.
+//!
+//! - [ ] `Log1p`: `[x] → [ln(1 + x)]` - Detects `ln(1 + x)` pattern for numerical
+//!       stability near zero. Uses `f64::ln_1p()`.
+//!
+//! ## Medium Priority (micro-optimizations)
+//!
+//! - [ ] `ExpNeg`: `[x] → [e^(-x)]` - Fuses `Neg` + `Exp` pattern. Avoids separate
+//!       negation instruction.
+//!
+//! - [ ] `NegMulAdd`: `[a, b, c] → [-a * b + c]` - Fuses negation into `MulAdd` for
+//!       patterns like `-a*b + c`.
+//!
+//! - [ ] `Sub`: `[a, b] → [a - b]` - Direct subtraction instead of `Neg` + `Add`.
+//!       Currently addition is dominant, but subtraction patterns exist.
+//!
+//! ## Lower Priority (strength reduction)
+//!
+//! - [ ] `Pow3_2`: `[x] → [x^1.5]` - Computes as `x * sqrt(x)` instead of `powf`.
+//!
+//! - [ ] `Pow_1_3`: `[x] → [x^(1/3)]` - Alias for `Cbrt` for pattern detection.
+//!
+//! ## SIMD Considerations
+//!
+//! - [ ] Consider `sleef-rs` or `packed_simd` for faster SIMD transcendentals.
+//!   Current `wide` crate may have slower sin/cos/exp implementations.
+//!
 //! # Instruction Categories
 //!
 //! | Category | Description | Examples |
@@ -336,8 +370,8 @@ pub enum Instruction {
 
     /// Integer power: `[x] → [xⁿ]` for small integer n
     ///
-    /// Uses `powi` for n in range `[-16, 16]`, avoiding `powf` overhead.
-    Powi(i8),
+    /// Uses `powi` for n in range `[-2^31, 2^31-1]`, avoiding `powf` overhead.
+    Powi(i32),
 
     /// Simultaneous sine and cosine: `[x] → [cos(x), sin(x)]`
     ///

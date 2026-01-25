@@ -83,7 +83,7 @@ enum ParenContext {
 
 /// Check if an expression is negative (has a negative leading coefficient)
 /// Returns `Some(positive_equivalent)` if the expression has a negative sign
-/// 
+///
 /// Optimization: Returns Arc<Expr> to avoid cloning when possible
 fn extract_negative(expr: &Expr) -> Option<Expr> {
     match &expr.kind {
@@ -279,20 +279,53 @@ fn format_product_expr(
         FormatMode::Unicode => "\u{2212}",
     };
 
-    // Check for leading -1
+    // Check for leading negative coefficient (any negative number, not just -1)
     if !factors.is_empty()
         && let ExprKind::Number(n) = &factors[0].kind
-        && (*n + 1.0).abs() < EPSILON
+        && *n < 0.0
     {
+        let abs_val = n.abs();
+
+        // Single negative number factor
         if factors.len() == 1 {
-            return write!(f, "{minus}1");
+            return format_number_expr(f, *n, mode);
         }
-        let remaining: Vec<Arc<Expr>> = factors[1..].to_vec();
-        let rest = Expr::product_from_arcs(remaining);
+
+        // Build the "rest" expression (everything after the negative coefficient)
+        let rest = if factors.len() == 2 {
+            (*factors[1]).clone()
+        } else {
+            Expr::product_from_arcs(factors[1..].to_vec())
+        };
+
+        // Check for double negative: -n * -X = n * X
+        if let Some(positive_rest) = extract_negative(&rest) {
+            // Double negative: cancel the signs
+            if (abs_val - 1.0).abs() < EPSILON {
+                // -1 * -X = X
+                return format_wrapped(f, &positive_rest, mode, ParenContext::SumOrProduct, cache);
+            }
+            // -n * -X = n * X
+            format_number_expr(f, abs_val, mode)?;
+            write!(f, "{sep}")?;
+            return format_wrapped(f, &positive_rest, mode, ParenContext::SumOrProduct, cache);
+        }
+
+        // Single negative: print "-" then the rest
         write!(f, "{minus}")?;
+
+        if (abs_val - 1.0).abs() < EPSILON {
+            // -1 * X = -X (skip the "1*" part)
+            return format_wrapped(f, &rest, mode, ParenContext::SumOrProduct, cache);
+        }
+
+        // -n * X = -n*X
+        format_number_expr(f, abs_val, mode)?;
+        write!(f, "{sep}")?;
         return format_wrapped(f, &rest, mode, ParenContext::SumOrProduct, cache);
     }
 
+    // Standard formatting: print factors separated by *
     let mut first = true;
     for fac in factors {
         if !first {

@@ -449,12 +449,12 @@ impl CompiledEvaluator {
             Instruction::Powi(n) => {
                 let top = unsafe { stack::simd_stack_top_mut(stack) };
                 let arr = top.to_array();
-                let n32 = i32::from(n);
+                let n_i32 = n;
                 *top = f64x4::new([
-                    arr[0].powi(n32),
-                    arr[1].powi(n32),
-                    arr[2].powi(n32),
-                    arr[3].powi(n32),
+                    arr[0].powi(n_i32),
+                    arr[1].powi(n_i32),
+                    arr[2].powi(n_i32),
+                    arr[3].powi(n_i32),
                 ]);
             }
             Instruction::SinCos => {
@@ -1273,7 +1273,7 @@ impl CompiledEvaluator {
             }
             Instruction::Powi(n) => {
                 let top = top_mut(stack, *len);
-                *top = top.powi(i32::from(n));
+                *top = top.powi(n);
             }
             Instruction::MulAdd => {
                 let c = pop(stack, len);

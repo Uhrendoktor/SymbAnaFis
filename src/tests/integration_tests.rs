@@ -122,7 +122,7 @@ fn test_derivative_simplification_from_examples() {
     // Test derivative from basic.rs example: d/dx[sin(x) * cos(x)]
     // This should simplify to cos(2*x)
     let result = diff("sin(x) * cos(x)", "x", &[], None).unwrap();
-
+    println!("Result: {}", result);
     // The result should be cos(2*x)
     assert!(result.contains("cos(2*x)"));
 }

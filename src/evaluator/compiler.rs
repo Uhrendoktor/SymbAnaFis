@@ -31,6 +31,7 @@ use crate::core::error::DiffError;
 use crate::core::known_symbols::KS;
 use crate::core::poly::Polynomial;
 use crate::core::symbol::InternedSymbol;
+use crate::core::traits::EPSILON;
 use crate::core::unified_context::Context;
 use crate::{Expr, ExprKind};
 use std::collections::HashMap;
@@ -192,7 +193,7 @@ impl<'ctx> Compiler<'ctx> {
             ExprKind::Pow(_, exp) => {
                 // Integer powers (n in range [-16, 16]) are optimized to cheap Powi/Square/etc.
                 // We only cache if it's a non-integer power (likely using powf).
-                Self::try_eval_const(exp).is_none_or(|n| (n - n.round()).abs() > 1e-10)
+                Self::try_eval_const(exp).is_none_or(|n| (n - n.round()).abs() > EPSILON)
             }
 
             // Cache larger sums/products (4+ terms to amortize Store/Load overhead)
@@ -543,8 +544,8 @@ impl<'ctx> Compiler<'ctx> {
             _ => {
                 self.compile_expr(expr)?;
                 // Truncation safe: we only group up to realistic powers
-                #[allow(clippy::cast_possible_truncation)]
-                self.emit(Instruction::Powi(count as i8));
+                #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
+                self.emit(Instruction::Powi(count as i32));
                 Ok(())
             }
         }
@@ -616,10 +617,10 @@ impl<'ctx> Compiler<'ctx> {
         if let ExprKind::Number(n) = &exp.kind {
             let n_val = *n;
             let n_rounded = n_val.round();
-            let is_integer = (n_val - n_rounded).abs() < 1e-10;
+            let is_integer = (n_val - n_rounded).abs() < EPSILON;
 
             if is_integer {
-                // Truncation safe: we only use this for small integer exponents
+                // Truncation safe: checked by is_integer and i32 bounds below
                 #[allow(clippy::cast_possible_truncation)]
                 let n_int = n_rounded as i64;
                 match n_int {
@@ -661,23 +662,21 @@ impl<'ctx> Compiler<'ctx> {
                         self.emit(Instruction::Recip);
                         return Ok(());
                     }
-                    -16..=-3 | 5..=16 => {
-                        // Use powi for other small integers
-                        // Truncation safe: n_int is in range [-16, 16]
-                        #[allow(clippy::cast_possible_truncation)]
-                        let n_i8 = n_int as i8;
-                        self.compile_expr(base)?;
-                        self.emit(Instruction::Powi(n_i8));
-                        return Ok(());
+                    _ => {
+                        // Use powi for all other integers within i32 range
+                        if let Ok(n_i32) = i32::try_from(n_int) {
+                            self.compile_expr(base)?;
+                            self.emit(Instruction::Powi(n_i32));
+                            return Ok(());
+                        }
                     }
-                    _ => {} // Fall through to general case
                 }
-            } else if (n_val - 0.5).abs() < 1e-10 {
+            } else if (n_val - 0.5).abs() < EPSILON {
                 // x^0.5 → Sqrt
                 self.compile_expr(base)?;
                 self.emit(Instruction::Sqrt);
                 return Ok(());
-            } else if (n_val + 0.5).abs() < 1e-10 {
+            } else if (n_val + 0.5).abs() < EPSILON {
                 // x^-0.5 → 1/sqrt(x)
                 self.compile_expr(base)?;
                 self.emit(Instruction::Sqrt);
@@ -1081,7 +1080,7 @@ mod tests {
         let result = Compiler::try_eval_const(&expr);
         assert!(result.is_some());
         let expected = 2.0 * std::f64::consts::PI;
-        assert!((result.expect("constant folding should succeed") - expected).abs() < 1e-10);
+        assert!((result.expect("constant folding should succeed") - expected).abs() < EPSILON);
     }
 
     #[test]

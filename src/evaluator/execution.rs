@@ -104,9 +104,7 @@ impl CompiledEvaluator {
                 match *instr {
                     // Hot instructions first for better branch prediction
                     Instruction::LoadConst(c) => {
-                        stack_ptr
-                            .add(len)
-                            .write(*consts.get_unchecked(c as usize));
+                        stack_ptr.add(len).write(*consts.get_unchecked(c as usize));
                         len += 1;
                     }
                     Instruction::LoadParam(p) => {
@@ -209,7 +207,7 @@ impl CompiledEvaluator {
                     }
                     Instruction::Powi(n) => {
                         let top_ptr = stack_ptr.add(len - 1);
-                        *top_ptr = top_ptr.read().powi(i32::from(n));
+                        *top_ptr = top_ptr.read().powi(n);
                     }
                     Instruction::SinCos => {
                         let x = stack_ptr.add(len - 1).read();
@@ -383,7 +381,7 @@ pub(super) fn exec_instruction(
         }
         Instruction::Powi(n) => {
             let top = unsafe { stack::scalar_stack_top_mut(stack) };
-            *top = top.powi(i32::from(n));
+            *top = top.powi(n);
         }
         Instruction::SinCos => {
             let top = unsafe { stack::scalar_stack_top_mut(stack) };

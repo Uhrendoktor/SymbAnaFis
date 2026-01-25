@@ -196,14 +196,26 @@ rule_with_helpers_arc!(
 
 fn is_cos_minus_sin(expr: &Expr) -> bool {
     // In n-ary, cos(x) - sin(x) = Sum([cos(x), Product([-1, sin(x)])])
+    // Or with new ordering: Sum([Product([-1, sin(x)]), cos(x)])
     if let AstKind::Sum(terms) = &expr.kind
         && terms.len() == 2
     {
         let a = &terms[0];
         let b = &terms[1];
 
+        // Check pattern: cos(x) first, -sin(x) second
         if is_cos(a)
             && let AstKind::Product(factors) = &b.kind
+            && factors.len() == 2
+            && let AstKind::Number(n) = &factors[0].kind
+            && (*n + 1.0).abs() < EPSILON
+        {
+            return is_sin(&factors[1]);
+        }
+
+        // Check pattern: -sin(x) first, cos(x) second
+        if is_cos(b)
+            && let AstKind::Product(factors) = &a.kind
             && factors.len() == 2
             && let AstKind::Number(n) = &factors[0].kind
             && (*n + 1.0).abs() < EPSILON
@@ -215,9 +227,10 @@ fn is_cos_minus_sin(expr: &Expr) -> bool {
 }
 
 fn is_cos_plus_sin(expr: &Expr) -> bool {
+    // cos(x) + sin(x) can appear as either [cos, sin] or [sin, cos]
     if let AstKind::Sum(terms) = &expr.kind {
         if terms.len() == 2 {
-            is_cos(&terms[0]) && is_sin(&terms[1])
+            (is_cos(&terms[0]) && is_sin(&terms[1])) || (is_sin(&terms[0]) && is_cos(&terms[1]))
         } else {
             false
         }
@@ -238,11 +251,13 @@ fn get_cos_arg_arc(expr: &Expr) -> Option<Arc<Expr>> {
     if let AstKind::FunctionCall { name, args } = &expr.kind {
         (name.id() == KS.cos && args.len() == 1).then(|| Arc::clone(&args[0]))
     } else if let AstKind::Sum(terms) = &expr.kind {
-        if terms.is_empty() {
-            None
-        } else {
-            get_cos_arg_arc(&terms[0])
+        // Search all terms for a cos function
+        for term in terms {
+            if let Some(arg) = get_cos_arg_arc(term) {
+                return Some(arg);
+            }
         }
+        None
     } else {
         None
     }
@@ -252,20 +267,23 @@ fn get_sin_arg_arc(expr: &Expr) -> Option<Arc<Expr>> {
     if let AstKind::FunctionCall { name, args } = &expr.kind {
         (name.id() == KS.sin && args.len() == 1).then(|| Arc::clone(&args[0]))
     } else if let AstKind::Sum(terms) = &expr.kind {
-        if terms.len() >= 2 {
-            // Look in second term (which may be -sin(x) = Product([-1, sin(x)]))
-            let second = &terms[1];
-            if let AstKind::Product(factors) = &second.kind
+        // Search all terms for a sin function (including negated: -sin(x) = Product([-1, sin(x)]))
+        for term in terms {
+            // Direct sin function
+            if let Some(arg) = get_sin_arg_arc(term) {
+                return Some(arg);
+            }
+            // Negated sin: Product([-1, sin(x)])
+            if let AstKind::Product(factors) = &term.kind
                 && factors.len() == 2
                 && let AstKind::Number(n) = &factors[0].kind
                 && (*n + 1.0).abs() < EPSILON
+                && let Some(arg) = get_sin_arg_arc(&factors[1])
             {
-                return get_sin_arg_arc(&factors[1]);
+                return Some(arg);
             }
-            get_sin_arg_arc(second)
-        } else {
-            None
         }
+        None
     } else {
         None
     }

@@ -357,7 +357,7 @@ impl Expr {
 
         // Add numeric coefficient at the BEGINNING if not 1.0 (canonical order: numbers first)
         // Build new vector with capacity to avoid O(n) insert
-        let flat = if (numeric_prod - 1.0).abs() > EPSILON {
+        let mut flat = if (numeric_prod - 1.0).abs() > EPSILON {
             let mut with_coeff = Vec::with_capacity(flat.len() + 1);
             with_coeff.push(Arc::new(Self::number(numeric_prod)));
             with_coeff.extend(flat);
@@ -378,6 +378,8 @@ impl Expr {
             .unwrap_or_else(|arc| (*arc).clone());
         }
 
+        // Sort for canonical form
+        flat.sort_by(|a, b| expr_cmp(a, b));
         Self::new(ExprKind::Product(flat))
     }
 
@@ -430,15 +432,33 @@ impl Expr {
     }
 
     /// Create subtraction: a - b → Sum([a, Product([-1, b])])
+    ///
+    /// Inline optimization: If both operands are numbers, computes the result directly.
     #[must_use]
     pub fn sub_expr(left: Self, right: Self) -> Self {
+        // Inline constant folding: n - m = (n - m)
+        if let (Some(l), Some(r)) = (left.as_number(), right.as_number()) {
+            return Self::number(l - r);
+        }
+        // 0 - x = -x
+        if left.is_zero_num() {
+            return right.negate();
+        }
+        // x - 0 = x
+        if right.is_zero_num() {
+            return left;
+        }
         let neg_right = Self::product(vec![Self::number(-1.0), right]);
         Self::sum(vec![left, neg_right])
     }
 
     /// Create multiplication: a * b → Product([a, b])
     ///
-    /// Optimization: If both operands are Poly with same base, use fast O(N*M) polynomial multiplication
+    /// Inline optimizations:
+    /// - `0 * x = 0`, `x * 0 = 0`
+    /// - `1 * x = x`, `x * 1 = x`
+    /// - `n * m = (n * m)` constant folding
+    /// - Poly * Poly fast path when bases match
     #[must_use]
     pub fn mul_expr(left: Self, right: Self) -> Self {
         // Optimization: 0 * x = 0, x * 0 = 0
@@ -451,6 +471,10 @@ impl Expr {
         }
         if right.is_one_num() {
             return left;
+        }
+        // Inline constant folding: n * m = (n * m)
+        if let (Some(l), Some(r)) = (left.as_number(), right.as_number()) {
+            return Self::number(l * r);
         }
 
         // Fast path: Poly * Poly with same base uses polynomial multiplication
@@ -480,28 +504,137 @@ impl Expr {
     }
 
     /// Create division
+    ///
+    /// Inline optimizations:
+    /// - `x / x = 1` (when x equals x structurally)
+    /// - `m / n = result` when both are numbers and m % n == 0 (exact integer division)
+    /// - `x / 1 = x`
+    /// - `0 / x = 0` (when x is not zero)
+    ///
+    /// Note: Preserves exact fractions like `3/2` (only folds when remainder is 0).
     #[must_use]
     pub fn div_expr(left: Self, right: Self) -> Self {
+        // x / x = 1 (structural equality check)
+        if left == right && !left.is_zero_num() {
+            return Self::number(1.0);
+        }
+        // m / n = result when both are numbers and m % n == 0
+        if let (Some(m), Some(n)) = (left.as_number(), right.as_number())
+            && n != 0.0
+            && m % n == 0.0
+        {
+            return Self::number(m / n);
+        }
+        // x / 1 = x
+        if right.is_one_num() {
+            return left;
+        }
+        // 0 / x = 0
+        if left.is_zero_num() && !right.is_zero_num() {
+            return Self::number(0.0);
+        }
         Self::new(ExprKind::Div(Arc::new(left), Arc::new(right)))
     }
 
     /// Create division from Arc operands (avoids cloning if Arc ref count is 1)
+    ///
+    /// Inline optimizations:
+    /// - `x / x = 1` (when x equals x structurally)
+    /// - `x / 1 = x`
+    /// - `0 / x = 0`
     #[must_use]
     pub fn div_from_arcs(left: Arc<Self>, right: Arc<Self>) -> Self {
+        // x / x = 1 (structural equality check via hash, then full comparison)
+        if left.hash == right.hash && *left == *right && !left.is_zero_num() {
+            return Self::number(1.0);
+        }
+        // x / 1 = x
+        if right.is_one_num() {
+            return Arc::try_unwrap(left).unwrap_or_else(|arc| (*arc).clone());
+        }
+        // 0 / x = 0
+        if left.is_zero_num() && !right.is_zero_num() {
+            return Self::number(0.0);
+        }
         Self::new(ExprKind::Div(left, right))
     }
 
     /// Create power expression (static constructor form)
     ///
     /// For the method form `expr.pow(exp)`, see the `pow` method on Expr.
+    ///
+    /// Inline optimizations:
+    /// - `x^0 → 1`
+    /// - `x^1 → x`
+    /// - `1^x → 1`
+    /// - `0^n → 0` (for positive n)
+    /// - `n^m → result` only when both are integers and exponent is positive
+    ///
+    /// Note: Does NOT fold non-integer results like `2^0.5` to preserve `sqrt(2)`.
     #[must_use]
     pub fn pow_static(base: Self, exponent: Self) -> Self {
+        // x^0 = 1
+        if exponent.is_zero_num() {
+            return Self::number(1.0);
+        }
+        // x^1 = x
+        if exponent.is_one_num() {
+            return base;
+        }
+        // 1^x = 1
+        if base.is_one_num() {
+            return Self::number(1.0);
+        }
+        // 0^n = 0 (for positive n)
+        if base.is_zero_num()
+            && let Some(n) = exponent.as_number()
+            && n > 0.0
+        {
+            return Self::number(0.0);
+        }
+        // Constant folding: n^m only when both are integers and exponent >= 1
+        // This preserves sqrt(2), cbrt(3), etc. as symbolic
+        if let (Some(b), Some(e)) = (base.as_number(), exponent.as_number()) {
+            // Only fold if exponent is a positive integer
+            if e >= 1.0 && e.fract().abs() < EPSILON {
+                let result = b.powf(e);
+                // Only fold if result is also an integer (or very close)
+                if result.fract().abs() < EPSILON {
+                    return Self::number(result.round());
+                }
+            }
+        }
         Self::new(ExprKind::Pow(Arc::new(base), Arc::new(exponent)))
     }
 
     /// Create power from Arc operands (avoids cloning if Arc ref count is 1)
+    ///
+    /// Inline optimizations:
+    /// - `x^0 → 1`
+    /// - `x^1 → x`
+    /// - `1^x → 1`
+    /// - `0^n → 0` (for positive n)
     #[must_use]
     pub fn pow_from_arcs(base: Arc<Self>, exponent: Arc<Self>) -> Self {
+        // x^0 = 1
+        if exponent.is_zero_num() {
+            return Self::number(1.0);
+        }
+        // x^1 = x
+        if exponent.is_one_num() {
+            return Arc::try_unwrap(base).unwrap_or_else(|arc| (*arc).clone());
+        }
+        // 1^x = 1
+        if base.is_one_num() {
+            return Self::number(1.0);
+        }
+        // 0^n = 0 (for positive n)
+        if base.is_zero_num()
+            && let Some(n) = exponent.as_number()
+            && n > 0.0
+        {
+            return Self::number(0.0);
+        }
         Self::new(ExprKind::Pow(base, exponent))
     }
 
