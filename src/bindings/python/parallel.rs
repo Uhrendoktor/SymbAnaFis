@@ -2,11 +2,13 @@
 //!
 //! This module provides parallel evaluation capabilities when the "parallel" feature is enabled.
 
+#[cfg(feature = "parallel")]
 use crate::bindings::python::expr::PyExpr;
 #[cfg(feature = "parallel")]
 use crate::parallel::{self, ExprInput, Value, VarInput};
 #[cfg(feature = "parallel")]
 use numpy::PyReadonlyArray1;
+#[cfg(feature = "parallel")]
 use pyo3::prelude::*;
 
 /// Parallel evaluation functionality (only available with "parallel" feature)

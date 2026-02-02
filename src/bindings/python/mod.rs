@@ -57,6 +57,7 @@ pub use dual::*;
 pub use evaluator::*;
 pub use expr::*;
 pub use functions::*;
+#[cfg(feature = "parallel")]
 pub use parallel::*;
 pub use symbol::*;
 pub use utilities::*;
