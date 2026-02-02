@@ -77,6 +77,9 @@ pub struct Compiler<'ctx> {
 impl<'ctx> Compiler<'ctx> {
     /// Create a new compiler with the given parameter IDs and optional context.
     ///
+    /// This is an internal function for creating expression compilers.
+    /// External users should use `CompiledEvaluator::compile` instead.
+    ///
     /// # Arguments
     ///
     /// * `param_ids` - Symbol IDs for each parameter, in evaluation order
@@ -99,8 +102,9 @@ impl<'ctx> Compiler<'ctx> {
     ///
     /// Returns the index into the constant pool. Identical constants
     /// (by bit representation) share the same pool entry.
+    /// Internal function for constant pool management during compilation.
     #[inline]
-    pub fn add_const(&mut self, val: f64) -> u32 {
+    pub(crate) fn add_const(&mut self, val: f64) -> u32 {
         let bits = val.to_bits();
         match self.const_map.entry(bits) {
             Entry::Occupied(o) => *o.get(),
@@ -121,11 +125,13 @@ impl<'ctx> Compiler<'ctx> {
 
     /// Track a push operation, validating stack depth.
     ///
+    /// Internal function for stack management during compilation.
+    ///
     /// # Errors
     ///
     /// Returns `DiffError::StackOverflow` if the stack would exceed `MAX_STACK_DEPTH`.
     #[inline]
-    pub fn push(&mut self) -> Result<(), DiffError> {
+    pub(crate) fn push(&mut self) -> Result<(), DiffError> {
         self.current_stack += 1;
         if self.current_stack > MAX_STACK_DEPTH {
             return Err(DiffError::StackOverflow {
@@ -147,12 +153,16 @@ impl<'ctx> Compiler<'ctx> {
     }
 
     /// Emit an instruction to the bytecode stream.
+    ///
+    /// Internal function for instruction emission during compilation.
     #[inline]
-    pub fn emit(&mut self, instr: Instruction) {
+    pub(crate) fn emit(&mut self, instr: Instruction) {
         self.instructions.push(instr);
     }
 
     /// Consume the compiler and return the compiled bytecode and metadata.
+    ///
+    /// Internal function for extracting compilation results.
     ///
     /// Returns a tuple of:
     /// - `instructions` - The emitted bytecode
@@ -161,7 +171,7 @@ impl<'ctx> Compiler<'ctx> {
     /// - `param_count` - Number of parameters
     /// - `cache_size` - Number of CSE cache slots
     #[inline]
-    pub fn into_parts(self) -> (Vec<Instruction>, Vec<f64>, usize, usize, usize) {
+    pub(crate) fn into_parts(self) -> (Vec<Instruction>, Vec<f64>, usize, usize, usize) {
         (
             self.instructions,
             self.constants,
@@ -185,12 +195,15 @@ impl<'ctx> Compiler<'ctx> {
 
     /// Determine if an expression is expensive enough to cache (CSE).
     ///
+    /// This heuristic helps decide between tree-walking and compiled evaluation.
+    /// Internal function for performance optimization during compilation.
+    ///
     /// Caching has overhead (store/load instructions), so we only cache:
     /// - Function calls (transcendentals, special functions)
     /// - Power operations (often involve expensive `powf`)
     /// - Division (can involve NaN checks)
     /// - Large sums/products (3+ terms to amortize overhead)
-    pub fn is_expensive(expr: &Expr) -> bool {
+    pub(crate) fn is_expensive(expr: &Expr) -> bool {
         match &expr.kind {
             ExprKind::FunctionCall { .. } | ExprKind::Div(..) => true,
             ExprKind::Pow(base, exp) => {
@@ -223,7 +236,8 @@ impl<'ctx> Compiler<'ctx> {
     ///
     /// This is a key optimization that eliminates runtime computation for
     /// constant subexpressions like `2 * pi` or `sin(0)`.
-    pub fn try_eval_const(expr: &Expr) -> Option<f64> {
+    /// Internal function for constant folding optimization.
+    pub(crate) fn try_eval_const(expr: &Expr) -> Option<f64> {
         match &expr.kind {
             ExprKind::Number(n) => Some(*n),
             ExprKind::Symbol(s) => crate::core::known_symbols::get_constant_value(s.as_str()),
@@ -306,6 +320,9 @@ impl<'ctx> Compiler<'ctx> {
 
     /// Compile an expression to bytecode.
     ///
+    /// This is the main compilation entry point for expression AST → bytecode.
+    /// Internal function - external users should use `CompiledEvaluator::compile`.
+    ///
     /// This is the main compilation entry point. It:
     /// 1. Handles trivial cases (numbers, symbols) in a fast path
     /// 2. Checks for CSE cache hits
@@ -325,7 +342,7 @@ impl<'ctx> Compiler<'ctx> {
         clippy::too_many_lines,
         reason = "Compilation handles many expression kinds; length is justified"
     )]
-    pub fn compile_expr(&mut self, expr: &Expr) -> Result<(), DiffError> {
+    pub(crate) fn compile_expr(&mut self, expr: &Expr) -> Result<(), DiffError> {
         // Fast path for trivial expressions - skip CSE and constant folding checks
         match &expr.kind {
             ExprKind::Number(n) => {
@@ -444,7 +461,6 @@ impl<'ctx> Compiler<'ctx> {
         reason = "Complex pattern matching logic for sum optimizations requires detailed implementation"
     )]
     fn compile_sum(&mut self, terms: &[Arc<Expr>]) -> Result<(), DiffError> {
-
         if terms.is_empty() {
             let idx = self.add_const(0.0);
             self.emit(Instruction::LoadConst(idx));
@@ -1037,9 +1053,9 @@ impl<'ctx> Compiler<'ctx> {
             if id == ks.exp {
                 // Check for -x, -x^2, or x^2
                 if let ExprKind::Product(factors) = &args[0].kind {
-                    let neg_idx = factors
-                        .iter()
-                        .position(|f| Self::try_eval_const(f).is_some_and(|n| (n + 1.0).abs() < EPSILON));
+                    let neg_idx = factors.iter().position(|f| {
+                        Self::try_eval_const(f).is_some_and(|n| (n + 1.0).abs() < EPSILON)
+                    });
 
                     if let Some(idx) = neg_idx {
                         // It's exp(- (...))
@@ -1115,7 +1131,10 @@ impl<'ctx> Compiler<'ctx> {
     }
 
     /// Compile a unary function call (1 argument).
-    #[allow(clippy::too_many_lines, reason = "Dispatch table mapping 50+ function names to instructions")]
+    #[allow(
+        clippy::too_many_lines,
+        reason = "Dispatch table mapping 50+ function names to instructions"
+    )]
     fn compile_unary_function(&mut self, func_name: &InternedSymbol) -> Result<(), DiffError> {
         let id = func_name.id();
         let ks = &*KS;

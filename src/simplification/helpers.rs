@@ -6,9 +6,11 @@
 use crate::core::known_symbols as ks;
 use crate::core::traits::EPSILON;
 use crate::{Expr, ExprKind};
+use std::f64::consts::PI;
 use std::sync::Arc;
 
-// Floating point approx equality used for numeric pattern matching
+/// Floating point approximate equality used for numeric pattern matching
+/// in simplification rules. Uses epsilon tolerance for safe float comparison.
 #[inline]
 pub fn approx_eq(a: f64, b: f64) -> bool {
     (a - b).abs() < EPSILON
@@ -25,8 +27,8 @@ pub const fn get_numeric_value(expr: &Expr) -> Option<f64> {
     }
 }
 
-// Trigonometric helpers
-use std::f64::consts::PI;
+/// Check if expression represents a multiple of 2π.
+/// Used for trigonometric simplifications (sin(x + 2πk) = sin(x)).
 pub fn is_multiple_of_two_pi(expr: &Expr) -> bool {
     if let ExprKind::Number(n) = &expr.kind {
         // Fix: If n is too large, we lose fractional precision,
@@ -60,6 +62,8 @@ pub fn is_multiple_of_two_pi(expr: &Expr) -> bool {
     false
 }
 
+/// Check if expression represents π.
+/// Used for trigonometric exact value simplifications.
 pub fn is_pi(expr: &Expr) -> bool {
     // Check numeric pi
     if let ExprKind::Number(n) = &expr.kind {
@@ -72,6 +76,8 @@ pub fn is_pi(expr: &Expr) -> bool {
     false
 }
 
+/// Check if expression represents 3π/2.
+/// Used for trigonometric exact value simplifications.
 pub fn is_three_pi_over_two(expr: &Expr) -> bool {
     // Check numeric 3π/2
     if let ExprKind::Number(n) = &expr.kind {
@@ -115,6 +121,11 @@ pub fn is_three_pi_over_two(expr: &Expr) -> bool {
 /// - Numbers (coefficients) first: 2*x not x*2  
 /// - Then symbols alphabetically
 /// - Then more complex expressions
+///
+/// Compare expressions for canonical ordering in simplification.
+///
+/// Used to establish a consistent term order in sums and products
+/// for algebraic simplification rules.
 pub fn compare_expr(a: &Expr, b: &Expr) -> std::cmp::Ordering {
     use crate::ExprKind::{Derivative, Div, FunctionCall, Number, Poly, Pow, Product, Sum, Symbol};
     use std::cmp::Ordering;
@@ -184,6 +195,8 @@ pub fn compare_expr(a: &Expr, b: &Expr) -> std::cmp::Ordering {
 
 /// Compare expressions for multiplication factor ordering
 /// Numbers (coefficients) come first, then symbols, then complex expressions
+/// Compare multiplication factors for canonical ordering.
+/// Used for organizing terms in products during simplification.
 pub fn compare_mul_factors(a: &Expr, b: &Expr) -> std::cmp::Ordering {
     use crate::ExprKind::{Derivative, Div, FunctionCall, Number, Poly, Pow, Product, Sum, Symbol};
     use std::cmp::Ordering;
@@ -223,6 +236,9 @@ pub fn compare_mul_factors(a: &Expr, b: &Expr) -> std::cmp::Ordering {
 /// Returns (coefficient, `base_expr`)
 /// e.g. 2*x -> (2.0, x)
 ///      x   -> (1.0, x)
+/// Extract numeric coefficient from expression.
+/// Returns (coefficient, `remaining_expression`).
+/// Used for like-term collection in algebraic simplification.
 pub fn extract_coeff(expr: &Expr) -> (f64, Expr) {
     match &expr.kind {
         ExprKind::Number(n) => (*n, Expr::number(1.0)),
@@ -263,6 +279,8 @@ pub fn extract_coeff(expr: &Expr) -> (f64, Expr) {
 /// Helper to extract coefficient and base, returning Arc to avoid deep cloning
 /// Returns (coefficient, Arc<`base_expr`>)
 #[inline]
+/// Arc version of `extract_coeff` for performance.
+/// Used in simplification rules that work with Arc<Expr>.
 pub fn extract_coeff_arc(expr: &Expr) -> (f64, Arc<Expr>) {
     match &expr.kind {
         ExprKind::Number(n) => (*n, Arc::new(Expr::number(1.0))),
@@ -296,6 +314,8 @@ pub fn extract_coeff_arc(expr: &Expr) -> (f64, Arc<Expr>) {
 /// x^(1/2) -> sqrt(x)
 /// x^(1/3) -> cbrt(x)
 /// Optimized: only allocates when transformation occurs
+/// Transform fractional exponents to root notation for readability.
+/// Used for final expression formatting in simplification.
 pub fn prettify_roots(expr: Expr) -> Expr {
     match &expr.kind {
         ExprKind::Pow(base, exp) => {
@@ -412,6 +432,8 @@ pub fn prettify_roots(expr: Expr) -> Expr {
 
 /// Check if an expression is known to be non-negative for all real values of its variables.
 /// This is a conservative check - returns true only when we can prove non-negativity.
+/// Check if expression is known to be non-negative.
+/// Used for safe square root and absolute value simplifications.
 pub fn is_known_non_negative(expr: &Expr) -> bool {
     match &expr.kind {
         // Positive numbers
@@ -476,6 +498,8 @@ pub fn is_known_non_negative(expr: &Expr) -> bool {
 
 /// Check if an exponent represents a fractional power that requires non-negative base
 /// (i.e., exponents like 1/2, 1/4, 3/2, etc. where denominator is even)
+/// Check if expression represents a fractional root exponent.
+/// Used for power rule simplifications like (x^(1/2))^2 = x.
 pub fn is_fractional_root_exponent(expr: &Expr) -> bool {
     match &expr.kind {
         // Direct fraction: 1/2, 1/4, 3/4, etc.
@@ -512,6 +536,8 @@ pub fn is_fractional_root_exponent(expr: &Expr) -> bool {
     }
 }
 
+// Compute greatest common divisor using Euclid's algorithm.
+/// Used for rational number simplification in algebraic rules.
 pub const fn gcd(a: i64, b: i64) -> i64 {
     let mut a = a.unsigned_abs();
     let mut b = b.unsigned_abs();
@@ -536,6 +562,9 @@ pub const fn gcd(a: i64, b: i64) -> i64 {
 /// 2. Uses `wrapping_add` for commutative operations (Sum, Product), ensuring
 ///    order-independence (a+b = b+a) without sorting or allocations.
 /// 3. Uses `InternedSymbol::id()` (u64) directly, avoiding string hashing.
+///
+/// Compute hash for expression term grouping.
+/// Used for efficient like-term collection in algebraic simplification.
 #[inline]
 pub fn get_term_hash(expr: &Expr) -> u64 {
     // FNV-1a constants
@@ -664,6 +693,8 @@ pub fn get_term_hash(expr: &Expr) -> u64 {
 
 /// Normalize an expression to canonical form for comparison purposes.
 /// This ensures that semantically equivalent expressions compare as equal.
+/// Normalize expression for structural comparison.
+/// Used to determine if two expressions are equivalent modulo ordering.
 pub fn normalize_for_comparison(expr: &Expr) -> Expr {
     // Early exit for leaf nodes - just clone, no transformation needed
     match &expr.kind {
@@ -755,6 +786,8 @@ pub fn normalize_for_comparison(expr: &Expr) -> Expr {
 }
 
 /// Check if two expressions are semantically equivalent (same after normalization)
+/// Check if two expressions are structurally equivalent.
+/// Used for testing and validation in simplification rules.
 pub fn exprs_equivalent(a: &Expr, b: &Expr) -> bool {
     normalize_for_comparison(a) == normalize_for_comparison(b)
 }

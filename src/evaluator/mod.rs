@@ -473,8 +473,9 @@ impl CompiledEvaluator {
 
             // Pattern: LoadConst(0), Add → NOP (remove)
             if let (Instruction::LoadConst(idx), Instruction::Add) =
-                (instructions[i], instructions[i+1]) {
-                 if constants[idx as usize] == 0.0 {
+                (instructions[i], instructions[i + 1])
+            {
+                if constants[idx as usize] == 0.0 {
                     instructions.remove(i);
                     instructions.remove(i); // i+1 becomes i after first removal
                     continue;
@@ -547,7 +548,10 @@ impl CompiledEvaluator {
                     if val != 0.0 {
                         // x / C = x * (1/C)
                         let inv_val = 1.0 / val;
-                        #[allow(clippy::cast_possible_truncation, reason = "Constant pool index safe")]
+                        #[allow(
+                            clippy::cast_possible_truncation,
+                            reason = "Constant pool index safe"
+                        )]
                         let new_idx = constants.len() as u32;
                         constants.push(inv_val);
                         instructions[i] = Instruction::MulConst(new_idx);
@@ -664,7 +668,8 @@ impl CompiledEvaluator {
 
         while i < instructions.len() {
             if i + 2 < instructions.len() {
-                let match_result = match (instructions[i], instructions[i + 1], instructions[i + 2]) {
+                let match_result = match (instructions[i], instructions[i + 1], instructions[i + 2])
+                {
                     (Instruction::Mul, load_instr, Instruction::Add)
                         if matches!(
                             load_instr,

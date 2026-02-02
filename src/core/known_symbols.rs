@@ -3,7 +3,7 @@
 //! This module provides lazily-initialized symbol IDs for common function names.
 //! Comparison is O(1) - just a u64 integer comparison.
 
-use crate::core::symbol::{lookup_by_id, symb_interned, InternedSymbol};
+use crate::core::symbol::{InternedSymbol, lookup_by_id, symb_interned};
 use std::sync::LazyLock;
 
 /// Get the ID for an interned symbol (helper for the macro)
@@ -175,12 +175,17 @@ impl KnownSymbols {
 pub static KS: LazyLock<KnownSymbols> = LazyLock::new(KnownSymbols::new);
 
 /// Get the `InternedSymbol` for a known function by its ID.
+///
+/// This is an internal function for the function registry system.
+/// External users should use the symbol management functions in the main API.
 #[inline]
 pub fn get_interned(id: u64) -> InternedSymbol {
     lookup_by_id(id).expect("Known symbol ID not found in registry")
 }
 
 /// Compatibility wrapper for `get_interned`.
+///
+/// Internal function for backward compatibility.
 #[inline]
 pub fn get_symbol(id: u64) -> InternedSymbol {
     get_interned(id)

@@ -86,7 +86,8 @@ impl Expr {
 
                 // Check Registry (built-in functions like sin, cos, etc.)
                 if let Some(def) = crate::functions::registry::Registry::get_by_symbol(name)
-                    && def.validate_arity(args.len()) {
+                    && def.validate_arity(args.len())
+                {
                     let arg_primes: Vec<Self> =
                         args.iter().map(|arg| arg.derive(var, Some(ctx))).collect();
                     return (def.derivative)(args, &arg_primes);
@@ -181,14 +182,15 @@ impl Expr {
                         let prime = factor.derive(var, Some(ctx));
                         if !prime.is_zero_num() {
                             // term = f' / f
-                            log_terms.push(Self::div_from_arcs(Arc::new(prime), Arc::clone(factor)));
+                            log_terms
+                                .push(Self::div_from_arcs(Arc::new(prime), Arc::clone(factor)));
                         }
                     }
-                    
+
                     if log_terms.is_empty() {
                         return Self::number(0.0);
                     }
-                    
+
                     // Result = self * sum(f'/f)
                     let sum_log = Self::sum(log_terms);
                     return Self::mul_expr(self.clone(), sum_log);

@@ -429,9 +429,20 @@ impl CompiledEvaluator {
     /// * `cache` - Pre-allocated CSE cache buffer (must have `cache_size` elements)
     ///   Evaluate using heap-allocated buffers. For internal and advanced use.
     #[inline]
-    #[allow(clippy::too_many_lines, reason = "Large match statement for instruction dispatch")]
-    #[allow(clippy::undocumented_unsafe_blocks, reason = "Stack operations are validated at compile time.")]
-    pub(crate) fn evaluate_heap(&self, params: &[f64], stack: &mut Vec<f64>, cache: &mut [f64]) -> f64 {
+    #[allow(
+        clippy::too_many_lines,
+        reason = "Large match statement for instruction dispatch"
+    )]
+    #[allow(
+        clippy::undocumented_unsafe_blocks,
+        reason = "Stack operations are validated at compile time."
+    )]
+    pub(crate) fn evaluate_heap(
+        &self,
+        params: &[f64],
+        stack: &mut Vec<f64>,
+        cache: &mut [f64],
+    ) -> f64 {
         stack.clear();
 
         let constants = &self.constants;
@@ -954,7 +965,8 @@ impl CompiledEvaluator {
                                 reason = "Bessel order is always a small integer"
                             )]
                             let m_int = m.round() as i32;
-                            *l = crate::math::eval_assoc_legendre(l_int, m_int, x).unwrap_or(f64::NAN);
+                            *l = crate::math::eval_assoc_legendre(l_int, m_int, x)
+                                .unwrap_or(f64::NAN);
                         }
 
                         // Four-argument functions
@@ -981,7 +993,9 @@ impl CompiledEvaluator {
                                 .unwrap_or(f64::NAN);
                         }
                         // CSE instructions should be handled by caller
-                        Instruction::Dup | Instruction::StoreCached(_) | Instruction::LoadCached(_) => {
+                        Instruction::Dup
+                        | Instruction::StoreCached(_)
+                        | Instruction::LoadCached(_) => {
                             // These are handled in the main evaluation loop with cache access
                             debug_assert!(false, "CSE instructions should be handled by caller");
                         }
@@ -992,5 +1006,3 @@ impl CompiledEvaluator {
         stack.pop().unwrap_or(f64::NAN)
     }
 }
-
-

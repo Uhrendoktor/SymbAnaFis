@@ -97,14 +97,14 @@ impl PyContext {
         body_callback: Option<Py<PyAny>>,
         partials: Option<Vec<Py<PyAny>>>,
     ) -> PyResult<PyRefMut<'_, Self>> {
-        use crate::core::unified_context::UserFunction;
+        use crate::core::unified_context::{BodyFn, UserFunction};
         use std::sync::Arc;
 
         let mut user_fn = UserFunction::new(arity..=arity);
 
         // Handle optional body function
         if let Some(callback) = body_callback {
-            let body_fn: crate::BodyFn = Arc::new(move |args: &[Arc<RustExpr>]| -> RustExpr {
+            let body_fn: BodyFn = Arc::new(move |args: &[Arc<RustExpr>]| -> RustExpr {
                 Python::attach(|py| {
                     let py_args: Vec<super::expr::PyExpr> = args
                         .iter()

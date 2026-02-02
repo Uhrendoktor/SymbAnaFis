@@ -288,7 +288,11 @@ fn test_eval_batch_neg_muladd() {
     let eval = CompiledEvaluator::compile(&expr, &["x", "y", "z"], None).expect("Should compile");
 
     // Ensure NegMulAdd was actually emitted
-    assert!(eval.instructions.iter().any(|i| matches!(i, Instruction::NegMulAdd)));
+    assert!(
+        eval.instructions
+            .iter()
+            .any(|i| matches!(i, Instruction::NegMulAdd))
+    );
 
     let x_vals = vec![1.0, 2.0, 3.0, 4.0];
     let y_vals = vec![2.0, 3.0, 4.0, 5.0];
@@ -296,7 +300,8 @@ fn test_eval_batch_neg_muladd() {
     let columns: Vec<&[f64]> = vec![&x_vals, &y_vals, &z_vals];
     let mut output = vec![0.0; 4];
 
-    eval.eval_batch(&columns, &mut output, None).expect("Should pass");
+    eval.eval_batch(&columns, &mut output, None)
+        .expect("Should pass");
 
     for i in 0..4 {
         let expected = (-x_vals[i]).mul_add(y_vals[i], z_vals[i]);
@@ -311,7 +316,11 @@ fn test_eval_batch_mulsub() {
     let eval = CompiledEvaluator::compile(&expr, &["x", "y", "z"], None).expect("Should compile");
 
     // Ensure MulSub was actually emitted (fused by optimize_instructions or compiler)
-    assert!(eval.instructions.iter().any(|i| matches!(i, Instruction::MulSub)));
+    assert!(
+        eval.instructions
+            .iter()
+            .any(|i| matches!(i, Instruction::MulSub))
+    );
 
     let x_vals = vec![1.0, 2.0, 3.0, 4.0];
     let y_vals = vec![2.0, 3.0, 4.0, 5.0];
@@ -319,7 +328,8 @@ fn test_eval_batch_mulsub() {
     let columns: Vec<&[f64]> = vec![&x_vals, &y_vals, &z_vals];
     let mut output = vec![0.0; 4];
 
-    eval.eval_batch(&columns, &mut output, None).expect("Should pass");
+    eval.eval_batch(&columns, &mut output, None)
+        .expect("Should pass");
 
     for i in 0..4 {
         let expected = x_vals[i].mul_add(y_vals[i], -z_vals[i]);

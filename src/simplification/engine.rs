@@ -5,9 +5,102 @@
 
 use super::rules::{ExprKind, RuleContext, RuleRegistry};
 use crate::{Expr, ExprKind as AstKind};
+use rustc_hash::FxHashMap;
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, OnceLock};
 use std::time::{Duration, Instant};
+
+// =============================================================================
+// HASH-KEYED CACHE - Avoids Arc cloning on cache lookups
+// =============================================================================
+
+/// A cache entry that stores the original expression and its cached result.
+/// Used to handle hash collisions via structural equality comparison.
+struct CacheEntry {
+    /// The original expression (for collision detection)
+    key_expr: Arc<Expr>,
+    /// The cached result: Some(transformed) or None (no transformation)
+    result: Option<Arc<Expr>>,
+}
+
+/// Hash-keyed cache for rule results.
+///
+/// Uses the expression's pre-computed structural hash as the primary key,
+/// with a small vector to handle collisions. This avoids Arc cloning on
+/// every cache lookup (the hot path), only cloning when inserting new entries.
+///
+/// Performance characteristics:
+/// - Lookup (cache hit, no collision): O(1) hash lookup, 0 Arc clones
+/// - Lookup (cache hit, with collision): O(k) where k = collision chain length
+/// - Insert: 1 Arc clone for `key_expr`, 0-1 for result
+struct HashKeyedCache {
+    /// Maps expression hash -> collision chain of (expr, result) pairs
+    /// In practice, collision chains are almost always length 1.
+    entries: FxHashMap<u64, Vec<CacheEntry>>,
+    /// Total number of cached entries (across all chains)
+    len: usize,
+}
+
+impl HashKeyedCache {
+    fn new() -> Self {
+        Self {
+            entries: FxHashMap::default(),
+            len: 0,
+        }
+    }
+
+    /// Look up a cached result by expression.
+    /// Returns Some(&result) if found, None if not cached.
+    ///
+    /// This is the hot path - avoids Arc cloning by using hash lookup first.
+    #[inline]
+    fn get(&self, expr: &Arc<Expr>) -> Option<&Option<Arc<Expr>>> {
+        let hash = expr.structural_hash();
+        if let Some(chain) = self.entries.get(&hash) {
+            // Check collision chain - usually length 1
+            for entry in chain {
+                // Compare by pointer first (very fast), then structural equality
+                if Arc::ptr_eq(&entry.key_expr, expr) || *entry.key_expr == **expr {
+                    return Some(&entry.result);
+                }
+            }
+        }
+        None
+    }
+
+    /// Insert a cache entry.
+    /// Only clones the Arc when actually inserting (not on lookups).
+    #[inline]
+    fn insert(&mut self, expr: Arc<Expr>, result: Option<Arc<Expr>>) {
+        let hash = expr.structural_hash();
+        let chain = self.entries.entry(hash).or_default();
+
+        // Check if already exists (update in place)
+        for entry in chain.iter_mut() {
+            if Arc::ptr_eq(&entry.key_expr, &expr) || *entry.key_expr == *expr {
+                entry.result = result;
+                return;
+            }
+        }
+
+        // New entry
+        chain.push(CacheEntry {
+            key_expr: expr,
+            result,
+        });
+        self.len += 1;
+    }
+
+    #[inline]
+    const fn len(&self) -> usize {
+        self.len
+    }
+
+    fn clear(&mut self) {
+        self.entries.clear();
+        self.len = 0;
+    }
+}
 
 /// Macro for trace logging (opt-in via `SYMB_TRACE=1` env var).
 /// Silent by default - only outputs when explicitly requested.
@@ -48,13 +141,9 @@ pub fn global_registry() -> &'static RuleRegistry {
 
 /// Main simplification engine with rule-based architecture
 pub struct Simplifier {
-    /// Per-rule caches - cleared when exceeding capacity to bound memory
-    /// Uses &'static str keys since rule names are guaranteed to be static
-    ///
-    /// Key change (Phase 7 fix): Uses `Arc<Expr>` instead of `u64` hash.
-    /// While `Expr` uses its internal hash for fast lookups, storing the `Arc`
-    /// ensures `HashMap` handles collisions correctly via structural equality check.
-    rule_caches: HashMap<&'static str, HashMap<Arc<Expr>, Option<Arc<Expr>>>>,
+    /// Per-rule caches using hash-keyed storage for O(1) lookups without Arc cloning.
+    /// Uses &'static str keys since rule names are guaranteed to be static.
+    rule_caches: FxHashMap<&'static str, HashKeyedCache>,
     cache_capacity: usize,
     max_iterations: usize,
     max_depth: usize,
@@ -73,7 +162,7 @@ impl Simplifier {
     pub fn new() -> Self {
         // Use global registry instead of rebuilding each time
         Self {
-            rule_caches: HashMap::new(),
+            rule_caches: FxHashMap::default(),
             cache_capacity: DEFAULT_CACHE_CAPACITY,
             max_iterations: 1000,
             max_depth: 50,
@@ -283,10 +372,12 @@ impl Simplifier {
                 }
 
                 let rule_name = $rule.name();
-                // Removed original_id usage - we use the expression itself as key
 
-                // Check per-rule cache
-                let cache = self.rule_caches.entry(rule_name).or_default();
+                // Check per-rule cache (hash-keyed for zero Arc clones on lookup)
+                let cache = self
+                    .rule_caches
+                    .entry(rule_name)
+                    .or_insert_with(HashKeyedCache::new);
                 if let Some(res) = cache.get(&current) {
                     if let Some(new_expr) = res {
                         current = Arc::clone(new_expr);
@@ -295,7 +386,7 @@ impl Simplifier {
                     continue;
                 }
 
-                // Check memory limit validation for cache? (Moved inside to be safe)
+                // Check memory limit - clear if exceeded
                 if cache.len() >= self.cache_capacity {
                     cache.clear();
                 }

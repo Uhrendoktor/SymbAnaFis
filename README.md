@@ -57,15 +57,15 @@ cargo add symb_anafis
 import symb_anafis
 
 # Differentiate complex expressions
-result = symb_anafis.diff("x^3 + sin(x)", "x")
+result = symb_anafis.diff("x^3 + sin(x)", "x", [], None)
 # → "3*x^2 + cos(x)"
 
 # Algebraic Simplification
-result = symb_anafis.simplify("sin(x)^2 + cos(x)^2")
+result = symb_anafis.simplify("sin(x)^2 + cos(x)^2", [], None)
 # → "1"
 
 # Handle constants automatically
-result = symb_anafis.diff("a*x^2", "x", known_symbols=["a"])
+result = symb_anafis.diff("a*x^2", "x", ["a"], None)
 # → "2*a*x"
 ```
 
@@ -76,7 +76,7 @@ use symb_anafis::{diff, simplify, symb};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // String API for ease of use
-    let result = diff("sin(x) * x", "x", None, None)?;
+    let result = diff("sin(x) * x", "x", &[], None)?;
     println!("{result}");  // cos(x)*x + sin(x)
 
     // Type-safe API (Symbol is Copy - no clone needed!)
@@ -98,10 +98,13 @@ Use the Builder pattern to configure safety limits and behavior.
 ```rust
 use symb_anafis::{Diff, Simplify};
 
+```rust
+use symb_anafis::{Diff, Simplify};
+
 Diff::new()
     .domain_safe(true)     // Prevent unsafe simplifications (e.g., x/x != 1 if x=0)
     .max_depth(200)        // Prevent stack overflows on massive expressions
-    .diff_str("sqrt(x^2)", "x")?; // Result: abs(x)/x
+    .diff_str("sqrt(x^2)", "x", &[])?; // Result: abs(x)
 ```
 
 ### 📉 Uncertainty Propagation
@@ -119,8 +122,21 @@ let sigma = uncertainty_propagation(&expr, &["x", "y"], None)?;
 Evaluate expressions over large datasets in parallel (requires `parallel` feature).
 
 ```rust
-// Evaluate symbolic expressions across thousands of data points efficiently
-let results = evaluate_parallel(&inputs, &data);
+// Requires: symb_anafis = { features = ["parallel"] }
+use symb_anafis::{eval_parallel, symb};
+
+let x = symb("x");
+let expr = x.pow(2.0);
+
+// Clean macro syntax for parallel evaluation
+let results = eval_parallel!(
+    exprs: ["x + y", expr],
+    vars: [["x", "y"], ["x"]],
+    values: [
+        [[1.0, 2.0], [3.0, 4.0]],
+        [[1.0, 2.0, 3.0]]
+    ]
+).unwrap();
 ```
 
 ### 🛠️ Custom Functions
@@ -132,9 +148,10 @@ use symb_anafis::{Diff, UserFunction};
 Diff::new()
     .user_fn("f", UserFunction::new(1..=1).partial(0, |args| {
         // Define ∂f/∂u = 2u for f(u)
-        2.0 * args[0].clone()
-    }))
-    .diff_str("f(x^2)", "x")?; // → 4*x^3
+        // Clone the Arc (cheap), then multiply
+        2.0 * args[0].clone()  
+    }).unwrap())
+    .diff_str("f(x^2)", "x", &[])?; // → 4*x
 ```
 
 ## Supported Functions

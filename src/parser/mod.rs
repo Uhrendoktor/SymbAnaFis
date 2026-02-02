@@ -55,18 +55,24 @@ pub fn parse<S: std::hash::BuildHasher + Clone>(
     custom_functions: &HashSet<String, S>,
     context: Option<&crate::core::unified_context::Context>,
 ) -> Result<Expr, DiffError> {
-    let symbols_buf = context.map_or_else(|| None, |ctx| {
-        let mut buf = known_symbols.clone();
-        buf.extend(ctx.symbol_names());
-        Some(buf)
-    });
+    let symbols_buf = context.map_or_else(
+        || None,
+        |ctx| {
+            let mut buf = known_symbols.clone();
+            buf.extend(ctx.symbol_names());
+            Some(buf)
+        },
+    );
     let symbols_ref = symbols_buf.as_ref().unwrap_or(known_symbols);
 
-    let functions_buf = context.map_or_else(|| None, |ctx| {
-        let mut buf = custom_functions.clone();
-        buf.extend(ctx.function_names());
-        Some(buf)
-    });
+    let functions_buf = context.map_or_else(
+        || None,
+        |ctx| {
+            let mut buf = custom_functions.clone();
+            buf.extend(ctx.function_names());
+            Some(buf)
+        },
+    );
     let functions_ref = functions_buf.as_ref().unwrap_or(custom_functions);
 
     // Pipeline: validate -> balance -> lex -> implicit_mul -> parse
@@ -83,8 +89,7 @@ pub fn parse<S: std::hash::BuildHasher + Clone>(
     let tokens = lexer::lex(&balanced, symbols_ref, functions_ref)?;
 
     // Step 4: Insert implicit multiplication
-    let tokens_with_mul =
-        implicit_mul::insert_implicit_multiplication(tokens, functions_ref);
+    let tokens_with_mul = implicit_mul::insert_implicit_multiplication(tokens, functions_ref);
 
     // Step 5: Build AST
     pratt::parse_expression(&tokens_with_mul, context)

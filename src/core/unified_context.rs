@@ -341,8 +341,8 @@ impl Context {
         let symbol = crate::core::symbol::registry::symb_new_isolated(name);
 
         // We need to get the InternedSymbol to store in the context's local map.
-        let interned =
-            crate::core::symbol::lookup_by_id(symbol.id()).expect("Symbol just created should exist");
+        let interned = crate::core::symbol::lookup_by_id(symbol.id())
+            .expect("Symbol just created should exist");
 
         inner.symbols.insert(name.to_owned(), interned);
 

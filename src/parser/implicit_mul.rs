@@ -117,10 +117,7 @@ mod tests {
 
     #[test]
     fn test_identifier_identifier() {
-        let tokens = vec![
-            Token::Identifier("a".into()),
-            Token::Identifier("x".into()),
-        ];
+        let tokens = vec![Token::Identifier("a".into()), Token::Identifier("x".into())];
         let result = insert_implicit_multiplication(tokens, &HashSet::new());
         assert_eq!(result.len(), 3);
         assert!(matches!(result[1], Token::Operator(Operator::Mul)));

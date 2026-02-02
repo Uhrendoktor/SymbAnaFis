@@ -10,6 +10,8 @@
 //!
 //! # Example
 //! ```rust
+//! # #[cfg(feature = "parallel")]
+//! # {
 //! use symb_anafis::{eval_parallel, symb};
 //! use symb_anafis::parallel::SKIP;
 //!
@@ -24,6 +26,7 @@
 //!         [[1.0, 2.0, 3.0]]
 //!     ]
 //! );
+//! # }
 //! ```
 
 use crate::{DiffError, Expr, parser};
@@ -667,6 +670,8 @@ macro_rules! __parse_values_inner {
 ///
 /// # Example
 /// ```rust
+/// # #[cfg(feature = "parallel")]
+/// # {
 /// use symb_anafis::{eval_parallel, symb};
 /// use symb_anafis::parallel::SKIP;
 ///
@@ -684,6 +689,7 @@ macro_rules! __parse_values_inner {
 ///
 /// // results[0] is Vec<EvalResult::String>
 /// // results[1] is Vec<EvalResult::Expr>
+/// # }
 /// ```
 #[macro_export]
 macro_rules! eval_parallel {

@@ -31,9 +31,12 @@ pub mod registry;
 // Re-exports
 pub use interned::InternedSymbol;
 pub use registry::{
-    clear_symbols, lookup_by_id, remove_symbol, symb, symb_get, symb_interned, symb_new,
-    symbol_count, symbol_exists, symbol_names,
+    clear_symbols, remove_symbol, symb, symb_get, symb_new, symbol_count, symbol_exists,
+    symbol_names,
 };
+
+// Internal re-exports for crate use only
+pub use registry::{lookup_by_id, symb_interned};
 
 use std::sync::Arc;
 
@@ -42,7 +45,7 @@ use slotmap::{DefaultKey, Key};
 use crate::Expr;
 use crate::core::known_symbols as ks;
 
-// Re-export ArcExprExt from operators
+// Re-export ArcExprExt for public use with Arc<Expr>
 pub use operators::ArcExprExt;
 
 // ============================================================================

@@ -108,6 +108,9 @@ static REGISTRY: std::sync::LazyLock<SymbolRegistry> =
 thread_local! {
     // Thread-local cache to avoid global lock contention on frequently accessed symbols
     static ID_CACHE: std::cell::RefCell<FxHashMap<DefaultKey, InternedSymbol>> = std::cell::RefCell::new(FxHashMap::default());
+
+    // Thread-local cache for name → Symbol lookups (hot path in parsing/construction)
+    static NAME_CACHE: std::cell::RefCell<FxHashMap<String, Symbol>> = std::cell::RefCell::new(FxHashMap::default());
 }
 
 /// Look up `InternedSymbol` by its u64 ID.
@@ -215,6 +218,12 @@ pub fn symbol_exists(name: &str) -> bool {
 /// Panics if any global registry lock is poisoned.
 #[must_use]
 pub fn symb(name: &str) -> Symbol {
+    // Fast path: check TLS cache first (no locks, no allocations for common symbols)
+    if let Some(sym) = NAME_CACHE.with(|cache| cache.borrow().get(name).copied()) {
+        return sym;
+    }
+
+    // Slow path: acquire shard lock
     let shard_lock = REGISTRY.get_shard(name);
     let mut shard = shard_lock
         .lock()
@@ -222,7 +231,13 @@ pub fn symb(name: &str) -> Symbol {
 
     // Check if the symbol already exists.
     if let Some(&key) = shard.name_to_symbol_key.get(name) {
-        return Symbol(key);
+        let sym = Symbol(key);
+        // Populate TLS cache for future lookups
+        drop(shard); // Release lock before TLS operation
+        NAME_CACHE.with(|cache| {
+            cache.borrow_mut().insert(name.to_owned(), sym);
+        });
+        return sym;
     }
 
     // If not, create it.
@@ -234,7 +249,12 @@ pub fn symb(name: &str) -> Symbol {
     shard.name_to_symbol_key.insert(name.to_owned(), key);
     drop(shard);
 
-    Symbol(key)
+    let sym = Symbol(key);
+    // Populate TLS cache
+    NAME_CACHE.with(|cache| {
+        cache.borrow_mut().insert(name.to_owned(), sym);
+    });
+    sym
 }
 
 /// Get or create an interned symbol
@@ -278,6 +298,10 @@ pub fn remove_symbol(name: &str) -> bool {
 ///
 /// Panics if any global registry lock is poisoned.
 pub fn clear_symbols() {
+    // Clear TLS caches first
+    ID_CACHE.with(|cache| cache.borrow_mut().clear());
+    NAME_CACHE.with(|cache| cache.borrow_mut().clear());
+
     for shard_lock in &REGISTRY.shards {
         let mut shard = shard_lock
             .lock()

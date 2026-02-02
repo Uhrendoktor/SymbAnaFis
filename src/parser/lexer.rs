@@ -191,7 +191,7 @@ fn parse_number(s: &str) -> Result<f64, DiffError> {
 enum RawToken<'src> {
     Number(f64),
     Sequence(Cow<'src, str>),   // Multi-char sequence to be resolved
-    Operator(char),     // Single-char operator: +, *, ^
+    Operator(char),             // Single-char operator: +, *, ^
     Derivative(Cow<'src, str>), // Derivative notation starting with ∂
     LeftParen,
     RightParen,
@@ -203,7 +203,10 @@ enum RawToken<'src> {
 ///
 /// This handles complex derivative notation like: ∂_f(x+y)/∂_x
 /// by tracking parenthesis depth to ensure balanced expressions.
-#[allow(clippy::string_slice, reason = "Slicing is safe because len is calculated from utf8 lengths")]
+#[allow(
+    clippy::string_slice,
+    reason = "Slicing is safe because len is calculated from utf8 lengths"
+)]
 fn scan_derivative_notation(input: &str) -> Result<&str, DiffError> {
     let mut chars = input.chars().peekable();
     let mut len = 0;
@@ -482,7 +485,7 @@ pub fn lex<'src, S: std::hash::BuildHasher>(
             RawToken::Sequence(seq) => {
                 let next_is_paren =
                     i + 1 < raw_tokens.len() && matches!(raw_tokens[i + 1], RawToken::LeftParen);
-                
+
                 // seq is Cow::Borrowed from input (guaranteed by scan_characters)
                 let s = match seq {
                     Cow::Borrowed(s) => s,
@@ -515,7 +518,10 @@ pub fn lex<'src, S: std::hash::BuildHasher>(
 /// but introduces potential ambiguity. Users can resolve ambiguity by:
 /// - Declaring multi-char variables in `fixed_vars`
 /// - Using explicit multiplication: `x*sin(y)`
-#[allow(clippy::string_slice, reason = "Slicing by char indices yields valid UTF-8 sequences")]
+#[allow(
+    clippy::string_slice,
+    reason = "Slicing by char indices yields valid UTF-8 sequences"
+)]
 fn resolve_sequence<'src, S: std::hash::BuildHasher>(
     seq: &'src str,
     fixed_vars: &HashSet<String, S>,
@@ -570,13 +576,7 @@ fn resolve_sequence<'src, S: std::hash::BuildHasher>(
                 let before = seq.get(0..split_idx).expect("Checked suffix boundaries");
 
                 // Recursively resolve the part before
-                resolve_sequence(
-                    before,
-                    fixed_vars,
-                    custom_functions,
-                    false,
-                    output,
-                );
+                resolve_sequence(before, fixed_vars, custom_functions, false, output);
 
                 // Add the built-in function
                 if let Some(op) = Operator::parse_str(builtin) {
@@ -702,10 +702,8 @@ fn parse_derivative_notation<'src, S: std::hash::BuildHasher>(
     let func_str = left_parts[1];
     let (func_name, args_tokens) = if let Some(open_paren) = func_str.find('(') {
         if func_str.ends_with(')') {
-            let name = func_str
-                .get(..open_paren)
-                .expect("Checked paren position");
-                // .to_owned(); // Changed to borrow
+            let name = func_str.get(..open_paren).expect("Checked paren position");
+            // .to_owned(); // Changed to borrow
             let args_body = func_str
                 .get(open_paren + 1..func_str.len() - 1)
                 .expect("Checked paren boundaries");

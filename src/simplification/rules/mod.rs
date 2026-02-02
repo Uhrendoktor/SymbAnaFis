@@ -16,7 +16,6 @@ use std::sync::Arc;
 /// - With targets: `rule!(Name, "name", priority, Category, &[ExprKind::...], targets: &["fn"], |expr, ctx| { ... })`
 /// - With `alters_domain`: `rule!(Name, "name", priority, Category, &[ExprKind::...], alters_domain: true, |expr, ctx| { ... })`
 /// - Both: `rule!(Name, "name", priority, Category, &[ExprKind::...], alters_domain: true, targets: &["fn"], |expr, ctx| { ... })`
-#[macro_export]
 macro_rules! rule {
     // Basic form
     ($name:ident, $rule_name:expr, $priority:expr, $category:ident, $applies_to:expr, $logic:expr) => {
@@ -138,7 +137,6 @@ macro_rules! rule {
 
 /// Macro to define a simplification rule that returns `Option<Arc<Expr>>` directly.
 /// This avoids unnecessary wrapping when the result is already an Arc.
-#[macro_export]
 macro_rules! rule_arc {
     // Basic form
     ($name:ident, $rule_name:expr, $priority:expr, $category:ident, $applies_to:expr, $logic:expr) => {
@@ -259,7 +257,6 @@ macro_rules! rule_arc {
 }
 
 /// Macro for rules with helpers that return `Option<Arc<Expr>>` directly
-#[macro_export]
 macro_rules! rule_with_helpers_arc {
     // Basic form
     ($name:ident, $rule_name:expr, $priority:expr, $category:ident, $applies_to:expr, helpers: { $($helper:item)* }, $logic:expr) => {
@@ -295,7 +292,6 @@ macro_rules! rule_with_helpers_arc {
 }
 
 /// Macro for rules with helpers that wrap result in Arc
-#[macro_export]
 macro_rules! rule_with_helpers {
     // Basic form
     ($name:ident, $rule_name:expr, $priority:expr, $category:ident, $applies_to:expr, helpers: { $($helper:item)* }, $logic:expr) => {

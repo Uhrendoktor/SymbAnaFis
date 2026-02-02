@@ -96,19 +96,28 @@ impl<T> MathScalar for T where
 // These functions provide safe floating-point comparisons to avoid
 // precision issues like `1.0/3.0 * 3.0 != 1.0`.
 
-/// Check if a float is approximately zero (within tolerance)
+/// Check if a floating point number is effectively 0.0
+///
+/// Uses a tolerance of `1e-15` for comparison.
+/// This is an internal utility function for algebraic simplification.
 #[inline]
 pub fn is_zero(n: f64) -> bool {
     n.abs() < EPSILON
 }
 
-/// Check if a float is approximately one (within tolerance)
+/// Check if a floating point number is effectively 1.0
+///
+/// Uses a tolerance of `1e-15` for comparison.
+/// This is an internal utility function for algebraic simplification.
 #[inline]
 pub fn is_one(n: f64) -> bool {
     (n - 1.0).abs() < EPSILON
 }
 
-/// Check if a float is approximately negative one (within tolerance)
+/// Check if a floating point number is effectively -1.0
+///
+/// Uses a tolerance of `1e-15` for comparison.
+/// This is an internal utility function for algebraic simplification.
 #[inline]
 pub fn is_neg_one(n: f64) -> bool {
     (n + 1.0).abs() < EPSILON

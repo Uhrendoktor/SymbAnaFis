@@ -1578,7 +1578,8 @@ impl CompiledEvaluator {
                     Instruction::Polygamma => {
                         let x = pop(stack, len);
                         let n = top_mut(stack, *len);
-                        *n = crate::math::eval_polygamma((*n).round() as i32, x).unwrap_or(f64::NAN);
+                        *n =
+                            crate::math::eval_polygamma((*n).round() as i32, x).unwrap_or(f64::NAN);
                     }
                     Instruction::Beta => {
                         let b = pop(stack, len);
@@ -1594,7 +1595,8 @@ impl CompiledEvaluator {
                     Instruction::ZetaDeriv => {
                         let s = pop(stack, len);
                         let n = top_mut(stack, *len);
-                        *n = crate::math::eval_zeta_deriv((*n).round() as i32, s).unwrap_or(f64::NAN);
+                        *n = crate::math::eval_zeta_deriv((*n).round() as i32, s)
+                            .unwrap_or(f64::NAN);
                     }
                     Instruction::Hermite => {
                         let x = pop(stack, len);
@@ -1605,14 +1607,25 @@ impl CompiledEvaluator {
                         let x = pop(stack, len);
                         let m = pop(stack, len);
                         let l = top_mut(stack, *len);
-                        *l = crate::math::eval_assoc_legendre((*l).round() as i32, m.round() as i32, x).unwrap_or(f64::NAN);
+                        *l = crate::math::eval_assoc_legendre(
+                            (*l).round() as i32,
+                            m.round() as i32,
+                            x,
+                        )
+                        .unwrap_or(f64::NAN);
                     }
                     Instruction::SphericalHarmonic => {
                         let phi = pop(stack, len);
                         let theta = pop(stack, len);
                         let m = pop(stack, len);
                         let l = top_mut(stack, *len);
-                        *l = crate::math::eval_spherical_harmonic((*l).round() as i32, m.round() as i32, theta, phi).unwrap_or(f64::NAN);
+                        *l = crate::math::eval_spherical_harmonic(
+                            (*l).round() as i32,
+                            m.round() as i32,
+                            theta,
+                            phi,
+                        )
+                        .unwrap_or(f64::NAN);
                     }
                     Instruction::Cbrt => {
                         let t = top_mut(stack, *len);
@@ -1637,7 +1650,10 @@ impl CompiledEvaluator {
                     _ => {
                         // All instructions should be handled above.
                         // If one is missing, return NaN and trigger debug_assert in dev.
-                        debug_assert!(false, "Unhandled instruction in exec_scalar_batch_instruction: {instr:?}");
+                        debug_assert!(
+                            false,
+                            "Unhandled instruction in exec_scalar_batch_instruction: {instr:?}"
+                        );
                         *top_mut(stack, *len) = f64::NAN;
                     }
                 }

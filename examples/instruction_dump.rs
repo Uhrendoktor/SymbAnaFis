@@ -101,8 +101,14 @@ fn main() {
         // Compile Simplified
         let compiled_simp = CompiledEvaluator::compile(&derivative_simp, &params, None).unwrap();
 
-        println!("Raw Instructions ({} total):", compiled_raw.instructions.len());
-        println!("Simplified Instructions ({} total):", compiled_simp.instructions.len());
+        println!(
+            "Raw Instructions ({} total):",
+            compiled_raw.instructions.len()
+        );
+        println!(
+            "Simplified Instructions ({} total):",
+            compiled_simp.instructions.len()
+        );
 
         println!("\n--- Simplified Instructions Details ---");
         for (i, instr) in compiled_simp.instructions.iter().enumerate() {

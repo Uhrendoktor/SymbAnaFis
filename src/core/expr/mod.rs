@@ -50,8 +50,8 @@ mod evaluate;
 mod hash;
 mod ordering;
 
-use std::hash::Hasher;
 use rustc_hash::FxHasher;
+use std::hash::Hasher;
 use std::ops::Deref;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
